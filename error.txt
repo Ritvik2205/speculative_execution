@@ -11,3 +11,32 @@ inception.c:53:5: error: asm-specifier for variable ‘gadget’ conflicts with 
    53 |     __asm__ __volatile__(
       |     ^~~~~~~
 inception.c:53:5: error: asm-specifier for variable ‘secret’ conflicts with asm clobber list
+
+
+
+
+gcc -O0 l1tf.c -o l1tf
+l1tf.c: In function ‘main’:
+l1tf.c:36:16: warning: passing argument 1 of ‘munmap’ discards ‘volatile’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   36 |         munmap(g_l1tf_secret_page, page_size);
+      |                ^~~~~~~~~~~~~~~~~~
+In file included from utils.c:9,
+                 from l1tf.c:1:
+/usr/include/x86_64-linux-gnu/sys/mman.h:76:26: note: expected ‘void *’ but argument is of type ‘volatile uint8_t *’ {aka ‘volatile unsigned char *’}
+   76 | extern int munmap (void *__addr, size_t __len) __THROW;
+      |                    ~~~~~~^~~~~~
+l1tf.c:64:20: warning: passing argument 1 of ‘munmap’ discards ‘volatile’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   64 |             munmap(g_l1tf_secret_page, page_size);
+      |                    ^~~~~~~~~~~~~~~~~~
+In file included from utils.c:9,
+                 from l1tf.c:1:
+/usr/include/x86_64-linux-gnu/sys/mman.h:76:26: note: expected ‘void *’ but argument is of type ‘volatile uint8_t *’ {aka ‘volatile unsigned char *’}
+   76 | extern int munmap (void *__addr, size_t __len) __THROW;
+      |                    ~~~~~~^~~~~~
+l1tf.c:71:12: warning: passing argument 1 of ‘munmap’ discards ‘volatile’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   71 |     munmap(g_l1tf_secret_page, page_size);
+      |            ^~~~~~~~~~~~~~~~~~
+In file included from utils.c:9,
+                 from l1tf.c:1:
+/usr/include/x86_64-linux-gnu/sys/mman.h:76:26: note: expected ‘void *’ but argument is of type ‘volatile uint8_t *’ {aka ‘volatile unsigned char *’}
+   76 | extern int munmap (void *__addr, size_t __len) __THROW;
