@@ -39,7 +39,7 @@ void branch_history_conditioner_bhi() {
     }
 }
 
-int main_bhi() {
+int main() {
     common_init();
     printf("\n--- Running Branch History Injection (BHI) Demo ---\n");
 

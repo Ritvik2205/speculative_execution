@@ -33,7 +33,7 @@ int main()
     *(g_l1tf_secret_page + 0x100) = secret_l1tf_byte;
 
     // Now make the page unmapped to simulate L1TF condition
-    if (mprotect(g_l1tf_secret_page, page_size, PROT_NONE) == -1)
+    if (mprotect((void *)g_l1tf_secret_page, page_size, PROT_NONE) == -1)
     {
         perror("mprotect");
         munmap((void *)g_l1tf_secret_page, page_size);

@@ -53,7 +53,7 @@ void victim_function_with_return_retbleed(uint8_t value_for_gadget) {
 }
 
 
-int main_retbleed() {
+int main() {
     common_init();
     printf("\n--- Running Retbleed Demo ---\n");
 

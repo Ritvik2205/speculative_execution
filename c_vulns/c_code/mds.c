@@ -14,7 +14,7 @@ void sigsegv_handler_mds(int sig)
     siglongjmp(jmpbuf_mds, 1);
 }
 
-int main_mds()
+int main()
 {
     common_init();
     printf("\n--- Running Microarchitectural Data Sampling (MDS) Demo ---\n");
