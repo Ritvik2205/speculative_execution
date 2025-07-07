@@ -1,0 +1,30 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     1_debug
+relocations:
+  - { offset: 0x2B12, size: 0x8, addend: 0x0, symName: __ZStL8__ioinit, symObjAddr: 0xB25E, symBinAddr: 0x100008018, symSize: 0x0 }
+  - { offset: 0x2C4A, size: 0x8, addend: 0x0, symName: _secret_data, symObjAddr: 0x5F0, symBinAddr: 0x100008000, symSize: 0x0 }
+  - { offset: 0x2C60, size: 0x8, addend: 0x0, symName: _public_array, symObjAddr: 0x5F8, symBinAddr: 0x100008008, symSize: 0x0 }
+  - { offset: 0x2C76, size: 0x8, addend: 0x0, symName: __ZL17PUBLIC_ARRAY_SIZE, symObjAddr: 0x5E8, symBinAddr: 0x100000EC0, symSize: 0x0 }
+  - { offset: 0x2C9B, size: 0x8, addend: 0x0, symName: _probe_array, symObjAddr: 0xB25F, symBinAddr: 0x100008019, symSize: 0x0 }
+  - { offset: 0x2DB7, size: 0x8, addend: 0x0, symName: __GLOBAL__sub_I_1.cpp, symObjAddr: 0x728, symBinAddr: 0x100000DAC, symSize: 0x14 }
+  - { offset: 0x2DCE, size: 0x8, addend: 0x0, symName: __Z41__static_initialization_and_destruction_0v, symObjAddr: 0x6EC, symBinAddr: 0x100000D70, symSize: 0x3C }
+  - { offset: 0x2DE5, size: 0x8, addend: 0x0, symName: __ZNSt6chrono20__duration_cast_implINS_8durationIxSt5ratioILl1ELl1000000000EEEES2_ILl1ELl1EExLb1ELb1EE6__castIxS3_EES4_RKNS1_IT_T0_EE, symObjAddr: 0x5B0, symBinAddr: 0x100000D40, symSize: 0x30 }
+  - { offset: 0x2E2A, size: 0x8, addend: 0x0, symName: __ZNSt6chronomiIxSt5ratioILl1ELl1000000000EExS2_EENSt11common_typeIJNS_8durationIT_T0_EENS4_IT1_T2_EEEE4typeERKS7_RKSA_, symObjAddr: 0x54C, symBinAddr: 0x100000CDC, symSize: 0x64 }
+  - { offset: 0x2E93, size: 0x8, addend: 0x0, symName: __ZNSt6chrono13duration_castINS_8durationIxSt5ratioILl1ELl1000000000EEEExS3_EENSt9enable_ifIXsrNS_13__is_durationIT_EE5valueES7_E4typeERKNS1_IT0_T1_EE, symObjAddr: 0x530, symBinAddr: 0x100000CC0, symSize: 0x1C }
+  - { offset: 0x2EDC, size: 0x8, addend: 0x0, symName: __ZNSt6chronomiINS_3_V212system_clockENS_8durationIxSt5ratioILl1ELl1000000000EEEES6_EENSt11common_typeIJT0_T1_EE4typeERKNS_10time_pointIT_S8_EERKNSC_ISD_S9_EE, symObjAddr: 0x4F4, symBinAddr: 0x100000C84, symSize: 0x3C }
+  - { offset: 0x2F33, size: 0x8, addend: 0x0, symName: __ZNKSt6chrono10time_pointINS_3_V212system_clockENS_8durationIxSt5ratioILl1ELl1000000000EEEEE16time_since_epochEv, symObjAddr: 0x4DC, symBinAddr: 0x100000C6C, symSize: 0x18 }
+  - { offset: 0x2F5E, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x298, symBinAddr: 0x100000A28, symSize: 0x244 }
+  - { offset: 0x305E, size: 0x8, addend: 0x0, symName: __Z16flush_cache_linePVh, symObjAddr: 0x24C, symBinAddr: 0x1000009DC, symSize: 0x4C }
+  - { offset: 0x30B7, size: 0x8, addend: 0x0, symName: __Z19measure_access_timePVh, symObjAddr: 0x1F4, symBinAddr: 0x100000984, symSize: 0x58 }
+  - { offset: 0x3112, size: 0x8, addend: 0x0, symName: __Z15victim_functionm, symObjAddr: 0x1A0, symBinAddr: 0x100000930, symSize: 0x54 }
+  - { offset: 0x316D, size: 0x8, addend: 0x0, symName: __ZNKSt6chrono8durationIxSt5ratioILl1ELl1000000000EEE5countEv, symObjAddr: 0x188, symBinAddr: 0x100000918, symSize: 0x18 }
+  - { offset: 0x31C9, size: 0x8, addend: 0x0, symName: __ZNSt6chrono8durationIxSt5ratioILl1ELl1000000000EEEC1IxvEERKT_, symObjAddr: 0x160, symBinAddr: 0x1000008F0, symSize: 0x28 }
+  - { offset: 0x31FA, size: 0x8, addend: 0x0, symName: __ZSt3hexRSt8ios_base, symObjAddr: 0x138, symBinAddr: 0x1000008C8, symSize: 0x28 }
+  - { offset: 0x3231, size: 0x8, addend: 0x0, symName: __ZNSt8ios_base4setfESt13_Ios_FmtflagsS0_, symObjAddr: 0xC8, symBinAddr: 0x100000858, symSize: 0x70 }
+  - { offset: 0x3291, size: 0x8, addend: 0x0, symName: __ZStaNRSt13_Ios_FmtflagsS_, symObjAddr: 0x90, symBinAddr: 0x100000820, symSize: 0x38 }
+  - { offset: 0x32C7, size: 0x8, addend: 0x0, symName: __ZStoRRSt13_Ios_FmtflagsS_, symObjAddr: 0x58, symBinAddr: 0x1000007E8, symSize: 0x38 }
+  - { offset: 0x32FD, size: 0x8, addend: 0x0, symName: __ZStcoSt13_Ios_Fmtflags, symObjAddr: 0x40, symBinAddr: 0x1000007D0, symSize: 0x18 }
+  - { offset: 0x3324, size: 0x8, addend: 0x0, symName: __ZStorSt13_Ios_FmtflagsS_, symObjAddr: 0x20, symBinAddr: 0x1000007B0, symSize: 0x20 }
+  - { offset: 0x335A, size: 0x8, addend: 0x0, symName: __ZStanSt13_Ios_FmtflagsS_, symObjAddr: 0x0, symBinAddr: 0x100000790, symSize: 0x20 }
+...
