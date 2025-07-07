@@ -40,3 +40,18 @@ In file included from utils.c:9,
                  from l1tf.c:1:
 /usr/include/x86_64-linux-gnu/sys/mman.h:76:26: note: expected ‘void *’ but argument is of type ‘volatile uint8_t *’ {aka ‘volatile unsigned char *’}
    76 | extern int munmap (void *__addr, size_t __len) __THROW;
+
+
+
+
+
+gcc -O0 l1tf.c -o l1tf
+l1tf.c: In function ‘main’:
+l1tf.c:36:18: warning: passing argument 1 of ‘mprotect’ discards ‘volatile’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   36 |     if (mprotect(g_l1tf_secret_page, page_size, PROT_NONE) == -1)
+      |                  ^~~~~~~~~~~~~~~~~~
+In file included from utils.c:9,
+                 from l1tf.c:1:
+/usr/include/x86_64-linux-gnu/sys/mman.h:81:28: note: expected ‘void *’ but argument is of type ‘volatile uint8_t *’ {aka ‘volatile unsigned char *’}
+   81 | extern int mprotect (void *__addr, size_t __len, int __prot) __THROW;
+      |                      ~~~~~~^~~~~~
