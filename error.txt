@@ -2,3 +2,12 @@
 /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o: in function `_start':
 (.text+0x24): undefined reference to `main'
 collect2: error: ld returned 1 exit status
+
+
+
+ gcc -O0 inception.c -o inception_x86
+inception.c: In function ‘main’:
+inception.c:53:5: error: asm-specifier for variable ‘gadget’ conflicts with asm clobber list
+   53 |     __asm__ __volatile__(
+      |     ^~~~~~~
+inception.c:53:5: error: asm-specifier for variable ‘secret’ conflicts with asm clobber list
