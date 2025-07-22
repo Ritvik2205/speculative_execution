@@ -55,3 +55,9 @@ In file included from utils.c:9,
 /usr/include/x86_64-linux-gnu/sys/mman.h:81:28: note: expected ‘void *’ but argument is of type ‘volatile uint8_t *’ {aka ‘volatile unsigned char *’}
    81 | extern int mprotect (void *__addr, size_t __len, int __prot) __THROW;
       |                      ~~~~~~^~~~~~
+
+
+
+how to test -> try to automate hardware emulators
+compare high level code with current attacks to see if they are close enought to be classified as an attack 
+build a slide deck with challenges, next steps etc 
