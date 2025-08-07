@@ -9,10 +9,11 @@ ERROR_LOG = "compiler_errors.log"
 
 # Define your target matrix
 TARGETS = [
-    ("x86_64", "gcc", "gcc", "x86-64"),
-    ("x86_64", "clang", "clang", "x86-64"),
-    ("arm64", "aarch64-linux-gnu-gcc", "aarch64-linux-gnu-gcc", "armv8-a"),
-    ("riscv64", "riscv64-linux-gnu-gcc", "riscv64-linux-gnu-gcc", "rv64gc"),
+    # ("x86_64", "gcc", "gcc", "x86-64"),
+    # ("x86_64", "clang", "clang", "x86-64"),
+    # ("arm64", "aarch64-linux-gnu-gcc", "aarch64-linux-gnu-gcc", "armv8-a"),
+    ("arm64", "gcc", "gcc", "armv8-a"),
+    # ("riscv64", "riscv64-linux-gnu-gcc", "riscv64-linux-gnu-gcc", "rv64gc"),
 ]
 OPT_LEVELS = ["O0", "O1", "O2", "O3", "Os"]
 
