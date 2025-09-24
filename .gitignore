@@ -102,3 +102,50 @@ out/
 *.test
 *.out
 go.work
+
+# CUDA
+.cuda_home
+.cuda_env
+.cuda_env_vars
+.cuda_env_vars_local
+.cuda_env_vars_local_local
+.cuda_env_vars_local_local_local
+.cuda_env_vars_local_local_local_local
+.cuda_env_vars_local_local_local_local_local
+
+# macOS
+.DS_Store
+
+# Linux
+.local/
+.cache/
+.config/
+.npm/
+.yarn/
+.cargo/
+.rustup/
+.bun/
+.pulumi/
+.terraform/
+.vagrant/
+.vscode/
+.idea/
+.cursorrules/
+
+# Docker
+docker-compose.yml
+docker-compose.override.yml
+docker-compose.override.yml.backup
+docker-compose.override.yml.backup.2
+docker-compose.override.yml.backup.3
+docker-compose.override.yml.backup.4
+docker-compose.override.yml.backup.5
+docker-compose.override.yml.backup.6
+docker-compose.override.yml.backup.7
+docker-compose.override.yml.backup.8
+docker-compose.override.yml.backup.9
+docker-compose.override.yml.backup.10
+
+*.s
+*.c
+*.cpp

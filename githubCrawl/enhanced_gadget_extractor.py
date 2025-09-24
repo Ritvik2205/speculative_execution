@@ -91,9 +91,13 @@ class AdvancedPatternMatcher:
             'SPECTRE_V1': {
                 'signature_patterns': [
                     # Bounds check bypass patterns
-                    ['cmp', 'j*', 'mov', 'and'],  # Classic bounds check
-                    ['sub', 'cmp', 'j*', 'ldr'],  # ARM bounds check
-                    ['test', 'j*', 'lea', 'mov'], # x86 array access
+                    ['cmp', 'j*', 'mov', 'and'],            # Classic bounds check (x86)
+                    ['sub', 'cmp', 'j*', 'ldr'],            # ARM bounds check then load
+                    ['test', 'j*', 'lea', 'mov'],           # x86 array access
+                    ['cmp', 'b.*', 'ldr'],                  # ARM64: compare → conditional branch → load
+                    ['subs', 'b.*', 'ldrb'],                # ARM64: subs → conditional branch → byte load
+                    ['cmp', 'csel', 'ldr'],                 # ARM64: cond. select then load (branchless v1-like)
+                    ['cmp', 'j*', 'movzx'],                 # x86: compare → branch → zero-extend load
                 ],
                 'semantic_requirements': {
                     'has_bounds_check': True,
@@ -102,13 +106,30 @@ class AdvancedPatternMatcher:
                     'memory_access_after_branch': True
                 },
                 'anti_patterns': [  # Patterns that reduce confidence
-                    ['lfence', 'mfence'],  # Speculation barriers
-                    ['dsb', 'isb']         # ARM barriers
+                    ['lfence', 'mfence', 'cpuid'],      # x86 barriers/serializing
+                    ['dsb', 'dmb', 'isb', 'csdb'],      # ARM barriers
+                    ['hint', '#0x14']                   # CSDB hint encoding
                 ],
                 'context_requirements': {
                     'min_instructions': 5,
                     'max_branch_distance': 10,
                     'requires_memory_probe': True
+                }
+            },
+            'SPECTRE_V4': {  # Speculative Store Bypass (SSB)
+                'signature_patterns': [
+                    ['str*', 'add', 'ldr*'],               # store then address calc then load
+                    ['mov', 'mov', 'store*', 'load*'],     # generic store→load
+                ],
+                'semantic_requirements': {
+                    'has_dependent_load': True,
+                    'memory_access_after_branch': False
+                },
+                'anti_patterns': [
+                    ['lfence'], ['dsb'], ['isb']
+                ],
+                'context_requirements': {
+                    'min_instructions': 4
                 }
             },
             'SPECTRE_V2': {
@@ -490,6 +511,17 @@ class EnhancedGadgetExtractor:
         self.cfg_analyzer = ControlFlowAnalyzer()
         self.dataflow_analyzer = DataFlowAnalyzer()
         self.similarity_analyzer = SemanticSimilarityAnalyzer()
+        # Ingest DSL and mined patterns when available
+        try:
+            self._ingest_dsl_patterns()
+        except Exception as e:
+            print(f"Warning: DSL pattern ingest failed: {e}")
+        try:
+            self._ingest_c_vulns_patterns()
+        except Exception as e:
+            print(f"Warning: c_vulns pattern ingest failed: {e}")
+        # Ingest external patterns from DSL JSON if available
+        self._ingest_dsl_patterns()
         
         # Load reference vulnerabilities
         self.vuln_references = self._load_vulnerability_references()
@@ -513,8 +545,138 @@ class EnhancedGadgetExtractor:
                 print(f"Loaded {len(vuln_data)} vulnerability reference patterns")
             except Exception as e:
                 print(f"Warning: Could not load vulnerability references: {e}")
+        else:
+            print(f"Warning: {vuln_features_path} not found. Run preprocess_vuln_assembly.py to enable reference-guided extraction.")
         
         return references
+
+    def _ingest_dsl_patterns(self):
+        """Optionally load additional anti-patterns and sequence hints from DSL file."""
+        dsl_path = Path(__file__).resolve().parent / 'dsl' / 'vuln_patterns.json'
+        if not dsl_path.exists():
+            return
+        with dsl_path.open() as f:
+            dsl = json.load(f)
+        vulns = dsl.get('vulnerabilities', {})
+        v1 = vulns.get('SPECTRE_V1', {})
+        mds = vulns.get('MDS', {})
+        anti_v1 = v1.get('anti_patterns', [])
+        anti_mds = mds.get('anti_patterns', [])
+        def to_token(ap):
+            return ap.get('opcode') or ap.get('token')
+        extra_v1 = [to_token(x) for x in anti_v1 if isinstance(x, dict) and to_token(x)]
+        extra_mds = [to_token(x) for x in anti_mds if isinstance(x, dict) and to_token(x)]
+        if extra_v1:
+            self.pattern_matcher.vulnerability_patterns.setdefault('SPECTRE_V1', {
+                'signature_patterns': [],
+                'semantic_requirements': {},
+                'context_requirements': {},
+                'anti_patterns': []
+            })
+            self.pattern_matcher.vulnerability_patterns['SPECTRE_V1']['anti_patterns'].append(extra_v1)
+        if extra_mds:
+            self.pattern_matcher.vulnerability_patterns.setdefault('MDS', {
+                'signature_patterns': [],
+                'semantic_requirements': {},
+                'context_requirements': {},
+                'anti_patterns': []
+            })
+            self.pattern_matcher.vulnerability_patterns['MDS']['anti_patterns'].append(extra_mds)
+
+    def _ingest_c_vulns_patterns(self):
+        """Mine opcode 3-grams from c_vulns/asm_code and merge into patterns."""
+        root = Path(__file__).resolve().parents[1]  # .../SpecExec
+        asm_dir = root / 'c_vulns' / 'asm_code'
+        if not asm_dir.exists():
+            return
+        from collections import Counter
+        def map_vuln(name: str) -> str:
+            n = name.lower()
+            if 'spectre_1' in n or 'spectre_v1' in n:
+                return 'SPECTRE_V1'
+            if 'spectre_2' in n:
+                return 'SPECTRE_V2'
+            if 'meltdown' in n:
+                return 'MELTDOWN'
+            if 'retbleed' in n:
+                return 'RETBLEED'
+            if 'bhi' in n:
+                return 'BRANCH_HISTORY_INJECTION'
+            if 'inception' in n:
+                return 'INCEPTION'
+            if 'l1tf' in n:
+                return 'L1TF'
+            if 'mds' in n:
+                return 'MDS'
+            return 'UNKNOWN'
+        for asm_file in asm_dir.glob('*.s'):
+            vtype = map_vuln(asm_file.name)
+            if vtype == 'UNKNOWN':
+                continue
+            try:
+                lines = asm_file.read_text(errors='ignore').splitlines()
+            except Exception:
+                continue
+            instrs = []
+            for ln in lines:
+                s = ln.strip()
+                if not s or s.startswith('.') or s.endswith(':'):
+                    continue
+                s = s.split(';', 1)[0].strip()
+                if not s:
+                    continue
+                tok = s.split()[0].lower().strip(',')
+                instrs.append(tok)
+            grams = [(instrs[i], instrs[i+1], instrs[i+2]) for i in range(max(0, len(instrs)-2))]
+            def interesting(g):
+                return any(t.startswith(('b', 'j')) for t in g) or any(t.startswith(('ld', 'ldr', 'mov')) for t in g)
+            grams = [g for g in grams if interesting(g)]
+            if not grams:
+                continue
+            top = [list(g) for g, _ in Counter(grams).most_common(8)]
+            vp = self.pattern_matcher.vulnerability_patterns.setdefault(vtype, {
+                'signature_patterns': [],
+                'semantic_requirements': {},
+                'context_requirements': {},
+                'anti_patterns': []
+            })
+            existing = set(tuple(p) for p in vp['signature_patterns'])
+            for pat in top:
+                t = tuple(pat)
+                if t not in existing:
+                    vp['signature_patterns'].append(pat)
+                    existing.add(t)
+
+    def _ingest_dsl_patterns(self):
+        """Optionally load additional anti-patterns and sequence hints from DSL file."""
+        dsl_path = Path(__file__).resolve().parent / 'dsl' / 'vuln_patterns.json'
+        try:
+            if dsl_path.exists():
+                with dsl_path.open() as f:
+                    dsl = json.load(f)
+                # Map anti_patterns into our SPECTRE_V1 and MDS entries if present
+                vulns = dsl.get('vulnerabilities', {})
+                v1 = vulns.get('SPECTRE_V1', {})
+                mds = vulns.get('MDS', {})
+                anti_v1 = v1.get('anti_patterns', [])
+                anti_mds = mds.get('anti_patterns', [])
+                # Normalize tokens to opcodes when possible
+                def to_token(ap):
+                    return ap.get('opcode') or ap.get('token')
+                extra_v1 = [to_token(x) for x in anti_v1 if to_token(x)]
+                extra_mds = [to_token(x) for x in anti_mds if to_token(x)]
+                # Extend anti_patterns if new markers exist
+                if extra_v1:
+                    self.pattern_matcher.vulnerability_patterns['SPECTRE_V1']['anti_patterns'].append(extra_v1)
+                if extra_mds:
+                    self.pattern_matcher.vulnerability_patterns.setdefault('MDS', {
+                        'signature_patterns': [],
+                        'semantic_requirements': {},
+                        'anti_patterns': []
+                    })
+                    self.pattern_matcher.vulnerability_patterns['MDS']['anti_patterns'].append(extra_mds)
+        except Exception as e:
+            print(f"Warning: could not ingest DSL patterns: {e}")
     
     def extract_enhanced_gadgets(self, file_data: Dict) -> List[EnhancedGadget]:
         """Extract gadgets with comprehensive analysis"""
@@ -523,14 +685,19 @@ class EnhancedGadgetExtractor:
         
         # Convert to enhanced instructions
         instructions = []
+        arch = file_data.get('arch', file_data.get('architecture', 'x86_64'))
         for i, raw_instr in enumerate(file_data['raw_instructions']):
             if isinstance(raw_instr, dict):
+                # Ensure semantics exist for downstream analysis
+                semantics = raw_instr.get('semantics', {}) or _infer_semantics(
+                    raw_instr.get('opcode', ''), raw_instr.get('operands', []), arch
+                )
                 instr = EnhancedInstruction(
                     opcode=raw_instr.get('opcode', ''),
                     operands=raw_instr.get('operands', []),
                     line_num=raw_instr.get('line', raw_instr.get('line_num', i)),
                     raw_line=raw_instr.get('raw', raw_instr.get('raw_line', '')),
-                    semantics=raw_instr.get('semantics', {})
+                    semantics=semantics
                 )
                 instructions.append(instr)
         
@@ -566,13 +733,221 @@ class EnhancedGadgetExtractor:
             )
             
             if gadget:
-                print(f"Debug: Created gadget with confidence {gadget.confidence_score:.3f}")
-                if gadget.confidence_score >= 0.05:  # Very low threshold for debugging
+                # Lower threshold further to avoid zero-output runs; we can filter later upstream
+                if gadget.confidence_score >= 0.01:
                     enhanced_gadgets.append(gadget)
-                else:
-                    print(f"Debug: Filtered out gadget with confidence {gadget.confidence_score:.3f}")
         
         return enhanced_gadgets
+
+
+def _infer_semantics(opcode: str, operands: List[str], arch: str) -> Dict[str, bool]:
+    """Lightweight semantics inference if missing from parsed data."""
+    op = (opcode or '').lower()
+    sem = {
+        'is_branch': False,
+        'is_conditional': False,
+        'is_indirect': False,
+        'is_call': False,
+        'is_return': False,
+        'is_load': False,
+        'is_store': False,
+        'accesses_memory': False,
+        'is_arithmetic': False,
+        'is_comparison': False,
+        'is_speculation_barrier': False,
+        'is_cache_operation': False,
+        'is_timing_sensitive': False,
+        'is_privileged': False
+    }
+    if arch == 'x86_64':
+        if op.startswith('j'):
+            sem['is_branch'] = True
+            if op != 'jmp':
+                sem['is_conditional'] = True
+            if any('[' in o for o in operands):
+                sem['is_indirect'] = True
+        elif op in ['call', 'ret']:
+            sem['is_call'] = op == 'call'
+            sem['is_return'] = op == 'ret'
+            if op == 'call' and any('[' in o or '%' in o for o in operands):
+                sem['is_indirect'] = True
+        elif op in ['mov', 'movzx', 'movsx', 'movzbl', 'movzwl', 'lea']:
+            if any('[' in o for o in operands):
+                sem['accesses_memory'] = True
+                sem['is_load'] = True
+        elif op in ['add', 'sub', 'mul', 'div', 'xor', 'and', 'or', 'shl', 'shr']:
+            sem['is_arithmetic'] = True
+        elif op in ['cmp', 'test']:
+            sem['is_comparison'] = True
+        elif op in ['lfence', 'mfence', 'sfence']:
+            sem['is_speculation_barrier'] = True
+        elif op in ['clflush', 'clwb', 'clflushopt']:
+            sem['is_cache_operation'] = True
+        elif op in ['rdtsc', 'rdtscp']:
+            sem['is_timing_sensitive'] = True
+    else:  # arm64
+        if op.startswith('b'):
+            sem['is_branch'] = True
+            if '.' in op:
+                sem['is_conditional'] = True
+            if op in ['br', 'blr']:
+                sem['is_indirect'] = True
+        elif op in ['bl', 'blr', 'ret']:
+            sem['is_call'] = op in ['bl', 'blr']
+            sem['is_return'] = op == 'ret'
+            if op == 'blr':
+                sem['is_indirect'] = True
+        elif op in ['ldr', 'ldrb', 'ldrh', 'ldp']:
+            sem['is_load'] = True
+            sem['accesses_memory'] = True
+        elif op in ['str', 'strb', 'strh', 'stp']:
+            sem['is_store'] = True
+            sem['accesses_memory'] = True
+        elif op in ['add', 'sub', 'mul', 'div', 'and', 'orr', 'eor', 'lsl', 'lsr']:
+            sem['is_arithmetic'] = True
+        elif op in ['cmp', 'subs']:
+            sem['is_comparison'] = True
+        elif op in ['dsb', 'isb', 'dmb']:
+            sem['is_speculation_barrier'] = True
+        elif op in ['dc', 'ic']:
+            sem['is_cache_operation'] = True
+        elif op == 'mrs':
+            sem['is_timing_sensitive'] = True
+            sem['is_privileged'] = True
+    return sem
+
+    # NOTE: The following extraction helpers must be methods of EnhancedGadgetExtractor.
+    # If you see AttributeError for missing methods, ensure they are defined on the class.
+
+    
+class EnhancedGadgetExtractor:
+    """Main enhanced extraction engine"""
+    
+    def __init__(self):
+        self.pattern_matcher = AdvancedPatternMatcher()
+        self.cfg_analyzer = ControlFlowAnalyzer()
+        self.dataflow_analyzer = DataFlowAnalyzer()
+        self.similarity_analyzer = SemanticSimilarityAnalyzer()
+        
+        # Load reference vulnerabilities
+        self.vuln_references = self._load_vulnerability_references()
+
+    def _load_vulnerability_references(self) -> Dict[str, List[Dict]]:
+        """Load processed vulnerability references (duplicated for class availability)."""
+        references: Dict[str, List[Dict]] = {}
+        vuln_features_path = Path(VULN_PROCESSED_DIR) / "vuln_features.pkl"
+        if vuln_features_path.exists():
+            try:
+                with open(vuln_features_path, 'rb') as f:
+                    vuln_data = pickle.load(f)
+                for vuln_file in vuln_data:
+                    vuln_type = vuln_file.get('vulnerability_type', 'UNKNOWN')
+                    references.setdefault(vuln_type, []).append(vuln_file)
+                print(f"Loaded {len(vuln_data)} vulnerability reference patterns")
+            except Exception as e:
+                print(f"Warning: Could not load vulnerability references: {e}")
+        else:
+            print(f"Warning: {vuln_features_path} not found. Run preprocess_vuln_assembly.py to enable reference-guided extraction.")
+        return references
+
+    def extract_enhanced_gadgets(self, file_data: Dict) -> List[EnhancedGadget]:
+        """Extract gadgets with comprehensive analysis"""
+        if 'raw_instructions' not in file_data:
+            return []
+        instructions: List[EnhancedInstruction] = []
+        arch = file_data.get('arch', file_data.get('architecture', 'x86_64'))
+        for i, raw_instr in enumerate(file_data['raw_instructions']):
+            if isinstance(raw_instr, dict):
+                semantics = raw_instr.get('semantics', {}) or _infer_semantics(
+                    raw_instr.get('opcode', ''), raw_instr.get('operands', []), arch
+                )
+                instr = EnhancedInstruction(
+                    opcode=raw_instr.get('opcode', ''),
+                    operands=raw_instr.get('operands', []),
+                    line_num=raw_instr.get('line', raw_instr.get('line_num', i)),
+                    raw_line=raw_instr.get('raw', raw_instr.get('raw_line', '')),
+                    semantics=semantics
+                )
+                instructions.append(instr)
+        if len(instructions) < 5:
+            return []
+        gadget_candidates: List[List[EnhancedInstruction]] = []
+        gadget_candidates.extend(self._sliding_window_extraction(instructions))
+        gadget_candidates.extend(self._control_flow_extraction(instructions))
+        gadget_candidates.extend(self._data_flow_extraction(instructions))
+        gadget_candidates.extend(self._pattern_based_extraction(instructions))
+        enhanced_gadgets: List[EnhancedGadget] = []
+        for candidate_instrs in gadget_candidates:
+            if len(candidate_instrs) < 3:
+                continue
+            gadget = self._create_enhanced_gadget(
+                candidate_instrs,
+                arch,
+                file_data.get('file_path', 'unknown')
+            )
+            if gadget and gadget.confidence_score >= 0.01:
+                enhanced_gadgets.append(gadget)
+        return enhanced_gadgets
+
+    # Re-add missing helper methods as proper class methods
+    def _sliding_window_extraction(self, instructions: List[EnhancedInstruction], 
+                                   window_sizes: List[int] = [10, 15, 20, 25]) -> List[List[EnhancedInstruction]]:
+        """Extract gadgets using sliding windows of different sizes"""
+        candidates: List[List[EnhancedInstruction]] = []
+        for window_size in window_sizes:
+            for i in range(len(instructions) - window_size + 1):
+                window = instructions[i:i + window_size]
+                if self._is_interesting_window(window):
+                    candidates.append(window)
+        return candidates
+
+    def _is_interesting_window(self, window: List[EnhancedInstruction]) -> bool:
+        """Check if a window contains potentially interesting patterns"""
+        has_control_flow = any(
+            instr.semantics.get('is_branch', False) or 
+            instr.semantics.get('is_call', False) or 
+            instr.semantics.get('is_return', False) for instr in window
+        )
+        has_memory_access = any(instr.semantics.get('accesses_memory', False) for instr in window)
+        unique_opcodes = len(set(instr.opcode for instr in window))
+        return (has_control_flow or has_memory_access) and unique_opcodes >= 2
+
+    def _control_flow_extraction(self, instructions: List[EnhancedInstruction]) -> List[List[EnhancedInstruction]]:
+        """Extract gadgets based on control flow analysis"""
+        cfg = self.cfg_analyzer.build_cfg(instructions)
+        candidates: List[List[EnhancedInstruction]] = []
+        branch_nodes = [n for n in cfg.nodes() if cfg.out_degree(n) > 1]
+        for branch_node in branch_nodes:
+            try:
+                paths = nx.single_source_shortest_path(cfg, branch_node, cutoff=15)
+                for target, path in paths.items():
+                    if len(path) >= 5:
+                        path_instructions = [instructions[i] for i in path]
+                        candidates.append(path_instructions)
+            except Exception:
+                continue
+        return candidates
+
+    def _data_flow_extraction(self, instructions: List[EnhancedInstruction]) -> List[List[EnhancedInstruction]]:
+        """Extract gadgets based on data flow chains"""
+        candidates: List[List[EnhancedInstruction]] = []
+        chains = self.dataflow_analyzer.extract_data_flow_chains(instructions)
+        for chain in chains:
+            indices: List[int] = []
+            for item in chain:
+                if item.startswith('instr_'):
+                    try:
+                        idx = int(item.split('_')[1])
+                        indices.append(idx)
+                    except Exception:
+                        continue
+            if len(indices) >= 2:
+                min_idx = max(0, min(indices) - 5)
+                max_idx = min(len(instructions), max(indices) + 6)
+                candidate = instructions[min_idx:max_idx]
+                if len(candidate) >= 5:
+                    candidates.append(candidate)
+        return candidates
     
     def _sliding_window_extraction(self, instructions: List[EnhancedInstruction], 
                                  window_sizes: List[int] = [10, 15, 20, 25]) -> List[List[EnhancedInstruction]]:
@@ -592,13 +967,13 @@ class EnhancedGadgetExtractor:
     def _is_interesting_window(self, window: List[EnhancedInstruction]) -> bool:
         """Check if a window contains potentially interesting patterns"""
         # Must have at least one control flow or memory operation
-        has_control_flow = any(instr.semantics.get('is_branch', False) for instr in window)
+        has_control_flow = any(instr.semantics.get('is_branch', False) or instr.semantics.get('is_call', False) or instr.semantics.get('is_return', False) for instr in window)
         has_memory_access = any(instr.semantics.get('accesses_memory', False) for instr in window)
         
         # Must have some complexity
         unique_opcodes = len(set(instr.opcode for instr in window))
-        
-        return (has_control_flow or has_memory_access) and unique_opcodes >= 3
+        # Relax uniqueness slightly to avoid zero output
+        return (has_control_flow or has_memory_access) and unique_opcodes >= 2
     
     def _control_flow_extraction(self, instructions: List[EnhancedInstruction]) -> List[List[EnhancedInstruction]]:
         """Extract gadgets based on control flow analysis"""
@@ -692,7 +1067,8 @@ class EnhancedGadgetExtractor:
     def _create_enhanced_gadget(self, instructions: List[EnhancedInstruction], 
                               arch: str, source_file: str) -> Optional[EnhancedGadget]:
         """Create enhanced gadget with comprehensive analysis"""
-        
+        if not instructions:
+            return None
         # Extract semantic features
         semantic_features = self.pattern_matcher.extract_semantic_features(instructions)
         
@@ -786,6 +1162,25 @@ class EnhancedGadgetExtractor:
             min_instrs = context_reqs.get('min_instructions', 0)
             if len(instructions) < min_instrs:
                 context_score *= 0.5
+            # Penalize if branch→load distance too large for Spectre v1-like
+            max_branch_distance = context_reqs.get('max_branch_distance')
+            if max_branch_distance is not None:
+                # compute first branch index and first subsequent load index
+                branch_idx = next((i for i, ins in enumerate(instructions) if ins.semantics.get('is_branch', False) and ins.semantics.get('is_conditional', False)), None)
+                load_idx = None
+                if branch_idx is not None:
+                    for j in range(branch_idx + 1, len(instructions)):
+                        if instructions[j].semantics.get('is_load', False) and instructions[j].semantics.get('accesses_memory', False):
+                            load_idx = j
+                            break
+                if branch_idx is None or load_idx is None or (load_idx - branch_idx) > max_branch_distance:
+                    context_score *= 0.7
+            # Require presence of a memory-probe-like pattern if specified
+            if context_reqs.get('requires_memory_probe', False):
+                raw = ' '.join(ins.raw_line.lower() for ins in instructions)
+                has_probe = any(tok in raw for tok in ['clflush', 'dc ', 'ic ', 'ldr', 'ldrb'])
+                if not has_probe:
+                    context_score *= 0.8
             
             # Combine scores
             total_score = (semantic_score * 0.4 + pattern_score * 0.4 + context_score * 0.2) - anti_penalty

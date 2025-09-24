@@ -61,3 +61,31 @@ In file included from utils.c:9,
 how to test -> try to automate hardware emulators
 compare high level code with current attacks to see if they are close enought to be classified as an attack 
 build a slide deck with challenges, next steps etc 
+
+
+validate vulnerabilities - emulation
+convert assmbly into datastructure like json etc for a training set (figure out labels)
+   vulnerable piece of code
+   sequence extracted
+            convert into tokens (add padding if too small or truncate if too long)
+   label for the vulnerability
+generate ML pipeline
+
+
+
+
+
+augmentations dont have same semantics
+distributions before and after augmentations
+make slides -> datasets, languages, no of samples per class, features, w/o augmentation confusion matrix, how augmentation, confusion matrix w/ augmentation
+how training, test data is split -> is it skewed coz of imbalance
+
+neighbouring samples to attacks
+
+
+augmentation not doing all types
+extract features -> arm64 windows are scarce
+
+
+
+1. generate_class_templates.py -> /generated_variants/

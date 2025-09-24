@@ -208,7 +208,7 @@ class AdvancedAssemblyProcessor:
             filename = Path(file_path).stem
             
             # Determine architecture
-            arch = "x86"  # default
+            arch = "x86_64"  # default to x86_64 for semantics
             if "arm" in filename:
                 arch = "arm64"
             elif "riscv" in filename:
@@ -328,7 +328,7 @@ class AdvancedAssemblyProcessor:
                 'num_instructions': len(instructions),
                 'feature_sequence': feature_sequence,
                 'semantic_features': semantic_features,
-                'raw_instructions': instructions[:10],  # Keep first 10 for debugging
+                'raw_instructions': instructions,  # Keep full instruction list for downstream matching
                 'control_flow_density': sum(instr['semantics']['is_branch'] for instr in instructions) / len(instructions),
                 'memory_access_density': sum(instr['semantics']['accesses_memory'] for instr in instructions) / len(instructions)
             }

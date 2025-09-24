@@ -21,7 +21,7 @@ import itertools
 from functools import lru_cache
 
 # Configuration
-ENHANCED_GADGETS_DIR = "extracted_gadgets"
+ENHANCED_GADGETS_DIR = "enhanced_gadgets"
 VULN_PROCESSED_DIR = "vuln_assembly_processed"
 SIMILARITY_OUTPUT_DIR = "similarity_analysis"
 KNOWN_GADGETS_FILE = "known_vulnerability_gadgets.pkl"
@@ -558,11 +558,12 @@ class SimilarityAnalyzer:
     def _load_github_gadgets(self, enhanced_gadgets_path: str) -> List[Dict]:
         """Load processed GitHub gadgets - fallback to parsed assembly if enhanced not available"""
         gadgets_file = Path(enhanced_gadgets_path) / "enhanced_gadgets.pkl"
+        fallback_gadgets_file = Path("extracted_gadgets") / "enhanced_gadgets.pkl"
         
         # Try enhanced gadgets first
-        if gadgets_file.exists():
+        if gadgets_file.exists() or fallback_gadgets_file.exists():
             try:
-                with open(gadgets_file, 'rb') as f:
+                with open(gadgets_file if gadgets_file.exists() else fallback_gadgets_file, 'rb') as f:
                     enhanced_gadgets = pickle.load(f)
                 
                 if enhanced_gadgets:  # If we have enhanced gadgets, use them
