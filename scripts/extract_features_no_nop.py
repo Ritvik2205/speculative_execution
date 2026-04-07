@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from collections import Counter
 
-
+# Regex constants
 ARM64_BRANCH_RE = re.compile(r"\b(b\.(?P<cond>eq|ne|hs|lo|mi|pl|vs|vc|hi|ls|ge|lt|gt|le))\b", re.IGNORECASE)
 ARM64_LOAD_RE = re.compile(r"\bldr(b|h|sh|sw)?\b", re.IGNORECASE)
 ARM64_STORE_RE = re.compile(r"\bstr(b|h|w)?\b", re.IGNORECASE)
@@ -17,7 +17,6 @@ ARM64_BARRIER_RES = [
     re.compile(r"hint\s*#0x14", re.IGNORECASE),
 ]
 
-
 def load_jsonl(path: Path):
     with path.open() as f:
         for line in f:
@@ -26,18 +25,14 @@ def load_jsonl(path: Path):
                 continue
             yield json.loads(line)
 
-
 def is_barrier(line: str) -> bool:
     return any(p.search(line) for p in ARM64_BARRIER_RES)
-
 
 def opcode_of(line: str) -> str:
     return (line.split()[0].lower() if line else "").strip(",")
 
-
 def ngrams(tokens, n):
     return ["::".join(tokens[i:i+n]) for i in range(len(tokens) - n + 1)]
-
 
 def get_simplified_type(op: str) -> str:
     op = op.lower()
@@ -77,22 +72,28 @@ def get_simplified_type(op: str) -> str:
 
     return 'COMPUTE'
 
+def canonical_id_from_source(path: str) -> str:
+    name = Path(path).name
+    for marker in ("_clang_", "_gcc_"):
+        if marker in name:
+            return name.split(marker)[0]
+    return name.rsplit(".", 1)[0]
 
-def extract_additional_features(rec: dict) -> dict:
-    seq = rec.get("sequence", [])
+def extract_features_filtered(rec: dict) -> dict:
+    # PRIMARY CHANGE: Filter out NOPs from the raw sequence immediately
+    raw_seq = rec.get("sequence", [])
+    seq = [l for l in raw_seq if opcode_of(l) != 'nop']
+    
     tokens = [opcode_of(l) for l in seq if l]
 
-    # Structural Traces
+    # Structural Traces (now tokens are already NOP-free, but keeping consistent logic)
     non_nop_tokens = [t for t in tokens if t.lower() != 'nop']
     
-    # 1. Opcode Trace (Sequence of ops)
-    # Using a string feature for DictVectorizer (it will one-hot encode unique sequences)
-    # This helps capture the specific order like "b.ge ldr" vs "ret ldr"
+    # 1. Opcode Trace
     feats = {}
     feats["op_trace"] = " ".join(non_nop_tokens)
 
     # 2. Simplified Structural Trace
-    # Abstracts away specific compute ops to focus on Control/Memory flow
     struc_tokens = []
     for t in non_nop_tokens:
         st = get_simplified_type(t)
@@ -148,59 +149,44 @@ def extract_additional_features(rec: dict) -> dict:
     else:
         feats["dist_branch_to_first_barrier"] = -1
 
-    # Pointer arithmetic heuristic: add with optional lsl
+    # Pointer arithmetic heuristic
     has_ptr_arith = any(re.search(r"\badd\s+[wx][0-9]+,\s*[wx][0-9]+,\s*[wx][0-9]+(,\s*lsl\s*#\d+)?", l, re.IGNORECASE) for l in seq)
     feats["has_pointer_arith"] = int(has_ptr_arith)
 
-    # Include existing basic features if present
+    # Include existing basic features if present, filtering out any stale NOP references if needed
     basic = rec.get("features", {})
     for k, v in basic.items():
         if isinstance(v, bool):
             feats[k] = int(v)
         elif isinstance(v, (int, float)):
             feats[k] = v
-        # skip lists
 
     feats["window_length"] = int(len(tokens))
     return feats
 
-
-def canonical_id_from_source(path: str) -> str:
-    name = Path(path).name
-    # Expect pattern like: base_compiler_OX_arch.s -> return base
-    for marker in ("_clang_", "_gcc_"):
-        if marker in name:
-            return name.split(marker)[0]
-    return name.rsplit(".", 1)[0]
-
-
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="inp", type=Path, default=Path("data/dataset/arm64_windows.jsonl"))
-    ap.add_argument("--out", dest="out", type=Path, default=Path("data/dataset/arm64_features.jsonl"))
+    ap.add_argument("--in", dest="inp", type=Path, required=True)
+    ap.add_argument("--out", dest="out", type=Path, required=True)
     args = ap.parse_args()
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     count = 0
     with args.out.open("w") as fout:
         for rec in load_jsonl(args.inp):
-            feats = extract_additional_features(rec)
+            feats = extract_features_filtered(rec)
             label = rec.get("vuln_label")
             if not label or label == "UNKNOWN":
                  label = rec.get("label", "unknown")
             
             # Determine group for splitting
-            # 1. Use existing group if valid and not generic 'github_negatives'
             grp = rec.get("group")
             src = rec.get("source_file", "unknown")
             
             if not grp or grp == "unknown" or grp == "github_negatives":
-                # Derive from source
                 if "github" in src.lower() or "repos/" in src:
-                    # For GitHub, use the filename so each file is a group (allows splitting)
                     grp = src
                 else:
-                    # For generated vulns, use the stem (e.g. 'spectre_1_arm64_gcc_O0')
                     grp = Path(src).stem
             
             out = {
@@ -214,10 +200,11 @@ def main():
             }
             fout.write(json.dumps(out) + "\n")
             count += 1
-    print(f"Wrote {count} feature records to {args.out}")
-
+    print(f"Wrote {count} feature records to {args.out} (NO-NOP filtered)")
 
 if __name__ == "__main__":
     main()
+
+
 
 

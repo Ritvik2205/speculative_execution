@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import sys
+import time
 from pathlib import Path
 from typing import List, Tuple
+from collections import Counter
 
 import joblib
 from sklearn.ensemble import RandomForestClassifier
@@ -11,11 +14,16 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import GroupShuffleSplit, StratifiedShuffleSplit
 
 
+def log(msg: str):
+    """Print with flush for real-time output."""
+    print(msg, flush=True)
+
 
 def load_features(path: Path) -> Tuple[List[dict], List[str], List[str], List[float]]:
+    log(f"Loading features from {path}...")
     X, y, g, w = [], [], [], []
     with path.open() as f:
-        for line in f:
+        for i, line in enumerate(f):
             if not line.strip():
                 continue
             rec = json.loads(line)
@@ -23,6 +31,9 @@ def load_features(path: Path) -> Tuple[List[dict], List[str], List[str], List[fl
             y.append(rec["label"])
             g.append(rec.get("group", rec["label"]))
             w.append(float(rec.get("weight", 1.0)))
+            if (i + 1) % 25000 == 0:
+                log(f"  Loaded {i + 1} records...")
+    log(f"  Total: {len(X)} records")
     return X, y, g, w
 
 
@@ -32,13 +43,26 @@ def main():
     ap.add_argument("--model-dir", type=Path, default=Path("models/gadgets"))
     ap.add_argument("--test-size", type=float, default=0.2)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--n-estimators", type=int, default=200, help="Number of trees (reduce for faster training)")
+    ap.add_argument("--n-jobs", type=int, default=-1, help="Parallel jobs (-1 = all cores)")
     args = ap.parse_args()
 
     args.model_dir.mkdir(parents=True, exist_ok=True)
+    
+    start_time = time.time()
 
     X_dicts, y, groups, weights = load_features(args.inp)
+    
+    # Print label distribution
+    label_counts = Counter(y)
+    log("\nLabel distribution:")
+    for label, count in sorted(label_counts.items(), key=lambda x: -x[1]):
+        log(f"  {label}: {count}")
+    
+    log("\nVectorizing features...")
     vec = DictVectorizer(sparse=True)
     X = vec.fit_transform(X_dicts)
+    log(f"  Feature matrix shape: {X.shape}")
 
     # Build group-level labels for stratification
     import numpy as np
@@ -55,59 +79,52 @@ def main():
         group_to_label[g] = ys[0]
     group_labels = [group_to_label[g] for g in unique_groups]
 
-    # Per-class group selection with fallback when a class has <2 groups
-    import random
-    random.seed(args.seed)
-    from collections import defaultdict
-    groups_by_label = defaultdict(list)
-    for g in unique_groups:
-        groups_by_label[group_to_label[g]].append(g)
-    test_groups = set()
-    train_groups = set()
-    for lbl, grp_list in groups_by_label.items():
-        grp_list = list(grp_list)
-        random.shuffle(grp_list)
-        if len(grp_list) >= 2:
-            k = max(1, int(round(len(grp_list) * args.test_size)))
-            test_groups.update(grp_list[:k])
-            train_groups.update(grp_list[k:])
-        else:
-            # not enough groups to stratify; keep in train only
-            train_groups.update(grp_list)
-    # Fallback: if test is empty, do an unstratified group split
-    if not test_groups:
-        splitter = GroupShuffleSplit(n_splits=1, test_size=args.test_size, random_state=args.seed)
-        grp_train_idx, grp_test_idx = next(splitter.split(unique_groups, group_labels))
-        train_groups = set(unique_groups[grp_train_idx])
-        test_groups = set(unique_groups[grp_test_idx])
+    log("\nSplitting train/test...")
+    # Use StratifiedShuffleSplit for robust evaluation across all augmentations
+    # (GroupShuffleSplit was causing issues where entire architectures like x86 were in Test only)
+    splitter = StratifiedShuffleSplit(n_splits=1, test_size=args.test_size, random_state=args.seed)
+    train_idx, test_idx = next(splitter.split(X, y))
+    
+    X_train, X_test = X[train_idx], X[test_idx]
+    y_train = [y[i] for i in train_idx]
+    y_test = [y[i] for i in test_idx]
+    # weights need to be indexed as well
+    w_train = [weights[i] for i in train_idx]
+    
+    log(f"  Train: {len(y_train)} samples")
+    log(f"  Test:  {len(y_test)} samples")
 
-    idx_train = [i for i, g in enumerate(groups) if g in train_groups]
-    idx_test = [i for i, g in enumerate(groups) if g in test_groups]
-    X_train, X_test = X[idx_train], X[idx_test]
-    y_train = [y[i] for i in idx_train]
-    y_test = [y[i] for i in idx_test]
-
+    log(f"\nTraining RandomForest with {args.n_estimators} trees (n_jobs={args.n_jobs})...")
     clf = RandomForestClassifier(
-        n_estimators=400,
+        n_estimators=args.n_estimators,
         max_depth=None,
         min_samples_split=2,
         min_samples_leaf=1,
-        n_jobs=-1,
+        n_jobs=args.n_jobs,
         class_weight="balanced_subsample",
         random_state=args.seed,
+        verbose=1,  # Show progress
     )
-    clf.fit(X_train, y_train, sample_weight=[weights[i] for i in idx_train])
+    clf.fit(X_train, y_train, sample_weight=w_train)
+    
+    train_time = time.time() - start_time
+    log(f"\nTraining completed in {train_time:.1f}s")
 
+    log("\nEvaluating on test set...")
     y_pred = clf.predict(X_test)
     report = classification_report(y_test, y_pred, output_dict=True)
 
     # Save artifacts
+    log(f"\nSaving model to {args.model_dir}...")
     joblib.dump(clf, args.model_dir / "rf_multiclass.joblib")
     joblib.dump(vec, args.model_dir / "rf_vectorizer.joblib")
     with (args.model_dir / "rf_metrics.json").open("w") as f:
         json.dump(report, f, indent=2)
 
-    print(json.dumps(report, indent=2))
+    log("\n" + "="*50)
+    log("RESULTS:")
+    log("="*50)
+    print(json.dumps(report, indent=2), flush=True)
 
 
 if __name__ == "__main__":
