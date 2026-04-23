@@ -90,15 +90,34 @@ def infer_label(path) -> str | None:
     return None
 
 
-def _infer_arch(src_path: Path) -> str:
-    """Infer target architecture from file path."""
-    text = str(src_path).lower()
-    if "arm64" in text or "aarch64" in text:
-        return "arm64"
-    if "arm" in text and "64" not in text:
-        return "arm32"
-    if "riscv" in text:
-        return "riscv64"
+def _infer_arch(src_path: Path = None, asm_text: str = None) -> str:
+    """Infer target architecture from compiled assembly text (preferred) or filename."""
+    if asm_text:
+        # Detect from assembly directives — reliable regardless of host platform
+        lower = asm_text[:2000].lower()  # check only the header
+        if ".arch aarch64" in lower or ".cpu" in lower and ("cortex" in lower or "apple" in lower):
+            return "arm64"
+        # ARM64 characteristic: x-register pairs in prologues
+        if "stp\tx29, x30" in asm_text or "stp\tx19, x20" in asm_text:
+            return "arm64"
+        if ".arch_extension" in lower or "// arm64" in lower:
+            return "arm64"
+        if "riscv" in lower:
+            return "riscv64"
+        # x86_64: look for AT&T-style register names
+        if "%rsp" in asm_text or "%rax" in asm_text or "%rbp" in asm_text:
+            return "x86_64"
+        # Intel-style x86_64
+        if "rsp" in asm_text and ("movq" in asm_text or "pushq" in asm_text):
+            return "x86_64"
+    if src_path:
+        text = str(src_path).lower()
+        if "arm64" in text or "aarch64" in text:
+            return "arm64"
+        if "arm" in text and "64" not in text:
+            return "arm32"
+        if "riscv" in text:
+            return "riscv64"
     return "x86_64"
 
 
@@ -348,8 +367,6 @@ def main():
             except ValueError:
                 rel_path = src
 
-            arch = _infer_arch(src)
-
             for compiler, flags in COMPILE_CONFIGS:
                 if compiler not in available_compilers:
                     continue
@@ -360,6 +377,7 @@ def main():
                     continue
 
                 compile_ok += 1
+                arch = _infer_arch(src_path=src, asm_text=asm_text)
                 instructions = parse_assembly(asm_text)
                 windows = extract_windows(instructions)
 
