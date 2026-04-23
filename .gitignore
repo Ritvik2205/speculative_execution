@@ -66,6 +66,7 @@ venv/
 ENV/
 .env/
 .venv/
+.venv312/
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
@@ -149,3 +150,19 @@ docker-compose.override.yml.backup.10
 *.s
 *.c
 *.cpp
+
+*.tmp
+*.jsonl
+*.pkl
+*.log
+*.db
+*.joblib
+*.npy
+*.pt
+
+*.png 
+*.dot
+
+data/viz/
+
+githubCrawl/data/enrichment/poc_repos/
