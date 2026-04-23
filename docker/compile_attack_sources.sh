@@ -12,24 +12,17 @@ mkdir -p "${OUT_DIR}"
 
 # Label map: checked by substring in lowercased path
 declare -A LABEL_MAP=(
-    ["spectre_1"]="SPECTRE_V1"
-    ["spectre_v1"]="SPECTRE_V1"
-    ["spectre1"]="SPECTRE_V1"
+    ["spectre_rsb"]="SPECTRE_RSB"
+    ["spectre_v4"]="SPECTRE_V4"  ["spectre4"]="SPECTRE_V4"   ["spectre_4"]="SPECTRE_V4"
+    ["spectre_v2"]="SPECTRE_V2"  ["spectre2"]="SPECTRE_V2"   ["spectre_2"]="SPECTRE_V2"
+    ["spectre_v1"]="SPECTRE_V1"  ["spectre1"]="SPECTRE_V1"   ["spectre_1"]="SPECTRE_V1"
     ["spectre_github"]="SPECTRE_V1"
-    ["spectre_2"]="SPECTRE_V2"
-    ["spectre_v2"]="SPECTRE_V2"
-    ["spectre2"]="SPECTRE_V2"
-    ["spectre_v4"]="SPECTRE_V4"
-    ["spectre4"]="SPECTRE_V4"
-    ["spectre_4"]="SPECTRE_V4"
-    ["l1tf"]="L1TF"
-    ["foreshadow"]="L1TF"
-    ["meltdown"]="L1TF"
-    ["mds"]="MDS"
-    ["ridl"]="MDS"
+    ["l1tf"]="L1TF"              ["foreshadow"]="L1TF"        ["meltdown"]="L1TF"
+    ["mds"]="MDS"                ["ridl"]="MDS"
     ["retbleed"]="RETBLEED"
-    ["inception"]="INCEPTION"
+    ["inception"]="INCEPTION"    ["srso"]="INCEPTION"
     ["bhi"]="BRANCH_HISTORY_INJECTION"
+    ["downfall"]="DOWNFALL"      ["gds"]="DOWNFALL"
 )
 
 # Sorted keys longest-first for greedy matching
@@ -55,9 +48,13 @@ COMPILER_CONFIGS=(
     "x86_64-linux-gnu-gcc|-O1|x86_64"
     "x86_64-linux-gnu-gcc|-O2|x86_64"
     "x86_64-linux-gnu-gcc|-O3|x86_64"
+    "x86_64-linux-gnu-gcc|-O2 -mavx2|x86_64"
+    "x86_64-linux-gnu-gcc|-Os|x86_64"
     "clang-14|-O0 --target=x86_64-linux-gnu|x86_64"
     "clang-14|-O2 --target=x86_64-linux-gnu|x86_64"
+    "clang-14|-O2 -mavx2 --target=x86_64-linux-gnu|x86_64"
     "aarch64-linux-gnu-gcc|-O2|arm64"
+    "aarch64-linux-gnu-gcc|-O0|arm64"
 )
 
 total_windows=0
