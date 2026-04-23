@@ -29,6 +29,11 @@ ASM_DIRS = [
     ROOT / "c_vulns" / "asm_code",
 ]
 
+# Validated benign samples from GitHub repos (already have group fields)
+BENIGN_SOURCE = ROOT / "data" / "benign_samples_v24_validated.jsonl"
+BENIGN_SAMPLE_LIMIT = 3000  # cap to avoid imbalance vs attack classes
+BENIGN_PER_GROUP_LIMIT = 80  # prevent any single repo from dominating
+
 OUT_ALL   = ROOT / "data" / "v44_base_functions.jsonl"
 OUT_TRAIN = ROOT / "data" / "v44_honest_train.jsonl"
 OUT_TEST  = TEST_PATH_V44  # data/v44_honest_test.jsonl
@@ -77,6 +82,39 @@ def _infer_arch(path: Path) -> str:
     return "x86_64"
 
 
+def load_benign_records() -> list:
+    """Load validated benign samples (existing sliding-window sequences from GitHub repos)."""
+    if not BENIGN_SOURCE.exists():
+        print(f"[warn] Benign source not found: {BENIGN_SOURCE}")
+        return []
+    records = []
+    with open(BENIGN_SOURCE) as f:
+        for line in f:
+            if line.strip():
+                r = json.loads(line)
+                # Ensure required fields
+                if "label" not in r:
+                    r["label"] = "BENIGN"
+                if "group" not in r:
+                    r["group"] = r.get("source_file", "benign_unknown")
+                if "sequence" not in r or len(r["sequence"]) < 5:
+                    continue
+                records.append(r)
+    # Cap records per group to avoid any single repo dominating
+    from collections import defaultdict as dd
+    per_group = dd(list)
+    for r in records:
+        per_group[r["group"]].append(r)
+    capped = []
+    for g, recs in per_group.items():
+        random.shuffle(recs)
+        capped.extend(recs[:BENIGN_PER_GROUP_LIMIT])
+    random.shuffle(capped)
+    capped = capped[:BENIGN_SAMPLE_LIMIT]
+    print(f"Loaded {len(capped):,} benign records from {BENIGN_SOURCE.name} ({len(per_group)} groups, capped {BENIGN_PER_GROUP_LIMIT}/group)")
+    return capped
+
+
 def main():
     files = asm_files()
     print(f"Found {len(files)} .s files")
@@ -118,8 +156,12 @@ def main():
     print(f"Extracted {len(all_records):,} functions")
     print(f"Skipped: {skipped_no_label} (no label), {skipped_too_short} (too short)")
 
+    # Add benign records
+    benign_records = load_benign_records()
+    all_records.extend(benign_records)
+
     label_counts = Counter(r["label"] for r in all_records)
-    print("\nPer-class counts:")
+    print("\nPer-class counts (before dedup):")
     for cls in sorted(label_counts):
         print(f"  {cls:<35} {label_counts[cls]:>6,}")
 

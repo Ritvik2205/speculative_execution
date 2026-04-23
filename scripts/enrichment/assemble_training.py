@@ -12,21 +12,20 @@ sys.path.insert(0, str(ROOT / "scripts" / "enrichment"))
 from common import load_test_hashes, validate_and_dedup, write_jsonl, load_jsonl, seq_hash
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-BASE_TRAIN  = ROOT / "data" / "v25_honest_train.jsonl"
-TEST_PATH   = ROOT / "data" / "v25_honest_test.jsonl"
+BASE_TRAIN  = ROOT / "data" / "v44_honest_train.jsonl"
+TEST_PATH   = ROOT / "data" / "v44_honest_test.jsonl"
 
 PHASE_FILES = {
-    "phase1_augmented": ROOT / "data" / "enrichment" / "phase1_augmented.jsonl",
-    "phase2_compiled":  ROOT / "data" / "enrichment" / "phase2_compiled.jsonl",
-    "phase3_kernel":    ROOT / "data" / "enrichment" / "phase3_kernel.jsonl",
-    "phase4_poc":       ROOT / "data" / "enrichment" / "phase4_poc.jsonl",
-    "phase5_synthetic": ROOT / "data" / "enrichment" / "phase5_synthetic.jsonl",
-    "phase7_compiled":  ROOT / "data" / "enrichment" / "phase7_compiled.jsonl",
+    "phase1_augmented":  ROOT / "data" / "enrichment" / "phase1_augmented.jsonl",
+    "phase2_compiled":   ROOT / "data" / "enrichment" / "phase2_compiled.jsonl",
+    "phase4_poc":        ROOT / "data" / "enrichment" / "phase4_poc.jsonl",
+    "phase7_compiled":   ROOT / "data" / "enrichment" / "phase7_compiled.jsonl",
+    "phase8_kernel":     ROOT / "data" / "enrichment" / "phase8_kernel.jsonl",
 }
 
-OUT_MAIN    = ROOT / "data" / "v43_train_enriched.jsonl"
-OUT_V42     = ROOT / "v42" / "data" / "v43_train_enriched.jsonl"
-REPORT_PATH = ROOT / "diagnosis" / "v43_enrichment_report.json"
+OUT_MAIN    = ROOT / "data" / "v44_train_enriched.jsonl"
+OUT_V42     = ROOT / "v42" / "data" / "v44_train_enriched.jsonl"
+REPORT_PATH = ROOT / "diagnosis" / "v44_enrichment_report.json"
 V42_RUN_SH  = ROOT / "v42" / "run.sh"
 
 
@@ -175,26 +174,27 @@ def main():
     if V42_RUN_SH.exists():
         sh_text = V42_RUN_SH.read_text()
         updated = sh_text
-        for old_path in ("data/v25_honest_train.jsonl", "data/v42_train_enriched.jsonl"):
+        for old_path in ("data/v25_honest_train.jsonl", "data/v42_train_enriched.jsonl",
+                         "data/v43_train_enriched.jsonl"):
             updated = updated.replace(
                 f"--train-data {old_path}",
-                "--train-data data/v43_train_enriched.jsonl",
+                "--train-data data/v44_train_enriched.jsonl",
                 1,
             )
-        for old_dir in ("viz_v42_honest", "viz_v42"):
-            updated = updated.replace(old_dir, "viz_v43")
+        for old_dir in ("viz_v42_honest", "viz_v42", "viz_v43"):
+            updated = updated.replace(old_dir, "viz_v44")
         if updated == sh_text:
             print(f"[WARNING] Could not update --train-data or output dirs in {V42_RUN_SH}")
         else:
             V42_RUN_SH.write_text(updated)
-            print(f"[phase6] Updated {V42_RUN_SH} --train-data → data/v43_train_enriched.jsonl, output → viz_v43")
+            print(f"[phase6] Updated {V42_RUN_SH} --train-data → data/v44_train_enriched.jsonl, output → viz_v44")
     else:
         print(f"[WARNING] {V42_RUN_SH} not found — skipping run.sh update")
 
     # ── Step 10: Human-readable summary ─────────────────────────────────────
     width = 30
     print()
-    print("=== v43 Enrichment Summary ===")
+    print("=== v44 Enrichment Summary ===")
     print(f"{'Base train:':<{width}} {base_count:>10,}")
     for phase_name in PHASE_FILES:
         label = phase_name.replace("_", " ").replace("phase", "Phase ")
