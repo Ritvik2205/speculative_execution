@@ -40,6 +40,8 @@ WINDOW_SIZE   = WINDOW_BEFORE + WINDOW_AFTER  # 20 instructions per window
 WINDOW_STEP   = 4
 MIN_WINDOW    = 5
 
+# NOTE: SPECTRE_V2 and SPECTRE_V4 have no working source files on this platform;
+# they are addressed in Phase 5 (LLM generation).
 EXTRA_CONFIGS = [
     ("gcc",   ["-O2", "-funroll-loops"]),
     ("gcc",   ["-O2", "-fno-inline"]),
@@ -72,6 +74,17 @@ _LABEL_PATTERNS = [
     ("bhi",         "BRANCH_HISTORY_INJECTION"),
     ("mds",         "MDS"),
 ]
+
+
+def _infer_arch(src_path: Path) -> str:
+    stem = src_path.stem.lower()
+    if "arm64" in stem or "aarch64" in stem:
+        return "arm64"
+    if "arm" in stem and "64" not in stem:
+        return "arm32"
+    if "riscv" in stem:
+        return "riscv64"
+    return "x86_64"
 
 
 def infer_label(filename: str) -> str | None:
@@ -250,7 +263,7 @@ def main():
                     "sequence": window,
                     "source_file": str(src_path),
                     "group": group,
-                    "arch": "x86_64",
+                    "arch": _infer_arch(src_path),
                     "augmentation": "compiler_variant",
                 })
 
