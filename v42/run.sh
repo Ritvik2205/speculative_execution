@@ -9,8 +9,8 @@ set -euo pipefail
 #   3. Zero exact-sequence overlap, zero group overlap between splits
 #
 # Data:
-#   data/v25_honest_train.jsonl  — 21,286 unique training sequences (1,064 source groups)
-#   data/v25_honest_test.jsonl   — 6,042  unique test sequences     (36 held-out source groups)
+#   data/v42_train_enriched.jsonl — 295,112 enriched training sequences (base + phases 1-5)
+#   data/v25_honest_test.jsonl    — 6,042   unique test sequences (36 held-out source groups, FROZEN)
 
 pip install -q -r requirements.txt
 
