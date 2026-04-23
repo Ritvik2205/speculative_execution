@@ -1,0 +1,31 @@
+{
+  "base_train_count": 21286,
+  "phase_counts": {
+    "phase1_augmented": 272393,
+    "phase2_compiled": 1910,
+    "phase3_kernel": 0,
+    "phase4_poc": 296,
+    "phase5_synthetic": 0,
+    "phase7_compiled": 5654
+  },
+  "total_before_dedup": 301539,
+  "total_after_dedup": 299487,
+  "dedup_removed_validate": 0,
+  "dedup_removed_cross_label": 2052,
+  "dedup_removed_total": 2052,
+  "test_collision_blocked": 0,
+  "exact_sequence_overlap": 0,
+  "group_overlap": 0,
+  "cross_label_duplicates": 0,
+  "per_class": {
+    "BENIGN": 97992,
+    "BRANCH_HISTORY_INJECTION": 20033,
+    "INCEPTION": 39345,
+    "L1TF": 24842,
+    "MDS": 30740,
+    "RETBLEED": 55930,
+    "SPECTRE_V1": 23147,
+    "SPECTRE_V2": 4239,
+    "SPECTRE_V4": 3219
+  }
+}

@@ -21,11 +21,12 @@ PHASE_FILES = {
     "phase3_kernel":    ROOT / "data" / "enrichment" / "phase3_kernel.jsonl",
     "phase4_poc":       ROOT / "data" / "enrichment" / "phase4_poc.jsonl",
     "phase5_synthetic": ROOT / "data" / "enrichment" / "phase5_synthetic.jsonl",
+    "phase7_compiled":  ROOT / "data" / "enrichment" / "phase7_compiled.jsonl",
 }
 
-OUT_MAIN    = ROOT / "data" / "v42_train_enriched.jsonl"
-OUT_V42     = ROOT / "v42" / "data" / "v42_train_enriched.jsonl"
-REPORT_PATH = ROOT / "diagnosis" / "v42_enrichment_report.json"
+OUT_MAIN    = ROOT / "data" / "v43_train_enriched.jsonl"
+OUT_V42     = ROOT / "v42" / "data" / "v43_train_enriched.jsonl"
+REPORT_PATH = ROOT / "diagnosis" / "v43_enrichment_report.json"
 V42_RUN_SH  = ROOT / "v42" / "run.sh"
 
 
@@ -173,23 +174,27 @@ def main():
     # ── Step 9: Update v42/run.sh ────────────────────────────────────────────
     if V42_RUN_SH.exists():
         sh_text = V42_RUN_SH.read_text()
-        updated = sh_text.replace(
-            "--train-data data/v25_honest_train.jsonl",
-            "--train-data data/v42_train_enriched.jsonl",
-            1,
-        )
+        updated = sh_text
+        for old_path in ("data/v25_honest_train.jsonl", "data/v42_train_enriched.jsonl"):
+            updated = updated.replace(
+                f"--train-data {old_path}",
+                "--train-data data/v43_train_enriched.jsonl",
+                1,
+            )
+        for old_dir in ("viz_v42_honest", "viz_v42"):
+            updated = updated.replace(old_dir, "viz_v43")
         if updated == sh_text:
-            print(f"[WARNING] Could not find '--train-data data/v25_honest_train.jsonl' in {V42_RUN_SH}")
+            print(f"[WARNING] Could not update --train-data or output dirs in {V42_RUN_SH}")
         else:
             V42_RUN_SH.write_text(updated)
-            print(f"[phase6] Updated {V42_RUN_SH} --train-data → data/v42_train_enriched.jsonl")
+            print(f"[phase6] Updated {V42_RUN_SH} --train-data → data/v43_train_enriched.jsonl, output → viz_v43")
     else:
         print(f"[WARNING] {V42_RUN_SH} not found — skipping run.sh update")
 
     # ── Step 10: Human-readable summary ─────────────────────────────────────
     width = 30
     print()
-    print("=== v42 Enrichment Summary ===")
+    print("=== v43 Enrichment Summary ===")
     print(f"{'Base train:':<{width}} {base_count:>10,}")
     for phase_name in PHASE_FILES:
         label = phase_name.replace("_", " ").replace("phase", "Phase ")

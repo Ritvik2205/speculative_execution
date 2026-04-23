@@ -381,7 +381,15 @@ def plot_edge_type_scales(scales_history, edge_names, output_path):
 
 def main():
     parser = argparse.ArgumentParser(description='V38: GINE + boilerplate strip + edge scaling + positional')
-    parser.add_argument('--data', type=str, default='data/combined_v25_clean.jsonl')
+    parser.add_argument('--data', type=str, default=None,
+                        help='Combined dataset (will be randomly split 80/20). '
+                             'Mutually exclusive with --train-data/--test-data.')
+    parser.add_argument('--train-data', type=str, default=None,
+                        help='Pre-split training file (group-aware/deduped). '
+                             'Use with --test-data to bypass internal splitting.')
+    parser.add_argument('--test-data', type=str, default=None,
+                        help='Pre-split test file (group-aware/deduped). '
+                             'Use with --train-data to bypass internal splitting.')
     parser.add_argument('--output-dir', type=str, default='viz_v40_clean')
     parser.add_argument('--viz-dir', type=str, default='viz_v40_clean')
     parser.add_argument('--epochs', type=int, default=100)
@@ -427,27 +435,51 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     viz_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load data
-    print(f"Loading data from {args.data}...")
-    records = []
-    with open(args.data) as f:
-        for line in f:
-            if line.strip():
-                rec = json.loads(line)
-                label = rec.get('label', 'UNKNOWN')
-                if label in ('vuln', 'benign'):
-                    label = rec.get('vuln_label', label.upper() if label == 'benign' else 'UNKNOWN')
-                rec['label'] = label
-                records.append(rec)
-    print(f"  Loaded {len(records)} records")
+    # Validate argument combinations
+    using_presplit = args.train_data is not None and args.test_data is not None
+    using_combined = args.data is not None
+    if not using_presplit and not using_combined:
+        parser.error("Provide either --data (combined) or both --train-data and --test-data.")
+    if using_presplit and using_combined:
+        parser.error("--data is mutually exclusive with --train-data/--test-data.")
+
+    def _load_records(path):
+        recs = []
+        with open(path) as f:
+            for line in f:
+                if line.strip():
+                    rec = json.loads(line)
+                    label = rec.get('label', 'UNKNOWN')
+                    if label in ('vuln', 'benign'):
+                        label = rec.get('vuln_label', label.upper() if label == 'benign' else 'UNKNOWN')
+                    rec['label'] = label
+                    recs.append(rec)
+        return recs
+
+    if using_presplit:
+        # Honest split: pre-split files with no sequence overlap and no group overlap
+        print(f"Loading pre-split train from {args.train_data}...")
+        train_records = _load_records(args.train_data)
+        print(f"  Loaded {len(train_records)} train records")
+        print(f"Loading pre-split test from {args.test_data}...")
+        test_records = _load_records(args.test_data)
+        print(f"  Loaded {len(test_records)} test records")
+        records = train_records + test_records
+        print(f"  Total: {len(records)} records (pre-split, no internal splitting)")
+        print("  NOTE: Using group-aware, deduplicated split — no sequence/group overlap.")
+    else:
+        # Legacy path: load combined file and do random stratified split
+        print(f"Loading data from {args.data}...")
+        records = _load_records(args.data)
+        print(f"  Loaded {len(records)} records")
+        print("  WARNING: Random stratified split — may have sequence/group overlap.")
 
     label_counts = Counter(r.get('label', 'UNKNOWN') for r in records)
-    print("\nLabel distribution:")
+    print("\nLabel distribution (full):")
     for label, count in sorted(label_counts.items()):
         print(f"  {label}: {count}")
 
     records = [r for r in records if r.get('label', 'UNKNOWN') != 'UNKNOWN']
-    print(f"\nAfter filtering: {len(records)} records")
 
     unique_labels = sorted(set(r['label'] for r in records))
     label_to_id = {label: i for i, label in enumerate(unique_labels)}
@@ -462,20 +494,42 @@ def main():
             print(f"  Hard negative pair: {name1} <-> {name2}")
 
     sample_features = records[0].get('features', {})
+
+    _CLASS_PREFIXES = (
+        'bhi_', 'inception_', 'l1tf_', 'mds_', 'retbleed_',
+        'spectre_v1_', 'spectre_v2_', 'spectre_v4_', 'benign_',
+    )
+    def _is_allowed_feature(name: str) -> bool:
+        if name.endswith('_score'):
+            return False
+        for prefix in _CLASS_PREFIXES:
+            if name.startswith(prefix):
+                return False
+        return True
+
     feature_names = sorted([
         k for k, v in sample_features.items()
-        if isinstance(v, (int, float)) and k not in ['sequence', 'label']
+        if isinstance(v, (int, float))
+        and k not in ['sequence', 'label']
+        and _is_allowed_feature(k)
     ])
     handcrafted_dim = len(feature_names)
     print(f"Handcrafted features: {handcrafted_dim}")
 
-    # Split (same seed as v35)
-    print("\nSplitting train/test...")
-    labels = [r['label'] for r in records]
-    train_records, test_records = train_test_split(
-        records, test_size=0.2, stratify=labels, random_state=42
-    )
-    print(f"  Train: {len(train_records)}, Test: {len(test_records)}")
+    if using_presplit:
+        # Already split; filter each set for known labels
+        train_records = [r for r in train_records if r.get('label', 'UNKNOWN') in label_to_id]
+        test_records = [r for r in test_records if r.get('label', 'UNKNOWN') in label_to_id]
+        print(f"\nUsing pre-split data: Train={len(train_records)}, Test={len(test_records)}")
+    else:
+        # Random stratified split (legacy, contaminated)
+        print("\nSplitting train/test (random stratified — legacy)...")
+        filtered = [r for r in records if r.get('label', 'UNKNOWN') in label_to_id]
+        labels_for_split = [r['label'] for r in filtered]
+        train_records, test_records = train_test_split(
+            filtered, test_size=0.2, stratify=labels_for_split, random_state=42
+        )
+        print(f"  Train: {len(train_records)}, Test: {len(test_records)}")
 
     # Datasets
     print("\nCreating datasets...")
@@ -646,6 +700,9 @@ def main():
         'num_classes': num_classes,
         'node_feat_dim': NODE_FEATURE_DIM,
         'strip_boilerplate': not args.no_strip,
+        'split_mode': 'group_aware_deduped' if using_presplit else 'random_stratified_contaminated',
+        'train_count': len(train_records),
+        'test_count': len(test_records),
         'final_edge_type_scales': final_scales,
         'classification_report': report_dict,
         'args': vars(args),
