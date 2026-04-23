@@ -1,0 +1,124 @@
+[common] Loaded 6,042 frozen test hashes from /Users/ritvikgupta/SpecExec/data/v25_honest_test.jsonl
+Loaded 21,286 base training records
+Loaded 272,393 phase1 records
+Total existing hashes: 293,679
+[phase2] Compiler available: gcc
+[phase2] Compiler available: clang
+
+Found 23 top-level .c files in /Users/ritvikgupta/SpecExec/c_vulns/c_code
+  [fail] bhi.c | gcc ['-O2', '-funroll-loops']
+  [fail] bhi.c | gcc ['-O2', '-fno-inline']
+  [fail] bhi.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] bhi.c | gcc ['-Og']
+  [fail] bhi.c | clang ['-O2', '-funroll-loops']
+  [fail] bhi.c | clang ['-O2', '-fno-inline-functions']
+  [fail] bhi.c | clang ['-O1', '-fno-vectorize']
+  [fail] inception.c | gcc ['-O2', '-funroll-loops']
+  [fail] inception.c | gcc ['-O2', '-fno-inline']
+  [fail] inception.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] inception.c | gcc ['-Og']
+  [fail] inception.c | clang ['-O2', '-funroll-loops']
+  [fail] inception.c | clang ['-O2', '-fno-inline-functions']
+  [fail] inception.c | clang ['-O1', '-fno-vectorize']
+  [fail] inception_x86.c | gcc ['-O2', '-funroll-loops']
+  [fail] inception_x86.c | gcc ['-O2', '-fno-inline']
+  [fail] inception_x86.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] inception_x86.c | gcc ['-Og']
+  [fail] inception_x86.c | clang ['-O2', '-funroll-loops']
+  [fail] inception_x86.c | clang ['-O2', '-fno-inline-functions']
+  [fail] inception_x86.c | clang ['-O1', '-fno-vectorize']
+  [fail] l1tf.c | gcc ['-O2', '-funroll-loops']
+  [fail] l1tf.c | gcc ['-O2', '-fno-inline']
+  [fail] l1tf.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] l1tf.c | gcc ['-Og']
+  [fail] l1tf.c | clang ['-O2', '-funroll-loops']
+  [fail] l1tf.c | clang ['-O2', '-fno-inline-functions']
+  [fail] l1tf.c | clang ['-O1', '-fno-vectorize']
+  [fail] mds.c | gcc ['-O2', '-funroll-loops']
+  [fail] mds.c | gcc ['-O2', '-fno-inline']
+  [fail] mds.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] mds.c | gcc ['-Og']
+  [fail] mds.c | clang ['-O2', '-funroll-loops']
+  [fail] mds.c | clang ['-O2', '-fno-inline-functions']
+  [fail] mds.c | clang ['-O1', '-fno-vectorize']
+  [fail] meltdown.c | gcc ['-O2', '-funroll-loops']
+  [fail] meltdown.c | gcc ['-O2', '-fno-inline']
+  [fail] meltdown.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] meltdown.c | gcc ['-Og']
+  [fail] meltdown.c | clang ['-O2', '-funroll-loops']
+  [fail] meltdown.c | clang ['-O2', '-fno-inline-functions']
+  [fail] meltdown.c | clang ['-O1', '-fno-vectorize']
+  [fail] meltdown_arm64.c | gcc ['-O2', '-funroll-loops']
+  [fail] meltdown_arm64.c | gcc ['-O2', '-fno-inline']
+  [fail] meltdown_arm64.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] meltdown_arm64.c | gcc ['-Og']
+  [fail] meltdown_arm64.c | clang ['-O2', '-funroll-loops']
+  [fail] meltdown_arm64.c | clang ['-O2', '-fno-inline-functions']
+  [fail] meltdown_arm64.c | clang ['-O1', '-fno-vectorize']
+  [fail] retbleed.c | gcc ['-O2', '-funroll-loops']
+  [fail] retbleed.c | gcc ['-O2', '-fno-inline']
+  [fail] retbleed.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] retbleed.c | gcc ['-Og']
+  [fail] retbleed.c | clang ['-O2', '-funroll-loops']
+  [fail] retbleed.c | clang ['-O2', '-fno-inline-functions']
+  [fail] retbleed.c | clang ['-O1', '-fno-vectorize']
+  [fail] spectre_1.c | gcc ['-O2', '-funroll-loops']
+  [fail] spectre_1.c | gcc ['-O2', '-fno-inline']
+  [fail] spectre_1.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] spectre_1.c | gcc ['-Og']
+  [fail] spectre_1.c | clang ['-O2', '-funroll-loops']
+  [fail] spectre_1.c | clang ['-O2', '-fno-inline-functions']
+  [fail] spectre_1.c | clang ['-O1', '-fno-vectorize']
+  [fail] spectre_1_arm64.c | gcc ['-O2', '-funroll-loops']
+  [fail] spectre_1_arm64.c | gcc ['-O2', '-fno-inline']
+  [fail] spectre_1_arm64.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] spectre_1_arm64.c | gcc ['-Og']
+  [fail] spectre_1_arm64.c | clang ['-O2', '-funroll-loops']
+  [fail] spectre_1_arm64.c | clang ['-O2', '-fno-inline-functions']
+  [fail] spectre_1_arm64.c | clang ['-O1', '-fno-vectorize']
+  [fail] spectre_1_arm64_int.c | gcc ['-O2', '-funroll-loops']
+  [fail] spectre_1_arm64_int.c | gcc ['-O2', '-fno-inline']
+  [fail] spectre_1_arm64_int.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] spectre_1_arm64_int.c | gcc ['-Og']
+  [fail] spectre_1_arm64_int.c | clang ['-O2', '-funroll-loops']
+  [fail] spectre_1_arm64_int.c | clang ['-O2', '-fno-inline-functions']
+  [fail] spectre_1_arm64_int.c | clang ['-O1', '-fno-vectorize']
+  [fail] spectre_2.c | gcc ['-O2', '-funroll-loops']
+  [fail] spectre_2.c | gcc ['-O2', '-fno-inline']
+  [fail] spectre_2.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] spectre_2.c | gcc ['-Og']
+  [fail] spectre_2.c | clang ['-O2', '-funroll-loops']
+  [fail] spectre_2.c | clang ['-O2', '-fno-inline-functions']
+  [fail] spectre_2.c | clang ['-O1', '-fno-vectorize']
+  [fail] spectre_2_arm64.c | gcc ['-O2', '-funroll-loops']
+  [fail] spectre_2_arm64.c | gcc ['-O2', '-fno-inline']
+  [fail] spectre_2_arm64.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] spectre_2_arm64.c | gcc ['-Og']
+  [fail] spectre_2_arm64.c | clang ['-O2', '-funroll-loops']
+  [fail] spectre_2_arm64.c | clang ['-O2', '-fno-inline-functions']
+  [fail] spectre_2_arm64.c | clang ['-O1', '-fno-vectorize']
+  [skip] spectre_github.c: no label match
+  [fail] spectre_v1.c | gcc ['-O2', '-funroll-loops']
+  [fail] spectre_v1.c | gcc ['-O2', '-fno-inline']
+  [fail] spectre_v1.c | gcc ['-O2', '-fomit-frame-pointer']
+  [fail] spectre_v1.c | gcc ['-Og']
+  [fail] spectre_v1.c | clang ['-O2', '-funroll-loops']
+  [fail] spectre_v1.c | clang ['-O2', '-fno-inline-functions']
+  [fail] spectre_v1.c | clang ['-O1', '-fno-vectorize']
+  [skip] utils.c: no label match
+  [skip] utils_arm64.c: no label match
+
+Compilation results: ok=42, fail=98, skip=3
+Raw candidates before dedup: 4,859
+Validation stats: {'input': 4859, 'rejected_test_collision': 0, 'rejected_duplicate': 2949, 'rejected_too_short': 0, 'rejected_too_long': 0, 'accepted': 1910}
+[common] Wrote 1,910 records to /Users/ritvikgupta/SpecExec/data/enrichment/phase2_compiled.jsonl
+
+Per-class phase2 records:
+  BRANCH_HISTORY_INJECTION                      266
+  INCEPTION                                     306
+  L1TF                                          419
+  MDS                                           321
+  RETBLEED                                      279
+  SPECTRE_V1                                    319
+
+Total written: 1,910
