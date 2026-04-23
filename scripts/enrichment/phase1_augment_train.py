@@ -33,9 +33,9 @@ for _name in _transform_names:
     else:
         print(f"[phase1] WARNING: {_name} not found in augment_asm_windows — skipping")
 
-TRAIN_IN = ROOT / "data" / "v25_honest_train.jsonl"
+TRAIN_IN = ROOT / "data" / "v44_honest_train.jsonl"
 OUT_PATH  = ROOT / "data" / "enrichment" / "phase1_augmented.jsonl"
-N_PER_TRANSFORM = 5  # attempts per transform per sequence
+N_PER_TRANSFORM = 1  # attempts per transform per sequence
 
 
 def _apply_safe(fn, seq):
