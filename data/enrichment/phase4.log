@@ -1,0 +1,54 @@
+2026-04-23 04:53:53,961 === Phase 4: PoC Repository Scraping ===
+2026-04-23 04:53:55,529 Loaded 21,286 base training records
+2026-04-23 04:53:58,293 Loaded 272,393 phase1 records
+2026-04-23 04:54:02,544 Loaded 1,910 phase2 records
+2026-04-23 04:54:02,555 Total existing hashes for dedup: 295,589
+2026-04-23 04:54:02,604 Compiler available: gcc
+2026-04-23 04:54:02,610 Compiler available: clang
+2026-04-23 04:54:02,612 
+--- Processing repo: transient-execution-attacks ---
+2026-04-23 04:54:02,612   URL: https://github.com/IAIK/transient-execution-attacks
+2026-04-23 04:54:02,612   Label override: None
+2026-04-23 04:54:03,766   Skipping transient-execution-attacks due to clone failure
+2026-04-23 04:54:03,770 
+--- Processing repo: spectre ---
+2026-04-23 04:54:03,770   URL: https://github.com/cgvwzq/spectre
+2026-04-23 04:54:03,770   Label override: SPECTRE_V1
+2026-04-23 04:54:04,268   Found 1 .c/.cpp files
+2026-04-23 04:54:05,362   Repo spectre: 0 raw candidates, 0 files skipped (no label)
+2026-04-23 04:54:05,363 
+--- Processing repo: spectre-meltdown ---
+2026-04-23 04:54:05,363   URL: https://github.com/crozone/spectre-meltdown
+2026-04-23 04:54:05,363   Label override: None
+2026-04-23 04:54:05,802   Skipping spectre-meltdown due to clone failure
+2026-04-23 04:54:05,803 
+--- Processing repo: ridl ---
+2026-04-23 04:54:05,803   URL: https://github.com/vusec/ridl
+2026-04-23 04:54:05,803   Label override: MDS
+2026-04-23 04:54:06,869   Found 119 .c/.cpp files
+2026-04-23 04:54:31,238   Repo ridl: 166 raw candidates, 0 files skipped (no label)
+2026-04-23 04:54:31,239 
+--- Processing repo: Speculo ---
+2026-04-23 04:54:31,239   URL: https://github.com/bitdefender/Speculo
+2026-04-23 04:54:31,239   Label override: SPECTRE_V2
+2026-04-23 04:54:31,560   Skipping Speculo due to clone failure
+2026-04-23 04:54:31,560 
+--- Processing repo: security-research ---
+2026-04-23 04:54:31,560   URL: https://github.com/google/security-research
+2026-04-23 04:54:31,560   Label override: None
+2026-04-23 04:55:08,442   Found 297 .c/.cpp files
+2026-04-23 04:55:13,920   Repo security-research: 286 raw candidates, 286 files skipped (no label)
+2026-04-23 04:55:13,921 
+Compilation results: ok=18, fail=375, skip=286
+2026-04-23 04:55:13,921 Raw candidates before dedup: 452
+2026-04-23 04:55:14,061 Validation stats: {'input': 452, 'rejected_test_collision': 0, 'rejected_duplicate': 156, 'rejected_too_short': 0, 'rejected_too_long': 0, 'accepted': 296}
+2026-04-23 04:55:14,071 
+Per-class phase4 records:
+2026-04-23 04:55:14,071   MDS                                           165
+2026-04-23 04:55:14,071   RETBLEED                                      131
+2026-04-23 04:55:14,071 
+Per-repo phase4 records:
+2026-04-23 04:55:14,071   security-research                             182
+2026-04-23 04:55:14,071   ridl                                          114
+2026-04-23 04:55:14,071 
+Total written: 296
