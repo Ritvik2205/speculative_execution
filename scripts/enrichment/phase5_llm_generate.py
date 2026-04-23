@@ -12,11 +12,9 @@ Each generated function is compiled to assembly and validated:
 Requires: pip install anthropic
           ANTHROPIC_API_KEY environment variable
 """
-import os, sys, subprocess, tempfile, random, json
+import os, sys, subprocess, tempfile, json, re
 from pathlib import Path
 from collections import Counter
-
-random.seed(42)
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts" / "enrichment"))
@@ -74,10 +72,20 @@ CLASS_SPECS = {
             "preceding store to the same or aliased address retires"
         ),
         "asm_validator": lambda instrs: (
-            any("str " in l.lower() or "mov " in l.lower() or "store" in l.lower()
-                for l in instrs) and
-            any("ldr " in l.lower() or "ret" in l.lower() or "load" in l.lower()
-                for l in instrs)
+            any(
+                # x86_64 store: mov to memory operand (has '[' or 'ptr')
+                (l.strip().lower().startswith("mov") and ("[" in l or "ptr" in l.lower())) or
+                # ARM64 store
+                l.strip().lower().startswith("str ")
+                for l in instrs
+            ) and
+            any(
+                # x86_64 load: mov from memory operand, or ARM64 ldr
+                (l.strip().lower().startswith("mov") and ("[" in l or "ptr" in l.lower())) or
+                l.strip().lower().startswith("ldr ") or
+                l.strip().lower().startswith("ret")
+                for l in instrs
+            )
         ),
         "hints": [
             "local pointer write then dereference", "struct field store then dependent read",
@@ -143,7 +151,7 @@ def compile_and_window(c_code: str, label: str, group_id: str, asm_validator) ->
             ]
             if len(instrs) < 5 or not asm_validator(instrs):
                 continue
-            for start in range(0, max(1, len(instrs) - WINDOW_BEFORE - WINDOW_AFTER), STEP):
+            for start in range(0, max(1, len(instrs) - WINDOW_BEFORE - WINDOW_AFTER + 1), STEP):
                 w = instrs[start:start + WINDOW_BEFORE + WINDOW_AFTER]
                 if len(w) >= 5:
                     flag_str = "_".join(f.lstrip("-") for f in flags)
@@ -155,8 +163,8 @@ def compile_and_window(c_code: str, label: str, group_id: str, asm_validator) ->
                         "arch": "x86_64",
                         "augmentation": "llm_synthetic",
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"    [compile_and_window] {type(e).__name__}: {e}")
         finally:
             for p in [src_p, asm_p]:
                 try: os.unlink(p)
@@ -179,7 +187,7 @@ def main():
         write_jsonl([], OUT_PATH)
         return
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic()
     test_hashes = load_test_hashes()
 
     existing = []
@@ -206,7 +214,7 @@ def main():
             except Exception as e:
                 print(f"API error: {e}")
                 continue
-            functions = [f.strip() for f in raw.split("---") if f.strip()]
+            functions = [f.strip() for f in re.split(r'(?m)^\s*---\s*$', raw) if f.strip()]
             batch_records = []
             for j, fn_code in enumerate(functions):
                 group_id = f"phase5_{cls.lower()}_{i}_{j}"
