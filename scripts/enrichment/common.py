@@ -13,12 +13,17 @@ ROOT = Path(__file__).parent.parent.parent  # SpecExec/
 TEST_PATH = ROOT / "data" / "v25_honest_test.jsonl"
 
 
-def seq_hash(seq: list) -> str:
-    return hashlib.md5("|".join(seq).encode()).hexdigest()
+def seq_hash(seq: list[str]) -> str:
+    return hashlib.md5("|".join(str(tok) for tok in seq).encode()).hexdigest()
 
 
 def load_test_hashes() -> frozenset:
     """Load the frozen test set sequence hashes. Call once per script."""
+    if not TEST_PATH.exists():
+        raise FileNotFoundError(
+            f"[common] Frozen test set not found at {TEST_PATH}. "
+            "Run scripts/create_honest_split.py first."
+        )
     hashes = set()
     with open(TEST_PATH) as f:
         for line in f:
@@ -30,12 +35,12 @@ def load_test_hashes() -> frozenset:
 
 
 def validate_and_dedup(
-    records,
-    test_hashes,
-    existing_hashes=None,
-    min_len=5,
-    max_len=200,
-):
+    records: list,
+    test_hashes: frozenset,
+    existing_hashes: set | None = None,
+    min_len: int = 5,
+    max_len: int = 200,
+) -> tuple:
     """
     Filter records against the frozen test set and deduplicate.
     Returns (clean_records, stats_dict).
@@ -44,7 +49,7 @@ def validate_and_dedup(
     if existing_hashes is None:
         existing_hashes = set()
 
-    seen = set(existing_hashes)
+    seen = set(existing_hashes)  # copy — caller's set is never mutated
     clean = []
     stats = {
         "input": len(records),
@@ -79,7 +84,7 @@ def validate_and_dedup(
     return clean, stats
 
 
-def write_jsonl(records, path) -> None:
+def write_jsonl(records: list, path) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
