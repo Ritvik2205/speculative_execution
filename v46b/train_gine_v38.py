@@ -13,6 +13,7 @@ dual-path fusion, supervised contrastive loss).
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -40,15 +41,30 @@ from pdg_builder import PDGBuilder, EDGE_TYPES, NUM_EDGE_TYPES
 from gine_classifier_v38 import GINEClassifier, SupervisedContrastiveLoss
 from strip_boilerplate import strip_boilerplate
 
-if torch.cuda.is_available():
-    DEVICE = torch.device('cuda')
-elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-    DEVICE = torch.device('mps')
-else:
-    DEVICE = torch.device('cpu')
-MAX_NODES = 256
-MAX_EDGES = 2048
-NODE_FEATURE_DIM = 35  # 34 base + 1 positional
+
+def select_device() -> torch.device:
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+
+    if hasattr(torch.backends, 'mps'):
+        mps_built = bool(getattr(torch.backends.mps, "is_built", lambda: False)())
+        mps_available = bool(torch.backends.mps.is_available())
+        force_mps = os.environ.get('FORCE_MPS', '0') == '1'
+        py314_plus = sys.version_info >= (3, 14)
+        if mps_built and mps_available and (force_mps or not py314_plus):
+            return torch.device('mps')
+        if mps_built and mps_available and py314_plus and not force_mps:
+            print("[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.")
+            print("[warn] Set FORCE_MPS=1 to try MPS anyway.")
+    return torch.device('cpu')
+
+DEVICE = select_device()
+MAX_NODES = 64
+MAX_EDGES = 512
+# v46b: 19 opcode cats + 5 mem types + 2 reg counts + 14 spec_flags = 40 base
+# +1 positional = 41
+# Added is_gather (flag 13) for AVX2 gather instructions (DOWNFALL key pattern)
+NODE_FEATURE_DIM = 41  # 40 base + 1 positional
 
 CONFUSED_CLASS_NAMES = [
     ('L1TF', 'SPECTRE_V1'),
@@ -57,11 +73,7 @@ CONFUSED_CLASS_NAMES = [
     ('SPECTRE_V1', 'SPECTRE_V4'),
     ('SPECTRE_V2', 'BRANCH_HISTORY_INJECTION'),
     ('SPECTRE_V2', 'INCEPTION'),
-    ('SPECTRE_V2', 'SPECTRE_RSB'),
     ('RETBLEED', 'INCEPTION'),
-    ('RETBLEED', 'SPECTRE_RSB'),
-    ('DOWNFALL', 'MDS'),
-    ('DOWNFALL', 'L1TF'),
 ]
 
 
@@ -147,15 +159,15 @@ class GINEDatasetV38(Dataset):
 
         n_nodes = min(len(pdg.nodes), self.max_nodes)
 
-        # Get base node features (34-dim) and add positional encoding
-        base_features = pdg.get_node_features(self.max_nodes)  # [max_nodes, 34]
+        # Get base node features (40-dim) and add positional encoding
+        base_features = pdg.get_node_features(self.max_nodes)  # [max_nodes, 40]
 
         # Positional encoding: instruction_index / total_instructions
         pos_enc = np.zeros((self.max_nodes, 1), dtype=np.float32)
         for i in range(n_nodes):
             pos_enc[i, 0] = i / max(n_nodes - 1, 1)
 
-        # Concatenate: [max_nodes, 35]
+        # Concatenate: [max_nodes, 41]
         node_features = np.concatenate([base_features, pos_enc], axis=1)
 
         edge_index, edge_type = pdg.get_edge_index_and_type(self.max_nodes)
@@ -485,7 +497,10 @@ def main():
 
     records = [r for r in records if r.get('label', 'UNKNOWN') != 'UNKNOWN']
 
-    unique_labels = sorted(set(r['label'] for r in records))
+    # Build label vocab from TRAIN only — test labels must not influence encoding.
+    # In presplit mode train_records is already loaded; fall back to full records otherwise.
+    label_source = train_records if using_presplit else records
+    unique_labels = sorted(set(r['label'] for r in label_source if r.get('label','UNKNOWN') != 'UNKNOWN'))
     label_to_id = {label: i for i, label in enumerate(unique_labels)}
     id_to_label = {i: label for label, i in label_to_id.items()}
     num_classes = len(unique_labels)
@@ -498,24 +513,9 @@ def main():
             print(f"  Hard negative pair: {name1} <-> {name2}")
 
     sample_features = records[0].get('features', {})
-
-    _CLASS_PREFIXES = (
-        'bhi_', 'inception_', 'l1tf_', 'mds_', 'retbleed_',
-        'spectre_v1_', 'spectre_v2_', 'spectre_v4_', 'benign_',
-    )
-    def _is_allowed_feature(name: str) -> bool:
-        if name.endswith('_score'):
-            return False
-        for prefix in _CLASS_PREFIXES:
-            if name.startswith(prefix):
-                return False
-        return True
-
     feature_names = sorted([
         k for k, v in sample_features.items()
-        if isinstance(v, (int, float))
-        and k not in ['sequence', 'label']
-        and _is_allowed_feature(k)
+        if isinstance(v, (int, float)) and k not in ['sequence', 'label']
     ])
     handcrafted_dim = len(feature_names)
     print(f"Handcrafted features: {handcrafted_dim}")
@@ -691,12 +691,18 @@ def main():
         print(f"  {name:20s}: {scale:.4f}  ({direction})")
 
     label_names = [id_to_label[i] for i in range(num_classes)]
+    # Only include labels that appear in test set (avoids sklearn error when
+    # DOWNFALL/SPECTRE_RSB have 0 test samples)
+    present_ids = sorted(set(test_labels))
+    present_names = [id_to_label[i] for i in present_ids]
     print(f"\nClassification Report:")
-    report = classification_report(test_labels, test_preds, target_names=label_names)
+    report = classification_report(test_labels, test_preds,
+                                   labels=present_ids, target_names=present_names)
     print(report)
 
     report_dict = classification_report(test_labels, test_preds,
-                                        target_names=label_names, output_dict=True)
+                                        labels=present_ids, target_names=present_names,
+                                        output_dict=True)
     metrics = {
         'test_accuracy': test_acc,
         'best_epoch': best_epoch,
@@ -716,7 +722,7 @@ def main():
 
     # Confusion matrix
     plot_confusion_matrix(
-        test_labels, test_preds, label_names,
+        test_labels, test_preds, present_names,
         f'{tag}\nConfusion Matrix (Acc={test_acc:.3f})',
         viz_dir / 'confusion_matrix.png',
     )

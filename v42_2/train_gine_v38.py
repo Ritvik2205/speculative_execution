@@ -46,8 +46,8 @@ elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
     DEVICE = torch.device('mps')
 else:
     DEVICE = torch.device('cpu')
-MAX_NODES = 256
-MAX_EDGES = 2048
+MAX_NODES = 64
+MAX_EDGES = 512
 NODE_FEATURE_DIM = 35  # 34 base + 1 positional
 
 CONFUSED_CLASS_NAMES = [
@@ -57,11 +57,7 @@ CONFUSED_CLASS_NAMES = [
     ('SPECTRE_V1', 'SPECTRE_V4'),
     ('SPECTRE_V2', 'BRANCH_HISTORY_INJECTION'),
     ('SPECTRE_V2', 'INCEPTION'),
-    ('SPECTRE_V2', 'SPECTRE_RSB'),
     ('RETBLEED', 'INCEPTION'),
-    ('RETBLEED', 'SPECTRE_RSB'),
-    ('DOWNFALL', 'MDS'),
-    ('DOWNFALL', 'L1TF'),
 ]
 
 
@@ -498,24 +494,9 @@ def main():
             print(f"  Hard negative pair: {name1} <-> {name2}")
 
     sample_features = records[0].get('features', {})
-
-    _CLASS_PREFIXES = (
-        'bhi_', 'inception_', 'l1tf_', 'mds_', 'retbleed_',
-        'spectre_v1_', 'spectre_v2_', 'spectre_v4_', 'benign_',
-    )
-    def _is_allowed_feature(name: str) -> bool:
-        if name.endswith('_score'):
-            return False
-        for prefix in _CLASS_PREFIXES:
-            if name.startswith(prefix):
-                return False
-        return True
-
     feature_names = sorted([
         k for k, v in sample_features.items()
-        if isinstance(v, (int, float))
-        and k not in ['sequence', 'label']
-        and _is_allowed_feature(k)
+        if isinstance(v, (int, float)) and k not in ['sequence', 'label']
     ])
     handcrafted_dim = len(feature_names)
     print(f"Handcrafted features: {handcrafted_dim}")

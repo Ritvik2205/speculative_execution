@@ -21,6 +21,7 @@ from typing import List, Dict, Optional
 import warnings
 warnings.filterwarnings('ignore')
 
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -40,14 +41,28 @@ from pdg_builder import PDGBuilder, EDGE_TYPES, NUM_EDGE_TYPES
 from gine_classifier_v38 import GINEClassifier, SupervisedContrastiveLoss
 from strip_boilerplate import strip_boilerplate
 
-if torch.cuda.is_available():
-    DEVICE = torch.device('cuda')
-elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-    DEVICE = torch.device('mps')
-else:
-    DEVICE = torch.device('cpu')
-MAX_NODES = 256
-MAX_EDGES = 2048
+def select_device() -> torch.device:
+    """Pick the fastest usable device, with conservative MPS gating."""
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+
+    if hasattr(torch.backends, 'mps'):
+        mps_built = bool(getattr(torch.backends.mps, "is_built", lambda: False)())
+        mps_available = bool(torch.backends.mps.is_available())
+        force_mps = os.environ.get('FORCE_MPS', '0') == '1'
+        py314_plus = sys.version_info >= (3, 14)
+        if mps_built and mps_available and (force_mps or not py314_plus):
+            return torch.device('mps')
+        if mps_built and mps_available and py314_plus and not force_mps:
+            print("[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.")
+            print("[warn] Set FORCE_MPS=1 to try MPS anyway.")
+
+    return torch.device('cpu')
+
+
+DEVICE = select_device()
+MAX_NODES = 64
+MAX_EDGES = 512
 NODE_FEATURE_DIM = 35  # 34 base + 1 positional
 
 CONFUSED_CLASS_NAMES = [
@@ -57,11 +72,7 @@ CONFUSED_CLASS_NAMES = [
     ('SPECTRE_V1', 'SPECTRE_V4'),
     ('SPECTRE_V2', 'BRANCH_HISTORY_INJECTION'),
     ('SPECTRE_V2', 'INCEPTION'),
-    ('SPECTRE_V2', 'SPECTRE_RSB'),
     ('RETBLEED', 'INCEPTION'),
-    ('RETBLEED', 'SPECTRE_RSB'),
-    ('DOWNFALL', 'MDS'),
-    ('DOWNFALL', 'L1TF'),
 ]
 
 
@@ -498,24 +509,9 @@ def main():
             print(f"  Hard negative pair: {name1} <-> {name2}")
 
     sample_features = records[0].get('features', {})
-
-    _CLASS_PREFIXES = (
-        'bhi_', 'inception_', 'l1tf_', 'mds_', 'retbleed_',
-        'spectre_v1_', 'spectre_v2_', 'spectre_v4_', 'benign_',
-    )
-    def _is_allowed_feature(name: str) -> bool:
-        if name.endswith('_score'):
-            return False
-        for prefix in _CLASS_PREFIXES:
-            if name.startswith(prefix):
-                return False
-        return True
-
     feature_names = sorted([
         k for k, v in sample_features.items()
-        if isinstance(v, (int, float))
-        and k not in ['sequence', 'label']
-        and _is_allowed_feature(k)
+        if isinstance(v, (int, float)) and k not in ['sequence', 'label']
     ])
     handcrafted_dim = len(feature_names)
     print(f"Handcrafted features: {handcrafted_dim}")

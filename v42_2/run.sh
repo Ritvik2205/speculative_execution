@@ -2,18 +2,23 @@
 set -euo pipefail
 
 # v42: GINE v38 architecture with academically honest evaluation
-# - Sequence-level deduplication (27,328 unique seqs vs 69,395 inflated records)
-# - Group-aware train/test split (no source file spans both splits)
-# - Zero exact-sequence overlap, zero group overlap
-# Run scripts/create_honest_split.py first to generate the split files.
+#
+# Fixes vs v40 (96.71% contaminated):
+#   1. Sequence-level deduplication: 69,395 → 27,328 unique sequences
+#   2. Group-aware split: no source file appears in both train and test
+#   3. Zero exact-sequence overlap, zero group overlap between splits
+#
+# Data:
+#   data/v42_train_enriched.jsonl — 295,112 enriched training sequences (base + phases 1-5)
+#   data/v25_honest_test.jsonl    — 6,042   unique test sequences (36 held-out source groups, FROZEN)
 
 pip install -q -r requirements.txt
 
 mkdir -p viz_v42_honest
 
 TQDM_DISABLE=1 python3 -u train_gine_v38.py \
-  --train-data ../data/v25_honest_train.jsonl \
-  --test-data  ../data/v25_honest_test.jsonl \
+  --train-data data/v42_train_enriched.jsonl \
+  --test-data  data/v25_honest_test.jsonl \
   --output-dir viz_v42_honest \
   --viz-dir    viz_v42_honest \
   --epochs 100 \
@@ -32,8 +37,8 @@ echo "=== v42 Honest Results ==="
 python3 -c "
 import json
 m = json.load(open('viz_v42_honest/gine_metrics.json'))
-print(f\"v42 honest split: {m['test_accuracy']*100:.2f}% (epoch {m['best_epoch']})\")
-print(f\"Split mode: {m.get('split_mode','?')}\")
+print(f\"Accuracy: {m['test_accuracy']*100:.2f}%  (epoch {m['best_epoch']})\")
+print(f\"Split:    {m.get('split_mode','?')}\")
 print(f\"Train: {m.get('train_count','?')}  Test: {m.get('test_count','?')}\")
 print()
 print(f\"{'class':35s} {'prec':>7s} {'rec':>7s} {'f1':>7s} {'sup':>6s}\")
