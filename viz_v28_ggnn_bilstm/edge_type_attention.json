@@ -1,0 +1,14 @@
+{
+  "class_names": [
+    "BENIGN",
+    "BRANCH_HISTORY_INJECTION",
+    "INCEPTION",
+    "L1TF",
+    "MDS",
+    "RETBLEED",
+    "SPECTRE_V1",
+    "SPECTRE_V2",
+    "SPECTRE_V4"
+  ],
+  "data_attention": [
+    
