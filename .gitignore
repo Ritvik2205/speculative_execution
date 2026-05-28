@@ -168,3 +168,9 @@ data/enrichment/
 
 githubCrawl/data/enrichment/poc_repos/
 githubCrawl/repos/
+
+# Large datasets (keep locally, don't push)
+*.hdf5
+data/vdisc/
+githubCrawl/parsed_assembly/vocabulary.json
+data/v42_train_enriched.jsonl
