@@ -174,3 +174,4 @@ githubCrawl/repos/
 data/vdisc/
 githubCrawl/parsed_assembly/vocabulary.json
 data/v42_train_enriched.jsonl
+v42/data/v42_train_enriched.jsonl
