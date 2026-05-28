@@ -1,0 +1,24 @@
+{
+  "label_to_id": {
+    "BENIGN": 0,
+    "BRANCH_HISTORY_INJECTION": 1,
+    "INCEPTION": 2,
+    "L1TF": 3,
+    "MDS": 4,
+    "RETBLEED": 5,
+    "SPECTRE_V1": 6,
+    "SPECTRE_V2": 7,
+    "SPECTRE_V4": 8
+  },
+  "id_to_label": {
+    "0": "BENIGN",
+    "1": "BRANCH_HISTORY_INJECTION",
+    "2": "INCEPTION",
+    "3": "L1TF",
+    "4": "MDS",
+    "5": "RETBLEED",
+    "6": "SPECTRE_V1",
+    "7": "SPECTRE_V2",
+    "8": "SPECTRE_V4"
+  }
+}

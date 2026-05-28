@@ -1,0 +1,761 @@
+{
+  "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/bsd/dev/arm64/disassembler.arm64.gcc.O0.s",
+  "vulnerability_types": [
+    "INCEPTION",
+    "MELTDOWN",
+    "SPECTRE_V1",
+    "SPECTRE_V2",
+    "L1TF",
+    "BHI",
+    "MDS",
+    "RETBLEED"
+  ],
+  "validation_score": 0.8999999999999999,
+  "risk_level": "HIGH",
+  "confidence_score": 0.536404060552571,
+  "instruction_count": 10,
+  "matched_gadgets_count": 10,
+  "risk_factors": [
+    "Medium similarity confidence",
+    "ARM64 architecture (common target)",
+    "Matches multiple vulnerability types",
+    "Spectre V1 pattern detected",
+    "Meltdown pattern detected",
+    "Spectre V2 pattern detected"
+  ],
+  "mitigation_factors": [
+    "No optimization (reduces speculation)"
+  ],
+  "line_analysis": {
+    "total_lines": 167,
+    "vulnerable_line_ranges": [
+      {
+        "start": 1,
+        "end": 1
+      },
+      {
+        "start": 3,
+        "end": 3
+      },
+      {
+        "start": 7,
+        "end": 7
+      },
+      {
+        "start": 10,
+        "end": 11
+      },
+      {
+        "start": 14,
+        "end": 14
+      },
+      {
+        "start": 16,
+        "end": 17
+      },
+      {
+        "start": 20,
+        "end": 21
+      },
+      {
+        "start": 25,
+        "end": 27
+      },
+      {
+        "start": 29,
+        "end": 29
+      },
+      {
+        "start": 33,
+        "end": 35
+      },
+      {
+        "start": 38,
+        "end": 38
+      },
+      {
+        "start": 42,
+        "end": 43
+      },
+      {
+        "start": 45,
+        "end": 46
+      },
+      {
+        "start": 51,
+        "end": 51
+      },
+      {
+        "start": 53,
+        "end": 53
+      },
+      {
+        "start": 57,
+        "end": 57
+      },
+      {
+        "start": 60,
+        "end": 60
+      },
+      {
+        "start": 62,
+        "end": 62
+      },
+      {
+        "start": 66,
+        "end": 66
+      },
+      {
+        "start": 68,
+        "end": 68
+      },
+      {
+        "start": 166,
+        "end": 166
+      }
+    ],
+    "vulnerable_instructions_count": 104,
+    "vulnerability_indicators": {
+      "INCEPTION": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 7,
+          "line_content": "; %bb.0:",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 10,
+          "line_content": "str\tw0, [sp, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 11,
+          "line_content": "str\twzr, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 14,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 17,
+          "line_content": "b.hs\tLBB0_6",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 20,
+          "line_content": "ldr\tw8, [sp, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tw9, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 27,
+          "line_content": "ldr\tw10, [x9, x10]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 29,
+          "line_content": "ldr\tw10, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 33,
+          "line_content": "ldr\tw9, [x9, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 35,
+          "line_content": "b.ne\tLBB0_4",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 38,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 45,
+          "line_content": "ldrb\tw8, [x8, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 46,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 51,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 53,
+          "line_content": "str\tw8, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 57,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 60,
+          "line_content": "ldrb\tw0, [sp, #15]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        }
+      ],
+      "MELTDOWN": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 10,
+          "line_content": "str\tw0, [sp, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 11,
+          "line_content": "str\twzr, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 14,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 20,
+          "line_content": "ldr\tw8, [sp, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tw9, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 27,
+          "line_content": "ldr\tw10, [x9, x10]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 29,
+          "line_content": "ldr\tw10, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 33,
+          "line_content": "ldr\tw9, [x9, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 38,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 45,
+          "line_content": "ldrb\tw8, [x8, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 46,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 51,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 53,
+          "line_content": "str\tw8, [sp, #4]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 57,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 60,
+          "line_content": "ldrb\tw0, [sp, #15]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        }
+      ],
+      "SPECTRE_V1": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 7,
+          "line_content": "; %bb.0:",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 10,
+          "line_content": "str\tw0, [sp, #8]",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 11,
+          "line_content": "str\twzr, [sp, #4]",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 14,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 16,
+          "line_content": "subs\tx8, x8, #24",
+          "pattern_type": "compare_instructions",
+          "instruction": "subs"
+        },
+        {
+          "line_number": 17,
+          "line_content": "b.hs\tLBB0_6",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 20,
+          "line_content": "ldr\tw8, [sp, #8]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tw9, [sp, #4]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 27,
+          "line_content": "ldr\tw10, [x9, x10]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 29,
+          "line_content": "ldr\tw10, [sp, #4]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 33,
+          "line_content": "ldr\tw9, [x9, #4]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 34,
+          "line_content": "subs\tw8, w8, w9",
+          "pattern_type": "compare_instructions",
+          "instruction": "subs"
+        },
+        {
+          "line_number": 35,
+          "line_content": "b.ne\tLBB0_4",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 38,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 45,
+          "line_content": "ldrb\tw8, [x8, #8]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 46,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 51,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 53,
+          "line_content": "str\tw8, [sp, #4]",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 57,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 60,
+          "line_content": "ldrb\tw0, [sp, #15]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 166,
+          "line_content": ".subsections_via_symbols",
+          "pattern_type": "compare_instructions",
+          "instruction": "subs"
+        }
+      ],
+      "SPECTRE_V2": [
+        {
+          "line_number": 3,
+          "line_content": ".globl\t_dtrace_decode_arm64            ; -- Begin function dtrace_decode_arm64",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 25,
+          "line_content": "adrp\tx9, _arm64_decode_table@PAGE",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 26,
+          "line_content": "add\tx9, x9, _arm64_decode_table@PAGEOFF",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 42,
+          "line_content": "adrp\tx8, _arm64_decode_table@PAGE",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 43,
+          "line_content": "add\tx8, x8, _arm64_decode_table@PAGEOFF",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 62,
+          "line_content": "ret",
+          "pattern_type": "indirect_branch",
+          "instruction": "ret"
+        },
+        {
+          "line_number": 66,
+          "line_content": ".globl\t_arm64_decode_table             ; @arm64_decode_table",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 68,
+          "line_content": "_arm64_decode_table:",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        }
+      ],
+      "L1TF": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 10,
+          "line_content": "str\tw0, [sp, #8]",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 11,
+          "line_content": "str\twzr, [sp, #4]",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 14,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 20,
+          "line_content": "ldr\tw8, [sp, #8]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tw9, [sp, #4]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 27,
+          "line_content": "ldr\tw10, [x9, x10]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 29,
+          "line_content": "ldr\tw10, [sp, #4]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 33,
+          "line_content": "ldr\tw9, [x9, #4]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 38,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 45,
+          "line_content": "ldrb\tw8, [x8, #8]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 46,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 51,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 53,
+          "line_content": "str\tw8, [sp, #4]",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 57,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 60,
+          "line_content": "ldrb\tw0, [sp, #15]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        }
+      ],
+      "BHI": [
+        {
+          "line_number": 7,
+          "line_content": "; %bb.0:",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 17,
+          "line_content": "b.hs\tLBB0_6",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 35,
+          "line_content": "b.ne\tLBB0_4",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        }
+      ],
+      "MDS": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 10,
+          "line_content": "str\tw0, [sp, #8]",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 11,
+          "line_content": "str\twzr, [sp, #4]",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 14,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 20,
+          "line_content": "ldr\tw8, [sp, #8]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tw9, [sp, #4]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 27,
+          "line_content": "ldr\tw10, [x9, x10]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 29,
+          "line_content": "ldr\tw10, [sp, #4]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 33,
+          "line_content": "ldr\tw9, [x9, #4]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 38,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 45,
+          "line_content": "ldrb\tw8, [x8, #8]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 46,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 51,
+          "line_content": "ldr\tw8, [sp, #4]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 53,
+          "line_content": "str\tw8, [sp, #4]",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 57,
+          "line_content": "strb\tw8, [sp, #15]",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 60,
+          "line_content": "ldrb\tw0, [sp, #15]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        }
+      ],
+      "RETBLEED": [
+        {
+          "line_number": 7,
+          "line_content": "; %bb.0:",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 17,
+          "line_content": "b.hs\tLBB0_6",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 35,
+          "line_content": "b.ne\tLBB0_4",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 62,
+          "line_content": "ret",
+          "pattern_type": "return_instructions",
+          "instruction": "ret"
+        }
+      ]
+    }
+  }
+}

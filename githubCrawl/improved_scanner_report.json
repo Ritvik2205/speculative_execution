@@ -1,0 +1,11 @@
+{
+  "improvement_summary": {
+    "original_detections": 10,
+    "improved_detections": 0,
+    "reduction_percentage": 100.0,
+    "high_confidence_detections": 0,
+    "low_fp_risk_detections": 0
+  },
+  "by_vulnerability_type": {},
+  "sample_improvements": []
+}

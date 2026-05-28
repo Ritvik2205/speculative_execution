@@ -12,6 +12,9 @@ sys.path.insert(0, str(ROOT / "scripts" / "enrichment"))
 from common import load_test_hashes, validate_and_dedup, write_jsonl, load_jsonl, seq_hash
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
+# NOTE: v44_honest_train.jsonl is now the FINAL re-split (10,940 records from rebuild_split_v2.py).
+# assemble_training.py produces v44_train_enriched.jsonl (stale after split rebuild).
+# To re-enrich: add new phase file → run assemble_training.py → run rebuild_split_v2.py.
 BASE_TRAIN  = ROOT / "data" / "v44_honest_train.jsonl"
 TEST_PATH   = ROOT / "data" / "v44_honest_test.jsonl"
 
@@ -21,6 +24,8 @@ PHASE_FILES = {
     "phase4_poc":        ROOT / "data" / "enrichment" / "phase4_poc.jsonl",
     "phase7_compiled":   ROOT / "data" / "enrichment" / "phase7_compiled.jsonl",
     "phase8_kernel":     ROOT / "data" / "enrichment" / "phase8_kernel.jsonl",
+    "phase9_rebalanced": ROOT / "data" / "enrichment" / "phase9_rebalanced.jsonl",
+    "phase11_poc_expanded": ROOT / "data" / "enrichment" / "phase11_poc_expanded.jsonl",
 }
 
 OUT_MAIN    = ROOT / "data" / "v44_train_enriched.jsonl"

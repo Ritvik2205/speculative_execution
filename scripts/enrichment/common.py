@@ -10,27 +10,31 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent  # SpecExec/
-TEST_PATH = ROOT / "data" / "v25_honest_test.jsonl"
+TEST_PATH    = ROOT / "data" / "v25_honest_test.jsonl"    # legacy (window-based)
+TEST_PATH_V44 = ROOT / "data" / "v44_honest_test.jsonl"  # function-level test set
 
 
 def seq_hash(seq: list[str]) -> str:
     return hashlib.md5("|".join(str(tok) for tok in seq).encode()).hexdigest()
 
 
-def load_test_hashes() -> frozenset:
+def load_test_hashes(path=None) -> frozenset:
     """Load the frozen test set sequence hashes. Call once per script."""
-    if not TEST_PATH.exists():
+    p = Path(path) if path else TEST_PATH_V44
+    if not p.exists():
+        p = TEST_PATH
+    if not p.exists():
         raise FileNotFoundError(
-            f"[common] Frozen test set not found at {TEST_PATH}. "
-            "Run scripts/create_honest_split.py first."
+            f"[common] Frozen test set not found at {p}. "
+            "Run scripts/enrichment/rebuild_base_dataset.py first."
         )
     hashes = set()
-    with open(TEST_PATH) as f:
+    with open(p) as f:
         for line in f:
             if line.strip():
                 r = json.loads(line)
                 hashes.add(seq_hash(r.get("sequence", [])))
-    print(f"[common] Loaded {len(hashes):,} frozen test hashes from {TEST_PATH}")
+    print(f"[common] Loaded {len(hashes):,} frozen test hashes from {p}")
     return frozenset(hashes)
 
 
@@ -39,7 +43,7 @@ def validate_and_dedup(
     test_hashes: frozenset,
     existing_hashes: set | None = None,
     min_len: int = 5,
-    max_len: int = 200,
+    max_len: int = 500,          # raised from 200 → 500 for function-level sequences
 ) -> tuple:
     """
     Filter records against the frozen test set and deduplicate.

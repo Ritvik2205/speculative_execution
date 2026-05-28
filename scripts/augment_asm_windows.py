@@ -22,6 +22,13 @@ except ImportError:  # pragma: no cover - optional dependency
 
 
 ARM64_BRANCH_COND = re.compile(r"\b(b\.(eq|ne|hs|lo|mi|pl|vs|vc|hi|ls|ge|lt|gt|le))\b", re.IGNORECASE)
+# Broader conditional branch family: b.cond + cbz/cbnz + tbz/tbnz. Required
+# because the SpecExec gadgets frequently use cbz/cbnz as the speculation
+# trigger, which ARM64_BRANCH_COND alone does not match.
+ARM64_COND_BRANCH_ANY = re.compile(
+    r"\b(b\.(?:eq|ne|hs|lo|mi|pl|vs|vc|hi|ls|ge|lt|gt|le|cc|cs)|cbz|cbnz|tbz|tbnz)\b",
+    re.IGNORECASE,
+)
 ARM64_LOAD = re.compile(r"\b(ldr(b|h|sh|sw)?|ldr)\b", re.IGNORECASE)
 ARM64_REG = re.compile(r"\b([wx])([0-9]{1,2})\b")
 
@@ -995,47 +1002,115 @@ def can_swap(a: str, b: str) -> bool:
 
 
 def rename_registers(seq: List[str]) -> List[str]:
-    # Build a random bijection for x0..x31 and w0..w31 used in window
-    used = sorted({m.group(0) for line in seq for m in (list(ARM64_REG.finditer(line)) + list(X86_REG.finditer(line)))})
-    mapping: Dict[str, str] = {}
-    pool_x = [f"x{i}" for i in range(32)]
-    pool_w = [f"w{i}" for i in range(32)]
-    pool_rx = [f"r{i}" for i in range(16)] + ["rax","rbx","rcx","rdx","rsi","rdi","rbp","rsp"]
-    pool_ex = ["eax","ebx","ecx","edx","esi","edi","ebp","esp"]
-    random.shuffle(pool_x)
-    random.shuffle(pool_w)
-    random.shuffle(pool_rx)
-    random.shuffle(pool_ex)
-    ix = 0
-    iw = 0
+    """Bijective register rename with a single-pass substitution.
+
+    Fixes over the previous implementation:
+    - No cascade / re-rewrite bug: all renames happen in one regex pass using a
+      callback, so ``x3 -> x7`` followed by ``x7 -> x2`` can never interact.
+    - Strict family-scoped bijection: destinations are drawn from a disjoint
+      pool per register family, so two distinct source registers can never map
+      to the same destination. ``sp`` / ``xzr`` / ``wzr`` / frame pointers are
+      preserved (they carry ABI meaning).
+    - Preserves SP/FP/ZR: architectural-special registers are never renamed.
+    - Preserves case and ``%``-prefix (AT&T) of the matched token.
+    """
+    preserved = {"sp", "xzr", "wzr", "lr", "fp", "pc",
+                 "rsp", "rbp", "esp", "ebp"}
+    used = sorted({m.group(0).lower()
+                   for line in seq
+                   for m in (list(ARM64_REG.finditer(line)) + list(X86_REG.finditer(line)))})
+    used = [r for r in used if r not in preserved]
+
+    by_family: Dict[str, List[str]] = defaultdict(list)
     for reg in used:
-        reg_lower = reg.lower()
-        if reg_lower.startswith('x'):
-            mapping[reg] = pool_x[ix % len(pool_x)]; ix += 1
-        elif reg_lower.startswith('w'):
-            mapping[reg] = pool_w[iw % len(pool_w)]; iw += 1
-        else:
-            # x86
-            if reg_lower in pool_rx:
-                mapping[reg] = pool_rx[ix % len(pool_rx)]; ix += 1
-            elif reg_lower in pool_ex:
-                mapping[reg] = pool_ex[iw % len(pool_ex)]; iw += 1
-            else:
-                 # Fallback for registers not in pools (e.g., al, ah)
-                mapping[reg] = reg
+        by_family[register_family(reg)].append(reg)
 
-    def sub(line: str) -> str:
-        out = line
-        for src, dst in mapping.items():
-            out = replace_register(out, src, dst)
-        return out
-    return [sub(l) for l in seq]
+    family_pools: Dict[str, List[str]] = {
+        "arm_x":      [f"x{i}" for i in range(28)],   # skip 29 (fp), 30 (lr), 31 (sp/xzr)
+        "arm_w":      [f"w{i}" for i in range(28)],
+        "x86_r64":    ["rax", "rbx", "rcx", "rdx", "rsi", "rdi",
+                       "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"],
+        "x86_e":      ["eax", "ebx", "ecx", "edx", "esi", "edi"],
+        "x86_r":      [f"r{i}" for i in range(8, 16)] + [f"r{i}d" for i in range(8, 16)],
+        "x86_legacy": ["ax", "bx", "cx", "dx", "si", "di"],
+    }
+
+    mapping: Dict[str, str] = {}
+    for fam, regs in by_family.items():
+        pool = family_pools.get(fam)
+        if not pool or len(regs) > len(pool):
+            continue  # unsupported family or too crowded — identity map
+        shuffled = pool[:]
+        random.shuffle(shuffled)
+        for src, dst in zip(regs, shuffled):
+            mapping[src] = dst
+
+    if not mapping:
+        return seq
+
+    keys_sorted = sorted(mapping.keys(), key=len, reverse=True)
+    combined = re.compile(
+        r"(?<![A-Za-z0-9_])(%?)(" + "|".join(re.escape(k) for k in keys_sorted) + r")\b",
+        re.IGNORECASE,
+    )
+
+    def _sub(m: re.Match) -> str:
+        prefix = m.group(1) or ""
+        body = m.group(2)
+        dst = mapping[body.lower()]
+        if body.isupper():
+            return prefix + dst.upper()
+        if body.islower():
+            return prefix + dst.lower()
+        return prefix + dst
+
+    return [combined.sub(_sub, line) for line in seq]
 
 
-def insert_nops(seq: List[str], prob=0.1) -> List[str]:
-    out = []
-    for l in seq:
-        out.append(l)
+def insert_nops(seq: List[str], prob: float = 0.1, guard: int = 2) -> List[str]:
+    """Insert ``nop`` after instructions with probability ``prob``, but never
+    inside the speculation-critical window around a conditional branch.
+
+    The SpecExec classifier relies on n-gram signals like ``cbz -> ldr`` /
+    ``jcc -> mov (reg)`` to separate vulnerability classes. Dropping ``nop``
+    between these instructions dilutes exactly the signal the model needs,
+    and — worse — changes the micro-architectural issue slot so the sequence
+    is no longer a faithful representation of the timing gadget. We therefore
+    refuse to insert inside ``guard`` instructions on either side of any
+    conditional branch or any load that follows one.
+    """
+    if not seq:
+        return seq
+
+    critical: Set[int] = set()
+    load_re_arm = ARM64_LOAD
+    load_re_x86 = X86_LOAD
+
+    def _is_cond_branch(ln: str) -> bool:
+        return bool(ARM64_COND_BRANCH_ANY.search(ln) or X86_BRANCH_COND.search(ln))
+
+    for i, ln in enumerate(seq):
+        if _is_cond_branch(ln):
+            for d in range(-guard, guard + 1):
+                j = i + d
+                if 0 <= j < len(seq):
+                    critical.add(j)
+    # mark the first load following each branch as critical too (the leak site)
+    for i, ln in enumerate(seq):
+        if _is_cond_branch(ln):
+            for j in range(i + 1, min(len(seq), i + 1 + guard + 2)):
+                if load_re_arm.search(seq[j]) or load_re_x86.search(seq[j]):
+                    for d in range(-guard, guard + 1):
+                        k = j + d
+                        if 0 <= k < len(seq):
+                            critical.add(k)
+                    break
+
+    out: List[str] = []
+    for i, ln in enumerate(seq):
+        out.append(ln)
+        if i in critical:
+            continue
         if random.random() < prob:
             out.append("nop")
     return out
@@ -1050,33 +1125,526 @@ def swap_locally(seq: List[str], trials=2) -> List[str]:
     return s
 
 
-def insert_barrier_counterfactual(seq: List[str]) -> List[str]:
-    # After the first load following the first conditional branch, insert dsb sy
+def insert_barrier_counterfactual(seq: List[str], is_x86: bool = False) -> Tuple[List[str], bool]:
+    """Insert a serialising fence before the first load that follows the
+    first conditional branch, neutralising the speculation-window gadget.
+
+    Returns ``(new_seq, is_full_mitigation)`` where ``is_full_mitigation`` is
+    True only when the original window contained exactly one conditional
+    branch and exactly one post-branch load (the canonical
+    ``branch -> dependent-load`` gadget). In that case the caller may safely
+    flip the label to BENIGN. When there are additional branches or loads
+    after the first chain, the fence mitigates **one** speculation site but
+    leaves other speculation gadgets intact — the caller should keep the
+    original class label and annotate ``mitigated=True`` so the model can
+    learn that mitigation is partial rather than memorising "fence ⇒ BENIGN".
+
+    Also adds x86 support (``lfence``) — the previous implementation only
+    handled ARM, silently skipping every x86 window.
+    """
     out = seq[:]
-    branch_idx = next((i for i, l in enumerate(out) if ARM64_BRANCH_COND.search(l)), None)
-    if branch_idx is None:
-        return out
-    load_idx = next((i for i in range(branch_idx + 1, len(out)) if ARM64_LOAD.search(out[i])), None)
+    branch_re = X86_BRANCH_COND if is_x86 else ARM64_BRANCH_COND
+    load_re = X86_LOAD if is_x86 else ARM64_LOAD
+    fence = "lfence" if is_x86 else "dsb sy"
+
+    branch_indices = [i for i, l in enumerate(out) if branch_re.search(l)]
+    if not branch_indices:
+        return out, False
+    first_branch = branch_indices[0]
+    load_idx = next((i for i in range(first_branch + 1, len(out)) if load_re.search(out[i])), None)
     if load_idx is None:
-        return out
-    out.insert(load_idx, "dsb sy")
+        return out, False
+
+    post_branch_loads = sum(1 for i in range(first_branch + 1, len(seq)) if load_re.search(seq[i]))
+    is_full = (len(branch_indices) == 1 and post_branch_loads == 1)
+
+    out.insert(load_idx, fence)
+    return out, is_full
+
+
+def recompose_from_slices(seq: List[str], min_len: int = 5) -> List[str]:
+    """Split the window into three chunks and reorder only when the reorder
+    preserves the whole-program dataflow.
+
+    The previous implementation only validated the first adjacent pair at the
+    seam, which is unsound: ``b + a + c`` creates **two** new seams and also
+    moves chunk ``a`` past every instruction in ``b``. If ``b`` defines a
+    register that ``a`` later reads, the original code was correct but the
+    recomposition silently breaks def-use order.
+
+    This version:
+    1. Refuses to reorder any chunk that contains control flow (branch / call /
+       ret / unconditional jump) — moving a branch across instructions changes
+       reachability.
+    2. Validates the candidate ordering with a live-set walk: every chunk's
+       free-use set (registers read before defined inside the chunk) must be
+       satisfied either by the window's original live-in set or by a chunk that
+       now precedes it. Any newly exposed undefined use is rejected.
+    """
+    if len(seq) < min_len + 2:
+        return seq
+    third = max(1, len(seq) // 3)
+    a = seq[:third]
+    b = seq[third: 2 * third]
+    c = seq[2 * third:]
+    if not (a and b and c):
+        return seq
+
+    def _has_control_flow(chunk: List[str]) -> bool:
+        for ln in chunk:
+            if ARM64_BRANCH_COND.search(ln) or X86_BRANCH_COND.search(ln):
+                return True
+            lower = ln.lower().strip()
+            # unconditional / indirect transfers — safe to match on opcode prefix
+            if any(lower.startswith(op + " ") or lower == op
+                   for op in ("jmp", "call", "ret", "bl", "blr", "br", "b")):
+                return True
+            if "ret" in lower.split():
+                return True
+        return False
+
+    if _has_control_flow(a) or _has_control_flow(b) or _has_control_flow(c):
+        return seq
+
+    # Live-in of the original window: any register that was used before being
+    # defined in the window must also be available after recomposition.
+    original_live_in = analyze_register_usage(seq)["free"]
+
+    def _ordering_is_safe(order: List[List[str]]) -> bool:
+        available = set(original_live_in)
+        for chunk in order:
+            usage = analyze_register_usage(chunk)
+            if not usage["free"].issubset(available):
+                return False
+            available |= usage["defs"]
+        return True
+
+    candidates = [
+        [b, a, c],   # swap first two chunks
+        [a, c, b],   # swap last two chunks
+        [c, b, a],   # reverse outer chunks
+    ]
+    random.shuffle(candidates)
+    for order in candidates:
+        if _ordering_is_safe(order):
+            result = order[0] + order[1] + order[2]
+            if result != seq:
+                return result
+    return seq
+
+
+# =============================================================================
+# Domain-aware augmentations (added 2026-04-13)
+# -----------------------------------------------------------------------------
+# The transforms below were chosen specifically for speculative-execution
+# vulnerability classification. Each is designed to be class-preserving: the
+# micro-architectural mechanism (mis-speculated branch -> dependent load ->
+# cache-observable probe) remains intact after the transform.
+# =============================================================================
+
+# Immediate values that carry cache-timing / bounds-check semantics. These
+# must NEVER be perturbed because they are part of the attack signature
+# (page stride, cache-line stride, byte iteration, boolean guards).
+_CRITICAL_IMMEDIATES: Set[int] = {
+    0, 1, -1,
+    4096, 0x1000,   # page stride
+    64,  0x40,      # cache-line stride
+    128, 0x80,      # half page / prefetch window
+    256, 0x100,     # secret byte iteration length
+    0xff, 255,
+    8, 16, 32,      # common word / dword / qword offsets
+}
+
+_ARM64_IMM_RE = re.compile(r"#(-?(?:0x[0-9a-fA-F]+|[0-9]+))")
+_X86_IMM_RE = re.compile(r"\$(-?(?:0x[0-9a-fA-F]+|[0-9]+))")
+
+
+def perturb_immediates(seq: List[str], is_x86: bool = False) -> List[str]:
+    """Replace non-critical immediate operands with nearby values.
+
+    Assembly emitted by different compilers / optimisation levels produces
+    different constants for the same gadget (stack-frame sizes, alignment
+    padding, loop-unroll counts). Randomising non-semantic immediates
+    teaches the model to look past compiler-specific constants. The
+    :data:`_CRITICAL_IMMEDIATES` table protects values that **do** carry
+    semantic meaning for cache-timing attacks.
+    """
+    pattern = _X86_IMM_RE if is_x86 else _ARM64_IMM_RE
+    prefix = "$" if is_x86 else "#"
+
+    def _repl(m: re.Match) -> str:
+        raw = m.group(1)
+        try:
+            val = int(raw, 0)
+        except ValueError:
+            return m.group(0)
+        if val in _CRITICAL_IMMEDIATES or abs(val) in _CRITICAL_IMMEDIATES:
+            return m.group(0)
+        magnitude = max(1, abs(val) // 4)
+        new_val = val + random.randint(-magnitude, magnitude)
+        if new_val == 0 or new_val in _CRITICAL_IMMEDIATES:
+            new_val = val  # don't accidentally create a critical constant
+        return f"{prefix}{new_val}"
+
+    return [pattern.sub(_repl, ln) for ln in seq]
+
+
+# Idiom-level equivalences. Each rule is a tuple
+# ``(pattern, builder, changes_flags)``. When ``changes_flags`` is True on
+# x86 we must verify no dependent conditional jump / setcc / cmovcc would
+# observe the altered flag state before the next flag-clobbering
+# instruction; otherwise the substitution silently flips the branch target
+# and neutralises the speculative-execution attack. ARM instructions
+# without the ``s`` suffix (``add``, ``eor``, ``mov``) do NOT write NZCV,
+# so all ARM rules below are flag-neutral.
+_ARM_EQUIV_RULES: List[Tuple[re.Pattern, callable, bool]] = [
+    # mov xN, #0  <=>  eor xN, xN, xN  (neither writes flags without `s`)
+    (re.compile(r"^(\s*)mov\s+(x\d+|w\d+)\s*,\s*#0\b", re.IGNORECASE),
+     lambda m: f"{m.group(1)}eor {m.group(2)}, {m.group(2)}, {m.group(2)}",
+     False),
+    (re.compile(r"^(\s*)eor\s+(x\d+|w\d+)\s*,\s*\2\s*,\s*\2\b", re.IGNORECASE),
+     lambda m: f"{m.group(1)}mov {m.group(2)}, #0",
+     False),
+    # add xN, xN, #0  ->  mov xN, xN  (both flag-neutral)
+    (re.compile(r"^(\s*)add\s+(x\d+|w\d+)\s*,\s*\2\s*,\s*#0\b", re.IGNORECASE),
+     lambda m: f"{m.group(1)}mov {m.group(2)}, {m.group(2)}",
+     False),
+]
+
+# x86 equivalences. Every pair below changes the flag effect, so the caller
+# MUST verify flag safety at the substitution site before applying.
+_X86_EQUIV_RULES: List[Tuple[re.Pattern, callable, bool]] = [
+    # xor %rX, %rX (writes ZF=1, CF=0) <=> mov $0, %rX (no flag effect)
+    (re.compile(r"^(\s*)xor\s+(%?[re][abcd]x|%?r\d+d?)\s*,\s*\2\b", re.IGNORECASE),
+     lambda m: f"{m.group(1)}mov $0, {m.group(2)}",
+     True),
+    (re.compile(r"^(\s*)mov\s+\$0\s*,\s*(%?[re][abcd]x|%?r\d+d?)\b", re.IGNORECASE),
+     lambda m: f"{m.group(1)}xor {m.group(2)}, {m.group(2)}",
+     True),
+    # add $0, %rX (writes flags) -> mov %rX, %rX (no flag effect)
+    (re.compile(r"^(\s*)add\s+\$0\s*,\s*(%?[re][abcd]x|%?r\d+d?)\b", re.IGNORECASE),
+     lambda m: f"{m.group(1)}mov {m.group(2)}, {m.group(2)}",
+     True),
+]
+
+# Any instruction that reads the x86 flag state. A flag-dependent
+# conditional jump observed before a flag-clobbering instruction means we
+# cannot freely swap a flag-writing idiom for a flag-neutral one.
+_X86_FLAG_CONSUMER = re.compile(
+    r"\b(j(e|ne|z|nz|l|le|ge|g|b|be|ae|a|c|nc|o|no|s|ns|p|pe|np|po)|"
+    r"set(e|ne|z|nz|l|le|ge|g|b|be|ae|a|c|nc|o|no|s|ns|p|pe|np|po)|"
+    r"cmov[a-z]+)\b",
+    re.IGNORECASE,
+)
+# Any arithmetic / logical instruction that overwrites NZCF. After such an
+# instruction the downstream flags no longer carry the altered value, so
+# substitutions earlier in the window become safe again.
+_X86_FLAG_CLOBBER = re.compile(
+    r"\b(add|sub|adc|sbb|cmp|test|and|or|xor|inc|dec|neg|mul|imul|div|idiv|"
+    r"shl|shr|sar|sal|rol|ror|rcl|rcr|bt|bts|btr|btc)\b",
+    re.IGNORECASE,
+)
+
+
+def _x86_subst_is_flag_safe(seq: List[str], idx: int) -> bool:
+    """Would changing the flag-side-effect of ``seq[idx]`` alter any flag
+    seen by a downstream flag consumer before the flags are clobbered?
+
+    Returns True when the substitution is safe (no consumer, or a clobber
+    intervenes first); False when a consumer would observe the altered
+    flags.
+    """
+    for j in range(idx + 1, len(seq)):
+        ln = seq[j]
+        if _X86_FLAG_CONSUMER.search(ln):
+            return False
+        if _X86_FLAG_CLOBBER.search(ln):
+            return True
+    return True
+
+
+def substitute_equivalent(seq: List[str], is_x86: bool = False) -> List[str]:
+    """Rewrite instructions with semantically equivalent alternate idioms.
+
+    Two different compilers commonly emit ``mov xN, #0`` vs
+    ``eor xN, xN, xN`` for the same source-level zero-init, and similarly
+    ``mov $0, %rX`` vs ``xor %rX, %rX`` on x86. A classifier that has
+    memorised one encoding will miss the gadget under the other. This
+    augmentation rewrites one idiom to the other.
+
+    Safety: ARM substitutions use flag-neutral ops and are unconditionally
+    safe. x86 substitutions cross the flag-writing / flag-neutral boundary;
+    each site is guarded by :func:`_x86_subst_is_flag_safe` so we never
+    silently flip a downstream ``j.cc`` / ``set.cc`` / ``cmov.cc`` — which
+    would change the branch outcome and neutralise the attack.
+    """
+    rules = _X86_EQUIV_RULES if is_x86 else _ARM_EQUIV_RULES
+    out: List[str] = []
+    for idx, ln in enumerate(seq):
+        replaced = ln
+        for pat, builder, changes_flags in rules:
+            m = pat.match(ln)
+            if m:
+                if is_x86 and changes_flags and not _x86_subst_is_flag_safe(seq, idx):
+                    continue  # try next rule; this site is flag-sensitive
+                replaced = builder(m)
+                break
+        out.append(replaced)
     return out
 
 
-def recompose_from_slices(seq: List[str], min_len=5) -> List[str]:
-    # Slice the window into up to 3 chunks and recombine in a safe order if swappable
-    if len(seq) < min_len + 2:
+_ARM_BARRIER_SYNONYMS: Dict[str, List[str]] = {
+    # Within each bucket, every variant has effects that are a superset of
+    # the weakest one, so substituting a stronger barrier is safe for a
+    # speculation mitigation. We deliberately do NOT downgrade (e.g.
+    # dsb sy -> dmb ish) because that could leave the gadget exploitable.
+    "dsb sy":    ["dsb sy", "dsb ish", "dsb ishst"],
+    "dsb ish":   ["dsb ish", "dsb sy"],
+    "dsb ishst": ["dsb ishst", "dsb ish", "dsb sy"],
+    "dmb sy":    ["dmb sy", "dmb ish"],
+    "dmb ish":   ["dmb ish", "dmb sy"],
+    "isb":       ["isb", "isb sy"],
+}
+
+_X86_BARRIER_SYNONYMS: Dict[str, List[str]] = {
+    # mfence is strictly stronger than lfence for speculation purposes.
+    "lfence": ["lfence", "mfence"],
+    "mfence": ["mfence"],
+}
+
+
+def swap_barrier_variants(seq: List[str], is_x86: bool = False) -> List[str]:
+    """Substitute one serialising barrier with a strictly-stronger variant.
+
+    Different codebases encode the "stop speculation here" pragma with
+    different barrier forms. This augmentation teaches invariance across
+    those forms without weakening the mitigation — we only replace a
+    barrier with one from the same or stronger class.
+    """
+    table = _X86_BARRIER_SYNONYMS if is_x86 else _ARM_BARRIER_SYNONYMS
+    out: List[str] = []
+    changed = False
+    for ln in seq:
+        stripped = ln.strip().lower()
+        leading = ln[: len(ln) - len(ln.lstrip())]
+        replacement = ln
+        for canonical, variants in table.items():
+            if stripped == canonical or stripped.startswith(canonical + " "):
+                choice = random.choice(variants)
+                if choice != canonical:
+                    replacement = leading + choice
+                    changed = True
+                break
+        out.append(replacement)
+    return out if changed else seq
+
+
+_STRIDE_SYNONYMS: Dict[str, List[str]] = {
+    # Swap between hex and decimal forms of attack-relevant strides. The
+    # constant's value is preserved — only its textual representation
+    # changes, so this is safe for every vulnerability class. Exercises
+    # the tokeniser's invariance to the base used by the compiler.
+    "4096":   ["0x1000"],  "0x1000": ["4096"],      # page stride
+    "2048":   ["0x800"],   "0x800":  ["2048"],      # half page
+    "1024":   ["0x400"],   "0x400":  ["1024"],      # quarter page
+    "512":    ["0x200"],   "0x200":  ["512"],       # 8 cache lines
+    "256":    ["0x100"],   "0x100":  ["256"],       # secret byte range
+    "128":    ["0x80"],    "0x80":   ["128"],
+    "64":     ["0x40"],    "0x40":   ["64"],        # cache line stride
+    "32":     ["0x20"],    "0x20":   ["32"],
+    "16":     ["0x10"],    "0x10":   ["16"],
+    "8":      ["0x8"],     "0x8":    ["8"],
+    "255":    ["0xff"],    "0xff":   ["255"],       # secret byte mask
+    "65535":  ["0xffff"],  "0xffff": ["65535"],
+}
+
+
+def stride_synonym_swap(seq: List[str]) -> List[str]:
+    """Rewrite cache-relevant strides between hex / decimal forms.
+
+    Preserves value exactly — this is purely a textual augmentation that
+    tests whether the classifier has tied its prediction to a particular
+    numeric encoding rather than the underlying constant.
+    """
+    pattern = re.compile(r"(?<=[#\$])(0x[0-9a-fA-F]+|[0-9]+)")
+    changed = False
+
+    def _repl(m: re.Match) -> str:
+        nonlocal changed
+        v = m.group(0)
+        if v in _STRIDE_SYNONYMS:
+            alt = random.choice(_STRIDE_SYNONYMS[v])
+            if alt != v:
+                changed = True
+                return alt
+        return v
+
+    out = [pattern.sub(_repl, ln) for ln in seq]
+    return out if changed else seq
+
+
+# Paired-inverse conditional branch opcodes. Each key ↔ value pair has
+# opposite semantics on the same flag state (e.g. ``b.eq`` takes when Z=1,
+# ``b.ne`` takes when Z=0). Real compilers emit either polarity for the
+# same C-level bounds check depending on how the source is written, so
+# a classifier that has memorised one polarity will miss the gadget in
+# the other encoding.
+_ARM_BRANCH_INVERSE: Dict[str, str] = {
+    "b.eq": "b.ne", "b.ne": "b.eq",
+    "b.lt": "b.ge", "b.ge": "b.lt",
+    "b.le": "b.gt", "b.gt": "b.le",
+    "b.lo": "b.hs", "b.hs": "b.lo",
+    "b.cc": "b.cs", "b.cs": "b.cc",
+    "b.ls": "b.hi", "b.hi": "b.ls",
+    "b.mi": "b.pl", "b.pl": "b.mi",
+    "b.vs": "b.vc", "b.vc": "b.vs",
+    "cbz": "cbnz", "cbnz": "cbz",
+    "tbz": "tbnz", "tbnz": "tbz",
+}
+
+_X86_BRANCH_INVERSE: Dict[str, str] = {
+    "je": "jne",  "jne": "je",
+    "jz": "jnz",  "jnz": "jz",
+    "jl": "jge",  "jge": "jl",
+    "jle": "jg",  "jg": "jle",
+    "jb": "jae",  "jae": "jb",
+    "jnb": "jnae", "jnae": "jnb",
+    "jc": "jnc",  "jnc": "jc",
+    "jbe": "ja",  "ja": "jbe",
+    "jna": "jnbe", "jnbe": "jna",
+    "jo": "jno",  "jno": "jo",
+    "js": "jns",  "jns": "js",
+    "jp": "jnp",  "jnp": "jp",
+    "jpe": "jpo", "jpo": "jpe",
+}
+
+
+def flip_branch_polarity(seq: List[str], is_x86: bool = False) -> List[str]:
+    """Negate the first conditional branch in the window.
+
+    **Why this is sound as a *training-time* augmentation but not as a
+    compiler transform:** on normalised windows the label definitions
+    (``.L1:``) are stripped by :func:`normalize_line`, so we cannot
+    locate the taken-block to swap it with the fall-through. That means
+    the flipped sequence is not a semantically-equivalent program.
+    However, a GINE/CNN classifier that reads opcode/edge tokens will
+    see a sequence whose structure — conditional branch followed by
+    dependent memory access / indexed load — is unchanged. The polarity
+    token (``b.eq`` vs ``b.ne``) is exactly the compiler-specific
+    artifact we want the model to abstract over, because real source
+    code emits both polarities for the same bounds-check pattern.
+
+    **Safety guards:**
+    1. Refuse when the window contains any indirect transfer
+       (``ret``, ``br``, ``blr``, indirect ``jmp``/``call``) — those are
+       the attack vehicle for RETBLEED / INCEPTION / BHI / SPECTRE_V2
+       and their classification must not be confused with conditional-
+       branch polarity.
+    2. Only flip the *first* conditional branch. Flipping multiple
+       branches compounds confusion and moves the sequence too far from
+       the training distribution.
+    3. Only flip opcodes whose paired inverse is well-defined (listed
+       in :data:`_ARM_BRANCH_INVERSE` / :data:`_X86_BRANCH_INVERSE`).
+    """
+    # Guard against return-based gadgets
+    for ln in seq:
+        low = ln.strip().lower()
+        if not low:
+            continue
+        first = low.split()[0]
+        if first in ("ret", "retq", "br", "blr"):
+            return seq
+        if first in ("jmp", "call") and "*" in low:
+            return seq
+
+    table = _X86_BRANCH_INVERSE if is_x86 else _ARM_BRANCH_INVERSE
+    out: List[str] = []
+    flipped = False
+    for ln in seq:
+        if flipped:
+            out.append(ln)
+            continue
+        stripped = ln.lstrip()
+        leading = ln[: len(ln) - len(stripped)]
+        m = re.match(r"(\S+)(.*)", stripped)
+        if not m:
+            out.append(ln)
+            continue
+        op = m.group(1)
+        rest = m.group(2)
+        op_lc = op.lower()
+        if op_lc in table:
+            new_op = table[op_lc]
+            if op.isupper():
+                new_op = new_op.upper()
+            out.append(leading + new_op + rest)
+            flipped = True
+        else:
+            out.append(ln)
+    return out if flipped else seq
+
+
+def strip_housekeeping(seq: List[str]) -> List[str]:
+    """Trim leading / trailing stack-frame boilerplate.
+
+    **Critical safety note:** Return-based speculation classes
+    (RETBLEED, INCEPTION, BHI, SPECTRE_V2) use ``ret`` / ``br`` /
+    ``blr`` / indirect ``jmp``/``call`` as the *speculation trigger*.
+    Stripping an epilogue ``ldp x29, x30, [sp], #N ; ret`` from those
+    windows would remove the attack vehicle and corrupt the class label.
+    We therefore refuse the transform on any window that contains an
+    indirect transfer, regardless of position.
+
+    Forward-branch gadgets (SPECTRE_V1, L1TF, MDS, SPECTRE_V4) do not
+    depend on the epilogue, so trimming there is safe — but we still
+    require (a) the trimmed window retains at least one conditional
+    branch (the speculation trigger) and (b) the trim keeps ≥5 lines.
+    """
+    # Guard 1: never strip when the window's vulnerability could be
+    # return/indirect-branch based.
+    for ln in seq:
+        low = ln.strip().lower()
+        if not low:
+            continue
+        first = low.split()[0]
+        if first in ("ret", "retq", "br", "blr"):
+            return seq
+        if first in ("jmp", "call") and "*" in low:
+            return seq
+        # ARM BR/BLR through a register, e.g. ``br x5``
+        if first in ("br", "blr"):
+            return seq
+
+    housekeeping_prefixes = (
+        "stp x29", "stp x30", "ldp x29", "ldp x30",
+        "sub sp,", "add sp,", "mov x29,", "mov fp,",
+        "push %rbp", "pop %rbp", "push rbp", "pop rbp",
+        "leave", "enter",
+    )
+
+    def _is_housekeeping(ln: str) -> bool:
+        low = ln.strip().lower()
+        return any(low.startswith(p) for p in housekeeping_prefixes)
+
+    start = 0
+    while start < len(seq) and _is_housekeeping(seq[start]):
+        start += 1
+    end = len(seq)
+    while end > start and _is_housekeeping(seq[end - 1]):
+        end -= 1
+    trimmed = seq[start:end]
+    # Guard 2: minimum size and preservation of a conditional branch.
+    if len(trimmed) < 5:
         return seq
-    a = seq[: len(seq)//3]
-    b = seq[len(seq)//3 : 2*len(seq)//3]
-    c = seq[2*len(seq)//3 :]
-    # try b+a+c if boundary swap is safe
-    if a and b and can_swap(a[-1], b[0]):
-        return b + a + c
-    # else a+c+b if safe
-    if b and c and can_swap(b[-1], c[0]):
-        return a + c + b
-    return seq
+    if not (any(ARM64_COND_BRANCH_ANY.search(l) for l in trimmed)
+            or any(X86_BRANCH_COND.search(l) for l in trimmed)):
+        return seq
+    # Guard 3: do not remove more than 50% of the window — preserves
+    # enough surrounding context that the gadget stays in its local
+    # control-flow neighborhood.
+    if len(trimmed) < len(seq) // 2:
+        return seq
+    return trimmed
 
 
 def main():
@@ -1174,21 +1742,53 @@ def main():
                         except RuntimeError as err:
                             print(f"[viz-swaps] {err}")
                 
-                # register renaming
-                fout.write(json.dumps({**rec, "augmentation": "rename_registers", "sequence": rename_registers(seq)}) + "\n"); written += 1
-                # local swaps
-                fout.write(json.dumps({**rec, "augmentation": "swap_locally", "sequence": swap_locally(seq)}) + "\n"); written += 1
-                # nop insertion
-                fout.write(json.dumps({**rec, "augmentation": "insert_nops", "sequence": insert_nops(seq)}) + "\n"); written += 1
-                # recomposed variant
-                fout.write(json.dumps({**rec, "augmentation": "recompose_slices", "sequence": recompose_from_slices(seq)}) + "\n"); written += 1
-                # counterfactual with barrier (benign)
-                fout.write(json.dumps({**rec, "label": "benign", "augmentation": "insert_barrier_cf", "sequence": insert_barrier_counterfactual(seq)}) + "\n"); written += 1
-                
-                # if boosted class, emit extra variants
+                # --- all per-window augmentations, with de-duplication ---
+                emitted_hashes: Set[int] = {hash(tuple(seq))}
+
+                def _emit(tag: str, new_seq: List[str], extra: Optional[Dict] = None) -> None:
+                    nonlocal written
+                    if len(new_seq) < 3:
+                        return
+                    h = hash(tuple(new_seq))
+                    if h in emitted_hashes:
+                        return
+                    emitted_hashes.add(h)
+                    payload = {**rec, "augmentation": tag, "sequence": new_seq}
+                    if extra:
+                        payload.update(extra)
+                    fout.write(json.dumps(payload) + "\n")
+                    written += 1
+
+                # fixed legacy transforms
+                _emit("rename_registers", rename_registers(seq))
+                _emit("swap_locally", swap_locally(seq))
+                _emit("insert_nops", insert_nops(seq))
+                _emit("recompose_slices", recompose_from_slices(seq))
+
+                # barrier counterfactual — label flip only for a clean
+                # single-gadget window; otherwise keep the class label and
+                # mark as partially mitigated.
+                cf_seq, is_full_mitigation = insert_barrier_counterfactual(seq, is_x86)
+                if cf_seq != seq:
+                    cf_extra: Dict[str, Union[str, bool]] = {"mitigated": True}
+                    if is_full_mitigation:
+                        cf_extra["label"] = "benign"
+                        cf_extra["vuln_label"] = "BENIGN"
+                    _emit("insert_barrier_cf", cf_seq, cf_extra)
+
+                # new domain-aware transforms
+                _emit("perturb_immediates", perturb_immediates(seq, is_x86))
+                _emit("substitute_equivalent", substitute_equivalent(seq, is_x86))
+                _emit("swap_barrier_variants", swap_barrier_variants(seq, is_x86))
+                _emit("stride_synonym_swap", stride_synonym_swap(seq))
+                _emit("strip_housekeeping", strip_housekeeping(seq))
+                _emit("flip_branch_polarity", flip_branch_polarity(seq, is_x86))
+
+                # boosted classes: extra combined variants, still deduped
                 if vuln_label in boost_set:
                     for _ in range(max(0, args.boost_factor - 1)):
-                        fout.write(json.dumps({**rec, "augmentation": "boost_variant", "sequence": rename_registers(swap_locally(seq))}) + "\n"); written += 1
+                        boosted = rename_registers(swap_locally(perturb_immediates(seq, is_x86)))
+                        _emit("boost_variant", boosted)
                 
                 count += 1
                 window_entry = {

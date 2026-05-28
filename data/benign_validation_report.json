@@ -1,0 +1,22 @@
+{
+  "input_file": "data/benign_samples_v24.jsonl",
+  "output_file": "data/benign_samples_v24_validated.jsonl",
+  "total_samples": 17840,
+  "valid_samples": 14613,
+  "rejected_samples": 3227,
+  "validation_rate": 0.8191143497757848,
+  "rejection_reasons": {
+    "matches_patterns:['SPECTRE_V1', 'SPECTRE_V2']": 286,
+    "matches_patterns:['SPECTRE_V2']": 1451,
+    "matches_patterns:['SPECTRE_V1']": 1453,
+    "matches_patterns:['BHI']": 34,
+    "high_suspicion:0.53": 19,
+    "high_suspicion:0.60": 5,
+    "matches_patterns:['SPECTRE_V1', 'BHI']": 1
+  },
+  "vuln_type_counts": {
+    "SPECTRE_V1": 1740,
+    "SPECTRE_V2": 1737,
+    "BHI": 35
+  }
+}

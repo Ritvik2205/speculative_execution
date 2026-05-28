@@ -1,0 +1,267 @@
+[
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/bsd/dev/arm64/disassembler.arm64.gcc.O0.s",
+    "confidence_score": 0.536404060552571,
+    "validation_score": 0.8999999999999999,
+    "risk_level": "HIGH",
+    "is_vulnerable": true,
+    "vulnerability_types": [
+      "INCEPTION",
+      "MELTDOWN",
+      "SPECTRE_V1",
+      "SPECTRE_V2",
+      "L1TF",
+      "BHI",
+      "MDS",
+      "RETBLEED"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 10,
+    "risk_factors": [
+      "Medium similarity confidence",
+      "ARM64 architecture (common target)",
+      "Matches multiple vulnerability types",
+      "Spectre V1 pattern detected",
+      "Meltdown pattern detected",
+      "Spectre V2 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/mach/mig_strncpy.arm64.gcc.O0.s",
+    "confidence_score": 0.4558131770552851,
+    "validation_score": 0.6000000000000001,
+    "risk_level": "HIGH",
+    "is_vulnerable": true,
+    "vulnerability_types": [
+      "INCEPTION",
+      "SPECTRE_V1",
+      "L1TF",
+      "BHI",
+      "MDS",
+      "RETBLEED"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 6,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "System/library function (common attack vector)",
+      "Matches multiple vulnerability types",
+      "Spectre V1 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/index.arm64.gcc.O0.s",
+    "confidence_score": 0.3628592155260409,
+    "validation_score": 0.6000000000000001,
+    "risk_level": "HIGH",
+    "is_vulnerable": true,
+    "vulnerability_types": [
+      "INCEPTION",
+      "SPECTRE_V1",
+      "L1TF",
+      "BHI",
+      "MDS",
+      "RETBLEED"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 6,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "System/library function (common attack vector)",
+      "Matches multiple vulnerability types",
+      "Spectre V1 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/strcpy.arm64.gcc.O0.s",
+    "confidence_score": 0.36041922421771344,
+    "validation_score": 1.0,
+    "risk_level": "HIGH",
+    "is_vulnerable": true,
+    "vulnerability_types": [
+      "INCEPTION",
+      "MELTDOWN",
+      "SPECTRE_V1",
+      "SPECTRE_V2",
+      "L1TF",
+      "BHI",
+      "MDS",
+      "RETBLEED"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 10,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "System/library function (common attack vector)",
+      "Matches multiple vulnerability types",
+      "Spectre V1 pattern detected",
+      "Meltdown pattern detected",
+      "Spectre V2 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/Os/repos/apple/darwin-xnu/libsyscall/mach/mach_error_string.arm64.gcc.Os.s",
+    "confidence_score": 0.3593903641857911,
+    "validation_score": 0.7,
+    "risk_level": "HIGH",
+    "is_vulnerable": true,
+    "vulnerability_types": [
+      "MELTDOWN",
+      "SPECTRE_V2",
+      "SPECTRE_V1"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 4,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "Spectre V1 pattern detected",
+      "Meltdown pattern detected",
+      "Spectre V2 pattern detected"
+    ],
+    "mitigation_factors": []
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/strlen.arm64.gcc.O0.s",
+    "confidence_score": 0.3569500761054387,
+    "validation_score": 0.4,
+    "risk_level": "MEDIUM",
+    "is_vulnerable": false,
+    "vulnerability_types": [
+      "INCEPTION",
+      "SPECTRE_V1",
+      "L1TF",
+      "BHI",
+      "MDS",
+      "RETBLEED"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 6,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "Matches multiple vulnerability types",
+      "Spectre V1 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/carbon_delete.arm64.gcc.O0.s",
+    "confidence_score": 0.3458946860380861,
+    "validation_score": 0.4,
+    "risk_level": "MEDIUM",
+    "is_vulnerable": false,
+    "vulnerability_types": [
+      "INCEPTION",
+      "SPECTRE_V1",
+      "L1TF",
+      "BHI",
+      "MDS",
+      "RETBLEED"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 6,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "Matches multiple vulnerability types",
+      "Spectre V1 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/rmdir.arm64.gcc.O0.s",
+    "confidence_score": 0.3458946860380861,
+    "validation_score": 0.4,
+    "risk_level": "MEDIUM",
+    "is_vulnerable": false,
+    "vulnerability_types": [
+      "INCEPTION",
+      "SPECTRE_V1",
+      "L1TF",
+      "BHI",
+      "MDS",
+      "RETBLEED"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 6,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "Matches multiple vulnerability types",
+      "Spectre V1 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/unlink.arm64.gcc.O0.s",
+    "confidence_score": 0.3458946860380861,
+    "validation_score": 0.4,
+    "risk_level": "MEDIUM",
+    "is_vulnerable": false,
+    "vulnerability_types": [
+      "INCEPTION",
+      "SPECTRE_V1",
+      "L1TF",
+      "BHI",
+      "MDS",
+      "RETBLEED"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 6,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "Matches multiple vulnerability types",
+      "Spectre V1 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  },
+  {
+    "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/select-base.arm64.gcc.O0.s",
+    "confidence_score": 0.34549079396846105,
+    "validation_score": 0.7,
+    "risk_level": "HIGH",
+    "is_vulnerable": true,
+    "vulnerability_types": [
+      "MELTDOWN",
+      "SPECTRE_V2",
+      "SPECTRE_V1"
+    ],
+    "instruction_count": 10,
+    "matched_gadgets_count": 4,
+    "risk_factors": [
+      "Low similarity confidence",
+      "ARM64 architecture (common target)",
+      "Spectre V1 pattern detected",
+      "Meltdown pattern detected",
+      "Spectre V2 pattern detected"
+    ],
+    "mitigation_factors": [
+      "No optimization (reduces speculation)"
+    ]
+  }
+]

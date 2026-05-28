@@ -1,0 +1,26 @@
+{
+  "inception_x86.s": {
+    "detected": false
+  },
+  "spectre_1_x86.s": {
+    "detected": false
+  },
+  "spectre_v1_arm64_int.s": {
+    "detected": true,
+    "type": "SPECTRE_V1",
+    "confidence": 0.5683333333333334,
+    "fp_likelihood": 1.0
+  },
+  "spectre_1_arm_stack.s": {
+    "detected": true,
+    "type": "SPECTRE_V1",
+    "confidence": 0.5683333333333334,
+    "fp_likelihood": 1.0
+  },
+  "mds_arm.s": {
+    "detected": true,
+    "type": "MDS",
+    "confidence": 0.6160000000000001,
+    "fp_likelihood": 0.95
+  }
+}

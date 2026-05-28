@@ -109,8 +109,8 @@ https://github.com/deepseek-ai/FlashMLA
 https://github.com/dependency-check/DependencyCheck
 https://github.com/digininja/DVWA
 https://github.com/digitalocean/nginxconfig.io
+https://github.com/docker-archive-public/docker.labs
 https://github.com/docker/docker-bench-security
-https://github.com/docker/labs
 https://github.com/dotnet/csharplang
 https://github.com/dotnet/roslyn
 https://github.com/drduh/YubiKey-Guide

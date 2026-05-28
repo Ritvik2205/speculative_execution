@@ -1,0 +1,235 @@
+{
+  "confidence_thresholds": {
+    "CRITICAL": 0.90,
+    "HIGH": 0.80,
+    "MEDIUM": 0.70,
+    "LOW": 0.60
+  },
+  "false_positive_thresholds": {
+    "acceptable_fp_rate": 0.10,
+    "high_fp_warning": 0.30,
+    "reject_detection": 0.70
+  },
+  "vulnerability_patterns": {
+    "SPECTRE_V1": {
+      "required_patterns": [
+        {
+          "name": "bounds_check_bypass",
+          "pattern": "cmp.*\\n.*b\\.[lg].*\\n.*ldr.*\\[",
+          "weight": 0.4,
+          "description": "Bounds check followed by array access"
+        },
+        {
+          "name": "cache_side_channel",
+          "pattern": "ldr.*\\[.*\\].*\\n.*ldr.*\\[",
+          "weight": 0.3,
+          "description": "Dependent memory accesses for cache probing"
+        },
+        {
+          "name": "speculation_window", 
+          "pattern": "b\\.[a-z]+",
+          "weight": 0.2,
+          "description": "Conditional branches creating speculation opportunities"
+        }
+      ],
+      "anti_patterns": [
+        {
+          "name": "speculation_barrier",
+          "pattern": "(?:dsb|isb|lfence)",
+          "penalty": -0.5,
+          "description": "Speculation barriers prevent exploitation"
+        },
+        {
+          "name": "bounds_check_always_safe",
+          "pattern": "cmp.*\\n.*b\\.hs.*error",
+          "penalty": -0.3,
+          "description": "Proper bounds checking with error handling"
+        }
+      ],
+      "context_requirements": {
+        "min_instruction_count": 10,
+        "requires_user_input": true,
+        "requires_array_access": true
+      }
+    },
+    "SPECTRE_V2": {
+      "required_patterns": [
+        {
+          "name": "indirect_branch",
+          "pattern": "(?:br|blr|jmp.*%)",
+          "weight": 0.5,
+          "description": "Indirect branch instructions"
+        },
+        {
+          "name": "branch_target_prediction",
+          "pattern": "(?:bl|call).*\\n.*(?:br|jmp)",
+          "weight": 0.3,
+          "description": "Call followed by indirect branch"
+        }
+      ],
+      "anti_patterns": [
+        {
+          "name": "retpoline",
+          "pattern": "retpoline",
+          "penalty": -0.8,
+          "description": "Retpoline mitigation"
+        }
+      ],
+      "context_requirements": {
+        "min_instruction_count": 8,
+        "requires_indirect_branches": true
+      }
+    },
+    "L1TF": {
+      "required_patterns": [
+        {
+          "name": "fault_handling",
+          "pattern": "(?:brk|hvc|svc)",
+          "weight": 0.4,
+          "description": "Exception/fault instructions"
+        },
+        {
+          "name": "memory_mapping",
+          "pattern": "(?:mmap|munmap|mprotect)",
+          "weight": 0.3,
+          "description": "Memory mapping operations"
+        },
+        {
+          "name": "cache_operations",
+          "pattern": "(?:dc.*civac|clflush)",
+          "weight": 0.2,
+          "description": "Cache manipulation instructions"
+        }
+      ],
+      "context_requirements": {
+        "requires_privileged_context": true,
+        "min_instruction_count": 15
+      }
+    },
+    "BHI": {
+      "required_patterns": [
+        {
+          "name": "complex_branching",
+          "pattern": "(?:b\\.[a-z]+.*\\n){3,}",
+          "weight": 0.4,
+          "description": "Multiple conditional branches"
+        },
+        {
+          "name": "indirect_after_branches",
+          "pattern": "(?:b\\.[a-z]+.*\\n)+.*(?:br|blr)",
+          "weight": 0.4,
+          "description": "Indirect branch after conditional branches"
+        }
+      ],
+      "context_requirements": {
+        "min_branch_density": 0.2,
+        "min_instruction_count": 20
+      }
+    },
+    "MDS": {
+      "required_patterns": [
+        {
+          "name": "store_load_dependency",
+          "pattern": "(?:str|stp).*\\n.*(?:ldr|ldp)",
+          "weight": 0.4,
+          "description": "Store followed by load"
+        },
+        {
+          "name": "memory_disambiguation",
+          "pattern": "(?:ldr|str).*\\[.*\\].*\\n.*(?:ldr|str).*\\[",
+          "weight": 0.3,
+          "description": "Memory operations with potential aliasing"
+        }
+      ],
+      "context_requirements": {
+        "min_memory_ops": 5,
+        "min_instruction_count": 12
+      }
+    },
+    "RETBLEED": {
+      "required_patterns": [
+        {
+          "name": "return_prediction",
+          "pattern": "\\bret\\b",
+          "weight": 0.4,
+          "description": "Return instructions"
+        },
+        {
+          "name": "return_stack_manipulation",
+          "pattern": "(?:bl|call).*\\n.*ret",
+          "weight": 0.3,
+          "description": "Call/return sequences"
+        }
+      ],
+      "context_requirements": {
+        "min_return_count": 2,
+        "min_instruction_count": 10
+      }
+    },
+    "INCEPTION": {
+      "required_patterns": [
+        {
+          "name": "nested_speculation",
+          "pattern": "(?:b\\.[a-z]+.*\\n)+.*(?:b\\.[a-z]+.*\\n)+",
+          "weight": 0.5,
+          "description": "Nested conditional branches"
+        }
+      ],
+      "context_requirements": {
+        "min_nested_branches": 3,
+        "min_instruction_count": 25
+      }
+    }
+  },
+  "safe_code_indicators": {
+    "strong_mitigations": [
+      {
+        "name": "speculation_barriers",
+        "patterns": ["dsb sy", "isb", "lfence", "mfence"],
+        "confidence_reduction": 0.4
+      },
+      {
+        "name": "bounds_checking",
+        "patterns": ["cmp.*\\n.*b\\.hs", "cbz.*\\n.*ret"],
+        "confidence_reduction": 0.3
+      },
+      {
+        "name": "stack_protection",
+        "patterns": ["__stack_chk", "canary"],
+        "confidence_reduction": 0.2
+      }
+    ],
+    "safe_patterns": [
+      {
+        "name": "mathematical_code",
+        "patterns": ["(?:fmul|fadd|fsub|fdiv)", "(?:add|sub|mul).*#"],
+        "max_vulnerability_confidence": 0.3
+      },
+      {
+        "name": "simple_loops",
+        "patterns": ["mov.*#0", "add.*#1", "cmp.*b\\.lt"],
+        "max_vulnerability_confidence": 0.4
+      }
+    ]
+  },
+  "context_scoring": {
+    "security_critical_boost": 0.2,
+    "public_api_boost": 0.15,
+    "user_input_boost": 0.25,
+    "privileged_context_boost": 0.3,
+    "mitigation_penalty": -0.4,
+    "safe_compiler_opts_penalty": -0.1
+  },
+  "validation_weights": {
+    "ml_prediction": 0.35,
+    "pattern_matching": 0.30,
+    "context_analysis": 0.20,
+    "expert_rules": 0.15
+  },
+  "minimum_requirements": {
+    "min_instructions_for_detection": 8,
+    "min_confidence_for_reporting": 0.50,
+    "min_validation_score": 0.40,
+    "max_false_positive_likelihood": 0.60
+  }
+}

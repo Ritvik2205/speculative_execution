@@ -1,0 +1,10 @@
+{
+  "input_file": "data/benign_samples_x86_64_synthetic.jsonl",
+  "output_file": "data/benign_samples_x86_64_validated.jsonl",
+  "total_samples": 10000,
+  "valid_samples": 10000,
+  "rejected_samples": 0,
+  "validation_rate": 1.0,
+  "rejection_reasons": {},
+  "vuln_type_counts": {}
+}

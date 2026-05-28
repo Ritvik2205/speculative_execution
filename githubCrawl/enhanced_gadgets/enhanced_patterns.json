@@ -1,0 +1,153 @@
+{
+  "SPECTRE_V1": {
+    "signature_patterns": [
+      [
+        "cmp",
+        "j*",
+        "mov",
+        "and"
+      ],
+      [
+        "sub",
+        "cmp",
+        "j*",
+        "ldr"
+      ],
+      [
+        "test",
+        "j*",
+        "lea",
+        "mov"
+      ]
+    ],
+    "semantic_requirements": {
+      "has_bounds_check": true,
+      "has_conditional_branch": true,
+      "has_dependent_load": true,
+      "memory_access_after_branch": true
+    },
+    "anti_patterns": [
+      [
+        "lfence",
+        "mfence"
+      ],
+      [
+        "dsb",
+        "isb"
+      ]
+    ],
+    "context_requirements": {
+      "min_instructions": 5,
+      "max_branch_distance": 10,
+      "requires_memory_probe": true
+    }
+  },
+  "SPECTRE_V2": {
+    "signature_patterns": [
+      [
+        "call",
+        "*",
+        "ret"
+      ],
+      [
+        "jmp",
+        "*"
+      ],
+      [
+        "blr",
+        "ret"
+      ]
+    ],
+    "semantic_requirements": {
+      "has_indirect_branch": true,
+      "has_return_instruction": true,
+      "branch_target_computed": true
+    },
+    "context_requirements": {
+      "min_instructions": 3,
+      "requires_computed_target": true
+    }
+  },
+  "MELTDOWN": {
+    "signature_patterns": [
+      [
+        "mov",
+        "gs:",
+        "mov"
+      ],
+      [
+        "mrs",
+        "ldr",
+        "and"
+      ]
+    ],
+    "semantic_requirements": {
+      "has_privileged_access": true,
+      "has_exception_handling": true,
+      "has_dependent_computation": true
+    },
+    "context_requirements": {
+      "requires_exception_context": true,
+      "requires_timing_measurement": true
+    }
+  },
+  "RETBLEED": {
+    "signature_patterns": [
+      [
+        "push",
+        "call",
+        "pop",
+        "ret"
+      ],
+      [
+        "stp",
+        "blr",
+        "ldp",
+        "ret"
+      ]
+    ],
+    "semantic_requirements": {
+      "has_return_instruction": true,
+      "has_stack_manipulation": true,
+      "has_indirect_call": true
+    }
+  },
+  "BRANCH_HISTORY_INJECTION": {
+    "signature_patterns": [
+      [
+        "br",
+        "x*",
+        "nop",
+        "br"
+      ],
+      [
+        "jmp",
+        "r*",
+        "nop",
+        "jmp"
+      ]
+    ],
+    "semantic_requirements": {
+      "has_indirect_branch": true,
+      "has_branch_history_pollution": true
+    }
+  },
+  "L1TF": {
+    "signature_patterns": [
+      [
+        "mov",
+        "cr3",
+        "mov"
+      ],
+      [
+        "mrs",
+        "ttbr*",
+        "ldr"
+      ]
+    ],
+    "semantic_requirements": {
+      "has_page_table_access": true,
+      "has_l1_cache_interaction": true
+    }
+  }
+}

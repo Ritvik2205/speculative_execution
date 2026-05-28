@@ -164,5 +164,7 @@ docker-compose.override.yml.backup.10
 *.dot
 
 data/viz/
+data/enrichment/
 
 githubCrawl/data/enrichment/poc_repos/
+githubCrawl/repos/
