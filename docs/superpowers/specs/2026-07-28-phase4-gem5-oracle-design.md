@@ -1,6 +1,43 @@
 # Phase 4 — gem5 Execution Oracle (Design)
 
-**Status:** design, approved 2026-07-28. Ready for implementation plan.
+> **SCOPE REVISION (2026-07-28) — read this first; it supersedes the target set below.**
+> During implementation we inspected the actual c_vulns corpus and found the
+> validation target was not what the original design assumed. **Only 21 c_vulns
+> `.c` files are standalone-runnable PoCs**; the 530 variant `.c` and 1406 `.s`
+> "attack samples" are pattern-exemplar **fragments** (median 6–17 lines) with
+> **no secret→transmit dataflow** — measured directly: 0 of 530 contain a
+> `probe[secret*stride]` cache-transmit load. A gem5 Flush+Reload oracle has
+> nothing to measure on them (they are the *shapes* the GINE classifier learns,
+> not complete attacks).
+>
+> **Revised target (approved): synthesize complete leaking gadgets, then
+> gem5-validate them.** Generate ~450 complete gadgets (**~25 per class × 9
+> classes × 2 arches**) — each with a real planted secret, probe array,
+> class-specific speculation primitive, and `probe[secret*stride]` transmit —
+> via **hand-verified per-class C templates mutated by semantics-preserving
+> augmentation invariants**, and run each through the (unchanged) gem5 O3-vs-
+> in-order oracle. Output is a corpus of **gem5-confirmed leaking gadgets** —
+> the validated ground truth Phase 3's ranker needs.
+>
+> **What carries over unchanged:** the entire gem5 execution + signal machinery
+> (mechanism, leak_signal definition, controls, per-class adjudicability
+> honesty, Docker/gem5 build). Only the *input* changes: synthesized gadgets
+> instead of c_vulns PoCs. **What is retired:** cataloging c_vulns as the input
+> (§"Target sample set" below); `classify()` is reused for class tagging.
+>
+> The gem5 adjudicability caveat is now even more load-bearing: synthesis +
+> gem5 confirmation is real for **SPECTRE_V1** (V2/V4 partial); the vendor-
+> specific classes (L1TF/MDS/BHI/INCEPTION/RETBLEED) are synthesized and
+> attempted but reported "structurally complete, not gem5-confirmable," exactly
+> as the coverage table already specifies.
+>
+> The rest of this document (mechanism, signal, controls, coverage table,
+> verification bar) stands as written, reading "synthesized gadget" wherever it
+> said "c_vulns PoC." The implementation plan
+> (`docs/superpowers/plans/2026-07-28-phase4-gem5-oracle.md`) reflects the
+> revised scope.
+
+**Status:** design, approved 2026-07-28 (scope revised same day — see box above).
 
 **Roadmap ref:** `/Users/ritvikgupta/.claude/plans/compressed-whistling-goblet.md`, Phase S4 (the
 "simulator-in-the-loop confirmation" bar). Closes gap **G10** (no real leak oracle
