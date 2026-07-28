@@ -72,6 +72,9 @@ int perform_measurement(uint8_t expected_secret, const char* secret_name) {
     for (int i = 0; i < NUM_CACHE_LINES; i++) {
         volatile uint8_t *addr = &probe_array[i * CACHE_LINE_SIZE];
         long long access_time = measure_access_time(addr);
+#ifdef GEM5_ORACLE
+        printf("LINE %d %lld\n", i, access_time);
+#endif
 
         if (access_time < CACHE_HIT_THRESHOLD && (min_time == -1 || access_time < min_time)) {
             min_time = access_time;
