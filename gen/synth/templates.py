@@ -172,7 +172,7 @@ __attribute__((noinline)) void spectre_v2_train_step(void) {{
         "blr %0\n\t"
         "dsb sy\n\t"
         "dsb ld\n\t"
-        : : "r"(train_ptr) : "memory");
+        : : "r"(train_ptr) : "x30", "memory");
 }}
 
 int main() {{
@@ -865,7 +865,7 @@ __attribute__((noinline)) void bhi_train_step(int i) {{
         __asm__ __volatile__("nop");
     }}
     void (*p)(uint8_t) = leak_gadget_bhi;
-    __asm__ __volatile__("blr %0" : : "r"(p) : "memory");
+    __asm__ __volatile__("blr %0" : : "r"(p) : "x30", "memory");
     _mm_mfence();
 }}
 
