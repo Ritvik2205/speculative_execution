@@ -1,10 +1,18 @@
 from __future__ import annotations
-import os, json, random
+import os, json, random, hashlib
 from gen.synth.params import GadgetParams, CLASSES, ARCHES, ADJUDICABLE
 from gen.synth.templates import render
 
+# Knob space: 254 secrets × 4 train_iters × 9 pad_nops × 2 reorder = 18288 max
+MAX_KNOB_SPACE = 254 * 4 * 9 * 2
+
 def sample_params(vuln_class, arch, n, seed=0):
-    rng = random.Random((hash((vuln_class, arch, seed)) & 0xffffffff))
+    if n > MAX_KNOB_SPACE:
+        raise ValueError(f"n={n} exceeds knob space ({MAX_KNOB_SPACE})")
+    # Use hashlib for stable seed across interpreter sessions
+    seed_bytes = hashlib.sha256(f"{vuln_class}|{arch}|{seed}".encode()).digest()
+    seed_int = int.from_bytes(seed_bytes[:4], "big")
+    rng = random.Random(seed_int)
     seen = set()
     out = []
     # deterministic distinct knob-tuples
