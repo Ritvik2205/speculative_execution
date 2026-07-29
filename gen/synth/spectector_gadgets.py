@@ -55,8 +55,9 @@ _V4 = _V4_HEADER + (
 )
 
 # --- SPECTRE_V2 / BHI: indirect-call gate. The gate is the indirect call
-# itself (target predicted speculatively); {fence} sits right after it,
-# guarding entry into the mispredicted callee. ---
+# itself (target predicted speculatively); {fence} sits right before it,
+# serializing execution before the (possibly mispredicted) call target is
+# reached. ---
 _INDIRECT_HEADER = (
     '#include <stdint.h>\n#include <stddef.h>\n'
     'extern uint8_t probe[]; extern uint8_t *arr; extern size_t sz;\n'

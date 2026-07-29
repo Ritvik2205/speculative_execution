@@ -52,6 +52,22 @@ def test_coverage_gaps_listed_separately():
     assert "SPECTRE_V1" not in rep["coverage_gaps"]
 
 
+def test_partial_bucket_listed_separately():
+    """Classes with adjudicable=='partial' should show up in their own
+    'partial' bucket, not be silently dropped from the report."""
+    recs = [
+        _r("SPECTRE_V1", True, "yes"),
+        _r("SPECTRE_V4", False, "partial"),
+        _r("L1TF", False, "no"),
+    ]
+    rep = spec_report(recs)
+    assert rep["partial"] == ["SPECTRE_V4"]
+    assert "SPECTRE_V4" not in rep["coverage_gaps"]
+    assert "SPECTRE_V4" not in [
+        r.vuln_class for r in recs if r.adjudicable == "yes"
+    ]  # sanity: partial stays out of the aggregate-eligible set
+
+
 def test_per_class_leak_rate():
     """Per-class leak_rate should be computed correctly."""
     recs = [

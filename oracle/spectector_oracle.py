@@ -1,8 +1,14 @@
 """Spectector oracle driver for Phase 4 oracle."""
 import json
+import logging
 import subprocess
 from pathlib import Path
 from oracle.manifest import LeakRecord
+
+# Statuses Spectector can adjudicate. Anything else (missing, unexpected,
+# or paths["0"] absent so unsupported_ins is None) means Spectector did not
+# actually render a verdict for this gadget, so we must not fabricate one.
+_ADJUDICATED_STATUSES = {"safe", "data", "control"}
 
 
 def parse_spectector_json(text):
@@ -53,7 +59,9 @@ def build_spec_record(row, status_json, gem5_version="spectector-master"):
     unsupported_ins = status_json["unsupported_ins"]
     leak = status in {"data", "control"} and unsupported_ins == 0
 
-    # Compute leak_signal as continuous proxy
+    # Compute leak_signal as continuous proxy. NOTE: unlike manifest.py's
+    # snr_o3 - snr_inorder delta, this is Spectector's raw symbolic trace
+    # length — a proxy specific to this oracle, not a cross-oracle SNR value.
     if leak:
         leak_signal = float(status_json["trace_length"])
     else:
@@ -73,6 +81,33 @@ def build_spec_record(row, status_json, gem5_version="spectector-master"):
         adjudicable=row["adjudicable"],
         status="ok",
         gem5_version=gem5_version,
+        member_files=[],
+    )
+
+
+def _unrunnable(row):
+    """Build the LeakRecord for a gadget Spectector did not adjudicate.
+
+    Covers: docker/compile failures, missing output, timeouts, unexpected
+    exceptions, and any parsed result where Spectector's top-level status
+    isn't a genuine verdict (missing/unexpected status, or paths["0"]
+    absent so unsupported_ins is None) or reports unsupported instructions.
+    Never a stand-in for a real "safe" verdict.
+    """
+    return LeakRecord(
+        program=row["gadget_id"],
+        vuln_class=row["vuln_class"],
+        arch="x86_64",
+        secret=0,
+        recovered_byte=0,
+        recovered_ok=False,
+        snr_o3=0.0,
+        snr_inorder=0.0,
+        leak_signal=0.0,
+        leak=False,
+        adjudicable=row["adjudicable"],
+        status="unrunnable",
+        gem5_version="spectector-master",
         member_files=[],
     )
 
@@ -121,42 +156,12 @@ def run_spec_gadget(row, repo_root):
         # Check if compilation/execution succeeded
         if result.returncode != 0:
             # Compile or spectector execution failed
-            return LeakRecord(
-                program=row["gadget_id"],
-                vuln_class=row["vuln_class"],
-                arch="x86_64",
-                secret=0,
-                recovered_byte=0,
-                recovered_ok=False,
-                snr_o3=0.0,
-                snr_inorder=0.0,
-                leak_signal=0.0,
-                leak=False,
-                adjudicable=row["adjudicable"],
-                status="unrunnable",
-                gem5_version="spectector-master",
-                member_files=[],
-            )
+            return _unrunnable(row)
 
         # Read JSON output (written under oracle/build/ inside the mounted repo)
         json_path = Path(repo_root) / "oracle" / "build" / f"{gadget_id}.json"
         if not json_path.exists():
-            return LeakRecord(
-                program=row["gadget_id"],
-                vuln_class=row["vuln_class"],
-                arch="x86_64",
-                secret=0,
-                recovered_byte=0,
-                recovered_ok=False,
-                snr_o3=0.0,
-                snr_inorder=0.0,
-                leak_signal=0.0,
-                leak=False,
-                adjudicable=row["adjudicable"],
-                status="unrunnable",
-                gem5_version="spectector-master",
-                member_files=[],
-            )
+            return _unrunnable(row)
 
         # Parse JSON and build record
         with open(json_path) as f:
@@ -164,60 +169,30 @@ def run_spec_gadget(row, repo_root):
 
         status_json = parse_spectector_json(json_text)
 
-        # Check for unsupported instructions (None if Spectector produced no path)
-        if not status_json.get("unsupported_ins") is None and status_json["unsupported_ins"] > 0:
-            return LeakRecord(
-                program=row["gadget_id"],
-                vuln_class=row["vuln_class"],
-                arch="x86_64",
-                secret=0,
-                recovered_byte=0,
-                recovered_ok=False,
-                snr_o3=0.0,
-                snr_inorder=0.0,
-                leak_signal=0.0,
-                leak=False,
-                adjudicable=row["adjudicable"],
-                status="unrunnable",
-                gem5_version="spectector-master",
-                member_files=[],
-            )
+        # Only genuinely-adjudicated gadgets may become a "ok" verdict. Treat
+        # as unrunnable when: the top-level status isn't one Spectector
+        # actually emits, OR paths["0"] was absent (unsupported_ins is None,
+        # meaning Spectector produced no path at all), OR Spectector flagged
+        # unsupported instructions in the path it did produce. Do not let any
+        # of these fall through to build_spec_record, which hardcodes
+        # status="ok" for adjudicated gadgets only.
+        status = status_json.get("status")
+        unsupported_ins = status_json.get("unsupported_ins")
+        if (
+            status not in _ADJUDICATED_STATUSES
+            or unsupported_ins is None
+            or unsupported_ins > 0
+        ):
+            return _unrunnable(row)
 
         return build_spec_record(row, status_json)
 
     except subprocess.TimeoutExpired:
         # Timeout
-        return LeakRecord(
-            program=row["gadget_id"],
-            vuln_class=row["vuln_class"],
-            arch="x86_64",
-            secret=0,
-            recovered_byte=0,
-            recovered_ok=False,
-            snr_o3=0.0,
-            snr_inorder=0.0,
-            leak_signal=0.0,
-            leak=False,
-            adjudicable=row["adjudicable"],
-            status="unrunnable",
-            gem5_version="spectector-master",
-            member_files=[],
-        )
-    except Exception:
-        # Other errors
-        return LeakRecord(
-            program=row["gadget_id"],
-            vuln_class=row["vuln_class"],
-            arch="x86_64",
-            secret=0,
-            recovered_byte=0,
-            recovered_ok=False,
-            snr_o3=0.0,
-            snr_inorder=0.0,
-            leak_signal=0.0,
-            leak=False,
-            adjudicable=row["adjudicable"],
-            status="unrunnable",
-            gem5_version="spectector-master",
-            member_files=[],
-        )
+        return _unrunnable(row)
+    except Exception as e:
+        # Other errors (docker failures, malformed JSON, I/O errors, ...).
+        # Log so failures are visible instead of silently swallowed, but
+        # never let one bad gadget crash the batch.
+        logging.warning("run_spec_gadget failed for %s: %s", row.get("gadget_id"), e)
+        return _unrunnable(row)

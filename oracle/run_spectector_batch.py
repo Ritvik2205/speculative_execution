@@ -1,13 +1,15 @@
 """Batch runner for Spectector-based oracle."""
 from __future__ import annotations
+import os
 import sys
 import json
+from pathlib import Path
 
 from gen.synth.spectector_gadgets import generate_spec
 from oracle.spectector_oracle import run_spec_gadget
 from oracle.manifest import write_manifest
 
-REPO = "/Users/ritvikgupta/SpecExec"
+REPO = os.environ.get("SPECEXEC_REPO") or str(Path(__file__).resolve().parents[1])
 
 
 def spec_report(records):
@@ -20,7 +22,8 @@ def spec_report(records):
     Returns:
         dict with per_class {n, n_leak, leak_rate, adjudicable},
         aggregate_adjudicable over adjudicable=="yes" only,
-        and coverage_gaps (classes with adjudicable=="no").
+        coverage_gaps (classes with adjudicable=="no"), and
+        partial (classes with adjudicable=="partial").
     """
     per_class = {}
     for r in records:
@@ -40,10 +43,16 @@ def spec_report(records):
     # Coverage gaps: classes with adjudicable=="no"
     coverage_gaps = sorted({r.vuln_class for r in records if r.adjudicable == "no"})
 
+    # Partial bucket: classes with adjudicable=="partial" (neither fully
+    # aggregated nor a full coverage gap — surface it honestly rather than
+    # silently dropping it from the report).
+    partial = sorted({r.vuln_class for r in records if r.adjudicable == "partial"})
+
     return {
         "per_class": per_class,
         "aggregate_adjudicable": agg,
         "coverage_gaps": coverage_gaps,
+        "partial": partial,
     }
 
 
