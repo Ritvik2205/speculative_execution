@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Wrapper: set up the Ciao/Z3 environment, then run Spectector.
+export CIAOPATH=/root/ciao
+eval "$(/opt/ciao/build/bin/ciao-env --sh)"
+export PATH=/usr/local/bin:/root/ciao/build/bin:/opt/ciao/build/bin:$PATH
+exec spectector "$@"
