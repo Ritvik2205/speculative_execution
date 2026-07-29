@@ -113,3 +113,15 @@ def test_run_spec_gadget_exception_is_unrunnable_and_logged(monkeypatch, caplog)
     assert rec.status == "unrunnable"
     assert rec.leak is False
     assert any("SPECTRE_V1_baseline" in msg for msg in caplog.messages)
+
+
+def test_parse_handles_accumulated_multi_object_stats():
+    # Spectector --stats can append: file holds several comma-separated objects.
+    # Parser must take the LAST verdict, not choke on "Extra data".
+    from oracle.spectector_oracle import parse_spectector_json
+    multi = ('{"status":"safe","paths":{"0":{"data_check":false,"control_check":false,'
+             '"unsupported_ins":0,"trace_length":3}},"name":"x.s"},'
+             '{"status":"data","paths":{"0":{"data_check":true,"control_check":false,'
+             '"unsupported_ins":0,"trace_length":15}},"name":"x.s"},')
+    d = parse_spectector_json(multi)
+    assert d["status"] == "data" and d["trace_length"] == 15

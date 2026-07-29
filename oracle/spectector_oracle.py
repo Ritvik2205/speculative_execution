@@ -26,8 +26,11 @@ def parse_spectector_json(text):
     if text.endswith(','):
         text = text[:-1]
 
-    # Parse JSON
-    data = json.loads(text)
+    # Spectector's --stats can accumulate several comma-separated objects in one
+    # file (it appends per run/path). Wrap in a list so 1..N objects parse, and
+    # take the last (most recent) verdict. Robust to both single- and multi-object.
+    objs = json.loads("[" + text + "]")
+    data = objs[-1] if objs else {}
 
     # Extract fields from top-level status and paths["0"]
     status = data.get("status")
@@ -136,8 +139,9 @@ def run_spec_gadget(row, repo_root):
         "-v", f"{repo_root}:{work_dir}",
         "specdiscover-spectector:pinned",
         "bash", "-c",
-        # Compile with GCC then run spectector
-        f"mkdir -p {work_dir}/oracle/build && "
+        # Compile with GCC then run spectector. rm the stats file first —
+        # Spectector's --stats appends, so a stale file would accumulate objects.
+        f"mkdir -p {work_dir}/oracle/build && rm -f {out_json} && "
         f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none -o {out_asm} {work_dir}/{rel_path} "
         f"&& run-spectector {out_asm} -a noninter --stats {out_json}"
     ]
