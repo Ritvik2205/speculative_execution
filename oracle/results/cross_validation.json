@@ -1,0 +1,109 @@
+{
+  "results": [
+    {
+      "validator": "spectector",
+      "gadget_id": "synth_SPECTRE_V1",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "leak",
+      "signal": 15.0,
+      "details": {
+        "status": "ok",
+        "adjudicable": "yes"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "synth_SPECTRE_V1",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "leaked": false,
+        "n_success": 0,
+        "n_attempts": 1,
+        "style": "utils"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "canon_spectre_1",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "canon_spectre_1",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "leaked": false,
+        "n_success": 0,
+        "n_attempts": 1,
+        "style": "utils"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "ref_spectre_full",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "ref_spectre_full",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "leak",
+      "signal": 40.0,
+      "details": {
+        "leaked": true,
+        "n_success": 40,
+        "n_attempts": 40,
+        "style": "spectre_full"
+      }
+    }
+  ],
+  "agreement": [
+    {
+      "gadget_id": "synth_SPECTRE_V1",
+      "vuln_class": "SPECTRE_V1",
+      "verdicts": {
+        "spectector": "leak",
+        "invisispec": "safe"
+      },
+      "both_confirm_leak": false,
+      "any_leak": true,
+      "conflict": true
+    },
+    {
+      "gadget_id": "canon_spectre_1",
+      "vuln_class": "SPECTRE_V1",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "safe"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "ref_spectre_full",
+      "vuln_class": "SPECTRE_V1",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "leak"
+      },
+      "both_confirm_leak": false,
+      "any_leak": true,
+      "conflict": false
+    }
+  ]
+}
