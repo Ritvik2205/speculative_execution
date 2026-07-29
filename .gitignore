@@ -176,5 +176,6 @@ githubCrawl/parsed_assembly/vocabulary.json
 data/v42_train_enriched.jsonl
 v42/data/v42_train_enriched.jsonl
 gen/synth/out/
+gen/synth/spec_out/
 oracle/build/
 oracle/results/*.jsonl
