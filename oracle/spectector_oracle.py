@@ -90,10 +90,10 @@ def run_spec_gadget(row, repo_root):
     gadget_id = row["gadget_id"]
     rel_path = row["path"]  # relative path to victim .c file
 
-    # Paths for docker run
+    # Paths for docker run (write build artifacts under the gitignored oracle/build/)
     work_dir = "/work"
-    out_asm = f"{work_dir}/{gadget_id}.s"
-    out_json = f"{work_dir}/{gadget_id}.json"
+    out_asm = f"{work_dir}/oracle/build/{gadget_id}.s"
+    out_json = f"{work_dir}/oracle/build/{gadget_id}.json"
 
     # Docker command: compile and run spectector
     docker_cmd = [
@@ -102,17 +102,20 @@ def run_spec_gadget(row, repo_root):
         "specdiscover-spectector:pinned",
         "bash", "-c",
         # Compile with GCC then run spectector
+        f"mkdir -p {work_dir}/oracle/build && "
         f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none -o {out_asm} {work_dir}/{rel_path} "
         f"&& run-spectector {out_asm} -a noninter --stats {out_json}"
     ]
 
     try:
-        # Run docker command with timeout
+        # Run docker command with timeout. Spectector's symbolic data check on a
+        # leaking gadget takes ~25-40s; docker+compile add overhead. 30s flakily
+        # times out real leaks (observed on SPECTRE_V1). Allow 300s per gadget.
         result = subprocess.run(
             docker_cmd,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=300,
         )
 
         # Check if compilation/execution succeeded
@@ -135,9 +138,8 @@ def run_spec_gadget(row, repo_root):
                 member_files=[],
             )
 
-        # Read JSON output (absolute path in container)
-        # We need to read from repo_root
-        json_path = Path(repo_root) / f"{gadget_id}.json"
+        # Read JSON output (written under oracle/build/ inside the mounted repo)
+        json_path = Path(repo_root) / "oracle" / "build" / f"{gadget_id}.json"
         if not json_path.exists():
             return LeakRecord(
                 program=row["gadget_id"],
@@ -162,8 +164,8 @@ def run_spec_gadget(row, repo_root):
 
         status_json = parse_spectector_json(json_text)
 
-        # Check for unsupported instructions
-        if status_json["unsupported_ins"] > 0:
+        # Check for unsupported instructions (None if Spectector produced no path)
+        if not status_json.get("unsupported_ins") is None and status_json["unsupported_ins"] > 0:
             return LeakRecord(
                 program=row["gadget_id"],
                 vuln_class=row["vuln_class"],
