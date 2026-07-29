@@ -1201,3 +1201,209 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 **Carried-over decisions from Tasks 1–3 execution:** shared `tests/conftest.py` (no per-dir `__init__.py`) — noted in Global Constraints. `classify()` from the retired catalog.py is available if needed but not on the critical path.
 
 **Known real-world risk (flagged):** (1) gem5 stdlib API names are pinned to `v24.0.0.0`; Task 8 smoke catches drift. (2) Whether a synthesized V1 gadget actually leaks in gem5's O3 depends on the O3 speculation-window depth vs. the gadget's mistraining — Task 10's positive control is the gate; if it fails, the V1 template/loop is tuned before batch. (3) The vendor-specific classes are expected to NOT leak in gem5 (adjudicable="no"); that is a documented coverage gap, not a failure.
+
+---
+---
+
+# REVISION 2 (2026-07-29): Spectector oracle replaces gem5 leak-timing (Tasks 8–12 superseded)
+
+**Why:** Investigation proved stock gem5 v24 O3 + classic cache does **not** leave a misspeculated-load cache footprint (verified: even a single wide-window speculative load leaves no trace; `lsq.cc SingleDataRequest::finish` self-destructs squashed loads). So gem5 cannot confirm a Flush+Reload leak. **Spectector** (IMDEA symbolic speculative-non-interference checker) is adopted instead — it proves leak/no-leak on x86 asm symbolically, needs no cache-leave fidelity, is deterministic, and runs natively. A working prototype confirmed discrimination: V1 gadget → `data` (leak), V1+lfence → `safe`, BENIGN → `safe`.
+
+**Supersedes Tasks 8–12** (gem5 SE config, docker, driver, controls, batch, arm). Tasks 1–7 stand as-is (manifest, parser, leak_signal math, gadget templates, mutation generator, utils.c instrument — the runnable-gadget corpus is retained). The Spectector oracle uses new, minimal analyzable gadgets.
+
+## Global constraints (additions for Revision 2)
+- **Spectector is x86_64-only.** arm64 leak-validation is out of scope for this oracle (documented; needs a different tool). Generate x86_64 Spectector gadgets only.
+- **Spectector verdict is per gadget STRUCTURE** (SNI is symbolic over the secret) → secret-value mutation is redundant. The meaningful variants are **structural**: `baseline` (leaky) and `fenced` (`lfence`-mitigated, a per-class negative control). BENIGN is a second negative control.
+- **Spectector's default speculation model = conditional-branch (PHT).** Adjudicability: `SPECTRE_V1=yes`, `SPECTRE_V4=partial` (STL not in default model), `SPECTRE_V2/BHI=partial` (indirect), `RETBLEED/INCEPTION=no` (RSB/return), `L1TF/MDS=no` (fault-based). Aggregate reported only over `adjudicable=="yes"`.
+- **Container:** `specdiscover-spectector:pinned` (already built: Ubuntu 24.04 + Ciao + Z3 4.8.4-from-source + Spectector; wrapper `/usr/local/bin/run-spectector`). x86 gadgets compiled with `x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none` inside the container.
+- **Spectector JSON (`--stats`) has a trailing comma** — strip before `json.loads`. Verdict = top-level `"status" ∈ {safe, data, control}`; `data`/`control` ⇒ leak, `safe` ⇒ no leak. Per-path stats (`formulas_length`, `trace_length`, `steps`) under `paths.0`.
+
+---
+
+### Task 8 (rev2): Spectector Docker image — reproducible recipe
+
+**Files:** Create `oracle/docker/Dockerfile.spectector`, `oracle/docker/build_spectector.sh`.
+
+**Interfaces:** Produces image `specdiscover-spectector:pinned` with `run-spectector` on PATH and `x86_64-linux-gnu-gcc`.
+
+- [ ] **Step 1: Write the Dockerfile** capturing the proven build:
+
+```dockerfile
+# oracle/docker/Dockerfile.spectector
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    git build-essential gcc g++ curl python3 python3-setuptools \
+    libgmp-dev ca-certificates unzip cmake gcc-x86-64-linux-gnu z3 \
+    && rm -rf /var/lib/apt/lists/*
+# Ciao Prolog
+RUN cd /opt && git clone --depth 1 https://github.com/ciao-lang/ciao \
+    && cd ciao && printf '\n\n\n\n' | ./ciao-boot.sh local-install
+ENV CIAOPATH=/root/ciao
+# Spectector (+ concolic + muasm_translator + z3 store), then build
+RUN eval "$(/opt/ciao/build/bin/ciao-env --sh)" \
+    && export PATH=/opt/ciao/build/bin:$PATH \
+    && ciao get github.com/spectector/spectector \
+    && ciao build github.com/spectector/spectector
+# Z3 4.8.4 from source (apt z3 4.8.12 breaks concolic's model parser)
+RUN cd /opt && git clone --depth 1 --branch z3-4.8.4 https://github.com/Z3Prover/z3.git \
+    && cd z3 && mkdir build && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4 \
+    && cp z3 /usr/local/bin/z3
+COPY run-spectector /usr/local/bin/run-spectector
+RUN chmod +x /usr/local/bin/run-spectector
+WORKDIR /work
+```
+
+with `oracle/docker/run-spectector`:
+```bash
+#!/usr/bin/env bash
+export CIAOPATH=/root/ciao
+eval "$(/opt/ciao/build/bin/ciao-env --sh)"
+export PATH=/usr/local/bin:/root/ciao/build/bin:/opt/ciao/build/bin:$PATH
+exec spectector "$@"
+```
+
+- [ ] **Step 2: build_spectector.sh** = `docker buildx build --platform linux/arm64 -t specdiscover-spectector:pinned --load -f Dockerfile.spectector .`
+- [ ] **Step 3: Verify** — `docker run --rm specdiscover-spectector:pinned run-spectector --help | head` prints usage; `z3 --version` inside prints `4.8.4`.
+- [ ] **Step 4: Commit** the Dockerfile + script + wrapper.
+
+*(Note: the image already exists from the prototype; this task records the reproducible recipe and verifies it. Rebuild optional — the committed image is authoritative.)*
+
+---
+
+### Task 9 (rev2): Spectector gadget generator
+
+Minimal, analyzable victim functions per class with `extern` globals (no harness, no `main` — Spectector needs only the gadget). Each class emits a `baseline` and a `fenced` (`lfence`) variant. Reuse `CLASSES` from `gen/synth/params.py`.
+
+**Files:** Create `gen/synth/spectector_gadgets.py`, `tests/gen/test_spectector_gadgets.py`.
+
+**Interfaces:** Produces `SPEC_GADGETS: dict[str, str]` (class → C victim body with `{fence}` placeholder); `render_spec(vuln_class, fenced: bool) -> str`; `generate_spec(out_dir) -> list[dict]` writing `<class>_<baseline|fenced>.c` + `spec_gadgets.jsonl` (rows: `gadget_id, path, vuln_class, variant, adjudicable`).
+
+- [ ] **Step 1: failing test**
+```python
+# tests/gen/test_spectector_gadgets.py
+import os, json
+from gen.synth.spectector_gadgets import render_spec, generate_spec, SPEC_GADGETS
+from gen.synth.params import CLASSES
+
+def test_all_classes_have_spec_gadgets():
+    for c in CLASSES:
+        assert c in SPEC_GADGETS
+
+def test_render_has_extern_globals_no_main():
+    src = render_spec("SPECTRE_V1", fenced=False)
+    assert "extern" in src and "int main" not in src
+    assert "probe" in src
+
+def test_fenced_variant_adds_lfence():
+    assert "lfence" in render_spec("SPECTRE_V1", fenced=True)
+    assert "lfence" not in render_spec("SPECTRE_V1", fenced=False)
+
+def test_generate_writes_files_and_index(tmp_path):
+    rows = generate_spec(str(tmp_path))
+    assert len(rows) == len(CLASSES) * 2         # baseline + fenced per class
+    idx = json.loads(open(os.path.join(str(tmp_path), "spec_gadgets.jsonl")).readline())
+    assert idx["adjudicable"] in ("yes","partial","no")
+    for r in [json.loads(l) for l in open(os.path.join(str(tmp_path),"spec_gadgets.jsonl"))]:
+        assert os.path.exists(r["path"])
+```
+
+- [ ] **Step 2:** run → fails (no module).
+- [ ] **Step 3: implement** `gen/synth/spectector_gadgets.py`. Provide the SPECTRE_V1 and BENIGN victims in full (proven in the prototype); author the other 7 to the same contract (minimal victim, extern globals, `{fence}` slot right after the speculation gate). Example core:
+
+```python
+from gen.synth.params import CLASSES, ADJUDICABLE
+
+_HEADER = '#include <stdint.h>\n#include <stddef.h>\n' \
+          'extern uint8_t probe[]; extern uint8_t *arr; extern size_t sz;\n'
+
+# {fence} expands to 'asm volatile("lfence":::"memory");' (fenced) or '' (baseline)
+_V1 = _HEADER + 'void gadget(size_t i){ if(i<sz){ {fence}uint8_t v=arr[i]; probe[v*64]=1; } }\n'
+_BENIGN = _HEADER + 'void gadget(size_t i){ if(i<sz){ {fence}(void)arr[i]; probe[3*64]=1; } }\n'
+# V4 (store-bypass), V2/BHI (indirect via extern fn ptr), RETBLEED/INCEPTION (return),
+# L1TF/MDS (fault-load) authored to same shape; see contract below.
+
+SPEC_GADGETS = { "SPECTRE_V1": _V1, "BENIGN": _BENIGN, ... }  # all 9
+
+def render_spec(vuln_class, fenced):
+    fence = 'asm volatile("lfence":::"memory"); ' if fenced else ''
+    return SPEC_GADGETS[vuln_class].replace("{fence}", fence)
+
+def generate_spec(out_dir):
+    import os, json
+    os.makedirs(out_dir, exist_ok=True); rows=[]
+    for c in CLASSES:
+        for fenced in (False, True):
+            variant = "fenced" if fenced else "baseline"
+            gid = f"{c}_{variant}"; path=os.path.join(out_dir, gid+".c")
+            open(path,"w").write(render_spec(c, fenced))
+            rows.append({"gadget_id":gid,"path":path,"vuln_class":c,
+                         "variant":variant,"adjudicable":ADJUDICABLE.get(c,"no")})
+    with open(os.path.join(out_dir,"spec_gadgets.jsonl"),"w") as f:
+        for r in rows: f.write(json.dumps(r,sort_keys=True)+"\n")
+    return rows
+```
+
+**Contract for the other 7 victims** (minimal, extern globals, `{fence}` after the gate): V4 — `store[i]=0; uint8_t v=store[i]; probe[v*64]=1;` (extern `store`); V2/BHI — `extern void (*fp)(size_t); {fence}fp(i);` with an extern leak target; RETBLEED/INCEPTION — a return-through gadget; L1TF/MDS — a faulting/transient load then transmit. These are expected `safe`/unsupported under Spectector's PHT model (adjudicable `no`/`partial`) — that is the honest, documented outcome, not a bug.
+
+- [ ] **Step 4:** run test → pass.
+- [ ] **Step 5:** commit (`gen/synth/spec_out/` git-ignored).
+
+---
+
+### Task 10 (rev2): Spectector oracle driver
+
+**Files:** Create `oracle/spectector_oracle.py`, `tests/oracle/test_spectector_oracle.py`.
+
+**Interfaces:** Produces `parse_spectector_json(text) -> dict` (strips trailing comma, returns `{status, data_check, control_check, unsupported_ins, formulas_length, trace_length}`); `build_spec_record(row, status_json, gem5_version="spectector-master") -> LeakRecord`; `run_spec_gadget(row, repo_root) -> LeakRecord` (compiles victim in the container, runs `run-spectector --stats`, parses).
+
+Mapping: `leak = status in {"data","control"}` and `unsupported_ins == 0`; `leak_signal = float(trace_length)` if leak else 0.0 (continuous proxy for Phase 3); `recovered_ok = leak`; `snr_o3/snr_inorder` unused → 0.0; `secret=0`; `member_files=[]`; `arch="x86_64"`.
+
+- [ ] **Step 1: failing test** (pure-Python, parses a captured JSON string — no container):
+```python
+# tests/oracle/test_spectector_oracle.py
+from oracle.spectector_oracle import parse_spectector_json, build_spec_record
+
+V1_JSON = '{"status":"data","paths":{"0":{"data_check":true,"control_check":false,"unsupported_ins":0,"formulas_length":[277],"trace_length":15,"steps":36}},"name":"x.s"},'
+SAFE_JSON = '{"status":"safe","paths":{"0":{"data_check":false,"control_check":false,"unsupported_ins":0,"formulas_length":[10],"trace_length":3,"steps":8}},"name":"x.s"},'
+
+def test_parse_strips_trailing_comma_and_reads_status():
+    d = parse_spectector_json(V1_JSON)
+    assert d["status"] == "data" and d["data_check"] is True and d["unsupported_ins"] == 0
+
+def test_leak_record_leak_when_data():
+    row = {"gadget_id":"SPECTRE_V1_baseline","vuln_class":"SPECTRE_V1","variant":"baseline","adjudicable":"yes"}
+    rec = build_spec_record(row, parse_spectector_json(V1_JSON))
+    assert rec.leak is True and rec.leak_signal > 0 and rec.vuln_class == "SPECTRE_V1"
+
+def test_leak_record_safe_when_safe():
+    row = {"gadget_id":"SPECTRE_V1_fenced","vuln_class":"SPECTRE_V1","variant":"fenced","adjudicable":"yes"}
+    rec = build_spec_record(row, parse_spectector_json(SAFE_JSON))
+    assert rec.leak is False and rec.leak_signal == 0.0
+```
+
+- [ ] **Step 2:** run → fails.
+- [ ] **Step 3: implement** `parse_spectector_json` (strip trailing whitespace+comma, `json.loads`, pull `paths["0"]` fields) and `build_spec_record` (map per above, reuse `oracle.manifest.LeakRecord`). `run_spec_gadget`: `docker run --rm -v REPO:/work specdiscover-spectector:pinned bash -c 'x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none -o /work/<g>.s /work/<path> && run-spectector /work/<g>.s -a noninter --stats /work/<g>.json'`, read the json, `parse_spectector_json`, `build_spec_record`. On compile/`unsupported_ins>0`/timeout → `status="unrunnable"`.
+- [ ] **Step 4:** run test → pass.
+- [ ] **Step 5: real e2e smoke** — `run_spec_gadget` on SPECTRE_V1_baseline (expect leak) and SPECTRE_V1_fenced (expect safe). Commit.
+
+---
+
+### Task 11 (rev2): Batch + honest per-class report + controls
+
+**Files:** Create `oracle/run_spectector_batch.py`, `tests/oracle/test_spectector_report.py`.
+
+**Interfaces:** `spec_report(records) -> dict` (per_class leak_rate + adjudicable; aggregate over `adjudicable=="yes"`; coverage_gaps = `adjudicable=="no"`); `main()` generates gadgets, runs all, writes `oracle/results/spectector_leak_labels.jsonl`, prints report.
+
+- [ ] **Step 1: failing test** for `spec_report` (synthetic records; aggregate only counts `adjudicable=="yes"`, coverage_gaps lists `no`). Mirror Task 11's `report` test shape.
+- [ ] **Step 2:** run → fails.
+- [ ] **Step 3: implement** `spec_report` (same shape as `validate_oracle.report`) + `main()` (call `generate_spec`, loop `run_spec_gadget`, `write_manifest`, print `json.dumps(spec_report(...))`).
+- [ ] **Step 4:** run test → pass.
+- [ ] **Step 5: real batch + controls gate** — `python oracle/run_spectector_batch.py`. **Controls that MUST hold:** `SPECTRE_V1_baseline` → leak; `SPECTRE_V1_fenced` → safe; `BENIGN_baseline` → safe. Report shows V1 under `aggregate_adjudicable` with leak; L1TF/MDS/etc under `coverage_gaps`. Emit `oracle/results/spectector_leak_labels.jsonl` (+ committed `.sample.jsonl`). Commit.
+
+## Self-review (Revision 2)
+- Oracle mechanism replaced (gem5→Spectector), x86-only scope stated, per-structure verdict + lfence/BENIGN controls, honest per-class adjudicability preserved, Phase-3 labels emitted. ✓
+- Reuses `LeakRecord`/manifest (Task 1), `CLASSES`/`ADJUDICABLE` (Task 4). ✓
+- Container recipe captured (Task 8), proven flow (compile→run-spectector --stats→parse) from the validated prototype. ✓
+- Honest limitation: only conditional-branch (V1-family) is truly adjudicated; other classes attempted + tagged, not fabricated as leaks. ✓
