@@ -25,7 +25,12 @@ REPO = os.environ.get("SPECEXEC_REPO") or os.path.dirname(os.path.dirname(os.pat
 
 
 def synthesized_gadgets():
-    """Synthesized gadgets: Spectector victim (spec_out) + runnable PoC (out)."""
+    """Synthesized gadgets: Spectector victim (spec_out) + runnable PoC.
+
+    Prefer the TUNED runnable (gen/synth/tuned_out, actually leaks in execution)
+    when one exists for the class; fall back to the original under-tuned PoC
+    (gen/synth/out) otherwise.
+    """
     out = []
     idx = os.path.join(REPO, "gen", "synth", "spec_out", "spec_gadgets.jsonl")
     if not os.path.exists(idx):
@@ -35,13 +40,15 @@ def synthesized_gadgets():
         if r.get("variant") != "baseline":
             continue
         cls = r["vuln_class"]
-        run_poc = os.path.join(REPO, "gen", "synth", "out", f"{cls}_x86_64_0.c")
+        tuned = os.path.join(REPO, "gen", "synth", "tuned_out", f"tuned_{cls}.c")
+        untuned = os.path.join(REPO, "gen", "synth", "out", f"{cls}_x86_64_0.c")
+        exec_src = tuned if os.path.exists(tuned) else (untuned if os.path.exists(untuned) else None)
         out.append({
             "gadget_id": f"synth_{cls}",
             "vuln_class": cls,
             "adjudicable": r.get("adjudicable", "no"),
             "spectector_source": r["path"],
-            "execution_source": run_poc if os.path.exists(run_poc) else None,
+            "execution_source": exec_src,
         })
     return out
 
@@ -78,6 +85,9 @@ def reference_positive():
 
 def main():
     demo = "--demo" in sys.argv
+    # ensure tuned execution-leaking gadgets exist (V1 etc.)
+    from gen.synth.tuned_gadgets import generate_tuned
+    generate_tuned(os.path.join(REPO, "gen", "synth", "tuned_out"))
     gadgets = synthesized_gadgets() + canonical_gadgets() + reference_positive()
     if demo:
         # tiny representative subset: one synth V1 (both oracles) + the positive control
