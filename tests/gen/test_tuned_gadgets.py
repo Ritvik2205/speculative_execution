@@ -7,6 +7,17 @@ def test_render_plants_secret_and_has_leak_pattern():
     assert "STRIDE 512" in src and "_mm_clflush(&array1_size)" in src  # tuning
     assert "int main" in src
 
+
+def test_v4_render_has_store_bypass_pattern():
+    src = render_tuned("SPECTRE_V4", 0x56)
+    assert "SECRET=86" in src              # planted byte
+    assert "ssb_victim" in src and "buf[sidx] = 0" in src   # slow store
+    assert "array2[buf[0] * STRIDE]" in src                 # fast bypassing load + transmit
+
+
+def test_both_leakable_classes_present():
+    assert set(TUNED) == {"SPECTRE_V1", "SPECTRE_V4"}
+
 def test_unknown_class_raises():
     import pytest
     with pytest.raises(KeyError):
