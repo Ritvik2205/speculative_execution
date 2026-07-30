@@ -4,10 +4,11 @@ from oracle.validators.base import (
 )
 from oracle.validators.spectector_validator import SpectectorValidator
 from oracle.validators.invisispec_validator import InvisiSpecValidator
+from oracle.validators.revizor_validator import RevizorValidator
 from oracle.validators.cross_validate import cross_validate, summarize
 
 __all__ = [
     "Validator", "ValidationResult", "LEAK", "SAFE", "UNRUNNABLE", "UNSUPPORTED",
-    "VERDICTS", "SpectectorValidator", "InvisiSpecValidator", "cross_validate",
-    "summarize",
+    "VERDICTS", "SpectectorValidator", "InvisiSpecValidator", "RevizorValidator",
+    "cross_validate", "summarize",
 ]

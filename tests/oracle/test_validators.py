@@ -56,3 +56,24 @@ def test_cross_validate_double_confirm_and_conflict():
     assert s["double_confirmed_leaks"] == ["V1"]       # both leak
     assert s["conflicts"] == ["MIX"]                   # spectector leak vs invisispec safe
     assert s["any_leak"] == ["MIX", "V1"]              # sorted; BENIGN excluded
+
+
+def test_revizor_unrunnable_without_x86_hardware(monkeypatch):
+    """On a non-x86 host, RevizorValidator must return UNRUNNABLE — never a
+    fabricated leak/safe verdict (the leak physically can't be observed)."""
+    from oracle.validators.revizor_validator import RevizorValidator
+    from oracle.validators.base import UNRUNNABLE
+    v = RevizorValidator("/tmp")
+    monkeypatch.setattr(v, "_hardware_available", lambda: False)
+    r = v.validate({"gadget_id": "l1tf_0", "vuln_class": "L1TF"})
+    assert r.verdict == UNRUNNABLE
+    assert "x86" in r.details["reason"].lower()
+
+
+def test_revizor_unknown_class_unrunnable(monkeypatch):
+    from oracle.validators.revizor_validator import RevizorValidator
+    from oracle.validators.base import UNRUNNABLE
+    v = RevizorValidator("/tmp")
+    monkeypatch.setattr(v, "_hardware_available", lambda: True)
+    r = v.validate({"gadget_id": "x", "vuln_class": "BHI"})   # no canned config
+    assert r.verdict == UNRUNNABLE
