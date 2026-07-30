@@ -180,3 +180,4 @@ gen/synth/spec_out/
 oracle/build/
 oracle/results/*.jsonl
 gen/synth/tuned_out/
+gen/synth/grid_out/
