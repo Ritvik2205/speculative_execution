@@ -36,5 +36,6 @@ def test_architectural_leak_on_both_cpus_is_not_a_leak():
 def test_routing():
     assert gem5_binary_for("x86_64").endswith("/X86/gem5.opt")
     assert gem5_binary_for("arm64").endswith("/ARM/gem5.opt")
-    assert compiler_for("x86_64") == "gcc"
-    assert compiler_for("arm64") == "aarch64-linux-gnu-gcc"
+    # container host is arm64 (colima): x86 guest cross-compiled, arm64 guest native
+    assert compiler_for("x86_64") == "x86_64-linux-gnu-gcc"
+    assert compiler_for("arm64") == "gcc"
