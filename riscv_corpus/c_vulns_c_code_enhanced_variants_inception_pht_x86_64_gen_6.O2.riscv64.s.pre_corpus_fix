@@ -1,0 +1,44 @@
+	.file	"inception_pht_x86_64_gen_6.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	inception_pht_poison
+	.type	inception_pht_poison, @function
+inception_pht_poison:
+ #APP
+# 3 "c_vulns/c_code/enhanced_variants/inception_pht_x86_64_gen_6.c" 1
+	lfence
+# 0 "" 2
+ #NO_APP
+	lui	a4,%hi(.LANCHOR0)
+	addi	a4,a4,%lo(.LANCHOR0)
+	li	a5,4
+	li	a3,256
+.L2:
+ #APP
+# 8 "c_vulns/c_code/enhanced_variants/inception_pht_x86_64_gen_6.c" 1
+	cmp a0, a3
+	jge 1f
+	
+	jmp *a4
+	1:
+	
+# 0 "" 2
+ #NO_APP
+	addiw	a5,a5,-1
+	bne	a5,zero,.L2
+	ret
+	.size	inception_pht_poison, .-inception_pht_poison
+	.globl	poison_arr
+	.bss
+	.align	3
+	.set	.LANCHOR0,. + 0
+	.type	poison_arr, @object
+	.size	poison_arr, 1024
+poison_arr:
+	.zero	1024
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

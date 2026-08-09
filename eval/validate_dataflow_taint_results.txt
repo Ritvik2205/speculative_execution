@@ -1,0 +1,18 @@
+records processed: 5533
+
+is_secret_source node-count: before=1011  after=1011  (+0)
+is_transmitter   node-count: before=4319  after=4319  (+0)
+
+(no old=1/new=0 disagreements are possible by construction — apply_dataflow_taint only sets flags, never clears them)
+
+class                        total recs   recs w/ new signal  new secret_src  new transmitter
+BENIGN                             2820                    0               0                0
+BRANCH_HISTORY_INJECTION            194                    0               0                0
+INCEPTION                           366                    0               0                0
+L1TF                                161                    0               0                0
+MDS                                 161                    0               0                0
+RETBLEED                            216                    0               0                0
+SPECTRE_RSB                         459                    0               0                0
+SPECTRE_V1                          553                    0               0                0
+SPECTRE_V2                          400                    0               0                0
+SPECTRE_V4                          203                    0               0                0

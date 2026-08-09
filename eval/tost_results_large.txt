@@ -1,0 +1,12 @@
+building spec-backed graphs (hand + aligned learned node feats)...
+train=4870 val=663 test=1670 classes=10 learned_dim=128 seeds=10 margin=0.5pp
+
+hand      acc  91.90 ± 1.08   macroF1  80.46 ± 3.09   (n=10)
+learned   acc  89.43 ± 1.11   macroF1  73.91 ± 3.01   (n=10)
+both      acc  90.74 ± 1.36   macroF1  76.41 ± 2.57   (n=10)
+
+--- TOST equivalence vs hand (pre-registered margin = 0.5pp acc) ---
+learned  vs hand: diff=-2.47pp  90%CI[-3.66,-1.29]  p_lo=0.995 p_hi=0.000  -> CANNOT show equivalence (complementary at best)
+both     vs hand: diff=-1.16pp  90%CI[-2.49,+0.17]  p_lo=0.800 p_hi=0.022  -> CANNOT show equivalence (complementary at best)
+
+Note: 'learned' replacing 'hand' is only supportable if EQUIVALENT.

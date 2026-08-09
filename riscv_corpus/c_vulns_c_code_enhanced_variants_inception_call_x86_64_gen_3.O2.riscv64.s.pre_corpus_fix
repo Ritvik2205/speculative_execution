@@ -1,0 +1,54 @@
+	.file	"inception_call_x86_64_gen_3.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	target_a
+	.type	target_a, @function
+target_a:
+	ret
+	.size	target_a, .-target_a
+	.align	1
+	.globl	target_b
+	.type	target_b, @function
+target_b:
+	ret
+	.size	target_b, .-target_b
+	.align	1
+	.globl	inception_train
+	.type	inception_train, @function
+inception_train:
+	lui	a2,%hi(target_a)
+	lui	a3,%hi(target_b)
+	addi	a2,a2,%lo(target_a)
+	addi	a3,a3,%lo(target_b)
+	li	a5,0
+	li	a1,5
+.L8:
+	andi	a4,a5,1
+	beq	a4,zero,.L5
+.L9:
+ #APP
+# 10 "c_vulns/c_code/enhanced_variants/inception_call_x86_64_gen_3.c" 1
+	call *a3
+	
+# 0 "" 2
+ #NO_APP
+	addiw	a5,a5,1
+	andi	a4,a5,1
+	bne	a4,zero,.L9
+.L5:
+ #APP
+# 10 "c_vulns/c_code/enhanced_variants/inception_call_x86_64_gen_3.c" 1
+	call *a2
+	
+# 0 "" 2
+ #NO_APP
+	addiw	a5,a5,1
+	bne	a5,a1,.L8
+	ret
+	.size	inception_train, .-inception_train
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

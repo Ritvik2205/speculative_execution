@@ -1,0 +1,104 @@
+	.file	"retbleed_bl_arm64_gen_2.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.type	barrier, @function
+barrier:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 3 "c_vulns/c_code/retbleed_variants/retbleed_bl_arm64_gen_2.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	barrier, .-barrier
+	.align	1
+	.globl	target_a
+	.type	target_a, @function
+target_a:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 4 "c_vulns/c_code/retbleed_variants/retbleed_bl_arm64_gen_2.c" 1
+	
+	nop
+	nop
+	nop
+	nop
+	ret
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	target_a, .-target_a
+	.align	1
+	.globl	target_b
+	.type	target_b, @function
+target_b:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 5 "c_vulns/c_code/retbleed_variants/retbleed_bl_arm64_gen_2.c" 1
+	
+	nop
+	nop
+	nop
+	nop
+	ret
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	target_b, .-target_b
+	.align	1
+	.globl	rsb_spray_arm
+	.type	rsb_spray_arm, @function
+rsb_spray_arm:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+	call	barrier
+ #APP
+# 8 "c_vulns/c_code/retbleed_variants/retbleed_bl_arm64_gen_2.c" 1
+	bl target_a
+	bl target_b
+	
+	nop
+	nop
+	nop
+	nop
+	bl target_a
+	bl target_b
+	ret
+	
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	rsb_spray_arm, .-rsb_spray_arm
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

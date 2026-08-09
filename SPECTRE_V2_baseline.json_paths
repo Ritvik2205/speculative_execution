@@ -1,0 +1,1 @@
+["path0"={"pc":{},"unsupported_ins":0,"unknown_labels":[],"indirect_jumps":["dx"],"steps":13,"formulas_length":[],"status":"safe","time_trace":0.15699999999999648,"time_data":0.05999999999999872,"time_control":0.043000000000002814,"control_check":false,"data_check":false,"trace_length":5,"concolic_stats":[]},

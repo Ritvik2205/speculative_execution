@@ -1,0 +1,11 @@
+train records=5533  test records=1670
+
+[1] group overlap: train groups=970 test groups=176 overlapping=0
+
+[2] exact-sequence duplicates (test-in-train): 0/1670
+
+[3] source-file stem overlap (test record whose underlying source also appears in train, excluding 49 spurious blank-source_file matches): 31/1670 (1.9%)
+    of which generic/temp-build-path stems (not real content overlap): 31
+    genuine specific-file stem overlaps: 0/1670
+
+Interpretation: [1] and [2] being 0 means the locked split carries no augmentation-group or exact-duplicate leakage. [3]'s genuine specific-file count (after excluding blank and generic temp-path matches) is the one real, milder channel worth quantifying further — score the existing checkpoint on v54_test.jsonl with those records excluded and report the accuracy delta.

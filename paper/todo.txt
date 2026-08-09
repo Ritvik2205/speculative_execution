@@ -1,0 +1,89 @@
+- do a pass of the draft without ai
+- add misclassification comparisons
+- compare with other baselines
+- add experiment history + ablations
+- automate feature engineering
+- emulator
+
+
+- make a list of extracted features
+
+
+find code that leaks secrets through CPU speculative execution (Spectre/Meltdown/etc family) automatically, across
+  architectures, without human writing detection rules per attack per ISA. Given chunk of assembly, predict: benign or one of 9 attack
+  classes.
+
+  Core problem: ML model needs numbers, not text. Each instruction (movq (%rsi,%rcx), %rax) must become a vector. Two ways to build that
+  vector:
+
+  Hand features (58-dim): human decides what matters — count of loads, is-it-indirect-branch, has-page-probe-shift, etc. Explicit,
+  interpretable, but someone had to think of each one and encode it per-ISA.
+
+  Learned features (MLM, what you exported): no human decides anything. Model just tries to guess a hidden instruction from its neighbors,
+  over and over, on unlabeled assembly. What falls out of that training is a vector per instruction that captures "what kind of thing tends
+  to sit near this in real code" — purely statistical, no one told it "this is a branch" or "this is dangerous."
+
+  What the vector actually represents: not a checklist of properties. It's a point in 128-dim space where instructions that behave
+  similarly in context land close together. That's why the nearest-neighbor view is the only way to "read" it — a single 128-number vector
+  means nothing by itself; distance/direction relative to other vectors is where the meaning lives.
+
+  How used downstream — three places:
+  1. Node features in the GINE graph. Each instruction is a node in a program-dependence graph (loads, stores, branches connected by
+  data/control-flow edges). Node's numeric feature = hand vector, learned vector, or both concatenated (--node-feature-mode). Graph neural
+  net message-passes over this graph, pools to one vector for the whole snippet, classifies into 9 classes.
+  2. Mean-pooled sequence embedding for simpler models. Average all instruction vectors in a sequence → one vector → feed to RandomForest
+  (used in the ablation studies to compare hand vs learned vs both).
+  3. Conditions the generator (Phase 2). Same encoder embeds instructions the generator is producing, so training signal for "does this
+  look like real code" reuses the same representation space.
+
+- 
+
+Phase 0 — turn hardcoded ISA rules into data
+
+  Before: "is this instruction a branch, a load, a fence" lived as Python regex, one copy per architecture, inside pdg_builder.py. Adding
+  RISC-V meant rewriting that logic by hand and hoping x86/ARM didn't break.
+
+  What changed: moved all of that into a JSON file per ISA (x86_64.json, arm64.json, riscv.json), read by one generic interpreter
+  (isa_spec.py) that has zero opcode knowledge of its own. Same idea as replacing a hardcoded if/else chain with a lookup table — the logic
+  for using the table never changes, only the table's contents do.
+
+  Comparison that proves it wasn't just tidying up: checking the new spec against an independent tool (llvm-mc+capstone, which knows
+  nothing about this codebase) found real bugs the old hardcoded version had — ARM's indirect-call instruction (blr) was silently getting
+  miscategorized. Fixing it: SPECTRE_V2 recall 76% → 94%, accuracy +1.32pp. The abstraction wasn't just cleaner code, it was a magnifying
+  glass that caught something.
+
+  Phase 1 — let the model invent its own instruction features
+
+  Before: a human decided 40–58 numbers per instruction ("is it a load," "does it touch the stack," "is it followed by a fence") —
+  hand-designed, has to be re-derived per ISA.
+
+  What changed: train a small BERT-style model with no labels at all — just hide a random instruction in a sequence and make the model
+  guess it from what's around it. Whatever numeric representation falls out of that guessing game becomes the instruction's "learned
+  feature." Like teaching someone to recognize patterns by reading thousands of code samples, instead of handing them a checklist.
+
+  Comparison: learned features alone are worse than hand features (macro-F1 ~68–71% vs hand's 80%) — it did NOT replace the human
+  checklist. But hand+learned together beats hand-alone by +9.7–9.8pp macro-F1 — it's catching something the checklist misses, just not a
+  replacement for it. Also found: it can learn "this is a branch" (90–100% recoverable) but can't invent "this branch leaks a secret"
+  (23–45% recoverable) — the security meaning is still a human judgment call, only the structural noticing is automatable.
+
+  Phase 2 — generate new candidate attack code instead of only detecting it
+
+  Before: the training set is hundreds of hand-written or hand-collected real vulnerable code snippets per class — a fixed, small pool.
+
+  What changed: a small GPT-style model, told "write me a SPECTRE_V1-shaped snippet for x86_64," generates new instruction sequences nobody
+  wrote by hand, then a template layer converts them to real-looking assembly.
+
+  Comparison: class-conditioning works (samples asked for class X are ~6× more likely to look like class X than chance); arch-conditioning
+  works (96–98% ISA-correct opcodes). But checked this session: only 2.3% of generated gadgets are fully syntactically valid (71.5% of
+  individual instructions), and "looks like class X" is judged by the same classifier being audited elsewhere — not by actually running the
+  code. So: a working prototype for "propose candidates," not yet a trustworthy generator — the missing piece (a real execution oracle,
+  gem5) is what would turn "looks right" into "is right," and that's explicitly the next phase, not built yet.
+
+
+ -- try and improve manual features
+    - group manual features into categories to describe otherwise try and improved learned features
+  -- maybe put riscV aside for now
+    - maybe find out why accuracy is low
+  -- use the emulator to generate examples (esp for riscV)
+ -- train the generation model
+

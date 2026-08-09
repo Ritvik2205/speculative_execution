@@ -1,0 +1,12 @@
+train=../eval/data/group_holdout_train.jsonl  test=../eval/data/group_holdout_test.jsonl
+
+spec-generic dim=42 (zero ISA literals in code)  hand=58  mlm=128
+
+feature set             dim  test-acc  macro-F1
+--------------------------------------------------
+spec-generic             42    92.36%    84.89%
+hand-58                  58    94.38%    88.76%
+spec+hand               100    93.90%    88.00%
+spec+MLM (two-tier)     170    91.18%    82.81%
+hand+MLM                186    92.72%    85.93%
+spec+hand+MLM           228    92.13%    84.91%

@@ -10,7 +10,10 @@ def gem5_binary_for(arch):
     return "/gem5/build/ARM/gem5.opt" if arch == "arm64" else "/gem5/build/X86/gem5.opt"
 
 def compiler_for(arch):
-    return "aarch64-linux-gnu-gcc" if arch == "arm64" else "gcc"
+    # The gem5 container is arm64 (colima native on Apple Silicon), so the guest
+    # binary is produced by: native gcc for arm64 guests, x86_64 cross-compiler
+    # for x86_64 guests. (gem5's guest ISA is independent of the container host.)
+    return "gcc" if arch == "arm64" else "x86_64-linux-gnu-gcc"
 
 def build_record(gadget_id, vuln_class, arch, secret, o3_stdout, timing_stdout,
                  adjudicable, gem5_version, status="ok") -> LeakRecord:

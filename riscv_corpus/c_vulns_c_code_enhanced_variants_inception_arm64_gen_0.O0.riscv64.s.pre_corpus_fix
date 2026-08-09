@@ -1,0 +1,84 @@
+	.file	"inception_arm64_gen_0.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.type	barrier, @function
+barrier:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 3 "c_vulns/c_code/enhanced_variants/inception_arm64_gen_0.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	barrier, .-barrier
+	.align	1
+	.globl	target_fn
+	.type	target_fn, @function
+target_fn:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 4 "c_vulns/c_code/enhanced_variants/inception_arm64_gen_0.c" 1
+	
+	ret
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	target_fn, .-target_fn
+	.align	1
+	.globl	inception_train_arm
+	.type	inception_train_arm, @function
+inception_train_arm:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	call	barrier
+	lui	a5,%hi(target_fn)
+	addi	a5,a5,%lo(target_fn)
+	sd	a5,-32(s0)
+	sw	zero,-20(s0)
+	j	.L4
+.L5:
+	ld	a5,-32(s0)
+ #APP
+# 9 "c_vulns/c_code/enhanced_variants/inception_arm64_gen_0.c" 1
+	blr a5
+	
+	
+# 0 "" 2
+ #NO_APP
+	lw	a5,-20(s0)
+	addiw	a5,a5,1
+	sw	a5,-20(s0)
+.L4:
+	lw	a5,-20(s0)
+	sext.w	a4,a5
+	li	a5,1
+	ble	a4,a5,.L5
+	nop
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	inception_train_arm, .-inception_train_arm
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

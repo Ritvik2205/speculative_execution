@@ -1,0 +1,80 @@
+	.file	"bhi_arm64_gen_26.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.type	tA, @function
+tA:
+ #APP
+# 6 "c_vulns/c_code/expanded_variants/bhi_arm64_gen_26.c" 1
+	nop
+	
+	nop
+	nop
+	nop
+	nop
+# 0 "" 2
+ #NO_APP
+	ret
+	.size	tA, .-tA
+	.align	1
+	.type	tB, @function
+tB:
+ #APP
+# 6 "c_vulns/c_code/expanded_variants/bhi_arm64_gen_26.c" 1
+	nop
+	
+	nop
+	nop
+	nop
+	nop
+# 0 "" 2
+ #NO_APP
+	ret
+	.size	tB, .-tB
+	.align	1
+	.globl	main_func
+	.type	main_func, @function
+main_func:
+	addi	sp,sp,-32
+	sd	s1,24(sp)
+ #APP
+# 3 "c_vulns/c_code/expanded_variants/bhi_arm64_gen_26.c" 1
+	dsb sy; isb
+# 0 "" 2
+# 4 "c_vulns/c_code/expanded_variants/bhi_arm64_gen_26.c" 1
+	mrs a5, cntvct_el0
+# 0 "" 2
+ #NO_APP
+	lui	a5,%hi(tA)
+	addi	a5,a5,%lo(tA)
+	lui	a4,%hi(tB)
+	sd	a5,8(sp)
+	addi	a4,a4,%lo(tB)
+ #APP
+# 8 "c_vulns/c_code/expanded_variants/bhi_arm64_gen_26.c" 1
+	mov x9,a5
+	br x9
+	
+	nop
+	nop
+	nop
+	nop
+	mov x10,a4
+	br x10
+# 0 "" 2
+ #NO_APP
+	addi	a5,sp,8
+ #APP
+# 8 "c_vulns/c_code/expanded_variants/bhi_arm64_gen_26.c" 1
+	dc civac,a5; isb; hint #0x14
+# 0 "" 2
+ #NO_APP
+	ld	s1,24(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	main_func, .-main_func
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

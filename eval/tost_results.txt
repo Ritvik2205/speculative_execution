@@ -1,0 +1,14 @@
+/Users/ritvikgupta/SpecExec/.venv_fix/lib/python3.14/site-packages/torch/nn/modules/transformer.py:531: UserWarning: The PyTorch API of nested tensors is in prototype stage and will change in the near future. We recommend specifying layout=torch.jagged when constructing a nested tensor, as this layout receives active development, has better operator coverage, and works with torch.compile. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/aten/src/ATen/NestedTensorImpl.cpp:182.)
+  output = torch._nested_tensor_from_mask(
+building spec-backed graphs (hand + aligned learned node feats)...
+train=4870 val=663 test=1670 classes=10 learned_dim=64 seeds=10 margin=0.5pp
+
+hand      acc  93.28 ± 0.97   macroF1  82.35 ± 2.66   (n=10)
+learned   acc  90.26 ± 0.96   macroF1  75.22 ± 2.66   (n=10)
+both      acc  93.12 ± 0.56   macroF1  80.16 ± 3.11   (n=10)
+
+--- TOST equivalence vs hand (pre-registered margin = 0.5pp acc) ---
+learned  vs hand: diff=-3.01pp  90%CI[-4.06,-1.97]  p_lo=1.000 p_hi=0.000  -> CANNOT show equivalence (complementary at best)
+both     vs hand: diff=-0.16pp  90%CI[-1.03,+0.71]  p_lo=0.249 p_hi=0.103  -> CANNOT show equivalence (complementary at best)
+
+Note: 'learned' replacing 'hand' is only supportable if EQUIVALENT.

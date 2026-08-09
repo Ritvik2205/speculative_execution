@@ -1,0 +1,83 @@
+	.file	"retbleed_mismatch_x86_64_gen_6.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.type	lf, @function
+lf:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 3 "c_vulns/c_code/retbleed_variants/retbleed_mismatch_x86_64_gen_6.c" 1
+	lfence
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	lf, .-lf
+	.align	1
+	.globl	victim_ret
+	.type	victim_ret, @function
+victim_ret:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 5 "c_vulns/c_code/retbleed_variants/retbleed_mismatch_x86_64_gen_6.c" 1
+	push %rbp
+	mov %rsp, %rbp
+	
+	pop %rbp
+	ret
+	
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	victim_ret, .-victim_ret
+	.align	1
+	.globl	trigger_retbleed
+	.type	trigger_retbleed, @function
+trigger_retbleed:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	call	lf
+	sw	zero,-20(s0)
+	j	.L4
+.L5:
+ #APP
+# 17 "c_vulns/c_code/retbleed_variants/retbleed_mismatch_x86_64_gen_6.c" 1
+	call 1f
+	1: ret
+# 0 "" 2
+ #NO_APP
+	lw	a5,-20(s0)
+	addiw	a5,a5,1
+	sw	a5,-20(s0)
+.L4:
+	lw	a5,-20(s0)
+	sext.w	a4,a5
+	li	a5,3
+	ble	a4,a5,.L5
+	call	victim_ret
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	trigger_retbleed, .-trigger_retbleed
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

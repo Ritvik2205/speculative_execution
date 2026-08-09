@@ -54,6 +54,18 @@ OUTDIR.mkdir(parents=True, exist_ok=True)
 _CALL_TARGET_RE = re.compile(
     r'^(\s*(?:callq?|bl)\s+)([A-Za-z_][A-Za-z0-9_.@$]*)(.*)$'
 )
+# ARM64: adrp xN, SYMBOL and add xN, xN, :lo12:SYMBOL — function-address loads
+# that expose function names as plaintext. Must neutralize same as direct calls.
+_ADRP_SYM_RE = re.compile(
+    r'^(\s*adrp\s+\w+,\s*)([A-Za-z_][A-Za-z0-9_$@.]*)(.*)$', re.I
+)
+_LO12_SYM_RE = re.compile(
+    r'^(\s*add\s+\w+,\s*\w+,\s*:lo12:)([A-Za-z_][A-Za-z0-9_$@.]*)(.*)$', re.I
+)
+_LEAQ_RIP_RE = re.compile(
+    r'^(\s*leaq?\s+)([A-Za-z_][A-Za-z0-9_$@.]*)(\(%rip\).*)$', re.I
+)
+_BB_LABEL_RE = re.compile(r'^L(BB|tmp)\d', re.I)
 _NON_INSTR = re.compile(r'^\s*(?:\.|#|;|//)')
 _INDIRECT_PAT = re.compile(r'\b(blr|br)\b|\b(jmpq?\s*\*|callq?\s*\*|jmp\s+\*|call\s+\*)', re.I)
 
@@ -86,8 +98,20 @@ def _neutralize(instrs: List[str]) -> List[str]:
         m = _CALL_TARGET_RE.match(line)
         if m:
             result.append(f"{m.group(1)}<fn>{m.group(3)}")
-        else:
-            result.append(line)
+            continue
+        m = _ADRP_SYM_RE.match(line)
+        if m and not _BB_LABEL_RE.match(m.group(2)):
+            result.append(f"{m.group(1)}<fn>{m.group(3)}")
+            continue
+        m = _LO12_SYM_RE.match(line)
+        if m and not _BB_LABEL_RE.match(m.group(2)):
+            result.append(f"{m.group(1)}<fn>{m.group(3)}")
+            continue
+        m = _LEAQ_RIP_RE.match(line)
+        if m and not _BB_LABEL_RE.match(m.group(2)):
+            result.append(f"{m.group(1)}<fn>{m.group(3)}")
+            continue
+        result.append(line)
     return result
 
 
@@ -110,6 +134,12 @@ def seq_hash(seq: List[str]) -> str:
     return hashlib.sha256("\n".join(seq).encode()).hexdigest()
 
 
+_HEAP_DEREF = re.compile(
+    r'\(%(?!rsp|rbp|esp|ebp|sp\b)[a-z][a-z0-9]*\)'
+    r'|\[x[0-9]+\]', re.I
+)
+
+
 def has_train_attack_signal(label: str, lines: List[str]) -> bool:
     ops = []
     for line in lines:
@@ -119,19 +149,21 @@ def has_train_attack_signal(label: str, lines: List[str]) -> bool:
     opset = set(ops)
     has_indirect = any(_INDIRECT_PAT.search(l) for l in lines)
 
+    def _max_nop_run():
+        run = mx = 0
+        for op in ops:
+            if op == 'nop': run += 1; mx = max(mx, run)
+            else: run = 0
+        return mx
+
     if label == 'BENIGN':
         return True
     if label in ('BRANCH_HISTORY_INJECTION', 'SPECTRE_V2'):
         return has_indirect
     if label == 'SPECTRE_V1':
-        nop_run = max_nop = 0
-        for op in ops:
-            if op == 'nop':
-                nop_run += 1; max_nop = max(max_nop, nop_run)
-            else:
-                nop_run = 0
-        # AT&T size suffixes: cmpq/cmpl/cmpw/cmpb → normalized as 'cmp'
-        _CMP_OPS = frozenset(['cmp', 'cmpq', 'cmpl', 'cmpw', 'cmpb', 'cmn', 'test', 'testq', 'testl', 'tst'])
+        max_nop = _max_nop_run()
+        _CMP_OPS = frozenset(['cmp', 'cmpq', 'cmpl', 'cmpw', 'cmpb', 'cmn',
+                               'test', 'testq', 'testl', 'tst', 'subs'])
         _BR_OPS  = frozenset([
             'je', 'jne', 'jl', 'jg', 'jz', 'jnz', 'jle', 'jge', 'jb', 'ja', 'jbe', 'jae',
             'js', 'jns', 'jo', 'jno', 'jp', 'jnp',
@@ -143,43 +175,39 @@ def has_train_attack_signal(label: str, lines: List[str]) -> bool:
         idx_load = any(_LOAD_PAT.search(l) for l in lines)
         return 'lfence' in opset or max_nop >= 3 or (bac and idx_load)
     if label == 'INCEPTION':
-        nop_run = max_nop = 0
-        for op in ops:
-            if op == 'nop':
-                nop_run += 1; max_nop = max(max_nop, nop_run)
-            else:
-                nop_run = 0
-        ret_c = ops.count('ret') + ops.count('retq')
+        max_nop = _max_nop_run()
+        ret_c  = ops.count('ret') + ops.count('retq')
         call_c = sum(ops.count(o) for o in ('call', 'callq', 'bl'))
         return max_nop >= 3 or ret_c > call_c
     if label == 'RETBLEED':
-        nop_run = max_nop = 0
-        for op in ops:
-            if op == 'nop':
-                nop_run += 1; max_nop = max(max_nop, nop_run)
-            else:
-                nop_run = 0
+        max_nop = _max_nop_run()
         ret_c = ops.count('ret') + ops.count('retq')
-        call_c = sum(ops.count(o) for o in ('call', 'callq', 'bl'))
         has_timing = 'rdtsc' in opset or 'rdtscp' in opset
-        has_rsb_signal = max_nop >= 3 and ret_c > call_c
+        # RSB spray has more bl/call than rets — condition was ret_c>call_c (wrong).
+        has_rsb_signal = max_nop >= 3 and ret_c >= 1
         return has_timing or has_rsb_signal
     if label == 'MDS':
         return 'verw' in opset or 'movntdqa' in opset or 'clflush' in opset or 'clflushopt' in opset
     if label == 'L1TF':
         return 'clflush' in opset or 'clflushopt' in opset or 'rdtsc' in opset or 'rdtscp' in opset
     if label == 'SPECTRE_RSB':
-        nop_run = max_nop = 0
-        for op in ops:
-            if op == 'nop':
-                nop_run += 1; max_nop = max(max_nop, nop_run)
-            else:
-                nop_run = 0
-        ret_c = ops.count('ret') + ops.count('retq')
+        max_nop = _max_nop_run()
+        ret_c  = ops.count('ret') + ops.count('retq')
         call_c = sum(ops.count(o) for o in ('call', 'callq', 'bl'))
         return max_nop >= 3 or (ret_c > 0 and call_c > 0)
     if label == 'SPECTRE_V4':
-        return 'lfence' in opset or 'rdtsc' in opset or 'rdtscp' in opset
+        if 'lfence' in opset or 'rdtsc' in opset or 'rdtscp' in opset:
+            return True
+        # SSB gadget: heap store + nop timing gap + heap load.
+        if _max_nop_run() >= 3:
+            _MEM_OP = re.compile(r'\b(mov[qlb]|movzx|str[bh]?|ldr[bh]?)\b', re.I)
+            heap_stores = [l for l in lines if _MEM_OP.search(l) and _HEAP_DEREF.search(l)
+                           and re.search(r'%[a-z][a-z0-9]*,\s*\(|^\s*str', l, re.I)]
+            heap_loads  = [l for l in lines if _MEM_OP.search(l) and _HEAP_DEREF.search(l)
+                           and re.search(r'\(\S+\),\s*%|^\s*ldr', l, re.I)]
+            if heap_stores and heap_loads:
+                return True
+        return False
     return True
 
 

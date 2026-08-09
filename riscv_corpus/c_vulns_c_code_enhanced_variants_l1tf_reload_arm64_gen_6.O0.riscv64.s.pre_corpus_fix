@@ -1,0 +1,93 @@
+	.file	"l1tf_reload_arm64_gen_6.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.type	barrier, @function
+barrier:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 3 "c_vulns/c_code/enhanced_variants/l1tf_reload_arm64_gen_6.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	barrier, .-barrier
+	.align	1
+	.type	rd, @function
+rd:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+ #APP
+# 4 "c_vulns/c_code/enhanced_variants/l1tf_reload_arm64_gen_6.c" 1
+	mrs a5, cntvct_el0
+# 0 "" 2
+ #NO_APP
+	sd	a5,-24(s0)
+	ld	a5,-24(s0)
+	mv	a0,a5
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	rd, .-rd
+	.globl	probe
+	.bss
+	.align	3
+	.type	probe, @object
+	.size	probe, 16384
+probe:
+	.zero	16384
+	.text
+	.align	1
+	.globl	l1tf_flush_reload
+	.type	l1tf_flush_reload, @function
+l1tf_flush_reload:
+	addi	sp,sp,-48
+	sd	ra,40(sp)
+	sd	s0,32(sp)
+	addi	s0,sp,48
+	sd	a0,-40(s0)
+	call	barrier
+	ld	a5,-40(s0)
+ #APP
+# 8 "c_vulns/c_code/enhanced_variants/l1tf_reload_arm64_gen_6.c" 1
+	dc civac, a5; dsb sy
+# 0 "" 2
+ #NO_APP
+	call	barrier
+	call	rd
+	sd	a0,-24(s0)
+	ld	a5,-40(s0)
+	lui	a4,%hi(probe)
+	addi	a4,a4,%lo(probe)
+ #APP
+# 11 "c_vulns/c_code/enhanced_variants/l1tf_reload_arm64_gen_6.c" 1
+	ldrb w0, [a5]
+	
+	lsl x0, x0, #6
+	ldr x1, [a4, x0]
+	
+# 0 "" 2
+ #NO_APP
+	call	rd
+	sd	a0,-32(s0)
+	nop
+	ld	ra,40(sp)
+	ld	s0,32(sp)
+	addi	sp,sp,48
+	jr	ra
+	.size	l1tf_flush_reload, .-l1tf_flush_reload
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

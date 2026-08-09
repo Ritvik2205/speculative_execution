@@ -154,13 +154,47 @@ class GINEDatasetV47(Dataset):
         max_edges: int = MAX_EDGES,
         speculative_window: int = 10,
         strip_bp: bool = True,
+        node_feature_mode: str = 'hand',
+        mlm=None,
+        tokenizer=None,
+        use_spec_builder: bool = False,
     ):
         self.label_to_id = label_to_id
         self.handcrafted_feature_names = handcrafted_feature_names
         self.max_nodes = max_nodes
         self.max_edges = max_edges
         self.strip_bp = strip_bp
+        # B1: optionally build graphs from the decomposed per-ISA spec engine
+        # (contamination-free, mnemonic-fixed) instead of the hardcoded builder.
+        # Arch-aware: pick the ISA spec per record.
+        self.use_spec_builder = use_spec_builder
+        if use_spec_builder:
+            spec_dir = Path(__file__).resolve().parent.parent / "spec"
+            sys.path.insert(0, str(spec_dir))
+            from isa_spec import load_engine
+            from spec_pdg_builder import SpecBackedPDGBuilder
+            _specs = {"x86_64": "x86_64.json", "arm64": "arm64.json",
+                      "arm32": "arm64.json", "riscv64": "riscv.json",
+                      "unknown": "base.json"}
+            self.spec_builders = {
+                a: SpecBackedPDGBuilder(load_engine(f), speculative_window=speculative_window)
+                for a, f in _specs.items()}
         self.pdg_builder = PDGBuilder(speculative_window=speculative_window)
+
+        # SpecDiscover Phase 1: learned node features.
+        self.node_feature_mode = node_feature_mode
+        self.mlm = mlm
+        self.tokenizer = tokenizer
+        base_dim, pos_dim = 40, 1
+        learned_dim = int(mlm.dim) if mlm is not None else 0
+        if node_feature_mode == 'hand':
+            self.node_feature_dim = base_dim + pos_dim            # 41
+        elif node_feature_mode == 'learned':
+            self.node_feature_dim = learned_dim + pos_dim
+        else:  # both
+            self.node_feature_dim = base_dim + learned_dim + pos_dim
+        if node_feature_mode != 'hand' and (mlm is None or tokenizer is None):
+            raise ValueError("learned/both modes require mlm and tokenizer")
 
         print(f"Pre-computing PDGs (strip_boilerplate={strip_bp}) ...")
         self.data = []
@@ -216,7 +250,12 @@ class GINEDatasetV47(Dataset):
         len_after = len(sequence)
         was_stripped = len_after < len_before
 
-        pdg = self.pdg_builder.build(sequence)
+        if self.use_spec_builder:
+            arch = rec.get('arch', 'unknown')
+            builder = self.spec_builders.get(arch, self.spec_builders['unknown'])
+            pdg = builder.build(sequence)
+        else:
+            pdg = self.pdg_builder.build(sequence)
         if len(pdg.nodes) < 2:
             return None
 
@@ -227,7 +266,23 @@ class GINEDatasetV47(Dataset):
         pos_enc = np.zeros((self.max_nodes, 1), dtype=np.float32)
         for i in range(n_nodes):
             pos_enc[i, 0] = i / max(n_nodes - 1, 1)
-        node_features = np.concatenate([base_features, pos_enc], axis=1)
+
+        if self.node_feature_mode == 'hand':
+            node_features = np.concatenate([base_features, pos_enc], axis=1)
+        else:
+            # Learned contextual node embeddings, aligned 1:1 with PDG nodes.
+            # PDG is built from `sequence` (post-strip); tokenize the SAME sequence
+            # so token i corresponds to node i (identical skip rules).
+            toks = self.tokenizer.tokenize_sequence(sequence)
+            emb = self.mlm.embed_instructions(toks)              # [m, dim]
+            learned = np.zeros((self.max_nodes, self.mlm.dim), dtype=np.float32)
+            m = min(n_nodes, emb.shape[0])
+            if m > 0:
+                learned[:m] = emb[:m]
+            if self.node_feature_mode == 'learned':
+                node_features = np.concatenate([learned, pos_enc], axis=1)
+            else:  # both
+                node_features = np.concatenate([base_features, learned, pos_enc], axis=1)
 
         edge_index, edge_type = pdg.get_edge_index_and_type(self.max_nodes)
         edge_weight = pdg.get_edge_weights(self.max_nodes)
@@ -586,6 +641,16 @@ def main():
     parser.add_argument('--no-strip', action='store_true')
     parser.add_argument('--speculative-window', type=int, default=20)
     parser.add_argument('--arch-emb-dim', type=int, default=8)
+    # SpecDiscover Phase 1: learned node features (default 'hand' = original behavior)
+    parser.add_argument('--node-feature-mode', choices=['hand', 'learned', 'both'],
+                        default='hand',
+                        help="node features: hand (40-dim PDG), learned (MLM embeds), or both")
+    parser.add_argument('--mlm-path', type=str, default=None,
+                        help="path to trained MlmEncoder (required for learned/both)")
+    parser.add_argument('--use-spec-builder', action='store_true',
+                        help="B1: build graphs from the decomposed per-ISA spec "
+                             "engine (contamination-free + mnemonic fixes) instead "
+                             "of the hardcoded PDGBuilder")
     parser.add_argument(
         '--val-split',
         type=str,
@@ -611,9 +676,19 @@ def main():
         action='store_true',
         help='Each epoch, measure train accuracy with model.eval() (dropout off) for ablation.',
     )
+    parser.add_argument(
+        '--seed', type=int, default=None,
+        help='Global training seed (torch+numpy). Enables reproducible multi-seed runs.',
+    )
 
     args = parser.parse_args()
     tag = "v52_b GINE — group-aware val + stable-hash dataset"
+
+    if args.seed is not None:
+        torch.manual_seed(args.seed)
+        np.random.seed(args.seed)
+        import random as _random
+        _random.seed(args.seed)
 
     print(f"Device: {DEVICE}")
     print(f"\n{'='*70}")
@@ -722,22 +797,32 @@ def main():
     for j, name in enumerate(feat_names_gf):
         print(f"  {name:<20}: {gf_matrix[:, j].mean():.4f} ± {gf_matrix[:, j].std():.4f}")
 
+    # SpecDiscover Phase 1: optional learned node encoder.
+    mlm_enc, asm_tok = None, None
+    if args.node_feature_mode != 'hand':
+        if not args.mlm_path:
+            raise ValueError("--mlm-path required for --node-feature-mode learned/both")
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'spec'))
+        from isa_spec import load_engine
+        from asm_tokenizer import AsmTokenizer
+        from train_mlm import MlmEncoder
+        mlm_enc = MlmEncoder.load(args.mlm_path)
+        asm_tok = AsmTokenizer(load_engine('base.json'))
+        print(f"Loaded MLM encoder ({args.node_feature_mode}) dim={mlm_enc.dim} "
+              f"vocab={len(mlm_enc.vocab)} from {args.mlm_path}")
+
     print("\nCreating datasets...")
-    train_dataset = GINEDatasetV47(
-        train_records, label_to_id, feature_names,
-        speculative_window=args.speculative_window,
-        strip_bp=not args.no_strip,
-    )
-    val_dataset = GINEDatasetV47(
-        val_records, label_to_id, feature_names,
-        speculative_window=args.speculative_window,
-        strip_bp=not args.no_strip,
-    )
-    test_dataset = GINEDatasetV47(
-        test_records, label_to_id, feature_names,
-        speculative_window=args.speculative_window,
-        strip_bp=not args.no_strip,
-    )
+    _ds_kw = dict(speculative_window=args.speculative_window,
+                  strip_bp=not args.no_strip,
+                  node_feature_mode=args.node_feature_mode,
+                  mlm=mlm_enc, tokenizer=asm_tok,
+                  use_spec_builder=args.use_spec_builder)
+    train_dataset = GINEDatasetV47(train_records, label_to_id, feature_names, **_ds_kw)
+    val_dataset = GINEDatasetV47(val_records, label_to_id, feature_names, **_ds_kw)
+    test_dataset = GINEDatasetV47(test_records, label_to_id, feature_names, **_ds_kw)
+
+    node_feat_dim = train_dataset.node_feature_dim
+    print(f"Node feature mode: {args.node_feature_mode}  node_feat_dim={node_feat_dim}")
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                               collate_fn=collate_fn, num_workers=0)
@@ -748,7 +833,7 @@ def main():
 
     print(f"\nInitializing GINEClassifier v47...")
     model = GINEClassifier(
-        node_feat_dim=NODE_FEATURE_DIM,
+        node_feat_dim=node_feat_dim,
         num_edge_types=NUM_EDGE_TYPES,
         hidden_dim=args.hidden_dim,
         num_layers=args.num_layers,

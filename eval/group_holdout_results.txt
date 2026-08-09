@@ -1,0 +1,32 @@
+pool=7203 groups=1146  group-train=5514 (970 groups)  group-test=1689 (176 groups)
+
+=== seed 42 ===
+  test-acc=96.03  macro-F1=91.95
+=== seed 1 ===
+  test-acc=95.68  macro-F1=91.40
+=== seed 7 ===
+  test-acc=93.78  macro-F1=88.55
+=== seed 13 ===
+  test-acc=95.32  macro-F1=90.14
+=== seed 21 ===
+  test-acc=93.31  macro-F1=86.32
+
+============================================================
+group-holdout (real v54 GINE, 5 seeds):
+  test-acc  94.82 ± 1.50
+  macro-F1  89.67 ± 2.84
+
+compare to locked-split flagship (eval/full_tost/results.tsv, hand mode):
+  test-acc  96.14 ± 1.59
+  macro-F1  85.60 (no CI computed there)
+  delta acc: -1.32pp   delta F1: +4.07pp
+
+NOTE: the two original background runs of eval/group_holdout_full.py and
+eval/edge_ablation.py were killed by the environment mid-run (not a script
+bug — confirmed by resuming the exact same commands, which completed
+successfully). Seeds 42/1/7/13 came from the original run's per-seed logs
+(eval/group_holdout/s{42,1,7,13}.log); seed 21 was resumed directly via the
+same train_gine_v38.py CLI command group_holdout_full.py would have issued,
+using the already-built eval/data/group_holdout_{train,test}.jsonl split
+files. This file's aggregate was assembled from those 5 runs since the
+killed process never reached its own aggregate-printing step.

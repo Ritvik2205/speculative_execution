@@ -1,0 +1,88 @@
+	.file	"retbleed_arm64_gen_4.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.type	barrier, @function
+barrier:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 3 "c_vulns/c_code/retbleed_variants/retbleed_arm64_gen_4.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	barrier, .-barrier
+	.align	1
+	.globl	deep_call_arm
+	.type	deep_call_arm, @function
+deep_call_arm:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	mv	a5,a0
+	sw	a5,-20(s0)
+	lw	a5,-20(s0)
+	sext.w	a5,a5
+	ble	a5,zero,.L3
+	lw	a5,-20(s0)
+	addiw	a5,a5,-1
+	sext.w	a5,a5
+	mv	a0,a5
+	call	deep_call_arm
+.L3:
+ #APP
+# 8 "c_vulns/c_code/retbleed_variants/retbleed_arm64_gen_4.c" 1
+	
+	nop
+	nop
+	ret
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	deep_call_arm, .-deep_call_arm
+	.align	1
+	.globl	deplete_rsb_arm
+	.type	deplete_rsb_arm, @function
+deplete_rsb_arm:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	call	barrier
+	sw	zero,-20(s0)
+	j	.L5
+.L6:
+	li	a0,16
+	call	deep_call_arm
+	lw	a5,-20(s0)
+	addiw	a5,a5,1
+	sw	a5,-20(s0)
+.L5:
+	lw	a5,-20(s0)
+	sext.w	a4,a5
+	li	a5,1
+	ble	a4,a5,.L6
+	nop
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	deplete_rsb_arm, .-deplete_rsb_arm
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

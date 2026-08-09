@@ -256,6 +256,9 @@ class PDGBuilder:
     def __init__(self, speculative_window: int = 10):
         self.speculative_window = speculative_window
         self.cache_window = 20
+        # RSB pairing window as an instance attr (default = module global, so
+        # default behavior is unchanged) — lets subclasses source it from a spec.
+        self.rsb_pair_window = RSB_PAIR_WINDOW
 
     def build(self, sequence: List[str]) -> PDG:
         nodes = []
@@ -344,7 +347,7 @@ class PDGBuilder:
 
             # RSB_CHAIN: CALL pushes onto RSB stack; RET pops most recent entry (LIFO)
             if category in (OPCODE_CATEGORIES['CALL'], OPCODE_CATEGORIES['CALL_INDIRECT']):
-                pending_calls_rsb.append((node_id, RSB_PAIR_WINDOW))
+                pending_calls_rsb.append((node_id, self.rsb_pair_window))
             elif category == OPCODE_CATEGORIES['RET']:
                 # Decay all pending calls; match the most recent live one
                 pending_calls_rsb = [(cid, rem - 1) for cid, rem in pending_calls_rsb if rem > 1]

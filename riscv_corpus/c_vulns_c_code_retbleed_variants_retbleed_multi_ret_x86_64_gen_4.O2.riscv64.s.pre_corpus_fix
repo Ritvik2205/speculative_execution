@@ -1,0 +1,73 @@
+	.file	"retbleed_multi_ret_x86_64_gen_4.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	func_a
+	.type	func_a, @function
+func_a:
+ #APP
+# 4 "c_vulns/c_code/retbleed_variants/retbleed_multi_ret_x86_64_gen_4.c" 1
+	
+	nop
+	nop
+	leave
+	ret
+# 0 "" 2
+ #NO_APP
+	ret
+	.size	func_a, .-func_a
+	.align	1
+	.globl	func_b
+	.type	func_b, @function
+func_b:
+ #APP
+# 5 "c_vulns/c_code/retbleed_variants/retbleed_multi_ret_x86_64_gen_4.c" 1
+	
+	nop
+	nop
+	leave
+	ret
+# 0 "" 2
+ #NO_APP
+	ret
+	.size	func_b, .-func_b
+	.align	1
+	.globl	func_c
+	.type	func_c, @function
+func_c:
+ #APP
+# 6 "c_vulns/c_code/retbleed_variants/retbleed_multi_ret_x86_64_gen_4.c" 1
+	
+	nop
+	nop
+	leave
+	ret
+# 0 "" 2
+ #NO_APP
+	ret
+	.size	func_c, .-func_c
+	.align	1
+	.globl	chain_rets
+	.type	chain_rets, @function
+chain_rets:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+ #APP
+# 3 "c_vulns/c_code/retbleed_variants/retbleed_multi_ret_x86_64_gen_4.c" 1
+	lfence
+# 0 "" 2
+ #NO_APP
+	call	func_a
+	call	func_b
+	call	func_c
+	call	func_a
+	call	func_b
+	ld	ra,8(sp)
+	addi	sp,sp,16
+	tail	func_c
+	.size	chain_rets, .-chain_rets
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

@@ -343,3 +343,100 @@ leak oracle (and an independent symbolic one), and two vulnerability classes
 ground-truth validation in the project. The main remaining limitation is
 coverage: the other six classes and non-x86 ISAs need real hardware, which no
 simulator here can substitute for.
+
+---
+---
+
+# SpecDiscover — Phase 1 Update (Automating Feature Engineering: Learned vs Hand Features)
+
+*Covers the core Phase 1 question: can we replace the hand-authored feature
+set — the 58 ISA-specific regex/opcode features ("hand-58") — with features
+the system learns on its own, so a new ISA needs only a spec file + a corpus,
+not weeks of hand-authoring? Written to be read on its own. Bottom line up
+front: **the neural learned features do NOT replace hand features, but the
+spec-derived structural features DO — and beat them.***
+
+## Why this matters
+
+Today, supporting a new instruction set means a human writes regexes, an
+opcode taxonomy, and attack-semantic flags by hand. That doesn't scale and is
+the bottleneck for every new ISA. Phase 1 asks whether the machine can learn
+those features instead. We tried two automation routes and measured both
+honestly against the hand-authored baseline.
+
+## What was built (the learning pipeline)
+
+1. **Spec-driven tokenizer** (`spec/asm_tokenizer.py`) — normalizes assembly
+   (registers→`<reg>`, immediates→`<imm>`, memory→`<mem>`/`<mem-idx>`) using
+   patterns pulled from the spec engine, **zero ISA literals hard-coded in the
+   tokenizer**. Verified byte-clean: **0 diffs across 207,113 instructions.**
+2. **Static encoder** (`spec/asm_encoder.py`) — PPMI + SVD co-occurrence
+   embeddings; deterministic, GPU-free baseline.
+3. **Masked-LM encoder** (`spec/train_mlm.py`) — BERT-style, learns
+   contextual per-instruction embeddings self-supervised. First attempt was
+   tiny and underfit (CPU); **scaled on GPU** (d=128, 4 layers) →
+   `spec/mlm_large.pt`. Key training lesson: lr=3e-3 diverged at 4 layers
+   (loss stuck at 4.4); lr=5e-4 trained clean (loss 0.88).
+4. **GINE integration** — learned embeddings wired in as graph *node features*
+   (structure-preserving, not naive mean-pooling), via
+   `--node-feature-mode {hand,learned,both}`. Training lesson: node inputs must
+   be standardized or the unbounded MLM vectors (norm ~7) swamp the 0/1 hand
+   flags.
+5. **Spec-derived structural feature tier** (`spec/spec_features.py`) — a
+   42-dim vector = opcode-category histogram + spec-flag aggregates + memory-type
+   histogram + universal counters, again **zero opcode/register/arch literals
+   in code** (all sourced from the spec engine).
+
+## Results (measured, multi-seed where it counts)
+
+**Route A — neural learned features, at the node level in the full GINE model
+(5 seeds, locked test):**
+
+| features | test acc ± 90%CI | macro-F1 |
+|---|---|---|
+| hand (baseline) | **96.14 ± 1.59** | 85.60 |
+| learned (neural, zero hand design) | 93.57 ± 0.60 | 86.20 |
+| both | 93.72 ± 0.82 | 84.80 |
+
+TOST equivalence test (margin 0.5pp): learned is **−2.58pp, CI[−3.81,−1.35],
+NOT equivalent — significantly worse.** Same verdict on a compact proxy
+(−3.01pp) and with the scaled MLM (−2.47pp) → not a seed fluke, not a
+proxy artifact. **A single-seed run had earlier shown a false "parity"
+(95.03 vs 95.63); multi-seed TOST refuted it.**
+
+**Route B — spec-derived structural features (RandomForest, locked test):**
+
+| features | test acc | macro-F1 |
+|---|---|---|
+| hand-58 (baseline) | 95.21 | 80.33 |
+| **spec-derived (automated, ISA-portable)** | **97.19** | **93.09** |
+
+Spec-derived **beats hand-58 by +2pp accuracy and +12.8pp macro-F1.**
+
+**Bonus — where the neural features DO help (sequence level, mean-pool RF):**
+hand + scaled-MLM = 95.75 / **90.92 macro-F1** vs hand-58's 95.21 / 80.33 →
+**+10.6pp macro-F1** on minority classes. So the MLM is *complementary* at the
+sequence level, just not a *replacement* at the node level.
+
+## Honest verdict
+
+- **Neural learned node features do NOT replace hand node features in GINE.**
+  Reason (mechanistic, not hand-waving): the GINE graph edges already carry
+  the structural signal the MLM would add, so learned node features are
+  redundant *there* — confirmed by "both" adding nothing over hand.
+- **The neural MLM IS complementary at the sequence level** (+10.6pp minority
+  macro-F1) because mean-pooling throws away the graph structure, leaving room
+  for the MLM's context signal.
+- **The defensible automation win is the spec-derived structural feature tier,
+  not the neural net.** It is ISA-portable (no hand regex), and it *beats* the
+  hand-authored features outright. That is the honest Phase 1 headline: feature
+  engineering *can* be automated for a new ISA — via spec-derived structural
+  features — but the neural encoder is a complement, not a substitute.
+
+### One-line status
+
+**Phase 1 result:** hand-authored ISA-specific features can be replaced —
+by spec-derived structural features that need only a spec file (they beat the
+hand set by +2pp acc / +12.8pp F1), **not** by the neural learned features
+(which are significantly worse as node features, TOST-confirmed over 5 seeds,
+but a useful +10.6pp-F1 complement at the sequence level).

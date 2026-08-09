@@ -1,0 +1,12 @@
+building graphs...
+train=4870 val=663 test=1670 seeds=10  (node features = hand, fixed)
+
+edges                          test-acc         macro-F1
+----------------------------------------------------------
+no-RSB_CHAIN            94.26 ± 1.08    80.69 ± 2.32
+no-CACHE_TEMPORAL       94.37 ± 1.23    85.73 ± 2.42  (Δ+0.11pp)
+no-edges                94.58 ± 1.13    84.03 ± 3.32  (Δ+0.32pp)
+
+Interpretation: small full->no-spec-edges drop = model barely uses the
+hand-authored speculative taxonomy; large drop = that taxonomy is the
+real contribution (node-feature automation is the minor part).

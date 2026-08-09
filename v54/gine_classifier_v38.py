@@ -30,7 +30,7 @@ from typing import Optional, List, Tuple
 import numpy as np
 
 # Architecture vocabulary — must match build in train_gine_v38.py
-ARCH_VOCAB = {'x86_64': 0, 'arm64': 1, 'arm32': 2, 'riscv': 3, 'unknown': 4}
+ARCH_VOCAB = {'x86_64': 0, 'arm64': 1, 'arm32': 2, 'riscv64': 3, 'unknown': 4}
 NUM_ARCHS = len(ARCH_VOCAB)
 
 

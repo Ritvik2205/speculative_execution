@@ -16,16 +16,23 @@ Fixes three red flags identified in v52/v52_b:
        both train and test in v52_b, removing samples without loud discriminating
        opcodes from the test set. This produced an artificially easy test
        (only "obvious" examples survive). Real-world inference sees all samples.
-       FIX: specificity filter applied to TRAIN only. Test requires only
-       minimum length >= 4; no opcode gating.
+       Initial v53 fix: specificity filter to train only. Then audit revealed
+       that unfiltered test contained mislabeled harness code (cache flush loops,
+       main() training loops, function epilogues) from the same C files as
+       vulnerabilities.
+       FINAL FIX: specificity filter applied to BOTH pools. Removes genuinely
+       mislabeled samples (no vulnerability structure whatsoever) while keeping
+       hard genuine cases (real gadgets without loud opcodes like lfence).
 
   RF3  nop_run >= 3 as a standalone pass criterion: for RETBLEED and SPECTRE_V4,
        the training specificity filter accepted any sequence with 3+ consecutive
        NOPs — common alignment padding, not a vulnerability signal. This added
        structurally ambiguous samples to training and conflated the nop_run
        feature with class identity.
-       FIX: RETBLEED requires rdtsc/rdtscp. SPECTRE_V4 requires lfence or
-       rdtsc/rdtscp. nop_run_3+ no longer acts as a standalone pass.
+       FIX: RETBLEED requires rdtsc OR (nop_sled AND ret>=1). SPECTRE_V4 requires
+       lfence/rdtsc OR (nop_sled AND heap_store AND heap_load).
+       ARM64 RSB spray fix: ret_c>call_c condition was wrong for RSB spray pattern
+       (many bl fills RSB → ret_c < call_c). Changed to ret_c>=1.
 
 What is UNCHANGED:
   - SHA-256 dedup: no identical sequence in both train and test.
@@ -53,9 +60,27 @@ sys.path.insert(0, str(ROOT / "v51"))
 from strip_boilerplate import strip_boilerplate
 
 # ── Call-target neutralization ───────────────────────────────────────────────
+# Handles: direct calls (bl/callq), and ARM64 adrp/lo12 pairs used to load
+# function addresses into registers before blr. Without adrp neutralization,
+# function names like "speculative_gadget_v2" survive in the sequence and leak
+# class identity (49% of V2 test vs 0% of V2 train had this leak).
 _CALL_TARGET_RE = re.compile(
     r'^(\s*(?:callq?|bl)\s+)([A-Za-z_][A-Za-z0-9_.@$]*)(.*)$'
 )
+# adrp xN, SYMBOL  →  adrp xN, <fn>   (ARM64 page-relative symbol reference)
+_ADRP_SYM_RE = re.compile(
+    r'^(\s*adrp\s+\w+,\s*)([A-Za-z_][A-Za-z0-9_$@.]*)(.*)$', re.I
+)
+# add xN, xN, :lo12:SYMBOL  →  add xN, xN, :lo12:<fn>
+_LO12_SYM_RE = re.compile(
+    r'^(\s*add\s+\w+,\s*\w+,\s*:lo12:)([A-Za-z_][A-Za-z0-9_$@.]*)(.*)$', re.I
+)
+# leaq SYMBOL(%rip), %reg  →  leaq <fn>(%rip), %reg   (x86-64 PC-relative addr-of)
+_LEAQ_RIP_RE = re.compile(
+    r'^(\s*leaq?\s+)([A-Za-z_][A-Za-z0-9_$@.]*)(\(%rip\).*)$', re.I
+)
+# Basic-block labels (LBB0_1, Ltmp3) — not function names; skip neutralization
+_BB_LABEL_RE = re.compile(r'^L(BB|tmp)\d', re.I)
 
 
 def _neutralize(instrs: list[str]) -> list[str]:
@@ -64,8 +89,20 @@ def _neutralize(instrs: list[str]) -> list[str]:
         m = _CALL_TARGET_RE.match(line)
         if m:
             result.append(f"{m.group(1)}<fn>{m.group(3)}")
-        else:
-            result.append(line)
+            continue
+        m = _ADRP_SYM_RE.match(line)
+        if m and not _BB_LABEL_RE.match(m.group(2)):
+            result.append(f"{m.group(1)}<fn>{m.group(3)}")
+            continue
+        m = _LO12_SYM_RE.match(line)
+        if m and not _BB_LABEL_RE.match(m.group(2)):
+            result.append(f"{m.group(1)}<fn>{m.group(3)}")
+            continue
+        m = _LEAQ_RIP_RE.match(line)
+        if m and not _BB_LABEL_RE.match(m.group(2)):
+            result.append(f"{m.group(1)}<fn>{m.group(3)}")
+            continue
+        result.append(line)
     return result
 
 
@@ -137,13 +174,38 @@ def get_template_key(group: str) -> str:
 #   SPECTRE_V4: removed nop_run >= 3 standalone. Requires lfence or rdtsc.
 
 _INDIRECT_PAT = re.compile(r'\b(blr|br)\b|\b(jmpq?\s*\*|callq?\s*\*|jmp\s+\*|call\s+\*)', re.I)
-_LOAD_PAT = re.compile(r'\b(ldr|ldp|movq|movl|movzx)\b.*\[', re.I)
+
+# Indexed array load — the Spectre-V1 transmitter.
+# Catches AT&T 2-reg, AT&T sym+reg (exclude stack regs), Intel scale, ARM 2-reg.
+# v53 had \[ only — missed all AT&T x86 forms and matched stack-relative ldp.
+_LOAD_PAT = re.compile(
+    r'\b(ldr[bhsdq]?|ldp|movq|movl|movb|movw|movzx|movzb[lq]?|movzw[lq]?|movsb[lq]?)\b'
+    r'.*(?:'
+    r'\([^)]*%[a-z][a-z0-9]*[^)]*,[^)]*%[a-z]'               # AT&T 2-reg: (%base,%index,...)
+    r'|[A-Za-z_][A-Za-z0-9_$@.]*\(%(?!rip|rsp|rbp|esp|ebp|sp)[a-z][a-z0-9]*\)'  # sym(%non-stack)
+    r'|\[[^\]]*\+[^\]]*\*'                                     # Intel: [base+reg*scale]
+    r'|\[x[0-9]+,\s*x[0-9]+'                                  # ARM: [xN, xM]
+    r')', re.I
+)
+
+# Heap pointer dereference — for SSB gadget detection (store/load through pointer reg).
+# Excludes stack-relative forms (%rbp/%rsp/...).
+_HEAP_DEREF = re.compile(
+    r'\(%(?!rsp|rbp|esp|ebp|sp\b)[a-z][a-z0-9]*\)'
+    r'|\[x[0-9]+\]', re.I
+)
 
 
 def has_train_attack_signal(label: str, lines: list[str]) -> bool:
     """
     Return True if the sequence has structural evidence of the claimed vulnerability.
-    Applied to TRAINING pool only.
+    Applied to BOTH training and test pools.
+
+    Fixes vs v52/v53-original:
+      _LOAD_PAT: now catches AT&T 2-reg and sym+reg forms; excludes stack registers.
+      SPECTRE_V1: AT&T size-suffixed cmp/test/branch opcodes; branch window cp+5.
+      RETBLEED: RSB spray has more calls than rets; condition ret_c>=1 (was ret_c>call_c).
+      SPECTRE_V4: SSB nop pattern (nop_sled + heap store + heap load) added.
     """
     ops = []
     for line in lines:
@@ -154,63 +216,67 @@ def has_train_attack_signal(label: str, lines: list[str]) -> bool:
     opset = set(ops)
     has_indirect = any(_INDIRECT_PAT.search(l) for l in lines)
 
+    def _max_nop_run():
+        run = mx = 0
+        for op in ops:
+            if op == 'nop': run += 1; mx = max(mx, run)
+            else: run = 0
+        return mx
+
     if label == 'BENIGN':
         return True
     if label in ('BRANCH_HISTORY_INJECTION', 'SPECTRE_V2'):
         return has_indirect
     if label == 'SPECTRE_V1':
-        nop_run = max_nop = 0
-        for op in ops:
-            if op == 'nop':
-                nop_run += 1; max_nop = max(max_nop, nop_run)
-            else:
-                nop_run = 0
-        cmp_pos = {i for i, op in enumerate(ops) if op in ('cmp', 'cmn', 'test', 'tst')}
-        br_pos = {i for i, op in enumerate(ops) if op in (
-            'je', 'jne', 'jl', 'jg', 'jz', 'jnz', 'cbz', 'cbnz', 'b.eq', 'b.ne', 'b.lt', 'b.gt')}
-        bac = any(any((cp + 1) <= bp <= (cp + 3) for bp in br_pos) for cp in cmp_pos)
+        max_nop = _max_nop_run()
+        _CMP_OPS = frozenset(['cmp', 'cmpq', 'cmpl', 'cmpw', 'cmpb', 'cmn',
+                               'test', 'testq', 'testl', 'tst', 'subs'])
+        _BR_OPS  = frozenset([
+            'je', 'jne', 'jl', 'jg', 'jz', 'jnz', 'jle', 'jge', 'jb', 'ja', 'jbe', 'jae',
+            'js', 'jns', 'jo', 'jno', 'jp', 'jnp',
+            'cbz', 'cbnz', 'b.eq', 'b.ne', 'b.lt', 'b.gt', 'b.le', 'b.ge', 'b.lo', 'b.hi',
+        ])
+        cmp_pos = {i for i, op in enumerate(ops) if op in _CMP_OPS}
+        br_pos  = {i for i, op in enumerate(ops) if op in _BR_OPS}
+        bac = any(any((cp + 1) <= bp <= (cp + 5) for bp in br_pos) for cp in cmp_pos)
         idx_load = any(_LOAD_PAT.search(l) for l in lines)
         return 'lfence' in opset or max_nop >= 3 or (bac and idx_load)
     if label == 'INCEPTION':
-        nop_run = max_nop = 0
-        for op in ops:
-            if op == 'nop':
-                nop_run += 1; max_nop = max(max_nop, nop_run)
-            else:
-                nop_run = 0
-        ret_c = ops.count('ret') + ops.count('retq')
+        max_nop = _max_nop_run()
+        ret_c  = ops.count('ret') + ops.count('retq')
         call_c = sum(ops.count(o) for o in ('call', 'callq', 'bl'))
         return max_nop >= 3 or ret_c > call_c
     if label == 'RETBLEED':
-        # RF3 fix: nop_run alone removed. Require rdtsc or (nop_run AND ret>call).
-        nop_run = max_nop = 0
-        for op in ops:
-            if op == 'nop':
-                nop_run += 1; max_nop = max(max_nop, nop_run)
-            else:
-                nop_run = 0
+        max_nop = _max_nop_run()
         ret_c = ops.count('ret') + ops.count('retq')
-        call_c = sum(ops.count(o) for o in ('call', 'callq', 'bl'))
-        has_timing = 'rdtsc' in opset or 'rdtscp' in opset
-        has_rsb_signal = max_nop >= 3 and ret_c > call_c
+        has_timing     = 'rdtsc' in opset or 'rdtscp' in opset
+        # RSB spray: many bl/call fill the RSB, so ret_c < call_c is expected.
+        # Condition was ret_c > call_c — wrong for ARM64 RSB spray pattern.
+        has_rsb_signal = max_nop >= 3 and ret_c >= 1
         return has_timing or has_rsb_signal
     if label == 'MDS':
         return 'verw' in opset or 'movntdqa' in opset or 'clflush' in opset or 'clflushopt' in opset
     if label == 'L1TF':
         return 'clflush' in opset or 'clflushopt' in opset or 'rdtsc' in opset or 'rdtscp' in opset
     if label == 'SPECTRE_RSB':
-        nop_run = max_nop = 0
-        for op in ops:
-            if op == 'nop':
-                nop_run += 1; max_nop = max(max_nop, nop_run)
-            else:
-                nop_run = 0
-        ret_c = ops.count('ret') + ops.count('retq')
+        max_nop = _max_nop_run()
+        ret_c  = ops.count('ret') + ops.count('retq')
         call_c = sum(ops.count(o) for o in ('call', 'callq', 'bl'))
         return max_nop >= 3 or (ret_c > 0 and call_c > 0)
     if label == 'SPECTRE_V4':
-        # RF3 fix: nop_run alone removed. Require lfence or rdtsc.
-        return 'lfence' in opset or 'rdtsc' in opset or 'rdtscp' in opset
+        if 'lfence' in opset or 'rdtsc' in opset or 'rdtscp' in opset:
+            return True
+        # SSB gadget: heap store + nop timing gap + heap load.
+        # Nop sled alone is insufficient (RF3); requires both sides of the bypass.
+        if _max_nop_run() >= 3:
+            _MEM_OP = re.compile(r'\b(mov[qlb]|movzx|str[bh]?|ldr[bh]?)\b', re.I)
+            heap_stores = [l for l in lines if _MEM_OP.search(l) and _HEAP_DEREF.search(l)
+                           and re.search(r'%[a-z][a-z0-9]*,\s*\(|^\s*str', l, re.I)]
+            heap_loads  = [l for l in lines if _MEM_OP.search(l) and _HEAP_DEREF.search(l)
+                           and re.search(r'\(\S+\),\s*%|^\s*ldr', l, re.I)]
+            if heap_stores and heap_loads:
+                return True
+        return False
     return True
 
 
@@ -327,6 +393,26 @@ def main():
     pool = [r for r in pool if r.get('label', 'UNKNOWN') not in ('UNKNOWN', 'vuln', 'benign')]
     print(f"Pool after label filter: {len(pool)}")
 
+    # Re-neutralize ALL pool records to catch adrp/lo12 references not handled
+    # by the older v52 neutralization (which only neutralized direct bl/call targets).
+    key_field = lambda r: 'sequence' if 'sequence' in r else 'instructions'
+    for r in pool:
+        k = key_field(r)
+        r[k] = _neutralize(r[k])
+    print(f"Re-neutralized all pool records (adrp/lo12 fix)")
+
+    # Remove BHI samples from p15/p19 groups — these are OpenSSL library functions
+    # (CAST_encrypt, CRYPTO_gcm128_decrypt, asn1_item_embed_new) labeled as BHI
+    # because their source file came from a BHI research compilation. They have
+    # 0% clearbhb/ibpb signal and median length 186 vs genuine BHI median of 20.
+    # p15/p19 MDS and INCEPTION samples have genuine structural signals — keep those.
+    n_before = len(pool)
+    pool = [r for r in pool if not (
+        r.get('label') == 'BRANCH_HISTORY_INJECTION' and
+        (r.get('group', '').startswith('p15_') or r.get('group', '').startswith('p19_'))
+    )]
+    print(f"Pool after p15/p19 BHI filter: {len(pool)} (dropped {n_before - len(pool)} mislabeled BHI)")
+
     # ── 2. Assign template keys to every record ───────────────────────────────
     for r in pool:
         r['_tmpl'] = get_template_key(r.get('group', ''))
@@ -393,9 +479,9 @@ def main():
         print(f"  {tag}: {len(recs)} → {len(kept)} kept, {dropped} dropped by specificity")
         return kept
 
-    print("\nApplying specificity filter to TRAINING pool only:")
+    print("\nApplying specificity filter to BOTH pools (removes mislabeled harness code):")
     train_pool = apply_specificity(train_pool, "train_pool")
-    print(f"  (test_pool: {len(test_pool)} records — no specificity filter applied)")
+    test_pool  = apply_specificity(test_pool,  "test_pool")
 
     # ── 7. SHA-256 deduplication ─────────────────────────────────────────────
     # Compute test hashes first, then remove any train records that collide.

@@ -34,8 +34,11 @@ ARM64_REG = re.compile(r"\b([wx])([0-9]{1,2})\b")
 
 # x86 patterns
 X86_BRANCH_COND = re.compile(r"\bj([a-z]{1,3})\b", re.IGNORECASE)  # jcc opcodes
-X86_LOAD = re.compile(r"\bmov\b|\blea\b", re.IGNORECASE)
-X86_REG = re.compile(r"\b(r(1[0-5]|[0-9])d?|e[abcd]x|[abcd]x|[sd]i|[sb]p)\b", re.IGNORECASE)
+X86_LOAD = re.compile(r"\bmov[qlwbsztx]?\b|\blea[ql]?\b|\bvmov\w*\b", re.IGNORECASE)
+X86_REG = re.compile(
+    r"\b(r(1[0-5]|[0-9])d?|r[abcd]x|r[sd]i|r[sb]p|e[abcd]x|[abcd]x|[sd]i|[sb]p)\b",
+    re.IGNORECASE,
+)
 
 
 # --- N-GRAM ANALYSIS FUNCTIONS (INTEGRATED) ---
@@ -991,12 +994,14 @@ def generate_cross_window_swaps(
 def can_swap(a: str, b: str) -> bool:
     ra = collect_regs(a)
     rb = collect_regs(b)
-    # no def-use overlap and not barriers/branches
+    # no def-use overlap and not barriers/branches (ARM64 or x86)
     if ARM64_BRANCH_COND.search(a) or ARM64_BRANCH_COND.search(b):
         return False
-    if any(tok in a.lower() for tok in ("dsb", "dmb", "isb", "csdb")):
+    if X86_BRANCH_COND.search(a) or X86_BRANCH_COND.search(b):
         return False
-    if any(tok in b.lower() for tok in ("dsb", "dmb", "isb", "csdb")):
+    if any(tok in a.lower() for tok in ("dsb", "dmb", "isb", "csdb", "lfence", "mfence", "sfence")):
+        return False
+    if any(tok in b.lower() for tok in ("dsb", "dmb", "isb", "csdb", "lfence", "mfence", "sfence")):
         return False
     return not (ra["def"] & (rb["def"] | rb["use"]) or rb["def"] & (ra["def"] | ra["use"]))
 
@@ -1028,8 +1033,10 @@ def rename_registers(seq: List[str]) -> List[str]:
     family_pools: Dict[str, List[str]] = {
         "arm_x":      [f"x{i}" for i in range(28)],   # skip 29 (fp), 30 (lr), 31 (sp/xzr)
         "arm_w":      [f"w{i}" for i in range(28)],
-        "x86_r64":    ["rax", "rbx", "rcx", "rdx", "rsi", "rdi",
-                       "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"],
+        # x86_r64: ONLY the architecturally-named registers — exclude r8-r15 (those are
+        # in x86_r family).  Keeping the pools disjoint prevents cross-family collisions
+        # where e.g. rcx → r13 and r9 → r13 could both fire from different pools.
+        "x86_r64":    ["rax", "rbx", "rcx", "rdx", "rsi", "rdi"],
         "x86_e":      ["eax", "ebx", "ecx", "edx", "esi", "edi"],
         "x86_r":      [f"r{i}" for i in range(8, 16)] + [f"r{i}d" for i in range(8, 16)],
         "x86_legacy": ["ax", "bx", "cx", "dx", "si", "di"],
@@ -1339,9 +1346,11 @@ _X86_FLAG_CONSUMER = re.compile(
 # Any arithmetic / logical instruction that overwrites NZCF. After such an
 # instruction the downstream flags no longer carry the altered value, so
 # substitutions earlier in the window become safe again.
+# Pattern: match the mnemonic at a word boundary but allow optional size
+# suffixes (q/l/w/b) so that "addq", "subl", "cmpw", "testb" etc. are caught.
 _X86_FLAG_CLOBBER = re.compile(
     r"\b(add|sub|adc|sbb|cmp|test|and|or|xor|inc|dec|neg|mul|imul|div|idiv|"
-    r"shl|shr|sar|sal|rol|ror|rcl|rcr|bt|bts|btr|btc)\b",
+    r"shl|shr|sar|sal|rol|ror|rcl|rcr|bt|bts|btr|btc)[qlwb]?\b",
     re.IGNORECASE,
 )
 
@@ -1394,16 +1403,17 @@ def substitute_equivalent(seq: List[str], is_x86: bool = False) -> List[str]:
 
 
 _ARM_BARRIER_SYNONYMS: Dict[str, List[str]] = {
-    # Within each bucket, every variant has effects that are a superset of
-    # the weakest one, so substituting a stronger barrier is safe for a
-    # speculation mitigation. We deliberately do NOT downgrade (e.g.
-    # dsb sy -> dmb ish) because that could leave the gadget exploitable.
-    "dsb sy":    ["dsb sy", "dsb ish", "dsb ishst"],
-    "dsb ish":   ["dsb ish", "dsb sy"],
-    "dsb ishst": ["dsb ishst", "dsb ish", "dsb sy"],
-    "dmb sy":    ["dmb sy", "dmb ish"],
-    "dmb ish":   ["dmb ish", "dmb sy"],
-    "isb":       ["isb", "isb sy"],
+    # Each entry maps a canonical barrier to a list of EQUAL OR STRONGER
+    # variants only. Substitution is therefore always safe for speculation
+    # mitigation: a stronger barrier stops at least as much speculation as
+    # the original. We deliberately never include weaker variants
+    # (e.g. dsb sy MUST NOT include dsb ish, which is inner-shareable only).
+    "dsb sy":    ["dsb sy"],                        # dsb sy is the strongest DSB; no upgrade possible
+    "dsb ish":   ["dsb ish", "dsb sy"],             # ish -> sy is a safe upgrade
+    "dsb ishst": ["dsb ishst", "dsb ish", "dsb sy"],# ishst -> ish -> sy are all upgrades
+    "dmb sy":    ["dmb sy"],                        # dmb sy is the strongest DMB
+    "dmb ish":   ["dmb ish", "dmb sy"],             # ish -> sy is a safe upgrade
+    "isb":       ["isb", "isb sy"],                 # isb and isb sy are equivalent
 }
 
 _X86_BARRIER_SYNONYMS: Dict[str, List[str]] = {
@@ -1554,7 +1564,8 @@ def flip_branch_polarity(seq: List[str], is_x86: bool = False) -> List[str]:
         first = low.split()[0]
         if first in ("ret", "retq", "br", "blr"):
             return seq
-        if first in ("jmp", "call") and "*" in low:
+        # Match both "jmp *" and "jmpq *" (64-bit AT&T indirect jump form)
+        if first in ("jmp", "jmpq", "call", "callq") and "*" in low:
             return seq
 
     table = _X86_BRANCH_INVERSE if is_x86 else _ARM_BRANCH_INVERSE

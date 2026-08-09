@@ -1,0 +1,50 @@
+	.file	"spectre_v2_arm64_gen_2.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	target
+	.type	target, @function
+target:
+ #APP
+# 5 "c_vulns/c_code/generated_variants/spectre_v2_arm64_gen_2.c" 1
+	nop
+	
+	nop
+	nop
+	nop
+	nop
+# 0 "" 2
+ #NO_APP
+	ret
+	.size	target, .-target
+	.align	1
+	.globl	main_func
+	.type	main_func, @function
+main_func:
+ #APP
+# 3 "c_vulns/c_code/generated_variants/spectre_v2_arm64_gen_2.c" 1
+	dsb sy; isb
+# 0 "" 2
+# 4 "c_vulns/c_code/generated_variants/spectre_v2_arm64_gen_2.c" 1
+	mrs a5, cntvct_el0
+# 0 "" 2
+ #NO_APP
+	lui	a5,%hi(target)
+	addi	a5,a5,%lo(target)
+ #APP
+# 6 "c_vulns/c_code/generated_variants/spectre_v2_arm64_gen_2.c" 1
+	br a5
+	
+	nop
+	nop
+	nop
+	nop
+# 0 "" 2
+ #NO_APP
+	ret
+	.size	main_func, .-main_func
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

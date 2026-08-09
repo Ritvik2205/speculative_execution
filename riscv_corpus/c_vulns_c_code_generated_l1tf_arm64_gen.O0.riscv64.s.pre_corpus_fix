@@ -1,0 +1,72 @@
+	.file	"l1tf_arm64_gen.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.type	timing_barrier, @function
+timing_barrier:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+	sd	s0,0(sp)
+	addi	s0,sp,16
+ #APP
+# 3 "c_vulns/c_code/generated/l1tf_arm64_gen.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	timing_barrier, .-timing_barrier
+	.align	1
+	.type	read_counter, @function
+read_counter:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+ #APP
+# 7 "c_vulns/c_code/generated/l1tf_arm64_gen.c" 1
+	mrs a5, cntvct_el0
+# 0 "" 2
+ #NO_APP
+	sd	a5,-24(s0)
+	ld	a5,-24(s0)
+	mv	a0,a5
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	read_counter, .-read_counter
+	.align	1
+	.globl	l1tf_arm64_gen
+	.type	l1tf_arm64_gen, @function
+l1tf_arm64_gen:
+	addi	sp,sp,-32
+	sd	ra,24(sp)
+	sd	s0,16(sp)
+	addi	s0,sp,32
+	sd	a0,-24(s0)
+	call	timing_barrier
+	call	read_counter
+	ld	a5,-24(s0)
+ #APP
+# 15 "c_vulns/c_code/generated/l1tf_arm64_gen.c" 1
+	// simulate privileged access pattern
+	ldr x0, [a5]
+	dc civac, a5
+	isb
+# 0 "" 2
+ #NO_APP
+	nop
+	ld	ra,24(sp)
+	ld	s0,16(sp)
+	addi	sp,sp,32
+	jr	ra
+	.size	l1tf_arm64_gen, .-l1tf_arm64_gen
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits
