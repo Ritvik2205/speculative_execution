@@ -1,0 +1,51 @@
+{
+  "extends": "base.json",
+  "name": "riscv64",
+  "arch": "riscv64",
+  "provenance": "D: authored blind from the RV64GC ISA manual (not from any corpus); tests 'new ISA = spec file only'. Overrides base UNION patterns + addressing with RISC-V grammar.",
+  "patterns": {
+    "load": "\\b(l[bhwd]|l[bhw]u|lr\\.[wd]|flw|fld|c\\.l[wd]|c\\.ld[sp]?)\\b",
+    "store": "\\b(s[bhwd]|sc\\.[wd]|fsw|fsd|c\\.s[wd]|c\\.sd[sp]?)\\b",
+    "branch_cond": "\\b(beq|bne|blt|bge|bltu|bgeu|ble|bgt|bleu|bgtu|beqz|bnez|blez|bgez|bltz|bgtz|c\\.beqz|c\\.bnez)\\b",
+    "branch_uncond": "\\b(j|jal|c\\.j)\\b",
+    "call": "\\b(call|jal|jalr|c\\.jalr)\\b",
+    "ret": "\\b(ret)\\b|\\bjr\\s+ra\\b|\\bc\\.jr\\s+ra\\b",
+    "indirect": "\\b(jalr|jr|c\\.jalr|c\\.jr)\\b",
+    "indirect_jump_op": "\\b(jr|c\\.jr)\\b",
+    "compare": "\\b(slt|sltu|slti|sltiu|seqz|snez|sltz|sgtz)\\b",
+    "arithmetic": "\\b(add|addi|sub|mul|mulh|div|divu|rem|remu|addw|subw|mulw|divw|remw|addiw|neg|negw)\\b",
+    "logic": "\\b(and|andi|or|ori|xor|xori|not)\\b",
+    "shift": "\\b(sll|slli|srl|srli|sra|srai|sllw|slliw|srlw|srliw|sraw|sraiw|rol|ror|rori)\\b",
+    "fence": "\\b(fence|fence\\.i|fence\\.tso|sfence\\.vma|pause)\\b",
+    "cache": "\\b(cbo\\.(flush|clean|inval|zero)|prefetch\\.[rwi])\\b",
+    "timing": "\\b(rdcycle|rdtime|rdinstret|rdcycleh|rdtimeh)\\b",
+    "move": "\\b(mv|li|lui|auipc|c\\.mv|c\\.li)\\b",
+    "stack_op": "(?!x)x",
+    "stack_access": "\\((sp|s0|fp|x2|x8)\\)|\\bsp\\b|\\bfp\\b",
+    "indexed_access": "(?!x)x",
+    "memory_operand": "-?[0-9]*\\([a-z0-9]+\\)",
+    "reg": "\\b(x[0-9]+|zero|ra|sp|gp|tp|fp|t[0-6]|s1[01]|s[0-9]|a[0-7])\\b"
+  },
+  "addressing": {
+    "imm": "(^|[\\s,])-?(0x[0-9a-fA-F]+|\\d+)\\b",
+    "fn": "<fn>",
+    "mem": "-?[0-9]*\\([a-z0-9]+\\)",
+    "mem_idx": "(?!x)x"
+  },
+  "realize": {
+    "register_pool": ["a0", "a1", "a2", "a3", "a4", "a5", "t0", "t1", "t2", "s1", "s2", "s3"],
+    "mem": "0(BASE)",
+    "mem_idx": "0(BASE)",
+    "imm_prefix": "",
+    "sym": ".L0"
+  },
+  "pipeline": {
+    "model": "out_of_order",
+    "speculative_window": 10,
+    "cache_window": 20,
+    "rsb_pair_window": 15,
+    "speculation_sources": ["BRANCH_COND", "CALL_INDIRECT", "JUMP_INDIRECT", "RET"],
+    "serializing_ops": ["fence", "fence.i", "sfence.vma"],
+    "notes": "RV64GC. No base+index addressing (offset(base) only) -> indexed_access/mem_idx never-match. No push/pop -> stack_op never-match."
+  }
+}

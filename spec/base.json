@@ -1,0 +1,314 @@
+{
+  "name": "base",
+  "provenance": "B1: ISA-agnostic scaffolding + UNION fallback patterns; per-ISA grammars in x86_64.json / arm64.json. Neutral pattern names resolved per ISA. Correctness judged by validate_external.",
+  "opcode_categories": {
+    "LOAD": 0,
+    "STORE": 1,
+    "BRANCH_COND": 2,
+    "BRANCH_UNCOND": 3,
+    "CALL": 4,
+    "CALL_INDIRECT": 5,
+    "RET": 6,
+    "JUMP_INDIRECT": 7,
+    "COMPARE": 8,
+    "ARITHMETIC": 9,
+    "LOGIC": 10,
+    "SHIFT": 11,
+    "FENCE": 12,
+    "CACHE": 13,
+    "TIMING": 14,
+    "MOVE": 15,
+    "STACK": 16,
+    "NOP": 17,
+    "OTHER": 18
+  },
+  "mem_access_types": {
+    "NONE": 0,
+    "STACK": 1,
+    "HEAP": 2,
+    "INDEXED": 3,
+    "INDIRECT": 4
+  },
+  "spec_flags": {
+    "is_serializing": 0,
+    "is_cache_probe": 1,
+    "is_branch": 2,
+    "is_indirect_branch": 3,
+    "is_memory_access": 4,
+    "is_timing_source": 5,
+    "is_secret_source": 6,
+    "is_transmitter": 7,
+    "is_lfence": 8,
+    "is_mfence_or_sfence": 9,
+    "is_verw": 10,
+    "is_prefetch": 11,
+    "is_nontemp_load": 12,
+    "is_gather": 13
+  },
+  "edge_types": {
+    "DATA_DEP": 0,
+    "CONTROL_FLOW": 1,
+    "SPEC_CONDITIONAL": 2,
+    "SPEC_INDIRECT": 3,
+    "SPEC_RETURN": 4,
+    "MEMORY_ORDER": 5,
+    "CACHE_TEMPORAL": 6,
+    "FENCE_BOUNDARY": 7,
+    "RSB_CHAIN": 8
+  },
+  "patterns": {
+    "load": "\\b(ldr[bhsdq]?|ldp|ldur[bhsdq]?|ldrs[bhw]|ldax?r?|ldnp|ldtr|ldx[pr]?|mov[qldwb]?|movzx|movsx|movabs|lods[bwdq]?|pop[qldw]?|lea)\\b",
+    "store": "\\b(str[bhsdq]?|stp|stur[bhsdq]?|stlr|stxr|stnp|sttr|mov[qldwb]?|movnti|stos[bwdq]?|push[qldw]?)\\b",
+    "branch_cond": "\\b(b\\.(eq|ne|lt|le|gt|ge|hs|lo|hi|ls|mi|pl|vs|vc|al|cs|cc)|beq|bne|blt|ble|bgt|bge|bhs|blo|bhi|bls|bmi|bpl|bcs|bcc|cbz|cbnz|tbz|tbnz|j(e|ne|z|nz|g|ge|l|le|a|ae|b|be|o|no|c|nc|s|ns|p|np|cxz|ecxz|rcxz))\\b",
+    "branch_uncond": "(^|\\s)b(\\s|$)|\\b(jmp|jmpq)\\b",
+    "call": "\\b(bl|blr|call|callq)\\b",
+    "ret": "\\b(ret|retq|retw|retl)\\b",
+    "indirect": "\\b(br|blr)\\b|\\b(jmpq?|callq?)\\s*\\*|\\[x[0-9]+\\]",
+    "indirect_jump_op": "\\b(jmpq?|br)\\b",
+    "compare": "\\b(cmp|cmn|test|tst|ccmp|ccmn|fcmp)\\b",
+    "arithmetic": "\\b(add|sub|mul|div|udiv|sdiv|madd|msub|neg|adc|sbc|inc|dec|imul|idiv)\\b",
+    "logic": "\\b(and|orr|eor|orn|bic|not|xor|or)\\b",
+    "shift": "\\b(lsl|lsr|asr|ror|shl|shr|sar|rol|sal)\\b",
+    "fence": "\\b(lfence|mfence|sfence|dsb|dmb|isb|csdb|cpuid)\\b",
+    "cache": "\\b(clflush|clflushopt|clwb|cldemote|prefetcht[012]|prefetchnta|prefetchw|prfm|dc\\s+(civac|cvac|cvau|zva|ivac)|invlpg|wbinvd)\\b",
+    "timing": "\\b(rdtsc|rdtscp|rdpmc|mrs\\s+.*cntvct|mrs\\s+.*pmccntr)\\b",
+    "move": "\\b(mov[zskn]?)\\b",
+    "stack_op": "\\b(push|pop)\\b",
+    "stack_access": "\\[sp|\\[x29|\\[fp|%[re]?sp|%[re]?bp|\\[%[re]?[sb]p\\]",
+    "indexed_access": "\\[.*,.*,.*\\]|\\[.*\\+.*\\*.*\\]|,\\s*lsl\\s+#|\\[x[0-9]+,\\s*x[0-9]+|\\([^)]*,[^)]*\\)",
+    "memory_operand": "\\[|\\(.*%",
+    "reg": "\\b([xwbhsdq][0-9]+|sp|lr|fp|pc|xzr|wzr)\\b|%([re]?[abcd]x|[re]?[sd]i|[re]?[sb]p|r[0-9]+[dwb]?)"
+  },
+  "classify_rules": [
+    {
+      "kind": "simple",
+      "pat": "fence",
+      "cat": "FENCE"
+    },
+    {
+      "kind": "simple",
+      "pat": "cache",
+      "cat": "CACHE"
+    },
+    {
+      "kind": "simple",
+      "pat": "timing",
+      "cat": "TIMING"
+    },
+    {
+      "kind": "simple",
+      "pat": "ret",
+      "cat": "RET"
+    },
+    {
+      "kind": "call_split",
+      "pat": "call",
+      "direct": "CALL",
+      "indirect": "CALL_INDIRECT"
+    },
+    {
+      "kind": "indirect_jump",
+      "pat": "indirect_jump_op",
+      "cat": "JUMP_INDIRECT"
+    },
+    {
+      "kind": "simple",
+      "pat": "branch_cond",
+      "cat": "BRANCH_COND"
+    },
+    {
+      "kind": "simple",
+      "pat": "branch_uncond",
+      "cat": "BRANCH_UNCOND"
+    },
+    {
+      "kind": "simple",
+      "pat": "compare",
+      "cat": "COMPARE"
+    },
+    {
+      "kind": "simple",
+      "pat": "stack_op",
+      "cat": "STACK"
+    },
+    {
+      "kind": "mem_store",
+      "store_pats": [
+        "store"
+      ],
+      "stack_token": "push",
+      "cat": "STORE",
+      "stack_cat": "STACK"
+    },
+    {
+      "kind": "mem_load",
+      "load_pats": [
+        "load"
+      ],
+      "stack_token": "pop",
+      "cat": "LOAD",
+      "stack_cat": "STACK"
+    },
+    {
+      "kind": "simple",
+      "pat": "move",
+      "cat": "MOVE"
+    },
+    {
+      "kind": "simple",
+      "pat": "arithmetic",
+      "cat": "ARITHMETIC"
+    },
+    {
+      "kind": "simple",
+      "pat": "logic",
+      "cat": "LOGIC"
+    },
+    {
+      "kind": "simple",
+      "pat": "shift",
+      "cat": "SHIFT"
+    },
+    {
+      "kind": "contains",
+      "token": "nop",
+      "cat": "NOP"
+    }
+  ],
+  "default_category": "OTHER",
+  "mem_access_rules": [
+    {
+      "pat": "stack_access",
+      "type": "STACK"
+    },
+    {
+      "pat": "indexed_access",
+      "type": "INDEXED"
+    },
+    {
+      "pat": "indirect",
+      "type": "INDIRECT"
+    }
+  ],
+  "default_mem_type": "HEAP",
+  "spec_flag_rules": [
+    {
+      "when_cat_in": [
+        "FENCE"
+      ],
+      "or_contains": "cpuid",
+      "set": "is_serializing"
+    },
+    {
+      "when_cat_in": [
+        "CACHE"
+      ],
+      "set": "is_cache_probe"
+    },
+    {
+      "when_cat_in": [
+        "BRANCH_COND",
+        "BRANCH_UNCOND",
+        "CALL",
+        "CALL_INDIRECT",
+        "JUMP_INDIRECT",
+        "RET"
+      ],
+      "set": "is_branch"
+    },
+    {
+      "when_cat_in": [
+        "CALL_INDIRECT",
+        "JUMP_INDIRECT"
+      ],
+      "set": "is_indirect_branch"
+    },
+    {
+      "when_cat_in": [
+        "LOAD",
+        "STORE",
+        "STACK"
+      ],
+      "set": "is_memory_access"
+    },
+    {
+      "when_cat_in": [
+        "TIMING"
+      ],
+      "set": "is_timing_source"
+    },
+    {
+      "when_cat_in": [
+        "LOAD"
+      ],
+      "when_mem_in": [
+        "INDEXED"
+      ],
+      "set": "is_secret_source"
+    },
+    {
+      "when_cat_in": [
+        "LOAD"
+      ],
+      "when_mem_in": [
+        "INDEXED",
+        "INDIRECT"
+      ],
+      "set": "is_transmitter"
+    },
+    {
+      "opcode_in": [
+        "lfence"
+      ],
+      "set": "is_lfence"
+    },
+    {
+      "opcode_regex": "^(mfence|sfence|dsb|dmb|isb)",
+      "set": "is_mfence_or_sfence"
+    },
+    {
+      "opcode_in": [
+        "verw"
+      ],
+      "set": "is_verw"
+    },
+    {
+      "opcode_regex": "^(prefetch|prfm)",
+      "set": "is_prefetch"
+    },
+    {
+      "opcode_in": [
+        "movntdqa"
+      ],
+      "set": "is_nontemp_load"
+    },
+    {
+      "opcode_regex": "^v[pg]?gather",
+      "set": "is_gather"
+    }
+  ],
+  "register_extraction": {
+    "patterns": [
+      "reg"
+    ],
+    "all_source_categories": [
+      "STORE",
+      "COMPARE",
+      "BRANCH_COND",
+      "BRANCH_UNCOND",
+      "CALL",
+      "CALL_INDIRECT"
+    ]
+  },
+  "addressing": {
+    "imm": "(^|[\\s,(\\[])[#$]?-?(0x[0-9a-fA-F]+|\\d+)\\b",
+    "fn": "<fn>",
+    "mem": "[\\(\\[][^\\)\\]]*[\\)\\]]",
+    "mem_idx": "[\\(\\[][^\\)\\]]*,[^\\)\\]]*[\\)\\]]"
+  },
+  "pipeline": {
+    "speculative_window": 10,
+    "cache_window": 20,
+    "rsb_pair_window": 15
+  }
+}

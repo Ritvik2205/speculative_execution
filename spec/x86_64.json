@@ -1,0 +1,67 @@
+{
+  "extends": "base.json",
+  "name": "x86_64",
+  "arch": "x86_64",
+  "realize": {
+    "register_pool": [
+      "%rax",
+      "%rbx",
+      "%rcx",
+      "%rdx",
+      "%rsi",
+      "%rdi",
+      "%r8",
+      "%r9",
+      "%r10",
+      "%r11",
+      "%r12",
+      "%r13"
+    ],
+    "mem": "(%BASE)",
+    "mem_idx": "(%BASE,%IDX)",
+    "imm_prefix": "$",
+    "sym": ".L0"
+  },
+  "pipeline": {
+    "model": "out_of_order",
+    "speculative_window": 10,
+    "cache_window": 20,
+    "rsb_pair_window": 15,
+    "speculation_sources": [
+      "BRANCH_COND",
+      "CALL_INDIRECT",
+      "JUMP_INDIRECT",
+      "RET"
+    ],
+    "serializing_ops": [
+      "lfence",
+      "mfence",
+      "cpuid"
+    ],
+    "notes": "Phase 0: inherits base patterns verbatim; per-ISA pattern pruning deferred to Phase 1."
+  },
+  "patterns": {
+    "load": "\\b(mov[qldwb]?|movzx|movsx|movabs|lods[bwdq]?|pop[qldw]?|lea)\\b",
+    "store": "\\b(mov[qldwb]?|movnti|stos[bwdq]?|push[qldw]?)\\b",
+    "branch_cond": "\\b(j(e|ne|z|nz|g|ge|l|le|a|ae|b|be|o|no|c|nc|s|ns|p|np|cxz|ecxz|rcxz))\\b",
+    "branch_uncond": "\\b(jmp|jmpq)\\b",
+    "call": "\\b(call|callq)\\b",
+    "ret": "\\b(ret|retq|retl)\\b",
+    "indirect": "\\b(jmpq?|callq?)\\s*\\*",
+    "indirect_jump_op": "\\b(jmpq?)\\b",
+    "compare": "\\b(cmp|test)\\b",
+    "arithmetic": "\\b(add|sub|mul|div|inc|dec|imul|idiv|adc|sbc|neg)\\b",
+    "logic": "\\b(and|or|xor|not)\\b",
+    "shift": "\\b(shl|shr|sar|sal|rol|ror)\\b",
+    "fence": "\\b(lfence|mfence|sfence|cpuid)\\b",
+    "cache": "\\b(clflush|clflushopt|clwb|cldemote|prefetcht[012]|prefetchnta|prefetchw|invlpg|wbinvd)\\b",
+    "timing": "\\b(rdtsc|rdtscp|rdpmc)\\b",
+    "move": "\\b(mov[zskn]?)\\b",
+    "stack_op": "\\b(push|pop)\\b",
+    "stack_access": "%[re]?sp|%[re]?bp|\\[%[re]?[sb]p\\]",
+    "indexed_access": "\\([^)]*,[^)]*\\)",
+    "memory_operand": "\\(.*%|\\(%",
+    "reg": "%([re]?[abcd]x|[re]?[sd]i|[re]?[sb]p|r[0-9]+[dwb]?)"
+  },
+  "provenance": "B1: ISA-only grammar overriding base UNION; contamination-free + mnemonic fixes (blr/jcc/bare-b)."
+}
