@@ -11,7 +11,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 echo "=== 1/2: oracle agreement gate ==="
-python3 spec/gate_oracle_check.py
+python3 spec/gate_oracle_check.py --out eval/oracle_gate_result.json
 ORACLE_STATUS=$?
 
 echo
@@ -23,10 +23,22 @@ LIFT_STATUS=$?
 python3 - "$ORACLE_STATUS" "$LIFT_STATUS" <<'PYEOF'
 import json
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
 oracle_status, lift_status = int(sys.argv[1]), int(sys.argv[2])
+oracle_detail = {}
+oracle_result_path = Path("eval/oracle_gate_result.json")
+if oracle_result_path.exists():
+    oracle_detail = json.loads(oracle_result_path.read_text())
+
 summary = {
     "oracle_gate": "PASS" if oracle_status == 0 else "FAIL",
+    "oracle_current_agreement_pct": oracle_detail.get("current", {}).get("agreement_pct"),
+    "oracle_baseline_agreement_pct": oracle_detail.get("baseline", {}).get("agreement_pct"),
     "per_class_lift_computed": lift_status == 0,
+    "per_class_lift_other_mode": "both",
+    "timestamp_utc": datetime.now(timezone.utc).isoformat(),
 }
 with open("eval/gate_summary.json", "w") as f:
     json.dump(summary, f, indent=2)

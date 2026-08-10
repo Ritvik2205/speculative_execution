@@ -53,6 +53,9 @@ def main():
     ap.add_argument("--min-agreement", type=float, default=None,
                     help="exit 1 if oracle agreement %% falls below this threshold "
                          "(for gating new-ISA onboarding, see spec/ONBOARDING_NEW_ISA.md)")
+    ap.add_argument("--min-covered", type=int, default=None,
+                    help="exit 1 if covered instruction count falls below this floor "
+                         "(guards against a vacuous 100%% on a tiny sample)")
     args = ap.parse_args()
 
     files = sorted(CORPUS.glob("*.s"))
@@ -105,6 +108,9 @@ def main():
     for d in disagr:
         print("   disagree:", d)
 
+    if args.min_covered is not None and covered < args.min_covered:
+        print(f"FAIL: RISC-V oracle coverage {covered} < required {args.min_covered}")
+        sys.exit(1)
     if args.min_agreement is not None and agreement_pct < args.min_agreement:
         print(f"FAIL: RISC-V oracle agreement {agreement_pct:.2f}% < "
               f"required {args.min_agreement:.2f}%")

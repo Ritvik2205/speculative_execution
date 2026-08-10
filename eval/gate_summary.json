@@ -1,4 +1,8 @@
 {
   "oracle_gate": "PASS",
-  "per_class_lift_computed": true
+  "oracle_current_agreement_pct": 99.86407681852063,
+  "oracle_baseline_agreement_pct": 99.86407681852063,
+  "per_class_lift_computed": true,
+  "per_class_lift_other_mode": "both",
+  "timestamp_utc": "2026-08-10T08:15:28.489239+00:00"
 }

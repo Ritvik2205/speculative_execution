@@ -37,7 +37,7 @@ def test_real_lift_flagged_significant(tmp_path):
     both = load_recalls(tmp_path, "both", SEEDS)
     result = per_class_lift(hand, both)
     assert result["L1TF"]["mean_diff"] > 0.05
-    assert result["L1TF"]["lift_significant"] is True
+    assert result["L1TF"]["significant"] is True
 
 
 def test_noise_only_not_flagged_significant(tmp_path):
@@ -46,4 +46,4 @@ def test_noise_only_not_flagged_significant(tmp_path):
     hand = load_recalls(tmp_path, "hand", SEEDS)
     both = load_recalls(tmp_path, "both", SEEDS)
     result = per_class_lift(hand, both)
-    assert result["BENIGN"]["lift_significant"] is False
+    assert result["BENIGN"]["significant"] is False

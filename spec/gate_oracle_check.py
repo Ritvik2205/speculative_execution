@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -61,6 +62,8 @@ def main():
     ap.add_argument("--i-verified-the-regression", action="store_true",
                      help="required alongside --update-baseline to confirm the "
                           "new baseline was reviewed, not just accepted by default")
+    ap.add_argument("--out", type=Path, default=None,
+                     help="optional path to write the current/baseline/pass/fail result as JSON")
     args = ap.parse_args()
 
     current = compute_agreement()
@@ -83,6 +86,18 @@ def main():
 
     baseline = json.loads(BASELINE_PATH.read_text())
     passed, msg = compare_to_baseline(current, baseline, args.tolerance_pct)
+
+    if args.out:
+        payload = {
+            "current": current,
+            "baseline": baseline,
+            "tolerance_pct": args.tolerance_pct,
+            "passed": passed,
+            "message": msg,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        }
+        args.out.write_text(json.dumps(payload, indent=2))
+
     print(msg)
     sys.exit(0 if passed else 1)
 

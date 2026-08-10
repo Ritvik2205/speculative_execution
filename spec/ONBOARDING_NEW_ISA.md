@@ -6,6 +6,14 @@ checklist is how you verify that held, instead of assuming it.
 
 ## Steps
 
+0. **`riscv_corpus/*.s` is gitignored.** It matches the repo's global `*.s`
+   pattern in `.gitignore`, so the compiled RV64 corpus won't exist in a
+   fresh checkout or worktree — only the tracked `*.s.pre_corpus_fix` backups
+   are present. If `validate_riscv_corpus.py` prints "no RV64 asm in
+   riscv_corpus/ — run the compile step first", regenerate the `.s` files
+   first via `python3 scripts/patch_riscv_corpus_asm.py --apply` (see that
+   script's docstring for what it does).
+
 1. **Write the spec file** (`spec/<arch>.json`) — extend `base.json` or
    `x86_64.json`/`arm64.json` as appropriate. See `spec/isa_spec.py` for the
    schema (`extends`, `name`, `arch`, `provenance`, `patterns`, `addressing`,

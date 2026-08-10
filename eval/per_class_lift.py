@@ -70,7 +70,8 @@ def per_class_lift(hand: dict, other: dict) -> dict:
         result[cls] = {
             "hand_mean": h.mean(), "other_mean": o.mean(),
             "mean_diff": diff, "ci95": [lo, hi],
-            "lift_significant": bool(lo > 0 or hi < 0),
+            "significant": bool(lo > 0 or hi < 0),
+            "n_hand_seeds": len(h), "n_other_seeds": len(o),
         }
     return result
 
@@ -92,12 +93,21 @@ def main():
           f"({args.results_dir}, seeds={args.seeds})\n")
     print(f"{'class':30s} {'hand':>8s} {args.other_mode:>8s} {'diff':>8s} {'95% CI':>18s} {'sig?':>5s}")
     for cls, r in sorted(result.items(), key=lambda kv: -abs(kv[1]["mean_diff"])):
-        sig = "YES" if r["lift_significant"] else "no"
+        sig = "YES" if r["significant"] else "no"
         print(f"{cls:30s} {r['hand_mean']:8.3f} {r['other_mean']:8.3f} "
               f"{r['mean_diff']:+8.3f} [{r['ci95'][0]:+.3f},{r['ci95'][1]:+.3f}] {sig:>5s}")
 
     if args.out:
-        args.out.write_text(json.dumps(result, indent=2))
+        payload = {
+            "meta": {
+                "results_dir": str(args.results_dir),
+                "other_mode": args.other_mode,
+                "seeds": args.seeds,
+                "generated_by": "eval/per_class_lift.py",
+            },
+            "classes": result,
+        }
+        args.out.write_text(json.dumps(payload, indent=2))
         print(f"\nwritten -> {args.out}")
 
 

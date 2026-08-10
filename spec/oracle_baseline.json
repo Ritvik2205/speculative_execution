@@ -1,14 +1,211 @@
 {
-  "checked": 25942,
+  "checked": 25914,
   "covered": 22807,
-  "agree": 22533,
-  "agreement_pct": 98.79993858288815,
+  "agree": 22776,
+  "agreement_pct": 99.86407681852063,
   "confusion": {
-    "CALL": {"CALL": 60, "OTHER": 42},
-    "RET": {"RET": 18, "OTHER": 3},
-    "JUMP": {"JUMP": 749, "OTHER": 19},
-    "OTHER": {"CALL": 31, "JUMP": 179, "OTHER": 21706}
+    "CALL": {
+      "CALL": 91
+    },
+    "RET": {
+      "OTHER": 3,
+      "RET": 18
+    },
+    "JUMP": {
+      "JUMP": 900
+    },
+    "OTHER": {
+      "OTHER": 21767,
+      "JUMP": 28
+    }
   },
-  "disagreements": [],
+  "disagreements": [
+    [
+      "arm64",
+      "ret",
+      "RET",
+      "OTHER"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L9",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "arm64",
+      "\tret",
+      "RET",
+      "OTHER"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L4",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L106",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L39",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L107",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L7",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L5",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L10",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L123",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L31",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L89",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L108",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L99",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L1",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L3",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "JNB\t.L14804832",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "JNB\t.L32698753",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "JNB\t.L87327649",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "JNB\t.L95707296",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L2",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "JNB\t.L58550521",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "JNB\t.L88745845",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "JNB\t.L44584901",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "JNB\t.L29355700",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L111",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L133",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L145",
+      "OTHER",
+      "JUMP"
+    ],
+    [
+      "x86_64",
+      "push %rbp; pop %rbp; ret;",
+      "RET",
+      "OTHER"
+    ],
+    [
+      "x86_64",
+      "jnb\t.L124",
+      "OTHER",
+      "JUMP"
+    ]
+  ],
   "skipped_arch": {}
 }
