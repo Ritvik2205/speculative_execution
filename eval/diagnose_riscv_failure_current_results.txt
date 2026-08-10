@@ -1,0 +1,184 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+======================================================================
+PART 1 — confusion matrix, as-is (arch='riscv64' -> falls to 'unknown')
+======================================================================
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  24%|██▍       | 121/496 [00:00<00:00, 1203.09it/s]Building PDGs:  55%|█████▍    | 272/496 [00:00<00:00, 1382.31it/s]Building PDGs:  85%|████████▌ | 423/496 [00:00<00:00, 1440.26it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1366.60it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+confusion:   0%|          | 0/16 [00:00<?, ?it/s]confusion:  25%|██▌       | 4/16 [00:00<00:00, 34.01it/s]confusion:  56%|█████▋    | 9/16 [00:00<00:00, 39.49it/s]confusion:  88%|████████▊ | 14/16 [00:00<00:00, 41.20it/s]                                                          
+accuracy=34.48%
+
+rows=true, cols=predicted
+                               BENIGN BRANCH_HIS  INCEPTION       L1TF        MDS   RETBLEED SPECTRE_RS SPECTRE_V1 SPECTRE_V2 SPECTRE_V4
+BENIGN                              1          0          0          0          1          0          0          0          0          0
+BRANCH_HISTORY_INJECTION           19         40          1          0         56          0          0          0          0          0
+INCEPTION                          14          0         29          0          0          3          0          2          0          0
+L1TF                               57          0         20         60          2         20          0          3          0          0
+MDS                                26          2          0          4          4          0          0          0          0          0
+RETBLEED                           33          0         35          0          1         33          0          0          0          0
+SPECTRE_RSB                         3          1          0          0          0          0          0          0          0          0
+SPECTRE_V1                          0          0          0          0          0          0          0          0          0          0
+SPECTRE_V2                          3          0          2          0          3          4          0          2          0          0
+SPECTRE_V4                          4          0          2          0          0          0          0          2          0          4
+
+======================================================================
+PART 2 — arch-embedding ablation
+PART 1's confound check: overriding rec['arch'] changes BOTH the
+spec builder used for graph construction AND the arch_id lookup —
+that conflates 'wrong grammar parses RISC-V text' with 'untrained
+embedding row'. Fixed here: monkeypatch ONLY ARCH_VOCAB so the graph
+still builds from riscv.json (correct grammar), only the embedding
+row changes.
+======================================================================
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  28%|██▊       | 137/496 [00:00<00:00, 1361.75it/s]Building PDGs:  60%|█████▉    | 297/496 [00:00<00:00, 1498.42it/s]Building PDGs:  90%|█████████ | 447/496 [00:00<00:00, 1485.96it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1392.49it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+as-is ('riscv64' absent -> falls to 'unknown', untrained):   0%|          | 0/16 [00:00<?, ?it/s]as-is ('riscv64' absent -> falls to 'unknown', untrained):  25%|██▌       | 4/16 [00:00<00:00, 36.36it/s]as-is ('riscv64' absent -> falls to 'unknown', untrained):  50%|█████     | 8/16 [00:00<00:00, 37.09it/s]as-is ('riscv64' absent -> falls to 'unknown', untrained):  75%|███████▌  | 12/16 [00:00<00:00, 37.20it/s]as-is ('riscv64' absent -> falls to 'unknown', untrained): 100%|██████████| 16/16 [00:00<00:00, 37.70it/s]                                                                                                            as-is ('riscv64' absent -> falls to 'unknown', untrained) accuracy = 34.48%
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  28%|██▊       | 137/496 [00:00<00:00, 1365.03it/s]Building PDGs:  58%|█████▊    | 288/496 [00:00<00:00, 1449.44it/s]Building PDGs:  88%|████████▊ | 435/496 [00:00<00:00, 1456.39it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1386.10it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+ARCH_VOCAB['riscv64'] = arm64's id (trained row):   0%|          | 0/16 [00:00<?, ?it/s]ARCH_VOCAB['riscv64'] = arm64's id (trained row):  31%|███▏      | 5/16 [00:00<00:00, 45.12it/s]ARCH_VOCAB['riscv64'] = arm64's id (trained row):  62%|██████▎   | 10/16 [00:00<00:00, 45.36it/s]ARCH_VOCAB['riscv64'] = arm64's id (trained row):  94%|█████████▍| 15/16 [00:00<00:00, 45.54it/s]                                                                                                   ARCH_VOCAB['riscv64'] = arm64's id (trained row)        accuracy = 32.46%
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  28%|██▊       | 139/496 [00:00<00:00, 1385.50it/s]Building PDGs:  61%|██████    | 301/496 [00:00<00:00, 1518.25it/s]Building PDGs:  91%|█████████▏| 453/496 [00:00<00:00, 1479.98it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1392.89it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+ARCH_VOCAB['riscv64'] = x86_64's id (trained row):   0%|          | 0/16 [00:00<?, ?it/s]ARCH_VOCAB['riscv64'] = x86_64's id (trained row):  31%|███▏      | 5/16 [00:00<00:00, 45.21it/s]ARCH_VOCAB['riscv64'] = x86_64's id (trained row):  62%|██████▎   | 10/16 [00:00<00:00, 45.70it/s]ARCH_VOCAB['riscv64'] = x86_64's id (trained row):  94%|█████████▍| 15/16 [00:00<00:00, 45.62it/s]                                                                                                    ARCH_VOCAB['riscv64'] = x86_64's id (trained row)       accuracy = 38.10%
+
+======================================================================
+PART 3 — how often do attack-signal spec_flags / edge types even fire?
+======================================================================
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+
+RISC-V corpus: 20049 instructions across 496 records
+x86/ARM training sample: 60087 instructions across 2000 records
+
+signal                    RISC-V rate   x86/ARM rate
+is_secret_source               0.000%         0.589%
+is_transmitter                 0.000%         2.759%
+is_indirect_branch             1.531%         0.747%
+is_cache_probe                 1.556%         0.484%
+is_prefetch                    0.000%         0.018%
+is_serializing                 5.965%         1.658%
+is_lfence                      0.000%         0.764%
+
+mem type                  RISC-V rate   x86/ARM rate
+NONE                          63.779%        70.717%
+STACK                         29.463%        16.421%
+HEAP                           6.758%         7.885%
+INDEXED                        0.000%         1.727%
+INDIRECT                       0.000%         3.249%
+
+======================================================================
+SUPPLEMENTARY (added by this session, not part of the original script)
+======================================================================
+IMPORTANT CAVEAT ON PART 3 ABOVE: Part 3 calls eng.spec_flags_vector() on
+each instruction IN ISOLATION (the old single-instruction regex path). But
+apply_dataflow_taint() (spec/dataflow_taint.py) mutates node.spec_flags AFTER
+a full PDG is built (spec/spec_pdg_builder.py, SpecBackedPDGBuilder.build()),
+which is what the GINE classifier actually consumes at eval time. Part 3's
+0.000% is_secret_source / is_transmitter numbers above therefore do NOT test
+whether dataflow_taint helped -- they only show the pre-dataflow_taint,
+single-instruction-regex signal (which is expected to be 0% on RISC-V by
+design, since riscv.json's indexed-addressing regex is a placeholder).
+
+To get the number that actually matters -- does dataflow_taint raise these
+rates in the graphs the classifier sees -- this session built real PDGs via
+SpecBackedPDGBuilder(riscv_engine) with dataflow_taint on vs off and counted
+node-level flag rates directly (script:
+/private/tmp/claude-501/-Users-ritvikgupta/a4639865-55bf-417c-8617-a055984eeeeb/scratchpad/check_dataflow_taint_riscv_nodelevel.py):
+
+dataflow_taint=OFF (pre-fix graph): 20049 nodes across 496 records
+  is_secret_source     node-rate=0.000%  raw_hits=0
+  is_transmitter       node-rate=0.000%  raw_hits=0
+  is_cache_probe       node-rate=1.556%  raw_hits=312
+  records with >=1 is_secret_source node: 0/496
+  records with >=1 is_transmitter node:   0/496
+
+dataflow_taint=ON (current default): 20049 nodes across 496 records
+  is_secret_source     node-rate=0.100%  raw_hits=20
+  is_transmitter       node-rate=0.150%  raw_hits=30
+  is_cache_probe       node-rate=1.556%  raw_hits=312
+  records with >=1 is_secret_source node: 8/496
+  records with >=1 is_transmitter node:   8/496
+
+Per-class breakdown, dataflow_taint=ON (does >=1 node in the record get
+tainted at all?):
+  BENIGN                       1/2 records (50.0%)
+  BRANCH_HISTORY_INJECTION     1/116 records (0.9%)
+  INCEPTION                    0/48 records (0.0%)
+  L1TF                         0/162 records (0.0%)
+  MDS                          0/36 records (0.0%)
+  RETBLEED                     1/102 records (1.0%)
+  SPECTRE_RSB                  4/4 records (100.0%)
+  SPECTRE_V2                   1/14 records (7.1%)
+  SPECTRE_V4                   0/12 records (0.0%)
+
+CONCLUSION: dataflow_taint does fire on RISC-V now (0.000%->0.100%/0.150%
+node-rate, up from a hard structural zero), confirming the spec-engine fix
+itself works as designed. But it fires almost entirely on SPECTRE_RSB (100%
+of its 4 records) -- the one class G6 already identified as having a real,
+uncontaminated RISC-V-native attack primitive -- and essentially NEVER on
+L1TF (0/162) or MDS (0/36), the two classes the fix was meant to rescue.
+This is fully consistent with G6's corpus-contamination finding: L1TF/MDS's
+actual leak-mechanism instructions in riscv_corpus/*.s are still verbatim
+ARM64 mnemonics (ldr/dc civac/ldrb/lsl) that riscv.json correctly does not
+recognize as RISC-V opcodes, so there is no RISC-V LOAD->SHIFT->LOAD chain
+for dataflow_taint to find in those records regardless of how well the
+spec-engine mechanism itself works. The spec-engine fix is real and correct;
+it just has nothing to attach to for the two classes that matter most, on
+this corpus.

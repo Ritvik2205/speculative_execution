@@ -1,0 +1,96 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  28%|██▊       | 141/496 [00:00<00:00, 1391.74it/s]Building PDGs:  62%|██████▏   | 307/496 [00:00<00:00, 1546.28it/s]Building PDGs:  93%|█████████▎| 462/496 [00:00<00:00, 1531.58it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1453.23it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+riscv:   0%|          | 0/16 [00:00<?, ?it/s]riscv:  25%|██▌       | 4/16 [00:00<00:00, 35.34it/s]riscv:  62%|██████▎   | 10/16 [00:00<00:00, 44.39it/s]riscv:  94%|█████████▍| 15/16 [00:00<00:00, 45.78it/s]                                                        seed 42: acc=23.79%  L1TF recall=4.9%  MDS recall=0.0%
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  27%|██▋       | 134/496 [00:00<00:00, 1337.50it/s]Building PDGs:  61%|██████▏   | 304/496 [00:00<00:00, 1549.85it/s]Building PDGs:  93%|█████████▎| 459/496 [00:00<00:00, 1549.39it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1460.90it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+riscv:   0%|          | 0/16 [00:00<?, ?it/s]riscv:  31%|███▏      | 5/16 [00:00<00:00, 49.51it/s]riscv:  62%|██████▎   | 10/16 [00:00<00:00, 48.59it/s]riscv:  94%|█████████▍| 15/16 [00:00<00:00, 48.36it/s]                                                        seed 1: acc=22.58%  L1TF recall=0.0%  MDS recall=66.7%
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  29%|██▉       | 145/496 [00:00<00:00, 1437.62it/s]Building PDGs:  64%|██████▎   | 315/496 [00:00<00:00, 1585.93it/s]Building PDGs:  96%|█████████▌| 474/496 [00:00<00:00, 1579.16it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1495.22it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+riscv:   0%|          | 0/16 [00:00<?, ?it/s]riscv:  31%|███▏      | 5/16 [00:00<00:00, 49.78it/s]riscv:  69%|██████▉   | 11/16 [00:00<00:00, 50.74it/s]                                                        seed 7: acc=25.40%  L1TF recall=0.0%  MDS recall=0.0%
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  28%|██▊       | 141/496 [00:00<00:00, 1396.03it/s]Building PDGs:  62%|██████▏   | 309/496 [00:00<00:00, 1556.43it/s]Building PDGs:  94%|█████████▍| 465/496 [00:00<00:00, 1557.76it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1476.78it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+riscv:   0%|          | 0/16 [00:00<?, ?it/s]riscv:  31%|███▏      | 5/16 [00:00<00:00, 44.16it/s]riscv:  62%|██████▎   | 10/16 [00:00<00:00, 46.32it/s]riscv:  94%|█████████▍| 15/16 [00:00<00:00, 47.50it/s]                                                        seed 13: acc=34.07%  L1TF recall=0.0%  MDS recall=0.0%
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  29%|██▉       | 144/496 [00:00<00:00, 1436.68it/s]Building PDGs:  63%|██████▎   | 314/496 [00:00<00:00, 1590.07it/s]Building PDGs:  96%|█████████▌| 474/496 [00:00<00:00, 1573.48it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1494.50it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+riscv:   0%|          | 0/16 [00:00<?, ?it/s]riscv:  31%|███▏      | 5/16 [00:00<00:00, 49.40it/s]riscv:  69%|██████▉   | 11/16 [00:00<00:00, 50.07it/s]                                                        seed 21: acc=41.94%  L1TF recall=42.0%  MDS recall=16.7%
+
+RISC-V zero-shot, dataflow_taint model, 5 seeds:
+  accuracy:    29.56 ± 10.25
+  L1TF recall: 9.38% (all seeds: [4.938271604938271, 0.0, 0.0, 0.0, 41.9753086419753])
+  MDS recall:  16.67% (all seeds: [0.0, 66.66666666666666, 0.0, 0.0, 16.666666666666664])
