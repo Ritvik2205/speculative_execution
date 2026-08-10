@@ -1,0 +1,67 @@
+file=c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_0.O0.riscv64.s  n_instr=31
+n_nodes=31  n_edges=96
+  node[1] cat=STORE      flags=['is_memory_access']  raw='sd\tra,8(sp)'
+  node[2] cat=STORE      flags=['is_memory_access']  raw='sd\ts0,0(sp)'
+  node[4] cat=FENCE      flags=['is_serializing']  raw='fence'
+  node[5] cat=FENCE      flags=['is_serializing']  raw='fence.i'
+  node[7] cat=LOAD       flags=['is_memory_access']  raw='ld\tra,8(sp)'
+  node[8] cat=LOAD       flags=['is_memory_access']  raw='ld\ts0,0(sp)'
+  node[10] cat=RET        flags=['is_branch']  raw='jr\tra'
+  node[12] cat=STORE      flags=['is_memory_access']  raw='sd\tra,24(sp)'
+  node[13] cat=STORE      flags=['is_memory_access']  raw='sd\ts0,16(sp)'
+  node[15] cat=STORE      flags=['is_memory_access']  raw='sd\ta0,-24(s0)'
+  node[16] cat=CALL       flags=['is_branch']  raw='call\tbarrier'
+  node[17] cat=LOAD       flags=['is_memory_access']  raw='ld\ta5,-24(s0)'
+  node[20] cat=CACHE      flags=['is_cache_probe']  raw='cbo.inval (a5)'
+  node[21] cat=FENCE      flags=['is_serializing']  raw='fence'
+  node[22] cat=LOAD       flags=['is_memory_access']  raw='lbu t0, 0(a5)'
+  node[23] cat=SHIFT      flags=[]  raw='slli t1, t1, 6'
+  node[25] cat=LOAD       flags=['is_memory_access']  raw='ld t2, 0(t2)'
+  node[27] cat=LOAD       flags=['is_memory_access']  raw='ld\tra,24(sp)'
+  node[28] cat=LOAD       flags=['is_memory_access']  raw='ld\ts0,16(sp)'
+  node[30] cat=RET        flags=['is_branch']  raw='jr\tra'
+
+DATA_DEP edges:
+  0('addi\tsp,sp,-16') -> 1('sd\tra,8(sp)')
+  0('addi\tsp,sp,-16') -> 2('sd\ts0,0(sp)')
+  0('addi\tsp,sp,-16') -> 3('addi\ts0,sp,16')
+  0('addi\tsp,sp,-16') -> 7('ld\tra,8(sp)')
+  0('addi\tsp,sp,-16') -> 8('ld\ts0,0(sp)')
+  0('addi\tsp,sp,-16') -> 9('addi\tsp,sp,16')
+  0('addi\tsp,sp,-16') -> 11('addi\tsp,sp,-32')
+  9('addi\tsp,sp,16') -> 11('addi\tsp,sp,-32')
+  0('addi\tsp,sp,-16') -> 12('sd\tra,24(sp)')
+  9('addi\tsp,sp,16') -> 12('sd\tra,24(sp)')
+  11('addi\tsp,sp,-32') -> 12('sd\tra,24(sp)')
+  7('ld\tra,8(sp)') -> 12('sd\tra,24(sp)')
+  10('jr\tra') -> 12('sd\tra,24(sp)')
+  0('addi\tsp,sp,-16') -> 13('sd\ts0,16(sp)')
+  9('addi\tsp,sp,16') -> 13('sd\ts0,16(sp)')
+  11('addi\tsp,sp,-32') -> 13('sd\ts0,16(sp)')
+  3('addi\ts0,sp,16') -> 13('sd\ts0,16(sp)')
+  8('ld\ts0,0(sp)') -> 13('sd\ts0,16(sp)')
+  0('addi\tsp,sp,-16') -> 14('addi\ts0,sp,32')
+  9('addi\tsp,sp,16') -> 14('addi\ts0,sp,32')
+  11('addi\tsp,sp,-32') -> 14('addi\ts0,sp,32')
+  3('addi\ts0,sp,16') -> 15('sd\ta0,-24(s0)')
+  8('ld\ts0,0(sp)') -> 15('sd\ta0,-24(s0)')
+  14('addi\ts0,sp,32') -> 15('sd\ta0,-24(s0)')
+  3('addi\ts0,sp,16') -> 17('ld\ta5,-24(s0)')
+  8('ld\ts0,0(sp)') -> 17('ld\ta5,-24(s0)')
+  14('addi\ts0,sp,32') -> 17('ld\ta5,-24(s0)')
+  18('lui\ta4,%hi(probe)') -> 19('addi\ta4,a4,%lo(probe)')
+  17('ld\ta5,-24(s0)') -> 22('lbu t0, 0(a5)')
+  20('cbo.inval (a5)') -> 22('lbu t0, 0(a5)')
+  18('lui\ta4,%hi(probe)') -> 24('add t2, a4, t1')
+  19('addi\ta4,a4,%lo(probe)') -> 24('add t2, a4, t1')
+  23('slli t1, t1, 6') -> 24('add t2, a4, t1')
+  24('add t2, a4, t1') -> 25('ld t2, 0(t2)')
+  0('addi\tsp,sp,-16') -> 27('ld\tra,24(sp)')
+  9('addi\tsp,sp,16') -> 27('ld\tra,24(sp)')
+  11('addi\tsp,sp,-32') -> 27('ld\tra,24(sp)')
+  0('addi\tsp,sp,-16') -> 28('ld\ts0,16(sp)')
+  9('addi\tsp,sp,16') -> 28('ld\ts0,16(sp)')
+  11('addi\tsp,sp,-32') -> 28('ld\ts0,16(sp)')
+  0('addi\tsp,sp,-16') -> 29('addi\tsp,sp,32')
+  9('addi\tsp,sp,16') -> 29('addi\tsp,sp,32')
+  11('addi\tsp,sp,-32') -> 29('addi\tsp,sp,32')

@@ -1,0 +1,88 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/496 [00:00<?, ?it/s]Building PDGs:  25%|██▌       | 125/496 [00:00<00:00, 1248.51it/s]Building PDGs:  58%|█████▊    | 289/496 [00:00<00:00, 1477.10it/s]Building PDGs:  91%|█████████ | 452/496 [00:00<00:00, 1545.24it/s]Building PDGs: 100%|██████████| 496/496 [00:00<00:00, 1441.48it/s]
+  Valid samples: 496/496
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 20049 -> 20049 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    32085 (46.9%)
+    CONTROL_FLOW        :    19159 (28.0%)
+    SPEC_CONDITIONAL    :      888 (1.3%)
+    SPEC_INDIRECT       :     1745 (2.6%)
+    SPEC_RETURN         :     6454 (9.4%)
+    MEMORY_ORDER        :     5882 (8.6%)
+    CACHE_TEMPORAL      :      640 (0.9%)
+    FENCE_BOUNDARY      :     1194 (1.7%)
+    RSB_CHAIN           :      324 (0.5%)
+RISC-V zero-shot (precise):   0%|          | 0/16 [00:00<?, ?it/s]RISC-V zero-shot (precise):  19%|█▉        | 3/16 [00:00<00:00, 29.70it/s]RISC-V zero-shot (precise):  56%|█████▋    | 9/16 [00:00<00:00, 43.42it/s]RISC-V zero-shot (precise):  94%|█████████▍| 15/16 [00:00<00:00, 47.60it/s]                                                                           accuracy (this run) = 34.48%  n=496
+
+Confusion (this run):
+  BENIGN: {'MDS': 1, 'BENIGN': 1}
+  BRANCH_HISTORY_INJECTION: {'MDS': 56, 'INCEPTION': 1, 'BENIGN': 19, 'BRANCH_HISTORY_INJECTION': 40}
+  INCEPTION: {'BENIGN': 14, 'INCEPTION': 29, 'RETBLEED': 3, 'SPECTRE_V1': 2}
+  L1TF: {'BENIGN': 57, 'L1TF': 60, 'INCEPTION': 20, 'RETBLEED': 20, 'SPECTRE_V1': 3, 'MDS': 2}
+  MDS: {'BENIGN': 26, 'MDS': 4, 'L1TF': 4, 'BRANCH_HISTORY_INJECTION': 2}
+  RETBLEED: {'MDS': 1, 'INCEPTION': 35, 'BENIGN': 33, 'RETBLEED': 33}
+  SPECTRE_RSB: {'BRANCH_HISTORY_INJECTION': 1, 'BENIGN': 3}
+  SPECTRE_V2: {'BENIGN': 3, 'SPECTRE_V1': 2, 'INCEPTION': 2, 'RETBLEED': 4, 'MDS': 3}
+  SPECTRE_V4: {'BENIGN': 4, 'SPECTRE_V1': 2, 'SPECTRE_V4': 4, 'INCEPTION': 2}
+
+BHI->MDS records (56):
+  c_vulns_c_code_bhi
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_1
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_10
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_11
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_11
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_13
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_14
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_14
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_16
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_17
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_17
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_19
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_2
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_2
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_20
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_20
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_22
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_23
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_23
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_25
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_26
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_26
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_28
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_29
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_29
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_31
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_32
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_32
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_34
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_35
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_35
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_37
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_38
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_38
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_4
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_40
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_41
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_41
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_43
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_44
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_44
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_46
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_47
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_47
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_49
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_5
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_5
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_7
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_8
+  c_vulns_c_code_expanded_variants_bhi_arm64_gen_8
+  c_vulns_c_code_generated_variants_bhi_arm64_gen_1
+  c_vulns_c_code_generated_variants_bhi_arm64_gen_2
+  c_vulns_c_code_generated_variants_bhi_arm64_gen_2
+  c_vulns_c_code_generated_variants_bhi_arm64_gen_4
+  c_vulns_c_code_generated_variants_bhi_arm64_gen_5
+  c_vulns_c_code_generated_variants_bhi_arm64_gen_5

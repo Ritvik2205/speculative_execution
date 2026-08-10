@@ -1,0 +1,89 @@
+======================================================================
+H3: instruction count / PDG node count / edge count, RISC-V corpus
+======================================================================
+
+BRANCH_HISTORY_INJECTION (n=116):
+  instr/record: mean=57.4 median=72 min=18 max=326
+  pdg nodes/record: mean=57.4  pdg edges/record: mean=198.6
+  edge-type fractions: {'DATA_DEP': 0.499, 'CONTROL_FLOW': 0.284, 'MEMORY_ORDER': 0.086, 'SPEC_RETURN': 0.052, 'SPEC_INDIRECT': 0.051, 'FENCE_BOUNDARY': 0.015, 'CACHE_TEMPORAL': 0.01, 'SPEC_CONDITIONAL': 0.003, 'RSB_CHAIN': 0.001}
+
+RETBLEED (n=102):
+  instr/record: mean=42.3 median=42 min=11 max=358
+  pdg nodes/record: mean=42.3  pdg edges/record: mean=134.1
+  edge-type fractions: {'DATA_DEP': 0.48, 'CONTROL_FLOW': 0.308, 'MEMORY_ORDER': 0.089, 'SPEC_RETURN': 0.083, 'SPEC_CONDITIONAL': 0.018, 'RSB_CHAIN': 0.013, 'FENCE_BOUNDARY': 0.009, 'SPEC_INDIRECT': 0.001}
+
+MDS (n=36):
+  instr/record: mean=40.2 median=38 min=22 max=67
+  pdg nodes/record: mean=40.2  pdg edges/record: mean=121.9
+  edge-type fractions: {'DATA_DEP': 0.489, 'CONTROL_FLOW': 0.321, 'MEMORY_ORDER': 0.081, 'SPEC_RETURN': 0.044, 'CACHE_TEMPORAL': 0.033, 'FENCE_BOUNDARY': 0.03, 'RSB_CHAIN': 0.002}
+
+INCEPTION (n=48):
+  instr/record: mean=32.7 median=37 min=9 max=65
+  pdg nodes/record: mean=32.7  pdg edges/record: mean=108.4
+  edge-type fractions: {'DATA_DEP': 0.479, 'CONTROL_FLOW': 0.292, 'MEMORY_ORDER': 0.08, 'SPEC_INDIRECT': 0.078, 'SPEC_RETURN': 0.039, 'SPEC_CONDITIONAL': 0.019, 'FENCE_BOUNDARY': 0.009, 'RSB_CHAIN': 0.004}
+
+SPECTRE_V2 (n=14):
+  instr/record: mean=61.2 median=49 min=9 max=325
+  pdg nodes/record: mean=61.2  pdg edges/record: mean=226.4
+  edge-type fractions: {'DATA_DEP': 0.548, 'CONTROL_FLOW': 0.266, 'MEMORY_ORDER': 0.086, 'SPEC_RETURN': 0.048, 'SPEC_INDIRECT': 0.022, 'SPEC_CONDITIONAL': 0.015, 'FENCE_BOUNDARY': 0.009, 'RSB_CHAIN': 0.005}
+
+L1TF (n=162):
+  instr/record: mean=26.0 median=27 min=7 max=53
+  pdg nodes/record: mean=26.0  pdg edges/record: mean=82.5
+  edge-type fractions: {'DATA_DEP': 0.463, 'CONTROL_FLOW': 0.302, 'MEMORY_ORDER': 0.101, 'SPEC_RETURN': 0.07, 'FENCE_BOUNDARY': 0.038, 'CACHE_TEMPORAL': 0.02, 'RSB_CHAIN': 0.006}
+
+BENIGN (n=2):
+  instr/record: mean=147.5 median=148 min=77 max=218
+  pdg nodes/record: mean=147.5  pdg edges/record: mean=615.5
+  edge-type fractions: {'DATA_DEP': 0.587, 'CONTROL_FLOW': 0.238, 'MEMORY_ORDER': 0.093, 'SPEC_RETURN': 0.038, 'SPEC_CONDITIONAL': 0.037, 'RSB_CHAIN': 0.006}
+
+======================================================================
+H3: instruction count / PDG node count / edge count, x86/ARM v54_train.jsonl
+======================================================================
+
+BRANCH_HISTORY_INJECTION (n=194, sampled 150 for graph stats):
+  instr/record: mean=28.6 median=21 min=8 max=234
+  pdg nodes/record: mean=27.4  pdg edges/record: mean=62.6
+  edge-type fractions: {'CONTROL_FLOW': 0.421, 'DATA_DEP': 0.349, 'SPEC_INDIRECT': 0.119, 'MEMORY_ORDER': 0.043, 'SPEC_CONDITIONAL': 0.025, 'SPEC_RETURN': 0.016, 'FENCE_BOUNDARY': 0.014, 'RSB_CHAIN': 0.011, 'CACHE_TEMPORAL': 0.001}
+
+RETBLEED (n=216, sampled 150 for graph stats):
+  instr/record: mean=55.7 median=34 min=9 max=378
+  pdg nodes/record: mean=58.4  pdg edges/record: mean=127.3
+  edge-type fractions: {'DATA_DEP': 0.456, 'CONTROL_FLOW': 0.451, 'SPEC_CONDITIONAL': 0.035, 'SPEC_RETURN': 0.032, 'FENCE_BOUNDARY': 0.014, 'RSB_CHAIN': 0.01, 'CACHE_TEMPORAL': 0.002, 'MEMORY_ORDER': 0.001}
+
+MDS (n=161, sampled 150 for graph stats):
+  instr/record: mean=54.5 median=24 min=8 max=500
+  pdg nodes/record: mean=55.9  pdg edges/record: mean=114.8
+  edge-type fractions: {'CONTROL_FLOW': 0.478, 'DATA_DEP': 0.449, 'FENCE_BOUNDARY': 0.034, 'SPEC_CONDITIONAL': 0.018, 'SPEC_RETURN': 0.013, 'RSB_CHAIN': 0.004, 'CACHE_TEMPORAL': 0.003}
+
+INCEPTION (n=366, sampled 150 for graph stats):
+  instr/record: mean=21.6 median=18 min=8 max=104
+  pdg nodes/record: mean=20.6  pdg edges/record: mean=40.6
+  edge-type fractions: {'CONTROL_FLOW': 0.482, 'DATA_DEP': 0.289, 'SPEC_INDIRECT': 0.116, 'MEMORY_ORDER': 0.035, 'SPEC_RETURN': 0.028, 'SPEC_CONDITIONAL': 0.021, 'FENCE_BOUNDARY': 0.014, 'RSB_CHAIN': 0.014, 'CACHE_TEMPORAL': 0.001}
+
+SPECTRE_V2 (n=400, sampled 150 for graph stats):
+  instr/record: mean=29.8 median=28 min=5 max=63
+  pdg nodes/record: mean=29.5  pdg edges/record: mean=57.6
+  edge-type fractions: {'CONTROL_FLOW': 0.495, 'DATA_DEP': 0.304, 'SPEC_INDIRECT': 0.12, 'MEMORY_ORDER': 0.025, 'SPEC_RETURN': 0.023, 'RSB_CHAIN': 0.013, 'SPEC_CONDITIONAL': 0.011, 'FENCE_BOUNDARY': 0.009}
+
+L1TF (n=161, sampled 150 for graph stats):
+  instr/record: mean=33.5 median=24 min=8 max=150
+  pdg nodes/record: mean=33.9  pdg edges/record: mean=62.7
+  edge-type fractions: {'CONTROL_FLOW': 0.525, 'DATA_DEP': 0.389, 'FENCE_BOUNDARY': 0.028, 'SPEC_RETURN': 0.023, 'CACHE_TEMPORAL': 0.015, 'SPEC_CONDITIONAL': 0.011, 'RSB_CHAIN': 0.009}
+
+BENIGN (n=2820, sampled 150 for graph stats):
+  instr/record: mean=27.7 median=29 min=9 max=36
+  pdg nodes/record: mean=28.4  pdg edges/record: mean=63.5
+  edge-type fractions: {'CONTROL_FLOW': 0.431, 'DATA_DEP': 0.421, 'SPEC_CONDITIONAL': 0.075, 'MEMORY_ORDER': 0.062, 'SPEC_RETURN': 0.01, 'RSB_CHAIN': 0.001}
+
+======================================================================
+H2: L1 distance between RISC-V-BHI edge-type distribution and each
+    x86/ARM-training class's edge-type distribution (lower = more similar)
+======================================================================
+  RISC-V-BHI vs x86/ARM-RETBLEED: L1=0.416  <-- closest
+  RISC-V-BHI vs x86/ARM-BENIGN: L1=0.441
+  RISC-V-BHI vs x86/ARM-MDS: L1=0.464
+  RISC-V-BHI vs x86/ARM-BRANCH_HISTORY_INJECTION: L1=0.479
+  RISC-V-BHI vs x86/ARM-L1TF: L1=0.552
+  RISC-V-BHI vs x86/ARM-INCEPTION: L1=0.589
+  RISC-V-BHI vs x86/ARM-SPECTRE_V2: L1=0.601

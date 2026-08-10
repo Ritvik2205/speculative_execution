@@ -1,0 +1,40 @@
+
+RETBLEED->RETBLEED (n=33):
+  instr/record: mean=20.6 median=18
+  edge-type fractions: {'CONTROL_FLOW': 0.606, 'DATA_DEP': 0.152, 'SPEC_RETURN': 0.096, 'FENCE_BOUNDARY': 0.043, 'RSB_CHAIN': 0.042, 'MEMORY_ORDER': 0.041, 'SPEC_CONDITIONAL': 0.02}
+
+RETBLEED->INCEPTION (n=35):
+  instr/record: mean=53.6 median=49
+  edge-type fractions: {'DATA_DEP': 0.496, 'CONTROL_FLOW': 0.298, 'MEMORY_ORDER': 0.091, 'SPEC_RETURN': 0.087, 'SPEC_CONDITIONAL': 0.011, 'RSB_CHAIN': 0.01, 'FENCE_BOUNDARY': 0.006}
+
+RETBLEED->BENIGN (n=33):
+  instr/record: mean=42.6 median=45
+  edge-type fractions: {'DATA_DEP': 0.493, 'CONTROL_FLOW': 0.281, 'MEMORY_ORDER': 0.094, 'SPEC_RETURN': 0.09, 'SPEC_CONDITIONAL': 0.022, 'RSB_CHAIN': 0.012, 'FENCE_BOUNDARY': 0.008}
+
+MDS->MDS (n=4):
+  instr/record: mean=47.5 median=48
+  edge-type fractions: {'DATA_DEP': 0.495, 'CONTROL_FLOW': 0.307, 'MEMORY_ORDER': 0.083, 'SPEC_RETURN': 0.05, 'CACHE_TEMPORAL': 0.04, 'FENCE_BOUNDARY': 0.023, 'RSB_CHAIN': 0.003}
+
+MDS->BENIGN (n=26):
+  instr/record: mean=38.2 median=26
+  edge-type fractions: {'DATA_DEP': 0.487, 'CONTROL_FLOW': 0.321, 'MEMORY_ORDER': 0.079, 'SPEC_RETURN': 0.043, 'CACHE_TEMPORAL': 0.035, 'FENCE_BOUNDARY': 0.033, 'RSB_CHAIN': 0.002}
+
+MDS->L1TF (n=4):
+  instr/record: mean=53.0 median=53
+  edge-type fractions: {'DATA_DEP': 0.515, 'CONTROL_FLOW': 0.313, 'MEMORY_ORDER': 0.09, 'SPEC_RETURN': 0.051, 'FENCE_BOUNDARY': 0.015, 'CACHE_TEMPORAL': 0.015}
+
+INCEPTION->INCEPTION (n=29):
+  instr/record: mean=32.1 median=26
+  edge-type fractions: {'DATA_DEP': 0.468, 'CONTROL_FLOW': 0.306, 'SPEC_INDIRECT': 0.085, 'MEMORY_ORDER': 0.074, 'SPEC_RETURN': 0.037, 'SPEC_CONDITIONAL': 0.015, 'FENCE_BOUNDARY': 0.009, 'RSB_CHAIN': 0.004}
+
+INCEPTION->BENIGN (n=14):
+  instr/record: mean=40.2 median=41
+  edge-type fractions: {'DATA_DEP': 0.511, 'CONTROL_FLOW': 0.258, 'MEMORY_ORDER': 0.093, 'SPEC_INDIRECT': 0.06, 'SPEC_RETURN': 0.044, 'SPEC_CONDITIONAL': 0.025, 'FENCE_BOUNDARY': 0.007, 'RSB_CHAIN': 0.003}
+
+L1TF->L1TF (n=60):
+  instr/record: mean=12.0 median=9
+  edge-type fractions: {'CONTROL_FLOW': 0.499, 'DATA_DEP': 0.245, 'FENCE_BOUNDARY': 0.148, 'CACHE_TEMPORAL': 0.049, 'MEMORY_ORDER': 0.039, 'SPEC_RETURN': 0.018, 'RSB_CHAIN': 0.002}
+
+L1TF->BENIGN (n=57):
+  instr/record: mean=40.2 median=39
+  edge-type fractions: {'DATA_DEP': 0.502, 'CONTROL_FLOW': 0.265, 'MEMORY_ORDER': 0.111, 'SPEC_RETURN': 0.079, 'FENCE_BOUNDARY': 0.02, 'CACHE_TEMPORAL': 0.017, 'RSB_CHAIN': 0.006}

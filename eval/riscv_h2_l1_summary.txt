@@ -1,0 +1,4 @@
+misclassified-BHI vs xa-BHI: 0.501
+misclassified-BHI vs xa-MDS: 0.485
+correct-BHI vs xa-BHI: 0.167
+correct-BHI vs xa-MDS: 0.419

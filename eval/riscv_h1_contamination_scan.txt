@@ -1,0 +1,16 @@
+corpus files scanned: 498  (label=None skipped: 2)
+
+class                         files   files_w_APP_contam  blocks_total  blocks_contam
+BENIGN                            2                    0             0              0
+BRANCH_HISTORY_INJECTION        116                    0           629              0
+INCEPTION                        48                    0           124              0
+L1TF                            162                    0           340              0
+MDS                              36                    0           114              0
+RETBLEED                        102                    0           287              0
+SPECTRE_RSB                       4                    0             0              0
+SPECTRE_V2                       14                    0            44              0
+SPECTRE_V4                       12                    0            26              0
+
+Top foreign mnemonics found, by class:
+
+Example contaminated blocks (up to 3 per class):

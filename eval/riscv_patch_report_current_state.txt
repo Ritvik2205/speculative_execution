@@ -1,0 +1,170 @@
+riscv_corpus files: 498
+total #APP blocks found: 1564
+translated: 460
+unmatched (flagged, not guessed): 1104
+
+======================================================================
+UNMATCHED BLOCKS:
+======================================================================
+
+c_vulns_c_code_bhi.O0.riscv64.s
+  reason: unmatched stmt(s): ['j 1f']
+  body: 'j 1f\n1:'
+
+c_vulns_c_code_bhi.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5'
+
+c_vulns_c_code_bhi.O2.riscv64.s
+  reason: unmatched stmt(s): ['j 1f', 'jalr a3']
+  body: 'j 1f\n1:\njalr a3'
+
+c_vulns_c_code_bhi.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a3']
+  body: 'nop\njalr a3'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_0.O0.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_0.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_0.O2.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_0.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5', 'jalr a5']
+  body: 'jalr a5\njalr a5'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_1.O0.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_1.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_1.O2.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_1.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a4']
+  body: 'jalr a4\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_2.O0.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_2.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5\nnop\nnop\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_2.O2.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_2.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a4']
+  body: 'jalr a4\nnop\nnop\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_3.O0.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_3.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_3.O2.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_3.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a4']
+  body: 'jalr a4'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_4.O0.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_4.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_4.O2.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_4.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_5.O0.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_5.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5\nnop\nnop\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_5.O2.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_5.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a4']
+  body: 'jalr a4\nnop\nnop\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_6.O0.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_6.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_6.O2.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_6.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a4']
+  body: 'jalr a4'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_7.O0.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_7.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_7.O2.riscv64.s
+  reason: unmatched stmt(s): ['fence', 'fence.i']
+  body: 'fence\nfence.i'
+
+c_vulns_c_code_enhanced_variants_inception_arm64_gen_7.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a4']
+  body: 'jalr a4\nnop\nnop'
+
+c_vulns_c_code_enhanced_variants_inception_call_x86_64_gen_0.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5'
+
+c_vulns_c_code_enhanced_variants_inception_call_x86_64_gen_0.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5'
+
+c_vulns_c_code_enhanced_variants_inception_call_x86_64_gen_0.O2.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5'
+
+c_vulns_c_code_enhanced_variants_inception_call_x86_64_gen_1.O0.riscv64.s
+  reason: unmatched stmt(s): ['jalr a5']
+  body: 'jalr a5\nnop\nnop'
+
+(report-only — no files were modified)
