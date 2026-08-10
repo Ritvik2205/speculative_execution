@@ -297,6 +297,23 @@ Best performing vulnerability detection:
 - Normalize features with StandardScaler before ML training
 - Document new features in MODEL_ARCHITECTURE.md
 
+### Feature / Spec Change Gate
+
+Before trusting or merging any change to `spec/*.json`, `v54/pdg_builder.py`,
+or a "learned features achieve parity/lift" claim, run:
+
+```bash
+./scripts/run_feature_gate.sh
+```
+
+This checks (1) independent-oracle (llvm-mc + capstone) control-flow
+agreement hasn't regressed vs. the recorded baseline (`spec/oracle_baseline.json`),
+and (2) reports per-class recall lift for learned-feature fusion vs. the
+cached multi-seed `eval/full_tost/` results — single-seed "parity" numbers are
+not trusted in this repo (see `spec/PHASE0_EXTERNAL_FINDINGS.md` and
+`eval/equivalence_tost.py` for why). Adding a new ISA? See
+`spec/ONBOARDING_NEW_ISA.md`.
+
 ### Model Versioning
 
 Models are versioned sequentially (v19-v33+):
