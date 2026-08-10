@@ -19,7 +19,11 @@ OUT = os.path.join(REPO, "oracle", "results", "leak_dataset.jsonl")
 def build(points, out_path=OUT):
     grid_dir = os.path.join(REPO, "gen", "synth", "grid_out")
     rows = generate_grid(grid_dir, points)
-    v = InvisiSpecValidator(REPO, timeout=1800)
+    # 1800s (the original default, calibrated for the project's original Mac
+    # at "~10 min/gadget") is too short on this host: the reference
+    # spectre_full.c PoC took ~50-90min here and genuinely leaks, but a
+    # 1800s cap reports it as a false "unrunnable"/timeout instead.
+    v = InvisiSpecValidator(REPO, timeout=5400)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     records = []
     with open(out_path, "w") as f:
