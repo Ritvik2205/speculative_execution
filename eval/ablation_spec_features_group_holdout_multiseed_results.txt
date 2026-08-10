@@ -1,0 +1,17 @@
+train=../eval/data/group_holdout_train.jsonl  test=../eval/data/group_holdout_test.jsonl
+
+spec-generic dim=42 (zero ISA literals in code)  hand=58  mlm=128
+
+seeds=[42, 1, 7, 13, 21, 100, 7654, 8, 88, 999]  (n=10)
+
+feature set             dim    test-acc (mean +/- 95%CI)    macro-F1 (mean +/- 95%CI)
+------------------------------------------------------------------------------------------
+spec-generic             42  92.36% +/- 0.31pp            84.70% +/- 0.41pp
+hand-58                  58  93.90% +/- 0.27pp            87.88% +/- 0.52pp
+spec+hand               100  93.54% +/- 0.29pp            87.50% +/- 0.42pp
+spec+MLM (two-tier)     170  90.40% +/- 0.24pp            81.50% +/- 0.54pp
+hand+MLM                186  90.89% +/- 0.20pp            82.12% +/- 0.41pp
+spec+hand+MLM           228  91.38% +/- 0.26pp            83.48% +/- 0.55pp
+
+--- paired-by-seed comparison: spec-generic vs hand-58 (same seed => same train/test split, only RF randomness differs) ---
+diff (spec - hand): mean=-1.55pp  95%CI=[-2.01, -1.08]pp  -> hand-58 wins (CI excludes zero, hand > spec)

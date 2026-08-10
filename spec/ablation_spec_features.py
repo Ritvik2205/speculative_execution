@@ -28,8 +28,21 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
+
+
+def ci95(x):
+    """Mean and t-distribution 95% CI half-width (matches eval/equivalence_tost.py)."""
+    x = np.asarray(x, dtype=float)
+    n = len(x)
+    m = x.mean()
+    if n < 2:
+        return m, 0.0
+    se = x.std(ddof=1) / np.sqrt(n)
+    h = se * stats.t.ppf(0.975, n - 1)
+    return m, h
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "v54"))
@@ -53,6 +66,7 @@ def main():
                     help="override train jsonl (default: locked v54_train.jsonl)")
     ap.add_argument("--test-data", default=None,
                     help="override test jsonl (default: locked v54_test.jsonl)")
+    ap.add_argument("--seeds", type=int, nargs="+", default=[42])
     args = ap.parse_args()
 
     engines = {a: load_engine(f) for a, f in ENGINES.items()}
@@ -98,15 +112,53 @@ def main():
 
     print(f"spec-generic dim={Xtr_spec.shape[1]} (zero ISA literals in code)  "
           f"hand={Xtr_hand.shape[1]}  mlm={Xtr_mlm.shape[1]}\n")
-    print(f"{'feature set':22s} {'dim':>4s} {'test-acc':>9s} {'macro-F1':>9s}")
-    print("-" * 50)
-    for name, (Xtr, Xte) in configs.items():
+
+    def run_one(Xtr, Xte, seed):
         clf = RandomForestClassifier(n_estimators=300, n_jobs=-1,
-                                     random_state=42, class_weight="balanced")
+                                     random_state=seed, class_weight="balanced")
         clf.fit(Xtr, ytr)
         p = clf.predict(Xte)
-        print(f"{name:22s} {Xtr.shape[1]:4d} {accuracy_score(yte,p)*100:8.2f}% "
-              f"{f1_score(yte,p,average='macro')*100:8.2f}%")
+        return accuracy_score(yte, p) * 100, f1_score(yte, p, average="macro") * 100
+
+    if len(args.seeds) == 1:
+        seed = args.seeds[0]
+        print(f"{'feature set':22s} {'dim':>4s} {'test-acc':>9s} {'macro-F1':>9s}")
+        print("-" * 50)
+        for name, (Xtr, Xte) in configs.items():
+            acc, f1 = run_one(Xtr, Xte, seed)
+            print(f"{name:22s} {Xtr.shape[1]:4d} {acc:8.2f}% {f1:8.2f}%")
+        return
+
+    print(f"seeds={args.seeds}  (n={len(args.seeds)})\n")
+    print(f"{'feature set':22s} {'dim':>4s} {'test-acc (mean +/- 95%CI)':>28s} "
+          f"{'macro-F1 (mean +/- 95%CI)':>28s}")
+    print("-" * 90)
+    results = {}
+    for name, (Xtr, Xte) in configs.items():
+        accs, f1s = [], []
+        for sd in args.seeds:
+            acc, f1 = run_one(Xtr, Xte, sd)
+            accs.append(acc); f1s.append(f1)
+        results[name] = (np.array(accs), np.array(f1s))
+        am, ah = ci95(accs)
+        fm, fh = ci95(f1s)
+        print(f"{name:22s} {Xtr.shape[1]:4d} {am:6.2f}% +/- {ah:4.2f}pp"
+              f"           {fm:6.2f}% +/- {fh:4.2f}pp")
+
+    print("\n--- paired-by-seed comparison: spec-generic vs hand-58 "
+          "(same seed => same train/test split, only RF randomness differs) ---")
+    spec_accs = results["spec-generic"][0]
+    hand_accs = results["hand-58"][0]
+    diffs = spec_accs - hand_accs
+    dm, dh = ci95(diffs)
+    lo, hi = dm - dh, dm + dh
+    if lo > 0:
+        verdict = "spec-generic wins (CI excludes zero, spec > hand)"
+    elif hi < 0:
+        verdict = "hand-58 wins (CI excludes zero, hand > spec)"
+    else:
+        verdict = "not distinguishable from noise at this seed count (CI straddles zero)"
+    print(f"diff (spec - hand): mean={dm:+.2f}pp  95%CI=[{lo:+.2f}, {hi:+.2f}]pp  -> {verdict}")
 
 
 if __name__ == "__main__":
