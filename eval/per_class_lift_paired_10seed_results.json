@@ -1,0 +1,353 @@
+{
+  "meta": {
+    "results_dir": "eval/full_tost",
+    "other_mode": "both",
+    "seeds": [
+      42,
+      1,
+      7,
+      13,
+      21,
+      100,
+      7654,
+      8,
+      88,
+      999
+    ],
+    "method": "paired_t_ci",
+    "correction": "bonferroni",
+    "generated_by": "eval/per_class_lift.py --paired"
+  },
+  "classes": {
+    "BENIGN": {
+      "mean_diff": -0.01610087293889425,
+      "std_diff": 0.00895051094626485,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        -0.02250368275642904,
+        -0.009698063121359457
+      ],
+      "significant_uncorrected": true,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.026352209065085973,
+        -0.0058495368127025275
+      ],
+      "significant_corrected": true
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "mean_diff": 0.014925373134328323,
+      "std_diff": 0.03587613209416909,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        -0.010738865719385456,
+        0.040589611988042104
+      ],
+      "significant_uncorrected": false,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.026164827326066606,
+        0.056015573594723256
+      ],
+      "significant_corrected": false
+    },
+    "INCEPTION": {
+      "mean_diff": -0.0276595744680851,
+      "std_diff": 0.08243441529671086,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        -0.08662960274169806,
+        0.031310453805527855
+      ],
+      "significant_uncorrected": false,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.122074620116995,
+        0.0667554711808248
+      ],
+      "significant_corrected": false
+    },
+    "L1TF": {
+      "mean_diff": 0.04864864864864864,
+      "std_diff": 0.09602099167188632,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        -0.020040630863684114,
+        0.11733792816098139
+      ],
+      "significant_uncorrected": false,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.06132758250824866,
+        0.15862487980554593
+      ],
+      "significant_corrected": false
+    },
+    "MDS": {
+      "mean_diff": -0.026666666666666717,
+      "std_diff": 0.04542136212372117,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        -0.05915915174126786,
+        0.005825818407934429
+      ],
+      "significant_uncorrected": false,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.07868935601202211,
+        0.02535602267868867
+      ],
+      "significant_corrected": false
+    },
+    "RETBLEED": {
+      "mean_diff": 0.029333333333333333,
+      "std_diff": 0.03544427028867004,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        0.003978029804615892,
+        0.05468863686205078
+      ],
+      "significant_uncorrected": true,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.011262240557158094,
+        0.06992890722382476
+      ],
+      "significant_corrected": false
+    },
+    "SPECTRE_RSB": {
+      "mean_diff": -0.3,
+      "std_diff": 0.8232726023485647,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": true,
+      "excluded_from_bonferroni_denominator": true,
+      "ci95_uncorrected": [
+        -0.8889337416010381,
+        0.2889337416010382
+      ],
+      "significant_uncorrected": false,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -1.2429231717415723,
+        0.6429231717415722
+      ],
+      "significant_corrected": false
+    },
+    "SPECTRE_V1": {
+      "mean_diff": -0.030952380952380964,
+      "std_diff": 0.022587697572631273,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        -0.0471106464013388,
+        -0.014794115503423123
+      ],
+      "significant_uncorrected": true,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.05682286829371405,
+        -0.005081893611047876
+      ],
+      "significant_corrected": true
+    },
+    "SPECTRE_V2": {
+      "mean_diff": -0.1279220779220779,
+      "std_diff": 0.09665659485782806,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        -0.19706604056294227,
+        -0.058778115281213544
+      ],
+      "significant_uncorrected": true,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.23862628784366086,
+        -0.017217868000494976
+      ],
+      "significant_corrected": true
+    },
+    "SPECTRE_V4": {
+      "mean_diff": -0.0024193548387096754,
+      "std_diff": 0.005443133529923809,
+      "n_paired_seeds": 10,
+      "paired_seeds": [
+        42,
+        1,
+        7,
+        13,
+        21,
+        100,
+        7654,
+        8,
+        88,
+        999
+      ],
+      "dropped_seeds": [],
+      "low_support": false,
+      "excluded_from_bonferroni_denominator": false,
+      "ci95_uncorrected": [
+        -0.006313137999557362,
+        0.0014744283221380114
+      ],
+      "significant_uncorrected": false,
+      "correction": "bonferroni",
+      "alpha_used": 0.005555555555555556,
+      "n_classes_tested": 9,
+      "ci_corrected": [
+        -0.00865356780487326,
+        0.003814858127453908
+      ],
+      "significant_corrected": false
+    }
+  }
+}

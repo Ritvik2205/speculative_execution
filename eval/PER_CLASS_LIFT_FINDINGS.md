@@ -78,3 +78,132 @@ account for the SPECTRE_V2 regression rather than wave it away.
 - Script: `eval/per_class_lift.py`.
 - Source runs: locked 5-seed `eval/full_tost/` classification reports
   (`viz_{hand,both}_s{seed}/gine_metrics.json`).
+
+## Update: paired CI, Bonferroni correction, 10 seeds
+
+The 5-seed result above has two known weaknesses for a paper citation:
+
+1. **Unpaired CI on paired data.** `hand` and `both` are trained from the
+   *same* seeds (42, 1, 7, 13, 21) — only the node-feature mode differs. The
+   original analysis used an unpaired two-sample Welch CI on the difference
+   of means, discarding that pairing. A one-sample paired t-CI on the
+   per-seed diffs (`both[seed] - hand[seed]`) is tighter and the correct
+   choice when the same seed drives both runs.
+2. **No multiple-comparisons correction.** 10 classes were tested at
+   α=0.05 each; SPECTRE_V2's original CI `[-0.229, -0.007]` barely excluded
+   zero and was a candidate to not survive Bonferroni (effective
+   α=0.05/n_tested).
+
+Both are fixed in `eval/per_class_lift.py` (`--paired`, `--correction
+bonferroni`), and the seed pool was extended from 5 to 10 seeds for `hand`
+and `both` only (`learned`-only skipped — not needed for this claim). Five
+new seeds not previously used were added: `100, 7654, 8, 88, 999` (same pool
+convention as `eval/equivalence_tost.py`), trained with the identical
+hyperparameters as `eval/run_full_tost.sh` (epochs=60, patience=10,
+hidden=128, layers=3, jk=cat, batch=32, lr=1e-3, `--use-spec-builder`) via
+`eval/run_full_tost_extra_seeds.sh`. All 10 training runs completed without
+error; final test accuracies ranged 93.2–96.8% (hand) and 93.2–94.2% (both),
+in line with the original 5-seed runs.
+
+Command:
+```
+python3 eval/per_class_lift.py --results-dir eval/full_tost --other-mode both \
+  --seeds 42 1 7 13 21 100 7654 8 88 999 --paired --correction bonferroni \
+  --out eval/per_class_lift_paired_10seed_results.json
+```
+
+`n_classes_tested = 9` for the Bonferroni denominator (SPECTRE_RSB excluded:
+support = 1 in every seed's classification report — a single test example
+gives a binary 0/1 recall that isn't a meaningful statistical test and would
+otherwise inflate n and needlessly tighten the correction for the classes
+that *are* testable). Bonferroni-corrected CI uses α = 0.05/9 ≈ 0.00556
+(99.44% CI).
+
+### Paired, Bonferroni-corrected, 10-seed results for the three classes of interest
+
+| class | mean diff (both − hand) | paired 95% CI (uncorrected) | sig (uncorrected) | paired CI (Bonferroni, α=0.05/9) | sig (Bonferroni) |
+|---|---|---|---|---|---|
+| **SPECTRE_V2** | **-0.128** | [-0.197, -0.059] | YES | **[-0.239, -0.017]** | **YES — survives** |
+| **L1TF** | +0.049 | [-0.020, +0.117] | no | [-0.061, +0.159] | no |
+| **RETBLEED** | +0.029 | [+0.004, +0.055] | YES | [-0.011, +0.070] | no — does not survive |
+
+(Full per-class table, all 10 classes, in
+`eval/per_class_lift_paired_10seed_results.json`.)
+
+### Interpretation — was the original finding real?
+
+**SPECTRE_V2's recall loss is real and holds up.** At 10 seeds, paired, with
+a Bonferroni correction across all 9 testable classes, the loss is still
+-0.128 (essentially unchanged from the 5-seed -0.118) and the CI still
+excludes 0 ([-0.239, -0.017]). This is the strongest-surviving result in the
+table — the only one of the three headline classes whose effect holds under
+both a stricter (paired) CI estimator *and* a stricter (Bonferroni)
+significance threshold, at double the seed count. Per-seed diffs are
+negative in 9 of 10 seeds (only seed 7654 is slightly positive, +0.045; see
+raw per-seed diffs recomputed via `load_recalls_by_seed` during this
+analysis). **This is citable**: fusion measurably and consistently costs
+SPECTRE_V2 recall relative to hand-only features, and the original 5-seed
+finding was not an artifact.
+
+**L1TF's positive lift does NOT hold up and should not be cited as-is.**
+This is the more important finding of this rerun. At 5 seeds L1TF showed the
+largest, cleanest positive effect in the table (+0.119, CI [+0.068,
++0.170]). At 10 seeds the mean diff collapses to +0.049 and the CI
+([-0.020, +0.117]) crosses zero even *before* any multiple-comparisons
+correction. Looking at the per-seed diffs, the five original seeds
+(42,1,7,13,21) are all positive and fairly large (+0.03 to +0.16), but three
+of the five new seeds are near-zero or negative (7654: -0.108, 88: -0.054,
+999: -0.054). L1TF's recall is already known to be volatile at the
+window/gadget-structure level (see `MEMORY.md`: "L1TF timing loops
+structurally identical to MDS timing loops"), and this looks like exactly
+that noise showing up once the seed count doubled — the original 5-seed
+sample was, in hindsight, an unlucky/lucky draw in one direction. **A paper
+citing "fusion significantly lifts L1TF recall" based on the 5-seed number
+would be citing a result that doesn't reproduce at 10 seeds.**
+
+**RETBLEED's positive lift is directionally consistent but does not survive
+correction.** The point estimate is stable (+0.032 at 5 seeds, +0.029 at 10
+seeds), and it stays nominally significant uncorrected (CI [+0.004,
++0.055]). But it does not survive Bonferroni ([-0.011, +0.070] crosses 0).
+Unlike L1TF, the effect direction is consistent across seeds (only seed 7654
+is negative, -0.053, out of 10) — so this reads less like "the effect isn't
+real" and more like "the effect is real but small, and 10 seeds isn't enough
+power to clear a 9-way Bonferroni bar for an effect this size." Directionally
+supportive of the original claim; not citable as a corrected-significant
+result without more seeds or a less conservative correction (e.g.
+Benjamini-Hochberg FDR).
+
+### Revised bottom line for a paper
+
+Of the three headline classes from the original 5-seed analysis:
+
+- **SPECTRE_V2 recall loss from fusion**: confirmed, strengthens under
+  stricter treatment. Cite this one.
+- **L1TF recall lift from fusion**: refuted at 10 seeds — do not cite the
+  original 5-seed number; report as "not statistically distinguishable from
+  noise" or investigate further (more seeds, or examine whether the 5 new
+  seeds systematically differ in some confound, e.g. train/val split
+  composition, before concluding the effect is purely noise).
+- **RETBLEED recall lift from fusion**: directionally consistent but
+  unconfirmed at the Bonferroni-corrected level; report as suggestive, not
+  significant, or rerun with more seeds / a less conservative correction
+  before citing.
+
+This is a concrete illustration of why the paired-CI and multiple-comparisons
+fixes mattered: the unpaired, uncorrected 5-seed table would have shipped
+three "significant" positive/negative findings; the paired,
+Bonferroni-corrected 10-seed table supports exactly one.
+
+### Updated data provenance
+
+- Underlying data: `eval/per_class_lift_paired_10seed_results.json`
+  (generated by `eval/per_class_lift.py --results-dir eval/full_tost
+  --other-mode both --seeds 42 1 7 13 21 100 7654 8 88 999 --paired
+  --correction bonferroni --out eval/per_class_lift_paired_10seed_results.json`).
+- New functions: `load_recalls_by_seed`, `load_support_by_seed`,
+  `paired_per_class_lift` in `eval/per_class_lift.py` (the original
+  `load_recalls`/`per_class_lift` unpaired functions are unchanged and still
+  used by `tests/gate/test_per_class_lift.py`).
+- New seed training runs: `eval/full_tost/viz_{hand,both}_s{100,7654,8,88,999}/`,
+  produced by `eval/run_full_tost_extra_seeds.sh` (same hyperparameters as
+  `eval/run_full_tost.sh`, `learned` mode skipped).
