@@ -15,6 +15,7 @@ corpus. Run:  python3 spec/validate_riscv_corpus.py
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from collections import Counter
@@ -48,6 +49,12 @@ def extract(path: Path):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--min-agreement", type=float, default=None,
+                    help="exit 1 if oracle agreement %% falls below this threshold "
+                         "(for gating new-ISA onboarding, see spec/ONBOARDING_NEW_ISA.md)")
+    args = ap.parse_args()
+
     files = sorted(CORPUS.glob("*.s"))
     if not files:
         print("no RV64 asm in riscv_corpus/ — run the compile step first")
@@ -92,10 +99,16 @@ def main():
                 agree += 1
             elif len(disagr) < 15:
                 disagr.append((ins, sc, o))
+    agreement_pct = 100 * agree / max(covered, 1)
     print(f"\nexternal-oracle (llvm-mc+capstone) control-flow agreement: "
-          f"{agree}/{covered} ({100*agree/max(covered,1):.2f}%) over {len(seen)} unique instrs")
+          f"{agree}/{covered} ({agreement_pct:.2f}%) over {len(seen)} unique instrs")
     for d in disagr:
         print("   disagree:", d)
+
+    if args.min_agreement is not None and agreement_pct < args.min_agreement:
+        print(f"FAIL: RISC-V oracle agreement {agreement_pct:.2f}% < "
+              f"required {args.min_agreement:.2f}%")
+        sys.exit(1)
 
     # 3. PDG graph build success + speculative edge coverage
     built = with_spec = 0
