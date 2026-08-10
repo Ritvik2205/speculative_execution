@@ -1,0 +1,14 @@
+{
+  "checked": 25942,
+  "covered": 22807,
+  "agree": 22533,
+  "agreement_pct": 98.79993858288815,
+  "confusion": {
+    "CALL": {"CALL": 60, "OTHER": 42},
+    "RET": {"RET": 18, "OTHER": 3},
+    "JUMP": {"JUMP": 749, "OTHER": 19},
+    "OTHER": {"CALL": 31, "JUMP": 179, "OTHER": 21706}
+  },
+  "disagreements": [],
+  "skipped_arch": {}
+}
