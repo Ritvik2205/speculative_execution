@@ -67,10 +67,36 @@ _ARM_REG_RE = re.compile(r'\b[xw](\d{1,2})\b')
 _X86_REG_RE = re.compile(r'%%?(eax|ebx|ecx|edx|esi|edi|ebp|esp|'
                           r'rax|rbx|rcx|rdx|rsi|rdi|rbp|rsp|al|bl)\b')
 
+# ARM w0/x0 (32-bit/64-bit views of the same physical register) and x86
+# eax/rax-style width aliases must canonicalize to ONE identity before
+# remap-slot assignment — otherwise the same physical register gets split
+# across two different RISC-V temps, silently breaking the data-flow edge
+# between instructions that read/write it at different widths (confirmed:
+# this broke the LOAD->SHIFT edge dataflow_taint.py needs for the L1TF/MDS
+# page-probe idiom, see eval/RISCV_DEEPER_ROOT_CAUSE.md H1).
+_X86_WIDTH_ALIAS = {
+    "eax": "rax", "al": "rax",
+    "ebx": "rbx", "bl": "rbx",
+    "ecx": "rcx", "edx": "rdx",
+    "esi": "rsi", "edi": "rdi",
+    "ebp": "rbp", "esp": "rsp",
+}
+
+
+def canonical_reg(norm: str) -> str:
+    """Map a literal register token to its canonical physical-register
+    identity, collapsing width aliases (w0/x0, eax/rax, al/rax, ...)."""
+    m = _ARM_REG_RE.fullmatch(norm)
+    if m:
+        return f"arm{m.group(1)}"
+    return _X86_WIDTH_ALIAS.get(norm, norm)
+
 
 def find_literal_registers(body: str) -> list[str]:
     """Return distinct literal scratch-register tokens in body, in
-    first-appearance order. Excludes %N placeholders (handled separately)."""
+    first-appearance order. Excludes %N placeholders (handled separately).
+    Returns CANONICAL identities (width aliases collapsed), not raw
+    tokens — see canonical_reg()."""
     # strip %N / %qN placeholders first so we don't misparse them
     stripped = re.sub(r'%q?\d+', '', body)
     seen: list[str] = []
@@ -83,8 +109,9 @@ def find_literal_registers(body: str) -> list[str]:
             "eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp",
             "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "rsp", "al", "bl",
         ):
-            if norm not in seen:
-                seen.append(norm)
+            canon = canonical_reg(norm)
+            if canon not in seen:
+                seen.append(canon)
     return seen
 
 
@@ -98,7 +125,8 @@ def apply_remap(stmt: str, remap: dict[str, str]) -> str:
     def _sub(m):
         tok = m.group(0)
         norm = tok.lstrip('%')
-        return remap.get(norm, tok)
+        canon = canonical_reg(norm)
+        return remap.get(canon, tok)
     return re.sub(r'%%?[a-zA-Z][a-zA-Z0-9]*|\b[xw]\d{1,2}\b', _sub, stmt)
 
 

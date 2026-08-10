@@ -1,0 +1,40 @@
+======================================================================
+BEFORE FIX (old buggy translator output, riscv_corpus at repo tip pre-fix)
+======================================================================
+
+repo: /Users/ritvikgupta/SpecExec  [BEFORE-old-buggy-corpus]
+alias-flagged files (from pre_corpus_fix originals): 68
+
+class                         files_checked  files_tainted  files_NOT_tainted
+L1TF                                     32              0                 32
+MDS                                      36              0                 36
+
+TOTAL: 0/68 alias-flagged files successfully taint (is_secret_source/is_transmitter fires)
+TOTAL still broken (taint does NOT fire): 68/68
+
+Still-broken examples:
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_0.O0.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_0.O2.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_1.O0.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_1.O2.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_2.O0.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_2.O2.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_3.O0.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_3.O2.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_4.O0.riscv64.s
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_4.O2.riscv64.s
+
+
+======================================================================
+AFTER FIX (regenerated with fixed translate_riscv_inline_asm.py)
+======================================================================
+
+repo: /Users/ritvikgupta/SpecExec/.claude/worktrees/agent-a04a35580d1ed9e5f  [AFTER-fixed-corpus]
+alias-flagged files (from pre_corpus_fix originals): 68
+
+class                         files_checked  files_tainted  files_NOT_tainted
+L1TF                                     32             32                  0
+MDS                                      36             36                  0
+
+TOTAL: 68/68 alias-flagged files successfully taint (is_secret_source/is_transmitter fires)
+TOTAL still broken (taint does NOT fire): 0/68
