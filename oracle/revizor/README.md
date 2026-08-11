@@ -36,44 +36,69 @@ for research):
 SPECTRE_V1 and SPECTRE_V4 are already double-confirmed via the simulator +
 symbolic oracles (`oracle/validators/`), so they are not the target here.
 
-## What is prepared in this repo (runs the moment you have x86 HW)
+## What is prepared in this repo
 
-- `Dockerfile.revizor` — an x86 image with Revizor installed and the x86-64 ISA
-  spec downloaded. Build/run it **on your x86 Linux host**.
-- `config.yaml` — contract + executor config (set `executor: x86-64-intel` or
-  `x86-64-amd` per your CPU).
-- `testcases/` — our attack classes expressed as Revizor test cases (see
-  `testcases/README.md`); use with `rvzr reproduce`.
-- `oracle/validators/revizor_validator.py` — a `RevizorValidator` that plugs into
-  the same cross-validation framework as Spectector/InvisiSpec, gated to run only
-  on x86 hardware.
+- `demo_configs/*.yaml` — self-contained `rvzr fuzz` campaigns (contract +
+  instruction categories) for SPECTRE_V1, SPECTRE_V4, L1TF
+  (`detect-foreshadow.yaml`), MDS, and INCEPTION (`tsa-sq/`, `tsa-l1d/`,
+  AMD-only). No pre-written `.asm` test cases needed — these generate random
+  test programs on the fly and check for contract violations. SPECTRE_V2 /
+  RETBLEED have no canned config yet (per `oracle/validators/revizor_validator.py`
+  — needs a hand-built fuzz campaign).
+- `scripts/` — the actual working setup, run natively on an x86 host (see
+  below); `oracle/validators/revizor_validator.py` — a `RevizorValidator` that
+  plugs into the same cross-validation framework as Spectector/InvisiSpec,
+  gated to run only on x86 hardware.
+- `Dockerfile.revizor` — kept for portability to other x86 hosts, but **does
+  not work out of the box on a bleeding-edge kernel** (see
+  `HARDWARE_VALIDATION_RESULTS.md` — the container's toolchain can be too old
+  for the flags the host kernel's Kbuild expects). On the actual target
+  machine, native build is simpler; see `scripts/`.
 
-## Run on the x86 machine
+## Run on the x86 machine (native — recommended)
 
 ```bash
-# 1. build the image on the x86 host
-docker build -t revizor:pinned -f oracle/revizor/Dockerfile.revizor oracle/revizor
+# 1. install Revizor into a venv + download the full instruction spec
+#    (download_spec needs --extensions ALL_SUPPORTED, or you'll get a
+#    near-empty 9-instruction spec that's missing even lfence/mfence)
+bash oracle/revizor/scripts/native_setup.sh
 
-# 2. run privileged so the executor kernel module can load + read perf counters
-docker run --privileged -v /lib/modules:/lib/modules -v "$PWD":/work revizor:pinned bash
+# 2. build + load the executor kernel module against the running kernel
+#    (module is rvzr/executor_km/rvzr_executor.ko, NOT executor_km/x86/x86-executor.ko)
+bash oracle/revizor/scripts/build_load_module.sh
 
-#   inside, build + load the executor kernel module (matches the host kernel):
-cd /opt/revizor/rvzr/executor_km/x86 && make && insmod x86-executor.ko
-
-# 3. reproduce a specific attack test case against the CPU
-rvzr reproduce -s /opt/revizor/base_x86.json -c /work/oracle/revizor/config.yaml \
-    -t /work/oracle/revizor/testcases/spectre_v2.asm -i 100
-
-#   Or fuzz to search for leaks of a contract:
-rvzr fuzz -s /opt/revizor/base_x86.json -c /work/oracle/revizor/config.yaml -n 100 -i 10 -w ./violations
+# 3. run a detection campaign (working dir must already exist — rvzr won't create it)
+source ~/sca-fuzzer/venv/bin/activate
+mkdir -p ~/rvzr_runs/v1 && sudo env "PATH=$PATH" rvzr fuzz \
+    -s ~/sca-fuzzer/base_x86.json \
+    -c oracle/revizor/demo_configs/detect-v1.yaml \
+    -n 200 -i 100 -w ~/rvzr_runs/v1 --nonstop
 ```
 
 A detected **contract violation** = the CPU leaks under speculation for that
 test case (a confirmed real-hardware leak). No violation on a patched CPU = the
-mitigation holds (not a tool failure).
+mitigation holds (not a tool failure). Revizor warns if SMT is on — treat a
+violation count as provisional until re-checked with SMT off
+(`/sys/devices/system/cpu/smt/control`, no reboot needed) to rule out
+sibling-thread noise; see `HARDWARE_VALIDATION_RESULTS.md`.
+
+## Docker path (for a different/portable x86 host)
+
+```bash
+docker build -t revizor:pinned -f oracle/revizor/Dockerfile.revizor oracle/revizor
+docker run --privileged -v /lib/modules:/lib/modules -v /usr/src:/usr/src \
+    -v "$PWD":/work revizor:pinned bash
+#   inside: cd /opt/revizor/rvzr/executor_km && make && insmod rvzr_executor.ko
+```
+
+Mount `/usr/src` too, not just `/lib/modules` — the `build` symlink under
+`/lib/modules/<kernel>/` points there, and the module build fails without it.
 
 ## Honest status
 
-This prep is **plug-and-run pending x86 hardware**. On the Apple-Silicon dev
-machine only the hardware-free **model backend** (Unicorn) can be exercised as a
-smoke test; the real leak confirmation requires the physical Intel/AMD CPU.
+**Executed** — see `HARDWARE_VALIDATION_RESULTS.md` for the actual run
+against real i5-8300H (Coffee Lake) hardware: MDS and L1TF showed real
+contract violations (MDS confirmed to survive SMT-off re-testing), SPECTRE_V1
+was independently reconfirmed on real hardware (already known-good from the
+simulator oracles), SPECTRE_V4 showed none this pass. SPECTRE_V2/RETBLEED and
+a mitigation-off pass remain open.
