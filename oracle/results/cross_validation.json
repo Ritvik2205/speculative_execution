@@ -2,6 +2,27 @@
   "results": [
     {
       "validator": "spectector",
+      "gadget_id": "synth_BENIGN",
+      "vuln_class": "BENIGN",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "status": "ok",
+        "adjudicable": "yes"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "synth_BENIGN",
+      "vuln_class": "BENIGN",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no execution_source (not a runnable PoC)"
+      }
+    },
+    {
+      "validator": "spectector",
       "gadget_id": "synth_SPECTRE_V1",
       "vuln_class": "SPECTRE_V1",
       "verdict": "leak",
@@ -22,6 +43,27 @@
         "n_success": 1,
         "n_attempts": 1,
         "style": "utils"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "synth_SPECTRE_V2",
+      "vuln_class": "SPECTRE_V2",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "status": "ok",
+        "adjudicable": "partial"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "synth_SPECTRE_V2",
+      "vuln_class": "SPECTRE_V2",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no execution_source (not a runnable PoC)"
       }
     },
     {
@@ -47,9 +89,301 @@
         "n_attempts": 1,
         "style": "utils"
       }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "synth_L1TF",
+      "vuln_class": "L1TF",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "status": "ok",
+        "adjudicable": "no"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "synth_L1TF",
+      "vuln_class": "L1TF",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no execution_source (not a runnable PoC)"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "synth_MDS",
+      "vuln_class": "MDS",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "status": "ok",
+        "adjudicable": "no"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "synth_MDS",
+      "vuln_class": "MDS",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no execution_source (not a runnable PoC)"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "synth_RETBLEED",
+      "vuln_class": "RETBLEED",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "status": "unrunnable",
+        "adjudicable": "partial"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "synth_RETBLEED",
+      "vuln_class": "RETBLEED",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no execution_source (not a runnable PoC)"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "synth_INCEPTION",
+      "vuln_class": "INCEPTION",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "status": "unrunnable",
+        "adjudicable": "no"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "synth_INCEPTION",
+      "vuln_class": "INCEPTION",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no execution_source (not a runnable PoC)"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "synth_BHI",
+      "vuln_class": "BHI",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "status": "ok",
+        "adjudicable": "no"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "synth_BHI",
+      "vuln_class": "BHI",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no execution_source (not a runnable PoC)"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "canon_spectre_1",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "canon_spectre_1",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "leaked": false,
+        "n_success": 0,
+        "n_attempts": 1,
+        "style": "utils"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "canon_spectre_2",
+      "vuln_class": "SPECTRE_V2",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "canon_spectre_2",
+      "vuln_class": "SPECTRE_V2",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "compile/run failed",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "canon_mds",
+      "vuln_class": "MDS",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "canon_mds",
+      "vuln_class": "MDS",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "compile/run failed",
+        "stderr_tail": "libpython2.7.so.1.0(PyEval_EvalCodeEx+0x7d8)[0x746406b26908]\n/usr/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalCode+0x19)[0x7464069e15d9]\n/usr/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyRun_StringFlags+0x76)[0x746406a916f6]\n--- END LIBC BACKTRACE ---\nFailed to execute default signal handler!\n"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "canon_l1tf",
+      "vuln_class": "L1TF",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "canon_l1tf",
+      "vuln_class": "L1TF",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "compile/run failed",
+        "stderr_tail": "ield unexpected results in various settings.\n      Returning '/work/oracle/build/canon_l1tf.invisi'\ninfo: Increasing stack size by one page.\nwarn: ignoring syscall access(...)\nwarn: ignoring syscall mprotect(...)\nwarn: ignoring syscall rt_sigprocmask(...)\n      (further warnings will be suppressed)\n"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "canon_bhi",
+      "vuln_class": "BHI",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "canon_bhi",
+      "vuln_class": "BHI",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "leaked": false,
+        "n_success": 0,
+        "n_attempts": 1,
+        "style": "utils"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "canon_retbleed",
+      "vuln_class": "RETBLEED",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "canon_retbleed",
+      "vuln_class": "RETBLEED",
+      "verdict": "safe",
+      "signal": 0.0,
+      "details": {
+        "leaked": false,
+        "n_success": 0,
+        "n_attempts": 1,
+        "style": "utils"
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "canon_inception",
+      "vuln_class": "INCEPTION",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "canon_inception",
+      "vuln_class": "INCEPTION",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "compile/run failed",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "validator": "spectector",
+      "gadget_id": "ref_spectre_full",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "unrunnable",
+      "signal": 0.0,
+      "details": {
+        "reason": "no spectector_source (no analyzable victim)"
+      }
+    },
+    {
+      "validator": "invisispec",
+      "gadget_id": "ref_spectre_full",
+      "vuln_class": "SPECTRE_V1",
+      "verdict": "leak",
+      "signal": 40.0,
+      "details": {
+        "leaked": true,
+        "n_success": 40,
+        "n_attempts": 40,
+        "style": "spectre_full"
+      }
     }
   ],
   "agreement": [
+    {
+      "gadget_id": "synth_BENIGN",
+      "vuln_class": "BENIGN",
+      "verdicts": {
+        "spectector": "safe",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
     {
       "gadget_id": "synth_SPECTRE_V1",
       "vuln_class": "SPECTRE_V1",
@@ -62,6 +396,17 @@
       "conflict": false
     },
     {
+      "gadget_id": "synth_SPECTRE_V2",
+      "vuln_class": "SPECTRE_V2",
+      "verdicts": {
+        "spectector": "safe",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
       "gadget_id": "synth_SPECTRE_V4",
       "vuln_class": "SPECTRE_V4",
       "verdicts": {
@@ -69,6 +414,149 @@
         "invisispec": "leak"
       },
       "both_confirm_leak": true,
+      "any_leak": true,
+      "conflict": false
+    },
+    {
+      "gadget_id": "synth_L1TF",
+      "vuln_class": "L1TF",
+      "verdicts": {
+        "spectector": "safe",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "synth_MDS",
+      "vuln_class": "MDS",
+      "verdicts": {
+        "spectector": "safe",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "synth_RETBLEED",
+      "vuln_class": "RETBLEED",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "synth_INCEPTION",
+      "vuln_class": "INCEPTION",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "synth_BHI",
+      "vuln_class": "BHI",
+      "verdicts": {
+        "spectector": "safe",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "canon_spectre_1",
+      "vuln_class": "SPECTRE_V1",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "safe"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "canon_spectre_2",
+      "vuln_class": "SPECTRE_V2",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "canon_mds",
+      "vuln_class": "MDS",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "canon_l1tf",
+      "vuln_class": "L1TF",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "canon_bhi",
+      "vuln_class": "BHI",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "safe"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "canon_retbleed",
+      "vuln_class": "RETBLEED",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "safe"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "canon_inception",
+      "vuln_class": "INCEPTION",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "unrunnable"
+      },
+      "both_confirm_leak": false,
+      "any_leak": false,
+      "conflict": false
+    },
+    {
+      "gadget_id": "ref_spectre_full",
+      "vuln_class": "SPECTRE_V1",
+      "verdicts": {
+        "spectector": "unrunnable",
+        "invisispec": "leak"
+      },
+      "both_confirm_leak": false,
       "any_leak": true,
       "conflict": false
     }

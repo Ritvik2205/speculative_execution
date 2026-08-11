@@ -93,7 +93,10 @@ def main():
         # tiny representative subset: one synth V1 (both oracles) + the positive control
         keep = {"synth_SPECTRE_V1", "canon_spectre_1", "ref_spectre_full"}
         gadgets = [g for g in gadgets if g["gadget_id"] in keep]
-    validators = [SpectectorValidator(REPO), InvisiSpecValidator(REPO)]
+    # timeout=5400 (not the 1800s default): on this host the reference
+    # spectre_full.c PoC took ~50-90min despite genuinely leaking, so the
+    # default cap was producing false "unrunnable"/timeout verdicts.
+    validators = [SpectectorValidator(REPO), InvisiSpecValidator(REPO, timeout=5400)]
     cross = cross_validate(gadgets, validators)
     out_path = os.path.join(REPO, "oracle", "results", "cross_validation.json")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
