@@ -237,6 +237,17 @@ samples (3 leak, 4 safe) that did compile and reach adjudication show the pipeli
 end-to-end when given valid input, across multiple classes (SPECTRE_V1, SPECTRE_V2, BHI) — the bottleneck
 is generator/splice output validity, not the Spectector integration built in Tasks 1-5.
 
+**See also `gen/SYNTACTIC_FAILURE_CATEGORIZATION.md`** for a follow-up, larger-scale (2000-sample)
+breakdown of exactly *why* generator/splice output fails to compile: it splits the raw syntactic
+failures into `unresolved_placeholder` (itself two distinct sub-causes — literal unresolved `<fn>`
+tokens, and `.L`-label tokens misused in non-branch-target operand slots), `operand_type_violation`,
+and a majority `other` bucket. The most consequential single finding there is that a handful of
+`other`-bucket failures are **ARM64 mnemonics (`ldr`, `ldrsb`) leaking into x86_64-targeted output**
+— and that this leak class evades the project's existing `isa_purity()` guard
+(`gen/train_generator.py:61`) because its `_ARM_ONLY` opcode set (`v54/inline_features.py:48-50`)
+doesn't include `ldr`/`ldrsb`/`ldur`/`str`/`stur`, meaning the previously recorded 97.6%/96.1%
+ISA-purity figures are likely over-optimistic for this specific leak family.
+
 ## Anomalies summary (per task instructions: crash vs. expected verdict)
 
 - **Expected, not a bug**: 73/80 `unrunnable` verdicts — real GCC compile failures inside the Spectector

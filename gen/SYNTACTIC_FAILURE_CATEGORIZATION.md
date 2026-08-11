@@ -77,6 +77,62 @@ failure categorization (of 14447 malformed instructions):
 | `operand_type_violation` | 255 (3.6%) | 0 (0.0%) |
 | `other` | 4,497 (62.8%) | 3,071 (42.2%) |
 
+### `unresolved_placeholder` is a union of two distinct root causes — correction
+
+The `unresolved_placeholder` category name and the `categorize_failure()` pattern match are a
+single bucket, but a post-hoc read of what's actually inside it shows **two unrelated bugs**
+being counted together:
+
+1. **Literal, unresolved `<fn>` placeholder tokens** — the `gen/realize.py:47-48` stub
+   (`if kind == "<fn>": return "<fn>"`) never substitutes a real symbol, so the literal string
+   `<fn>` ends up in the emitted instruction and `llvm-mc` rejects it. This is the bug the
+   original draft of this doc attributed the *entire* bucket to.
+2. **`.L`-prefixed local-label tokens used in a non-branch-target operand position** — a
+   genuinely different bug: the generator picks a branch-target-shaped token (`.L0`, `.L1`, ...)
+   and the Realizer places it into a data-operand slot (e.g. a load/store source/destination)
+   where a label can never be valid. This is not a Realizer stub gap at all — it's the
+   generator's operand-slot selection picking the wrong *kind* of token for the position, then
+   the Realizer faithfully (and correctly) passing it through into something `llvm-mc` rejects.
+
+A spot-check sample manually classified into these two sub-causes (counts below are from a
+subsample, not an exhaustive re-classification of all 6,624 `unresolved_placeholder`
+instructions — the sample sizes are far smaller than the full bucket, so the percentages are
+reported as a ratio, not scaled to an exact count):
+
+| arch | `<fn>` | `.L`-misuse | sample total |
+|---|---|---|---|
+| x86_64 | 77 | 20 | 97 |
+| arm64 | 174 | 49 | 223 |
+| combined | 251 | 69 | 320 |
+
+Sample-derived split: x86_64 ≈ 79.4% `<fn>` / 20.6% `.L`-misuse; arm64 ≈ 78.0% `<fn>` / 22.0%
+`.L`-misuse; combined ≈ 78.4% `<fn>` / 21.6% `.L`-misuse. These three ratios agree closely with
+each other (within ~1.4pp), suggesting the split is reasonably stable across arch even though the
+sample is small — but it is still a spot-check, not a full census.
+
+Applying the spot-check ratio to the real category totals already reported above (arithmetic
+shown, not just asserted):
+
+- **Overall**: `unresolved_placeholder` is 45.9% of all 14,447 malformed instructions
+  (6,624 / 14,447 = 45.85%). Scaling by the combined-sample `<fn>` ratio (78.4%):
+  `<fn>`'s true share of **all** malformed instructions ≈ 45.85% × 78.44% ≈ **36.0%** (not
+  45.9% — that figure was the whole bucket, not just the `<fn>` sub-cause). The `.L`-misuse
+  sub-cause accounts for the remaining ≈ 45.85% × 21.56% ≈ **9.9%** of all malformed
+  instructions.
+- **arm64**: `unresolved_placeholder` is 57.8% of arm64's 7,282 malformed instructions
+  (4,211 / 7,282 = 57.83%). Scaling by the arm64-sample `<fn>` ratio (78.03%): `<fn>`'s true
+  share of arm64's malformed instructions ≈ 57.83% × 78.03% ≈ **45.1%** (not 57.8%). The
+  `.L`-misuse sub-cause accounts for ≈ 57.83% × 21.97% ≈ **12.7%** of arm64's malformed
+  instructions.
+- **x86_64** (not previously highlighted, included for completeness): `unresolved_placeholder`
+  is 33.7% of x86_64's 7,165 malformed instructions. Scaling by the x86-sample `<fn>` ratio
+  (79.38%): `<fn>`'s true share of x86_64's malformed instructions ≈ 33.68% × 79.38% ≈
+  **26.7%**, with `.L`-misuse accounting for ≈ 33.68% × 20.62% ≈ **6.9%**.
+
+These are estimates derived from a small spot-check sample applied proportionally to the real
+counts, not an exact recount — reported as "roughly 36%" / "roughly 45%" rather than false
+precision to more decimal places.
+
 ## Comparison to the n=5 smoke signal
 
 The Task 1 smoke check (n=5, non-representative) suggested roughly 49% `unresolved_placeholder` /
@@ -185,12 +241,68 @@ collection run alone) — these are illustrative real cases, not a claim about r
 weight within `other`. But all three sub-patterns recurred multiple times in a random sample of 10,
 suggesting they're not one-off noise.
 
+### The ARM64-mnemonic-leak finding is not new territory — it evades an existing purity guard
+
+Examples 3 and 8 above (`ldr`/`ldrsb` leaking into x86_64-targeted output) are not a brand-new
+category of bug for this project — they land squarely inside a metric that already exists to
+catch exactly this class of failure, and it turns out that metric structurally cannot see them.
+
+This project already has an ISA-purity guard: `isa_purity()` in `gen/train_generator.py:61`
+computes, for a sampled sequence, the fraction of "ISA-decisive" opcodes (opcodes exclusive to one
+architecture) that are actually native to the target architecture. It does this by checking each
+opcode's membership in `_X86_ONLY` / `_ARM_ONLY` (both imported from `v54/inline_features.py:45-50`
+via `gen/train_generator.py:43`). Project memory records a prior claim from an earlier session's
+run of this check: **"ISA-purity: x86_64=97.6%, arm64=96.1% (fixed the pre-conditioning
+ARM-emits-x86 bug)."**
+
+This session verified `v54/inline_features.py:48-50` directly rather than trusting that recorded
+claim at face value:
+
+```python
+_ARM_ONLY  = frozenset(['adrp','stp','ldp','cbz','cbnz','tbz','tbnz','bl','blr','br',
+                         'lsl','lsr','asr','ror','madd','msub','udiv','sdiv','csel','cset',
+                         'mrs','msr','dsb','dmb','isb'])
+```
+
+Confirmed: `_ARM_ONLY` contains `stp` and `ldp` (the pair load/store forms) but is **missing
+`ldr`, `ldrsb`, `ldur`, `str`, and `stur`** — the single-register ARM64 load/store family, which
+is exactly the mnemonic family that examples 3 and 8 above show leaking into x86_64-targeted
+output (`ldr %r10, (%r12,%r11)`, `ldrsb %rsi, (%rbx)`).
+
+`isa_purity()` (`gen/train_generator.py:64-73`) sums opcode occurrences over `_ARM_ONLY` /
+`_X86_ONLY` membership only — an opcode that isn't in either set contributes to neither the
+numerator nor the denominator, i.e. it is invisible to the metric rather than counted against it.
+Concretely: an `ldr` or `ldrsb` leaking into x86_64 output is not an "ISA-decisive opcode from the
+wrong architecture" as far as `isa_purity()` is concerned — it's simply not tracked, so it cannot
+lower the reported purity score no matter how often it appears.
+
+**Practical consequence: the recorded 97.6% (x86_64) / 96.1% (arm64) purity figures are likely
+over-optimistic specifically with respect to this leak class.** The earlier "fixed the
+pre-conditioning ARM-emits-x86 bug" claim in project memory was true only for the mnemonics
+`_ARM_ONLY` happens to cover (`stp`/`ldp`, branch/system instructions, etc.) — it was not, and
+could not have been, verified against the `ldr`/`ldrsb`/`ldur`/`str`/`stur` family, because the
+metric has no way to see leaks in that family. The "ARM-emits-x86 bug" is therefore best described
+as **partially fixed, not fixed** — real leakage of the most common ARM64 load/store mnemonics
+into x86_64 output may still be happening at a rate the existing metric cannot detect.
+
+This is a documentation finding only. Whether to extend `_ARM_ONLY` to close this blind spot (and
+what else besides `ldr`/`ldrsb`/`ldur`/`str`/`stur` it might still be missing) is a decision left
+to whoever scopes the next brainstorm — `v54/inline_features.py` and `gen/train_generator.py` are
+intentionally left unmodified by this task.
+
 ## Bottom line / recommended next steps
 
-1. **Fix `<fn>` in `gen/realize.py:47-48` immediately.** It's a documented stub, it's 45.9% of all
-   failures overall and the majority (57.8%) of arm64 failures, and the design doc is explicit
-   this is worth doing "independent of any bigger decision." No further investigation needed to
-   justify this one.
+1. **Fix `<fn>` in `gen/realize.py:47-48` immediately.** It's a documented stub. The whole
+   `unresolved_placeholder` bucket is 45.9% of all failures overall and the majority (57.8%) of
+   arm64 failures, but per the sub-cause split above, `<fn>` itself is only *part* of that bucket
+   — roughly **~36% of all malformed instructions overall** and **~45% of arm64's malformed
+   instructions** (not 45.9% / 57.8%, which also include the separate `.L`-misuse sub-cause). Even
+   at the corrected, smaller share, `<fn>` is still likely the single largest identifiable cheap
+   win in this data — it remains worth fixing immediately and independently. The design doc's
+   "independent of any bigger decision" framing still holds; only the size of the win changes.
+   The `.L`-misuse sub-cause (~10% overall, ~13% of arm64) is a separate, smaller generator
+   operand-slot-selection bug (see the correction above) and is not fixed by the `<fn>` stub —
+   it should be scoped separately by a future brainstorm.
 2. **Investigate `other` before deciding between constrained decoding vs. rejection filtering** —
    it's the single largest bucket (52.4% overall) and dominates x86_64 specifically (62.8%). The
    real examples above point at three concrete, distinct root causes (register-width/mnemonic
