@@ -16,6 +16,21 @@ this session (the spec-vs-hand-features locked-split sign reversal).
 
 Run:  python3 eval/build_riscv_labeled.py
 Output: eval/data/riscv_labeled.jsonl
+
+IMPORTANT -- riscv_corpus/*.s is gitignored, local-only data (see
+.gitignore); it is NOT present in a fresh `git clone` or `git worktree add`.
+Only the `*.s.pre_corpus_fix` backups are git-tracked, and those hold the
+PRE-fix, x86/ARM-inline-asm-contaminated assembly (raw GCC asm passthrough
+markers with leftover x86 AT&T mnemonics like `jmp`/`callq`, not valid
+RISC-V). Renaming `.pre_corpus_fix` -> `.s` to satisfy this script's
+`CORPUS.glob("*.s")` silently rebuilds the labeled JSONL from contaminated
+source -- this happened once and produced a bad `riscv_labeled.jsonl` that
+looked structurally fine (built successfully, right record count) but was
+wrong at the byte level. Before running this script in a fresh checkout,
+either (a) copy the real `riscv_corpus/*.s` files from a checkout that
+already has them, or (b) regenerate them via
+`scripts/patch_riscv_corpus_asm.py`. Do not reconstruct `.s` files by
+renaming `.pre_corpus_fix` files.
 """
 from __future__ import annotations
 
