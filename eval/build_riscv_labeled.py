@@ -65,6 +65,7 @@ def family_group(stem: str) -> str:
 def build_records():
     records = []
     excluded = 0
+    excluded_benign = 0
     skipped_unlabeled = 0
     for f in sorted(CORPUS.glob("*.s")):
         stem = _OPT_SUFFIX.sub("", f.name)
@@ -79,6 +80,16 @@ def build_records():
         seq = extract_sequence(f)
         if len(seq) < 3:
             continue
+        if label == "BENIGN":
+            # riscv_corpus is vulnerable-class-only by design intent (see
+            # design doc's "Non-goals": RISC-V BENIGN is explicitly deferred,
+            # and the plan's Global Constraints say not to add any BENIGN
+            # riscv records anywhere in this plan). KEYWORD_TO_LABEL (reused
+            # from spec/eval_riscv_real.py) still maps "utils" filenames to
+            # BENIGN, so skip those here rather than let them leak into
+            # training data that's supposed to be vulnerable-classes-only.
+            excluded_benign += 1
+            continue
         records.append({
             "label": label,
             "sequence": seq,
@@ -89,6 +100,7 @@ def build_records():
     print(f"riscv_corpus files={len(list(CORPUS.glob('*.s')))}  "
           f"labeled records={len(records)}  "
           f"excluded(no ground truth)={excluded}  "
+          f"excluded(BENIGN, vulnerable-classes-only by design)={excluded_benign}  "
           f"skipped(unrecognized keyword)={skipped_unlabeled}  "
           f"families={len({r['group'] for r in records})}")
     return records
