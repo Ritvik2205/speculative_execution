@@ -38,6 +38,20 @@ def test_splice_pointer_convention_seeds_first_register():
     assert asm_text.strip().startswith(("movq %0", "mov %0"))
 
 
+def test_splice_does_not_double_shift_when_realized_sequence_already_shifts_sink():
+    """Regression: the realized sequence's own last instruction here
+    ("shlq $6, %rbx") already shifts the sink register by
+    CACHE_LINE_SHIFT once rbx lands on sink. splice() must NOT append a
+    second "shlq $6" after it -- that would shift by 12 total (x4096
+    instead of x64), addressing far outside `probe` and producing an
+    out-of-bounds write. Exactly one shift-left instruction must appear
+    in the emitted text."""
+    realized = ["movzbl (%rax), %ebx", "shlq $6, %rbx"]
+    asm_text, clobbers = splice(realized, "x86_64", "pointer",
+                                 "arr + i", "probe")
+    assert asm_text.count("shl") == 1
+
+
 def test_splice_value_convention_has_no_extra_load():
     realized = ["shlq $1, %rax"]
     asm_text, clobbers = splice(realized, "x86_64", "value", "v", "probe")

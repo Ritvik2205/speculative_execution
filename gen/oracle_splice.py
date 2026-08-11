@@ -47,14 +47,21 @@ implements):
   it, breaking that load's addressing. Detecting the already-dereferenced
   case avoids that footgun. For convention="value" no dereference is ever
   added; the input constraint already delivers a byte value into %0.
-- A fixed sink sequence is unconditionally appended: shift the sink
-  register by CACHE_LINE_SHIFT and store a 1 byte at
-  output_expr[sink << CACHE_LINE_SHIFT]. The sink register is whichever
-  register the remapped sequence last wrote to (AT&T: rightmost operand
-  of the last instruction that has a register destination; arm64:
-  leftmost operand, matching this repo's ARM convention of dest-first
-  syntax) -- falling back to the seed register when no such destination
-  exists (e.g. a pure `nop` sequence).
+- A sink sequence is appended: shift the sink register by
+  CACHE_LINE_SHIFT and store a 1 byte at output_expr[sink <<
+  CACHE_LINE_SHIFT]. The sink register is whichever register the
+  remapped sequence last wrote to (AT&T: rightmost operand of the last
+  instruction that has a register destination; arm64: leftmost operand,
+  matching this repo's ARM convention of dest-first syntax) -- falling
+  back to the seed register when no such destination exists (e.g. a pure
+  `nop` sequence). The shift itself is skipped when the remapped
+  sequence's OWN last instruction already shifts the sink register left
+  by CACHE_LINE_SHIFT (same footgun as the head-side dereference case,
+  mirrored on the tail: the realized sequence's example shape
+  "shlq $6, %rbx" already IS the cache-line shift once rbx lands on
+  sink, and appending a second one would shift by 12 total -- x4096
+  instead of x64 -- producing an out-of-bounds probe write). The final
+  probe-write store is always emitted regardless.
 """
 from __future__ import annotations
 
@@ -273,6 +280,60 @@ def _arm_seed_used_as_memory_operand(instr: str, seed: str) -> bool:
     return False
 
 
+_X86_SHIFT_MNEMONIC_RE = re.compile(r'^(shl|sal)[lqwb]?$')
+_X86_SHIFT_IMM_RE = re.compile(r'^\$(?:0x0*6|0*6)$')
+
+
+def _x86_tail_already_shifts_sink(remapped: list[str], sink: str) -> bool:
+    """True if the LAST remapped instruction already shifts `sink` left
+    by CACHE_LINE_SHIFT (e.g. the realized sequence's own final
+    instruction was "shlq $6, %rbx" and rbx got remapped onto sink) --
+    same bug class as the head-side redundant-dereference check: without
+    this, splice() would unconditionally append a second "shlq $6"
+    afterward, shifting by 12 total (x4096) instead of 6 (x64), which is
+    a near-certain out-of-bounds probe write."""
+    if not remapped:
+        return False
+    last = remapped[-1].strip()
+    parts = last.split(None, 1)
+    if len(parts) < 2:
+        return False
+    if not _X86_SHIFT_MNEMONIC_RE.match(parts[0].lower()):
+        return False
+    operands = _split_top_level(parts[1], "(", ")")
+    if len(operands) != 2:
+        return False
+    imm, dest = operands[0].strip(), operands[1].strip()
+    if not _X86_SHIFT_IMM_RE.match(imm):
+        return False
+    m = re.match(r'^%r(8|9|1[0-5])[dwb]?$', dest)
+    return bool(m) and f"r{m.group(1)}" == sink
+
+
+_ARM_SHIFT_IMM_RE = re.compile(r'^#0*6$')
+
+
+def _arm_tail_already_shifts_sink(remapped: list[str], sink: str) -> bool:
+    """arm64 counterpart of _x86_tail_already_shifts_sink: True if the
+    last remapped instruction is "lsl x<sink>, x<sink>, #6" (or the w-
+    register view of the same physical register)."""
+    if not remapped:
+        return False
+    last = remapped[-1].strip()
+    parts = last.split(None, 1)
+    if len(parts) < 2 or parts[0].lower() != "lsl":
+        return False
+    operands = _split_top_level(parts[1], "[", "]")
+    if len(operands) != 3:
+        return False
+    dest, src, imm = (o.strip() for o in operands)
+    if not _ARM_SHIFT_IMM_RE.match(imm):
+        return False
+    m_dest = re.match(r'^[xw](\d+)$', dest)
+    m_src = re.match(r'^[xw](\d+)$', src)
+    return bool(m_dest and m_src and m_dest.group(1) == sink and m_src.group(1) == sink)
+
+
 def splice(realized: list[str], arch: str, convention: str,
            input_expr: str, output_expr: str) -> tuple[str, list[str]]:
     """Ground `realized` into compilable inline-asm text.
@@ -322,7 +383,8 @@ def splice(realized: list[str], arch: str, convention: str,
         if needs_deref:
             lines.append(f"movzbl (%{seed}), %{seed}d")
         lines.extend(remapped)
-        lines.append(f"shlq ${CACHE_LINE_SHIFT}, %{sink}")
+        if not _x86_tail_already_shifts_sink(remapped, sink):
+            lines.append(f"shlq ${CACHE_LINE_SHIFT}, %{sink}")
         lines.append(f"movb $1, (%1,%{sink})")
 
         clobbers = [seed] + used_targets + ["cc"]
@@ -340,7 +402,8 @@ def splice(realized: list[str], arch: str, convention: str,
     if needs_deref:
         lines.append(f"ldrb w{seed}, [x{seed}]")
     lines.extend(remapped)
-    lines.append(f"lsl x{sink}, x{sink}, #{CACHE_LINE_SHIFT}")
+    if not _arm_tail_already_shifts_sink(remapped, sink):
+        lines.append(f"lsl x{sink}, x{sink}, #{CACHE_LINE_SHIFT}")
     lines.append(f"mov w{_ARM_CONST_REG}, #1")
     lines.append(f"strb w{_ARM_CONST_REG}, [%1, x{sink}]")
 
