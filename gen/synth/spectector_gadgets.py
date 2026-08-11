@@ -34,7 +34,7 @@ _HEADER = (
 
 # --- SPECTRE_V1: proven bounds-check-bypass victim ---
 _V1 = _HEADER + (
-    'void gadget(size_t i){ if(i<sz){ {fence}uint8_t v=arr[i]; probe[v*64]=1; } }\n'
+    'void gadget(size_t i){ if(i<sz){ {fence}{gen_body} } }\n'
 )
 
 # --- BENIGN: same shape, but transmits a public constant, never the loaded value ---
@@ -50,8 +50,7 @@ _V4_HEADER = (
     'extern uint8_t probe[]; extern uint8_t store[]; extern size_t sz;\n'
 )
 _V4 = _V4_HEADER + (
-    'void gadget(size_t i){ if(i<sz){ store[i]=0; {fence}uint8_t v=store[i]; '
-    'probe[v*64]=1; } }\n'
+    'void gadget(size_t i){ if(i<sz){ store[i]=0; {fence}{gen_body} } }\n'
 )
 
 # --- SPECTRE_V2 / BHI: indirect-call gate. The gate is the indirect call
@@ -63,9 +62,9 @@ _INDIRECT_HEADER = (
     'extern uint8_t probe[]; extern uint8_t *arr; extern size_t sz;\n'
     'extern void (*fp)(size_t);\n'
 )
-_V2 = _INDIRECT_HEADER + 'void gadget(size_t i){ {fence}fp(i); }\n'
+_V2 = _INDIRECT_HEADER + 'void gadget(size_t i){ {fence}{gen_body} }\n'
 _BHI = _INDIRECT_HEADER + (
-    'void gadget(size_t i){ if(i<sz){ {fence}fp(i); } }\n'
+    'void gadget(size_t i){ if(i<sz){ {fence}{gen_body} } }\n'
 )
 
 # --- RETBLEED / INCEPTION: return-based gate. The gate is the `ret`
@@ -77,12 +76,10 @@ _RET_HEADER = (
     'extern void leaf(size_t i);\n'
 )
 _RETBLEED = _RET_HEADER + (
-    'void gadget(size_t i){ leaf(i); {fence}if(i<sz){ uint8_t v=arr[i]; '
-    'probe[v*64]=1; } }\n'
+    'void gadget(size_t i){ leaf(i); {fence}if(i<sz){ {gen_body} } }\n'
 )
 _INCEPTION = _RET_HEADER + (
-    'void gadget(size_t i){ leaf(i); {fence}if(i<sz){ uint8_t v=arr[i]; '
-    'probe[v*64]=1; } }\n'
+    'void gadget(size_t i){ leaf(i); {fence}if(i<sz){ {gen_body} } }\n'
 )
 
 # --- L1TF / MDS: faulting/transient load gate. The gate is the dereference
@@ -94,10 +91,10 @@ _FAULT_HEADER = (
     'extern uint8_t probe[]; extern uint8_t *secret_ptr;\n'
 )
 _L1TF = _FAULT_HEADER + (
-    'void gadget(void){ uint8_t v=*secret_ptr; {fence}probe[v*64]=1; }\n'
+    'void gadget(void){ uint8_t v=*secret_ptr; {fence}{gen_body} }\n'
 )
 _MDS = _FAULT_HEADER + (
-    'void gadget(void){ uint8_t v=*secret_ptr; {fence}probe[v*64]=1; }\n'
+    'void gadget(void){ uint8_t v=*secret_ptr; {fence}{gen_body} }\n'
 )
 
 SPEC_GADGETS: dict[str, str] = {
@@ -114,15 +111,38 @@ SPEC_GADGETS: dict[str, str] = {
 
 assert set(SPEC_GADGETS) == set(CLASSES), "SPEC_GADGETS must cover exactly CLASSES"
 
+# Default {gen_body} fill when no generator splice is requested -- must
+# reproduce the exact hand-written transmit logic each class had before
+# {gen_body} existed, so render_spec(c, fenced) with gen_body=None is
+# byte-identical to the pre-this-task behavior.
+_DEFAULT_GEN_BODY: dict[str, str] = {
+    "SPECTRE_V1": "uint8_t v=arr[i]; probe[v*64]=1;",
+    "SPECTRE_V4": "uint8_t v=store[i]; probe[v*64]=1;",
+    "SPECTRE_V2": "fp(i);",
+    "BHI": "fp(i);",
+    "RETBLEED": "uint8_t v=arr[i]; probe[v*64]=1;",
+    "INCEPTION": "uint8_t v=arr[i]; probe[v*64]=1;",
+    "L1TF": "probe[v*64]=1;",
+    "MDS": "probe[v*64]=1;",
+}
 
-def render_spec(vuln_class: str, fenced: bool) -> str:
-    """Render the C source for `vuln_class`, filling the `{fence}` slot.
+
+def render_spec(vuln_class: str, fenced: bool, gen_body: str | None = None) -> str:
+    """Render the C source for `vuln_class`, filling the `{fence}` slot and,
+    for classes with a `{gen_body}` marker, the transmit-body slot.
 
     fenced=True inserts an `lfence` speculation barrier right after the
     speculation gate; fenced=False leaves it empty (baseline, speculative).
+    gen_body=None (default) fills with the original hand-written transmit
+    logic (_DEFAULT_GEN_BODY) -- byte-identical to pre-generator-splice
+    behavior. BENIGN has no {gen_body} marker; gen_body is ignored for it.
     """
     fence = 'asm volatile("lfence":::"memory"); ' if fenced else ''
-    return SPEC_GADGETS[vuln_class].replace("{fence}", fence)
+    text = SPEC_GADGETS[vuln_class].replace("{fence}", fence)
+    if "{gen_body}" in text:
+        body = gen_body if gen_body is not None else _DEFAULT_GEN_BODY[vuln_class]
+        text = text.replace("{gen_body}", body)
+    return text
 
 
 def generate_spec(out_dir: str) -> list[dict]:
