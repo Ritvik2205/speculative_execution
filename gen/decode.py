@@ -58,6 +58,15 @@ _SPLICE_CONVENTION = {
     ("MDS", True):         ("pointer", "&secret_mds_byte"),
 }
 
+# gen/generator.pt's trained checkpoint vocab spells this class out in full
+# (BRANCH_HISTORY_INJECTION), while _SPLICE_CONVENTION/templates.py/
+# spectector_gadgets.py all use the short form BHI -- reconcile here rather
+# than in either of those tables, which are each internally consistent on
+# their own. Only model.sample() needs the checkpoint's real vocab name;
+# everything else (build_gen_body, _SPLICE_CONVENTION, file/gadget ids)
+# keeps using the short form args.cls unchanged.
+_GEN_VOCAB_ALIAS = {"BHI": "BRANCH_HISTORY_INJECTION"}
+
 
 def build_gen_body(realized, cls, arch, is_invisispec):
     """cls == 'BENIGN' is not splicable -- caller must not call this for
@@ -96,7 +105,8 @@ def main():
     print(f"class={args.cls}  arch={args.arch}  n={args.n}\n")
     parseable = 0
     for i in range(args.n):
-        norm = model.sample(args.cls, args.arch, temperature=args.temperature, top_k=20)
+        norm = model.sample(_GEN_VOCAB_ALIAS.get(args.cls, args.cls), args.arch,
+                             temperature=args.temperature, top_k=20)
         concrete = realizer.realize_sequence(norm)
         pdg = builder.build(concrete)
         ok = len(pdg.nodes) >= 2
