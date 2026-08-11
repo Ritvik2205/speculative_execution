@@ -26,6 +26,7 @@ class Realizer:
         self.mem_idx = r["mem_idx"]
         self.imm_prefix = r["imm_prefix"]
         self.sym = r["sym"]
+        self.fn_sym = r["fn_sym"]
         self.rng = random.Random(seed)
 
     def _reg(self, used):
@@ -45,7 +46,7 @@ class Realizer:
             b = self._reg(used); i = self._reg(used)
             return self.mem_idx.replace("BASE", b.lstrip("%")).replace("IDX", i.lstrip("%"))
         if kind == "<fn>":
-            return "<fn>"
+            return self.fn_sym
         if kind == "<sym>":
             return self.sym
         return kind

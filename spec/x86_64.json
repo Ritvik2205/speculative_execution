@@ -20,7 +20,8 @@
     "mem": "(%BASE)",
     "mem_idx": "(%BASE,%IDX)",
     "imm_prefix": "$",
-    "sym": ".L0"
+    "sym": ".L0",
+    "fn_sym": "fn_target"
   },
   "pipeline": {
     "model": "out_of_order",
