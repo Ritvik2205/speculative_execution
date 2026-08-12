@@ -91,6 +91,37 @@ ZERO_SHOT_RISCV_BASELINE = (29.0, 34.0)  # range, prior-session zero-shot eval
 ZERO_SHOT_RISCV_BASELINE_SOURCE = "eval/eval_riscv_multiseed_postfix_results.txt"
 XARCH_GROUP_HOLDOUT_BASELINE_ACC = (94.83, 1.50)  # mean, 95% CI half-width
 
+# One-time historical fact: results under the OLD (pre-stratification) RISC-V
+# holdout split, before this branch's fix. Hardcoded (like the baselines
+# above) because it describes a run that no longer exists and can't be
+# recomputed -- the split itself changed. Emitted into every generated
+# report by main() so a rerun of this script can never silently drop it
+# (this previously happened twice: the section only survived because a
+# human manually re-added it after each regeneration).
+PRIOR_RESULT_SECTION = """## Prior result (pre-stratification split, kept for comparison)
+
+Before this fix, the RISC-V holdout split was a pure random group shuffle
+that happened to put all 6 of L1TF's groups on the train side, leaving it
+with zero real holdout examples. The headline numbers under that split:
+
+- RISC-V holdout accuracy: 64.24% +/- 6.18% (apples-to-apples control: 30.00% +/- 7.45%)
+- x86/ARM regression check: 95.60% +/- 1.67% vs baseline 94.83% +/- 1.50%
+- Unmeasurable classes (0 real holdout examples): L1TF, SPECTRE_V4, BENIGN, SPECTRE_V1
+
+See docs/superpowers/specs/2026-08-12-riscv-l1tf-coverage-gap-design.md for
+why the split changed. The numbers below reflect the new stratified split,
+where L1TF is measurable for the first time. BENIGN no longer appears in
+the RISC-V corpus at all as of this run (filtered per the "vulnerable
+classes only" constraint) -- it is absent by design, not unmeasurable.
+
+**Note:** the numbers above (64.24%/30.00%) and the numbers below are
+measured on DIFFERENT holdout sets (the split changed) and different
+training-data compositions -- they are not directly comparable to each
+other. The apples-to-apples comparison for the CURRENT run is the control
+section below, not this prior-result section.
+
+"""
+
 
 def load_jsonl(path: Path):
     return [json.loads(l) for l in open(path) if l.strip()]
@@ -261,26 +292,8 @@ def main():
 
     lines = []
     lines.append("# RISC-V Corpus Training Integration -- Results\n\n")
+    lines.append(PRIOR_RESULT_SECTION)
     lines.append(f"Seeds evaluated: {seeds_run}\n\n")
-    lines.append("## Known data issue: 2 BENIGN riscv records in training data\n\n")
-    lines.append(
-        "This plan's Global Constraints explicitly say not to add any BENIGN "
-        "riscv records (the design doc's Non-goals section defers RISC-V "
-        "BENIGN entirely -- riscv_corpus adds real examples for the 8 "
-        "vulnerable classes only). Despite that, 2 of the 5944 training "
-        "records (0.03%) in `eval/data/riscv_augmented_train.jsonl` are "
-        "RISC-V `utils.c` files (`riscv_corpus/c_vulns_c_code_utils.O0/O2."
-        "riscv64.s`) labeled BENIGN. This happened because "
-        "`eval/build_riscv_labeled.py` reuses `spec/eval_riscv_real.py`'s "
-        "`KEYWORD_TO_LABEL` table, which maps `\"utils\"` filenames to "
-        "BENIGN. Impact is negligible (2 of 5944 records) and not worth an "
-        "87-minute retrain to fix retroactively. `eval/build_riscv_labeled."
-        "py`'s `build_records()` has been fixed to skip any BENIGN-mapped "
-        "record going forward (see the `if label == \"BENIGN\"` filter with "
-        "explanatory comment); the already-committed `eval/data/"
-        "riscv_labeled.jsonl` and downstream files are left as-is so they "
-        "stay consistent with the checkpoints actually trained on them.\n\n"
-    )
     lines.append("## Regression check (x86/ARM, eval/data/group_holdout_test.jsonl)\n\n")
     lines.append(f"- Baseline (pre-existing group-holdout run): "
                  f"{XARCH_GROUP_HOLDOUT_BASELINE_ACC[0]:.2f}% +/- {XARCH_GROUP_HOLDOUT_BASELINE_ACC[1]:.2f}%\n")
@@ -290,7 +303,14 @@ def main():
                  f"{'not below' if xarch_pass else 'below'} baseline "
                  f"{XARCH_GROUP_HOLDOUT_BASELINE_ACC[0]:.2f}%\n\n")
     lines.append("## RISC-V measurement (eval/data/riscv_eval_holdout.jsonl)\n\n")
-    lines.append(f"- After RISC-V augmentation: {riscv_mean:.2f}% +/- {riscv_h:.2f}%\n\n")
+    lines.append(f"- After RISC-V augmentation: {riscv_mean:.2f}% +/- {riscv_h:.2f}%\n")
+    lines.append(
+        "- Note: this is not directly comparable to the pre-stratification "
+        "prior result (64.24%, see the Prior result section above) -- the "
+        "two numbers are measured on different holdout sets. The "
+        "apples-to-apples comparison for this run is the control section "
+        "immediately below, not the prior result.\n\n"
+    )
     lines.append("### Apples-to-apples control (primary comparison)\n\n")
     lines.append("Identical recipe/seeds/split as the RISC-V-augmented checkpoints "
                  "(`eval/group_holdout/viz_s<seed>/gine_best.pt`), RISC-V training data "
@@ -330,10 +350,17 @@ def main():
     lines.append(
         f"RETBLEED ({_retbleed_n} examples, {_recall_str('RETBLEED')}) and "
         f"INCEPTION ({_inception_n} examples, {_recall_str('INCEPTION')}) supply the "
-        f"majority of correct predictions; MDS ({_mds_n} examples, the largest holdout "
-        f"class) has weak recall ({_recall_str('MDS')}); {_l1tf_clause}.\n\n"
+        f"majority of correct predictions; MDS ({_mds_n} examples) has "
+        f"{_recall_str('MDS')}; {_l1tf_clause}.\n\n"
     )
     lines.append("## Per-class RISC-V holdout breakdown\n\n")
+    lines.append(
+        "Note: small `n` counts often represent few distinct source programs "
+        "at multiple optimization levels, not independent examples -- e.g. "
+        "L1TF's holdout examples are the same source file at O0 and O2, not "
+        "two independently-sampled programs. Treat precision/recall for "
+        "LOW-confidence rows accordingly.\n\n"
+    )
     lines.append("| class | precision | recall | f1 | n (real corpus examples) | confidence |\n")
     lines.append("|---|---|---|---|---|---|\n")
     # Task 2's split put zero real eval-holdout examples for some classes

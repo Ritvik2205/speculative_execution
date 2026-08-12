@@ -16,11 +16,13 @@ where L1TF is measurable for the first time. BENIGN no longer appears in
 the RISC-V corpus at all as of this run (filtered per the "vulnerable
 classes only" constraint) -- it is absent by design, not unmeasurable.
 
+**Note:** the numbers above (64.24%/30.00%) and the numbers below are
+measured on DIFFERENT holdout sets (the split changed) and different
+training-data compositions -- they are not directly comparable to each
+other. The apples-to-apples comparison for the CURRENT run is the control
+section below, not this prior-result section.
+
 Seeds evaluated: [42, 1, 7, 13, 21]
-
-## Known data issue: 2 BENIGN riscv records in training data
-
-This plan's Global Constraints explicitly say not to add any BENIGN riscv records (the design doc's Non-goals section defers RISC-V BENIGN entirely -- riscv_corpus adds real examples for the 8 vulnerable classes only). Despite that, 2 of the 5944 training records (0.03%) in `eval/data/riscv_augmented_train.jsonl` are RISC-V `utils.c` files (`riscv_corpus/c_vulns_c_code_utils.O0/O2.riscv64.s`) labeled BENIGN. This happened because `eval/build_riscv_labeled.py` reuses `spec/eval_riscv_real.py`'s `KEYWORD_TO_LABEL` table, which maps `"utils"` filenames to BENIGN. Impact is negligible (2 of 5944 records) and not worth an 87-minute retrain to fix retroactively. `eval/build_riscv_labeled.py`'s `build_records()` has been fixed to skip any BENIGN-mapped record going forward (see the `if label == "BENIGN"` filter with explanatory comment); the already-committed `eval/data/riscv_labeled.jsonl` and downstream files are left as-is so they stay consistent with the checkpoints actually trained on them.
 
 ## Regression check (x86/ARM, eval/data/group_holdout_test.jsonl)
 
@@ -31,6 +33,7 @@ This plan's Global Constraints explicitly say not to add any BENIGN riscv record
 ## RISC-V measurement (eval/data/riscv_eval_holdout.jsonl)
 
 - After RISC-V augmentation: 75.45% +/- 13.20%
+- Note: this is not directly comparable to the pre-stratification prior result (64.24%, see the Prior result section above) -- the two numbers are measured on different holdout sets. The apples-to-apples comparison for this run is the control section immediately below, not the prior result.
 
 ### Apples-to-apples control (primary comparison)
 
@@ -47,9 +50,11 @@ Identical recipe/seeds/split as the RISC-V-augmented checkpoints (`eval/group_ho
 
 ### Composition of the 75.45% result
 
-RETBLEED (20 examples, 100% recall) and INCEPTION (16 examples, 89% recall) supply the majority of correct predictions; MDS (12 examples, the largest holdout class) has weak recall (73% recall); L1TF -- the single largest class in the full RISC-V corpus -- now has 2 real holdout examples (100% recall).
+RETBLEED (20 examples, 100% recall) and INCEPTION (16 examples, 89% recall) supply the majority of correct predictions; MDS (12 examples) has 73% recall; L1TF -- the single largest class in the full RISC-V corpus -- now has 2 real holdout examples (100% recall).
 
 ## Per-class RISC-V holdout breakdown
+
+Note: small `n` counts often represent few distinct source programs at multiple optimization levels, not independent examples -- e.g. L1TF's holdout examples are the same source file at O0 and O2, not two independently-sampled programs. Treat precision/recall for LOW-confidence rows accordingly.
 
 | class | precision | recall | f1 | n (real corpus examples) | confidence |
 |---|---|---|---|---|---|
