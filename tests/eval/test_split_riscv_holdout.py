@@ -42,3 +42,44 @@ def test_multiple_records_same_group_stay_together():
     ev_groups = {r["group"] for r in ev_rows}
     for g in ("riscv_fam_a", "riscv_fam_b"):
         assert not (g in tr_groups and g in ev_groups)
+
+
+def _multi_label_rows():
+    rows = []
+    # 3 labels with >=2 groups (must be stratified across both sides)
+    for i in range(5):
+        rows.append(_row(f"riscv_l1tf_{i}", label="L1TF"))
+    for i in range(3):
+        rows.append(_row(f"riscv_mds_{i}", label="MDS"))
+    for i in range(2):
+        rows.append(_row(f"riscv_bhi_{i}", label="BHI"))
+    # 1 label with exactly 1 group (must stay train-only, can't be stratified)
+    rows.append(_row("riscv_v4_0", label="SPECTRE_V4"))
+    return rows
+
+
+def test_every_multi_group_label_appears_on_both_sides():
+    rows = _multi_label_rows()
+    tr_rows, ev_rows = build_riscv_split(rows)
+    tr_labels = {r["label"] for r in tr_rows}
+    ev_labels = {r["label"] for r in ev_rows}
+    for label in ("L1TF", "MDS", "BHI"):
+        assert label in tr_labels, f"{label} missing from train side"
+        assert label in ev_labels, f"{label} missing from eval side"
+
+
+def test_single_group_label_stays_train_only():
+    rows = _multi_label_rows()
+    tr_rows, ev_rows = build_riscv_split(rows)
+    ev_labels = {r["label"] for r in ev_rows}
+    tr_labels = {r["label"] for r in tr_rows}
+    assert "SPECTRE_V4" not in ev_labels
+    assert "SPECTRE_V4" in tr_labels
+
+
+def test_multi_group_label_keeps_at_least_one_group_in_train():
+    rows = _multi_label_rows()
+    tr_rows, ev_rows = build_riscv_split(rows)
+    for label in ("L1TF", "MDS", "BHI"):
+        tr_groups_for_label = {r["group"] for r in tr_rows if r["label"] == label}
+        assert len(tr_groups_for_label) >= 1, f"{label} has no group left in train"
