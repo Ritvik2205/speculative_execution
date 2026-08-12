@@ -315,14 +315,23 @@ def main():
     _retbleed_n = riscv_label_counts.get("RETBLEED", 0)
     _inception_n = riscv_label_counts.get("INCEPTION", 0)
     _mds_n = riscv_label_counts.get("MDS", 0)
+    _l1tf_n = riscv_label_counts.get("L1TF", 0)
     lines.append(f"### Composition of the {riscv_mean:.2f}% result\n\n")
+    if _l1tf_n > 0:
+        _l1tf_clause = (
+            f"L1TF -- the single largest class in the full RISC-V corpus -- now has "
+            f"{_l1tf_n} real holdout examples ({_recall_str('L1TF')})"
+        )
+    else:
+        _l1tf_clause = (
+            "L1TF -- the single largest class in the full RISC-V corpus -- has zero "
+            "holdout examples and could not be measured at all"
+        )
     lines.append(
         f"RETBLEED ({_retbleed_n} examples, {_recall_str('RETBLEED')}) and "
         f"INCEPTION ({_inception_n} examples, {_recall_str('INCEPTION')}) supply the "
         f"majority of correct predictions; MDS ({_mds_n} examples, the largest holdout "
-        f"class) has weak recall ({_recall_str('MDS')}); L1TF -- the single largest class "
-        f"in the full RISC-V corpus -- has zero holdout examples and could not be "
-        f"measured at all.\n\n"
+        f"class) has weak recall ({_recall_str('MDS')}); {_l1tf_clause}.\n\n"
     )
     lines.append("## Per-class RISC-V holdout breakdown\n\n")
     lines.append("| class | precision | recall | f1 | n (real corpus examples) | confidence |\n")

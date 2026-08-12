@@ -36,7 +36,9 @@ This plan's Global Constraints explicitly say not to add any BENIGN riscv record
 
 Identical recipe/seeds/split as the RISC-V-augmented checkpoints (`eval/group_holdout/viz_s<seed>/gine_best.pt`), RISC-V training data withheld, evaluated on the SAME `eval/data/riscv_eval_holdout.jsonl` set:
 
-- Control checkpoints not found -- see console output.
+- Control (no RISC-V training exposure, 5 seeds [42, 1, 7, 13, 21]): 24.85% +/- 7.36%
+- After RISC-V augmentation: 75.45% +/- 13.20%
+- Lift: +50.61pp
 
 ### Prior zero-shot baseline (cited for continuity, not apples-to-apples)
 
@@ -45,7 +47,7 @@ Identical recipe/seeds/split as the RISC-V-augmented checkpoints (`eval/group_ho
 
 ### Composition of the 75.45% result
 
-RETBLEED (20 examples, 100% recall) and INCEPTION (16 examples, 89% recall) supply the majority of correct predictions; MDS (12 examples, the largest holdout class) has weak recall (73% recall); L1TF -- the single largest class in the full RISC-V corpus -- has zero holdout examples and could not be measured at all.
+RETBLEED (20 examples, 100% recall) and INCEPTION (16 examples, 89% recall) supply the majority of correct predictions; MDS (12 examples, the largest holdout class) has weak recall (73% recall); L1TF -- the single largest class in the full RISC-V corpus -- now has 2 real holdout examples (100% recall).
 
 ## Per-class RISC-V holdout breakdown
 
