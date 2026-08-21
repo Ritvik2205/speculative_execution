@@ -589,3 +589,118 @@ shards independently without a shared filesystem).
   `train_gine_v38.py`'s `torch.manual_seed` controls Python/NumPy/CPU RNG
   but cuDNN algorithms are not bitwise-deterministic across GPU
   architectures by default.
+
+---
+
+## RISC-V diagnostic — technique choice isn't the bottleneck, vocabulary coverage is
+
+**Run:** `eval/diagnose_riscv_learned_features.py`. Trains RF on
+`v54_train` (x86_64/arm64 only — confirmed zero riscv64 rows) with each
+Phase 1/2 feature config, scores zero-shot on the real labeled
+`riscv_corpus/*.s` (496 records, same label-recovery as
+`spec/eval_riscv_real.py`).
+
+### The dominant effect, measured directly: 78.3% of RISC-V tokens are OOV
+
+```
+MLM vocab size (built from x86_64/arm64 only): 449
+RISC-V token OOV rate: 15693/20049 (78.3%)
+```
+
+`spec/asm_tokenizer.py`'s **operand** classification is genuinely
+spec-driven — register/immediate/memory-operand regex all come from the
+ISA spec, zero hardcoded literals in that file, exactly as its docstring
+claims. But the token it emits keeps the **mnemonic itself** as a literal
+prefix (`"addi <reg> <reg> <imm>"`, not an abstracted category), and
+`train_mlm.py::build_vocab` only ever saw x86_64/arm64 mnemonics
+(`min_count=5` over `v54_train`, which has zero riscv64 rows). RISC-V's
+actual dominant instructions — `addi`, `sd`, `ld`, `jr`, `beqz`, `slli`,
+etc. — never appear in that vocabulary, so `vocab.get(t, vocab[UNK])`
+collapses nearly all of them to one shared `<unk>` embedding. The
+instructions that *do* land in-vocab are the handful of mnemonics RISC-V
+happens to share verbatim with ARM64/x86 (`nop`, `call <sym>`,
+`add <reg> <reg> <reg>`) — coincidence, not design.
+
+**This is a training-data coverage gap in the learned-feature pipeline
+specifically, not a flaw in the spec engine itself** (`isa_spec.py`,
+`spec_features.py`, `riscv.json` remain ISA-literal-free) — but it means
+zero-shot "learned" node/pooled features are close to random noise on any
+architecture the MLM wasn't trained on, by construction, regardless of
+which pooling or gating technique sits downstream.
+
+### Result: every MLM-touching config underperforms hand-58 alone, and none help
+
+```
+config                  riscv zero-shot acc   macro-F1
+--------------------------------------------------------
+hand-58                              6.25%       4.17%
+hand+MLM                             2.22%       1.78%
+hand+diffMLM                         1.81%       1.37%
+hand+prunedMLM                       2.22%       2.05%
+hand+diff+prunedMLM                  1.81%       1.95%
+```
+
+Adding *any* MLM-derived signal — flat, diff-gated, pruned, or combined —
+makes RISC-V zero-shot **worse** than hand-58 alone, not better: the OOV
+embeddings are pure noise the RF has to learn to ignore, and it can't
+fully. Per-class recall confirms this isn't a close call: L1TF, MDS,
+SPECTRE_V2/V4, BHI all sit at 0% recall for every config including
+`hand+diff+prunedMLM` (the RF-level winner from Phase 1/2 on x86/ARM). None
+of Phase 1/2/4's mechanisms can rescue a signal that was never present in
+the input to begin with — confirms the plan's own Phase 3 framing was
+right to separate "pooling/gating technique" from "does the underlying
+embedding carry information for this ISA at all," and the answer for
+RISC-V today is no, at the MLM layer specifically.
+
+(Note: these RF numbers are not directly comparable to the GINE zero-shot
+23.59% cited in project memory — that number comes from `hand`-only node
+features through the full spec-driven PDG/graph pipeline, a structurally
+different and more ISA-agnostic feature source than `hand-58`'s
+`v54/inline_features.py`, which — per `spec/ablation_spec_features.py`'s
+own docstring — has literal ISA regex in it. The RF-vs-GINE gap here is
+itself informative: the more spec-driven a feature source is, the better
+it transfers; the MLM's vocabulary is currently the least spec-driven part
+of the stack.)
+
+### What "reproducible for new architectures using only the spec description" actually requires here
+
+Two separate, now-precisely-scoped gaps, not one:
+
+1. **MLM vocabulary should be built from spec-category tokens, not literal
+  mnemonics.** Concretely: tokenize as `"<category> <reg> <reg> <imm>"`
+  (category from the spec's existing `classify_rules`, e.g. `ARITHMETIC`)
+  instead of `"addi <reg> <reg> <imm>"`. Since `riscv.json`'s patterns
+  already map `addi` → `arithmetic` → `ARITHMETIC` (same category x86's
+  `add`/ARM's `add` map to), this would collapse the vocabulary to the
+  shared category set and make OOV ≈ 0% by construction for *any* new ISA
+  whose spec defines the same pattern keys — the whole point of the spec
+  engine, just not yet applied at the tokenizer's vocabulary-building step.
+  This is a real MLM retrain, not a config change — flagged here as the
+  concrete next step, not attempted in this session (scope: this session's
+  ask was diagnosis, not a rebuild of the tokenizer's vocabulary strategy).
+2. **`riscv.json` itself is complete relative to `base.json`/`x86_64.json`/
+  `arm64.json`** — checked directly: every `patterns`/`addressing`/
+  `realize`/`pipeline` key either ISA exposes is present and overridden in
+  `riscv.json`, nothing silently falls back to a possibly-wrong UNION
+  default. But one **documented, deliberate, still-real limitation**
+  remains: `indexed_access`/`mem_idx` are set to a never-match regex
+  (`"(?!x)x"`) because real RV64GC genuinely has no single-instruction
+  base+index addressing mode (correct modeling, not an oversight — see the
+  file's own `pipeline.notes`). The problem is one layer up: `base.json`'s
+  `spec_flag_rules` gates `is_secret_source`/`is_transmitter` — the two
+  flags this whole project's vulnerability detection cares about most —
+  strictly on `when_mem_in: ["INDEXED"]`, a condition RISC-V can
+  structurally never satisfy through the spec alone. The project's
+  existing fix (`spec/dataflow_taint.py`, G6) works around this correctly,
+  but it's a **Python-code patch that lives outside the JSON spec**, not an
+  extension of the spec's own rule vocabulary — so today, a genuinely new
+  ISA with decomposed (non-atomic) addressing would hit the identical gap
+  and need the identical bespoke Python patch, not just a new JSON file.
+  "New ISA = spec file only" (this file's own `provenance` field's stated
+  test) is true for classification/parsing, but **not yet true** for
+  `is_secret_source`/`is_transmitter` specifically. The honest fix, if this
+  gets prioritized, is promoting `dataflow_taint`'s logic into a new
+  `mem_access_rules` "kind" (e.g. `"kind": "dataflow_indexed"`,
+  parameterized by hop count and probe-shift amounts) that `base.json` can
+  express generically — turning today's one-off Python patch into
+  something a future ISA's JSON file alone could opt into.
