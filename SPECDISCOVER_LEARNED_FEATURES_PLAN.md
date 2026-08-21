@@ -865,15 +865,15 @@ outcome — this run is the measurement that counts.
 
 ## Phase 4 VERDICT — diff-gating does not work. Hand features win.
 
-All four node-feature modes, 10 seeds each (`both` at 8 when tabulated),
-paired, current code, `--use-spec-builder`, locked v54 split:
+All four node-feature modes, **10 seeds each (40/40 runs, 0 failed)**, paired,
+current code, `--use-spec-builder`, locked v54 split:
 
 | mode | n | test-acc | macro-F1 | SPECTRE_V2 recall |
 |---|---|---|---|---|
 | **hand** | 10 | **96.01% ± 0.55** | **82.81% ± 2.27** | **85.26% ± 5.41** |
 | diff_gated_both | 10 | 94.32% ± 0.82 | 79.90% ± 2.69 | 72.40% ± 7.08 |
 | learned | 10 | 94.35% ± 0.63 | 79.33% ± 1.29 | 75.71% ± 7.23 |
-| both | 8 | 93.76% ± 1.12 | 79.20% ± 1.67 | 71.67% ± 8.44 |
+| both | 10 | 93.85% ± 0.87 | 78.99% ± 1.34 | 71.43% ± 6.50 |
 
 **vs `hand`, paired:** every MLM-based mode is significantly worse on
 accuracy (`diff_gated_both` −1.69pp p=0.007; `learned` −1.66pp p=0.001;
@@ -881,22 +881,23 @@ accuracy (`diff_gated_both` −1.69pp p=0.007; `learned` −1.66pp p=0.001;
 (−12.86 / −9.55 / −13.56pp, all p<0.03) and INCEPTION.
 
 **The direct mechanism test — `diff_gated_both` vs `both`, same features,
-only the gate differs, 8 paired seeds:**
+only the gate differs, 10 paired seeds:**
 
 | metric | delta | p |
 |---|---|---|
-| test-acc | +0.58pp | 0.331 ns |
-| macro-F1 | +1.05pp | 0.543 ns |
-| SPECTRE_V2 | +0.89pp | 0.857 ns |
-| L1TF | +2.03pp | 0.483 ns |
-| RETBLEED | −2.17pp | 0.129 ns |
-| INCEPTION | +0.13pp | 0.912 ns |
-| MDS | +0.00pp | 1.000 ns |
+| test-acc | +0.47pp | 0.331 ns |
+| macro-F1 | +0.91pp | 0.499 ns |
+| SPECTRE_V2 | +0.97pp | 0.808 ns |
+| L1TF | +3.51pp | 0.175 ns |
+| RETBLEED | −1.20pp | 0.343 ns |
+| INCEPTION | −1.28pp | 0.376 ns |
+| BHI | −0.90pp | 0.509 ns |
+| MDS | −0.67pp | 0.638 ns |
 
 **Not one metric moves.** The per-node diff-gate — the mechanism this whole
 plan was built to deliver, translating the PI's and Alik's call proposals
 into GINE — has **no measurable effect**. It does not recover the SPECTRE_V2
-regression it was designed to fix (+0.89pp against a −13.56pp hole).
+regression it was designed to fix (+0.97pp against a −13.56pp hole).
 
 ### Why this is a clean negative rather than a botched experiment
 
