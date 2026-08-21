@@ -860,3 +860,78 @@ Note the prior from Phase C of the canonical-ops work: once tokens were
 canonical, diff-gating stopped helping at the RF level. Given finding (3)
 above, that RF prior should carry **little weight** for predicting the GINE
 outcome — this run is the measurement that counts.
+
+---
+
+## Phase 4 VERDICT — diff-gating does not work. Hand features win.
+
+All four node-feature modes, 10 seeds each (`both` at 8 when tabulated),
+paired, current code, `--use-spec-builder`, locked v54 split:
+
+| mode | n | test-acc | macro-F1 | SPECTRE_V2 recall |
+|---|---|---|---|---|
+| **hand** | 10 | **96.01% ± 0.55** | **82.81% ± 2.27** | **85.26% ± 5.41** |
+| diff_gated_both | 10 | 94.32% ± 0.82 | 79.90% ± 2.69 | 72.40% ± 7.08 |
+| learned | 10 | 94.35% ± 0.63 | 79.33% ± 1.29 | 75.71% ± 7.23 |
+| both | 8 | 93.76% ± 1.12 | 79.20% ± 1.67 | 71.67% ± 8.44 |
+
+**vs `hand`, paired:** every MLM-based mode is significantly worse on
+accuracy (`diff_gated_both` −1.69pp p=0.007; `learned` −1.66pp p=0.001;
+`both` −2.19pp p=0.009) and significantly worse on SPECTRE_V2
+(−12.86 / −9.55 / −13.56pp, all p<0.03) and INCEPTION.
+
+**The direct mechanism test — `diff_gated_both` vs `both`, same features,
+only the gate differs, 8 paired seeds:**
+
+| metric | delta | p |
+|---|---|---|
+| test-acc | +0.58pp | 0.331 ns |
+| macro-F1 | +1.05pp | 0.543 ns |
+| SPECTRE_V2 | +0.89pp | 0.857 ns |
+| L1TF | +2.03pp | 0.483 ns |
+| RETBLEED | −2.17pp | 0.129 ns |
+| INCEPTION | +0.13pp | 0.912 ns |
+| MDS | +0.00pp | 1.000 ns |
+
+**Not one metric moves.** The per-node diff-gate — the mechanism this whole
+plan was built to deliver, translating the PI's and Alik's call proposals
+into GINE — has **no measurable effect**. It does not recover the SPECTRE_V2
+regression it was designed to fix (+0.89pp against a −13.56pp hole).
+
+### Why this is a clean negative rather than a botched experiment
+
+The gate demonstrably *fires*: `spec/validate_dataflow_taint*.py`-style checks
+and the RF harness both showed it changing which instructions get weight, and
+the RF harness even showed it helping there (+2.92pp SPECTRE_V2). It's wired
+correctly (smoke-verified end to end, `node_feat_dim=169`, BENIGN
+representative built from train only). It simply doesn't matter to GINE.
+
+Most plausible reading: GINE already learns to down-weight uninformative
+nodes through message passing and its own attention/gating, so an
+externally-computed soft gate on the input embeddings is redundant with what
+the network derives anyway. The RF harness benefits because a flat mean-pool
+*cannot* learn to ignore anything — which is precisely the difference that
+made RF a bad proxy (see below).
+
+### The three findings that matter more than the mechanism
+
+1. **The learned-feature tier does not help GINE, at all.** Hand features win
+   on accuracy, macro-F1, SPECTRE_V2 and INCEPTION across every variant
+   tried. The only consistent MLM gains are RETBLEED (+2 to +3.9pp) and BHI
+   (+3 to +4pp, ns) — real but far outweighed.
+2. **L1TF's lift is dead: exactly −0.00pp (p=1.000), identical 69.19% means.**
+   The strongest single argument for the learned tier does not survive.
+3. **RF-ablation results have the opposite sign to GINE and must never proxy
+   for it.** RF said `hand+MLM` beats hand-58 on SPECTRE_V2 by +4.55pp; GINE
+   says it loses by 9.55pp. RF consumes one mean-pooled vector; GINE consumes
+   per-node embeddings with message passing. Different questions.
+
+### What this means for the PI's ask
+
+The call's premise was "learned features don't really help — maybe the
+learning itself isn't far through," and the proposed fixes were
+representative-differencing and redundancy-pruning. Both were built and
+measured properly. **On the real model, neither helps.** The honest report
+is that the learned tier is not currently earning its place in the pipeline,
+and the paper's classification results should stand on the hand/spec feature
+model (96.01% ± 0.55, 10 seeds) rather than on a learned-feature story.
