@@ -796,3 +796,67 @@ the baseline this whole phase is measured against is now solid.
 (paired diff -1.12pp, p=0.299, not significant) — consistent with the prior
 finding that flat learned node features don't beat hand features, but far too
 few seeds to state as a conclusion yet.
+
+---
+
+## Phase 4 result — the SPECTRE_V2 regression is REAL and reproduces on GINE
+
+Mac shard complete: `hand` and `learned`, 10 seeds each, paired, current code,
+`--use-spec-builder`, locked v54 split (`eval/collect_v56_results.py`).
+
+| mode | n | test-acc | macro-F1 |
+|---|---|---|---|
+| hand | 10 | **96.01% +/- 0.55** | **82.81% +/- 2.27** |
+| learned | 10 | 94.35% +/- 0.63 | 79.33% +/- 1.29 |
+
+Paired by seed, `learned` - `hand`:
+
+| metric | delta | p | |
+|---|---|---|---|
+| test-acc | **−1.66pp** | 0.001 | **significant** |
+| macro-F1 | **−3.47pp** | 0.008 | **significant** |
+| recall SPECTRE_V2 | **−9.55pp** | 0.029 | **significant** |
+| recall INCEPTION | **−6.81pp** | 0.001 | **significant** |
+| recall RETBLEED | **+3.87pp** | 0.019 | **significant** |
+| recall L1TF | **−0.00pp** | 1.000 | ns |
+| recall BHI | +4.03pp | 0.065 | ns |
+| recall MDS | −0.22pp | 0.930 | ns |
+
+### Three things this settles
+
+**1. The regression that motivated this entire plan is real.** The cached
+`eval/per_class_lift_results.json` said learned features cost SPECTRE_V2
+−11.82pp. That cache predates the G11 leak fix, the G12 column-bug fix and
+dataflow_taint, so it was fair to suspect it was stale. It was not:
+freshly measured on current code over 10 paired seeds, the cost is
+**−9.55pp (p=0.029)**. Same direction, same order of magnitude. Speaker 2's
+report to the PI on the call was accurate.
+
+**2. L1TF's "+11.89pp lift" is dead — exactly 0.00pp.** The same cache
+claimed learned features gave L1TF +11.89pp, the single strongest argument
+for the learned tier. Project memory already downgraded it (10-seed
+re-run: +0.049, CI crossing zero). This run kills it outright:
+**−0.00pp, p=1.000**, identical means (69.19% both). Whatever L1TF benefit
+was once reported, it does not exist in the real model. It should not be
+cited anywhere.
+
+**3. RF-level and GINE-level results disagree in sign, as warned.** Phase 1/2
+measured `hand+MLM` *beating* hand-58 on SPECTRE_V2 by +4.55pp in the RF
+ablation harness. On GINE it *loses* by 9.55pp. The caveat recorded when
+Phase 1/2 was run — that its gate ran on a different model from the one the
+regression was measured on — turned out to be exactly the right thing to
+have flagged. **RF ablation results do not transfer to GINE and must not be
+used as a proxy for it.** The two harnesses answer different questions.
+
+### What remains open
+
+`diff_gated_both` — the actual Phase 4 candidate, the mechanism built to fix
+this regression — is still unmeasured on GINE, because that was the Linux
+shard that crashed. Now running locally alongside a fresh `both` (10 seeds
+each). The question it answers is precisely: does per-node diff-gating
+recover the 9.55pp SPECTRE_V2 loss while keeping RETBLEED's +3.87pp gain?
+
+Note the prior from Phase C of the canonical-ops work: once tokens were
+canonical, diff-gating stopped helping at the RF level. Given finding (3)
+above, that RF prior should carry **little weight** for predicting the GINE
+outcome — this run is the measurement that counts.
