@@ -1,53 +1,96 @@
 #!/usr/bin/env bash
 # run_v56_multiseed.sh — Phase 4 multi-seed comparison: hand / learned / both /
 # diff_gated_both node-feature modes, all with --use-spec-builder (matching
-# the "current best" recipe), on the locked v54 data/split. Same convention
-# as eval/run_full_tost.sh and eval/run_dataflow_taint_multiseed.sh.
+# the "current best" recipe), on the locked v54 data/split.
 #
-# This is the FULL run (4 modes x N seeds) — expensive. Designed to be
-# splittable across machines: pass a MODES/SEEDS subset via env vars to run
-# a partial shard on a second machine, then merge results.tsv files (they're
-# just appended rows, safe to `cat` together) before running
-# eval/full_tost_aggregate.py or eval/analyze_g11_multiseed.py-style analysis
-# on the combined file. See SPECDISCOVER_LEARNED_FEATURES_PLAN.md, Phase 4
-# multi-machine seed-gathering plan, for the sharding convention.
+# Splittable across machines: pass MODES/SEEDS as env vars to run a shard,
+# then merge the results.tsv files (see SPECDISCOVER_LEARNED_FEATURES_PLAN.md).
 #
 # Usage:
 #   ./eval/run_v56_multiseed.sh                       # all modes, all seeds
-#   MODES="diff_gated_both" SEEDS="99 123 55 88 7000" ./eval/run_v56_multiseed.sh
+#   MODES="diff_gated_both" SEEDS="99 123 55" ./eval/run_v56_multiseed.sh
+#
+# Columns: mode  seed  test_acc  macro_f1  <per-class recalls...>
+# Metrics are read from each run's gine_metrics.json (structured), NOT scraped
+# from the log — an earlier version awk'd the log and silently emitted rows
+# with empty accuracy and class *names* in the recall columns when a run
+# crashed, which wasted a full 20-run batch before anyone noticed.
 set -uo pipefail
 cd "$(dirname "$0")/../v56"
 
 SEEDS=(${SEEDS:-42 1 7 13 21})
 MODES=(${MODES:-hand learned both diff_gated_both})
-MLM="../spec/mlm_large.pt"
+MLM="${MLM:-../spec/mlm_large.pt}"
+TRAIN="../v54/data/v54_train.jsonl"
+TEST="../v54/data/v54_test.jsonl"
 OUT="../eval/v56_multiseed"
+CLASSES="SPECTRE_V2 L1TF RETBLEED INCEPTION BRANCH_HISTORY_INJECTION MDS"
+
+# ---- preflight: fail loudly and early, not 20 crashed runs later ----------
+fail() { echo "PREFLIGHT FAILED: $*" >&2; exit 1; }
+for f in "$TRAIN" "$TEST" train_gine_v38.py; do
+  [ -f "$f" ] || fail "missing $f"
+done
+need_mlm=0
+for m in "${MODES[@]}"; do [ "$m" = "hand" ] || need_mlm=1; done
+if [ "$need_mlm" = "1" ]; then
+  [ -f "$MLM" ] || fail "missing $MLM (needed by modes: ${MODES[*]})"
+  python3 - "$MLM" <<'PY' || fail "cannot load $MLM in this environment (see traceback above)"
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path("../spec").resolve()))
+from train_mlm import MlmEncoder
+m = MlmEncoder.load(sys.argv[1])
+print(f"preflight: {sys.argv[1]} loads OK — vocab={len(m.vocab)} dim={m.dim} "
+      f"tokenizer={getattr(m,'tokenizer_mode','mnemonic')}")
+PY
+fi
+python3 -c "import torch,sklearn,numpy,matplotlib,tqdm; print('preflight: torch',torch.__version__,'cuda',torch.cuda.is_available())" \
+  || fail "missing python dependencies (pip install -r requirements.txt)"
+
 mkdir -p "$OUT"
 TSV="$OUT/results.tsv"
-: > "$TSV.$$"  # per-invocation temp, so parallel/sharded runs don't clobber each other
+echo "preflight OK — ${#MODES[@]} mode(s) x ${#SEEDS[@]} seed(s) = $((${#MODES[@]} * ${#SEEDS[@]})) runs -> $TSV"
 
+n_ok=0; n_fail=0
 for mode in "${MODES[@]}"; do
   extra="--use-spec-builder"
   if [ "$mode" != "hand" ]; then extra="$extra --node-feature-mode $mode --mlm-path $MLM"; fi
   for sd in "${SEEDS[@]}"; do
     log="$OUT/${mode}_s${sd}.log"
+    viz="$OUT/viz_${mode}_s${sd}"
     TQDM_DISABLE=1 python3 -u train_gine_v38.py \
-      --train-data ../v54/data/v54_train.jsonl --test-data ../v54/data/v54_test.jsonl \
-      --output-dir "$OUT/viz_${mode}_s${sd}" --viz-dir "$OUT/viz_${mode}_s${sd}" \
+      --train-data "$TRAIN" --test-data "$TEST" \
+      --output-dir "$viz" --viz-dir "$viz" \
       --epochs 100 --patience 12 --hidden-dim 128 --num-layers 3 --jk-mode cat \
       --batch-size 32 --lr 1e-3 --weight-decay 5e-4 --dropout 0.5 \
       --lambda-con 0.5 --temperature 0.07 --hard-neg-weight 2.0 --arch-emb-dim 8 \
       --seed "$sd" $extra \
       > "$log" 2>&1
-    acc=$(grep -oE "Final test accuracy: [0-9.]+" "$log" | tail -1 | grep -oE "[0-9.]+$")
-    # macro avg row: precision recall f1-score support -> $5 is f1-score (see G12 bug note
-    # in eval/run_full_tost.sh — $4 is recall, do not use it here).
-    f1=$(grep -E "macro avg" "$log" | tail -1 | awk '{print $5}')
-    spectre_v2_rec=$(grep -E "SPECTRE_V2 " "$log" | tail -1 | awk '{print $3}')
-    l1tf_rec=$(grep -E "L1TF " "$log" | tail -1 | awk '{print $3}')
-    echo -e "${mode}\t${sd}\t${acc}\t${f1}\t${spectre_v2_rec}\t${l1tf_rec}" | tee -a "$TSV.$$"
+    rc=$?
+    if [ $rc -ne 0 ] || [ ! -f "$viz/gine_metrics.json" ]; then
+      n_fail=$((n_fail + 1))
+      echo "FAILED  ${mode} seed=${sd} (exit $rc) — last lines of $log:" >&2
+      tail -15 "$log" >&2
+      echo "---" >&2
+      continue
+    fi
+    # Structured extraction: no row is written unless the run really finished.
+    row=$(python3 - "$viz/gine_metrics.json" "$mode" "$sd" $CLASSES <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1]))
+mode, sd, classes = sys.argv[2], sys.argv[3], sys.argv[4:]
+rep = m["classification_report"]
+cells = [mode, sd, f"{m['test_accuracy']*100:.2f}", f"{rep['macro avg']['f1-score']*100:.2f}"]
+cells += [f"{rep.get(c, {}).get('recall', float('nan'))*100:.2f}" for c in classes]
+print("\t".join(cells))
+PY
+    ) || { n_fail=$((n_fail + 1)); echo "FAILED to parse metrics for ${mode} s${sd}" >&2; continue; }
+    n_ok=$((n_ok + 1))
+    # Append per run so an interrupted batch keeps its completed rows.
+    echo "$row" | tee -a "$TSV"
   done
 done
-cat "$TSV.$$" >> "$TSV"
-rm "$TSV.$$"
-echo "DONE -> $TSV"
+
+echo "DONE — $n_ok succeeded, $n_fail failed -> $TSV"
+echo "columns: mode seed test_acc macro_f1 $CLASSES"
+[ $n_fail -eq 0 ] || exit 1

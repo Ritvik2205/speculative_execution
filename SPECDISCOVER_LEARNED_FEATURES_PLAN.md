@@ -704,3 +704,95 @@ Two separate, now-precisely-scoped gaps, not one:
   parameterized by hop count and probe-shift amounts) that `base.json` can
   express generically — turning today's one-off Python patch into
   something a future ISA's JSON file alone could opt into.
+
+---
+
+## Phase 4 run log — Linux shard failed, harness bug found
+
+### What came back from `origin/linux-box-run`
+
+All 20 runs (`both` and `diff_gated_both` x 10 seeds) produced **no usable
+data**. Every row looked like:
+
+```
+both	42			SPECTRE_V2	L1TF
+```
+
+— empty `test_acc`, empty `macro_f1`, and the literal class *names* where the
+per-class recalls should be.
+
+### Two separate faults, one of them mine
+
+**1. The harness silently emitted garbage instead of failing (my bug).**
+`run_v56_multiseed.sh` scraped metrics out of the log with `grep | awk` and
+never checked the training exit code. When a run died early:
+- `grep -oE "Final test accuracy: [0-9.]+"` matched nothing -> empty field;
+- `grep -E "SPECTRE_V2 " "$log" | tail -1 | awk '{print $3}'` fell back to
+  matching a **`  Hard negative: SPECTRE_V2 <-> INCEPTION`** setup line
+  (printed around log line 36, long before the classification report at line
+  ~185), whose `$3` is the string `SPECTRE_V2`.
+
+So the script wrote a full, plausible-looking 20-row table for 20 runs that
+had all crashed. That is the more important failure: a whole batch of compute
+was spent and the output looked like data.
+
+**Fixed** — the driver now:
+- preflights (data files, MLM loadability *in that environment*, python deps)
+  and aborts before the loop rather than after 20 failures;
+- checks each run's exit code and the existence of `gine_metrics.json`, prints
+  the failing log's tail, and **writes no row** for a failed run;
+- reads metrics from the structured `gine_metrics.json`, never from log text;
+- appends each row as it completes, so an interrupted batch keeps its results.
+
+Plus `eval/collect_v56_results.py` — rebuilds the table by scanning
+`viz_*/gine_metrics.json`, so results are recoverable after a bad scrape and
+mergeable across machines without trusting either machine's TSV. It also does
+the paired-by-seed analysis (guarding against comparing modes that don't share
+seeds).
+
+**2. Why the Linux runs actually crashed — not yet known.**
+Ruled out from here:
+- Code/data were present at that commit (`v56/`, `v54/data/*.jsonl` all tracked).
+- `spec/mlm_large.pt` is **byte-identical** to the local copy (same git blob
+  `3ce47bf6`, 3796667 bytes) and loads fine — not corruption.
+- The same `both` mode with the same checkpoint **runs correctly on this
+  machine** (91.92% test accuracy in a 1-epoch check), so it isn't a code bug.
+
+Localized: the last log line the scrape matched is a "Hard negative" line,
+which is printed *after* dataset load and label setup but *before*
+`Creating datasets...`. `MlmEncoder.load(args.mlm_path)` sits exactly in that
+window, and it is the one code path present in both failing modes
+(`both`, `diff_gated_both`) and absent from the mode that succeeded on the Mac
+(`hand`). Most likely an environment issue at checkpoint load or immediately
+after (torch build/CUDA mismatch), but **the logs were not committed** — only
+`results.tsv` was — so this cannot be confirmed from here.
+
+**To resolve:** the logs are still on that machine at
+`eval/v56_multiseed/{mode}_s{seed}.log`. Either commit a couple of them, or
+just re-run — the new preflight will now name the problem immediately instead
+of burning 20 runs:
+
+```bash
+git pull                       # picks up the hardened driver
+MODES="both diff_gated_both" SEEDS="42 1 7 13 21 99 123 55 88 7000" \
+  ./eval/run_v56_multiseed.sh
+```
+
+### Mac shard result (recovered via the collector)
+
+`hand` mode, 10 seeds, `--use-spec-builder`, locked v54 split:
+
+| mode | n | test-acc | macro-F1 |
+|---|---|---|---|
+| hand | 10 | **96.01% +/- 0.55** | 82.81% +/- 2.27 |
+| learned | 3 (in progress) | 94.61% +/- 0.45 | 79.35% +/- 0.40 |
+
+The `hand` number **reproduces the recorded flagship** (96.14% +/- 1.59 for the
+v54 spec-builder GINE) at 96.01% +/- 0.55 — same value, and a ~3x tighter CI
+from running 10 seeds instead of 5. That is a genuine, if unglamorous, result:
+the baseline this whole phase is measured against is now solid.
+
+`learned` is trending ~1.4pp below `hand` on only 3 shared seeds
+(paired diff -1.12pp, p=0.299, not significant) — consistent with the prior
+finding that flat learned node features don't beat hand features, but far too
+few seeds to state as a conclusion yet.
