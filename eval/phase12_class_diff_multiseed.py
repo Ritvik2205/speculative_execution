@@ -58,9 +58,12 @@ def main():
     ap.add_argument("--seeds", type=int, nargs="+", default=[42, 1, 7, 13, 21])
     args = ap.parse_args()
 
-    engine = load_engine("base.json")
-    tok = AsmTokenizer(engine)
     mlm = MlmEncoder.load(args.mlm_path)
+    # Tokenize the way this checkpoint's vocabulary was built, or every lookup
+    # misses (canonical vocabularies are per-ISA op names, not mnemonics).
+    from asm_tokenizer import MultiArchTokenizer
+    marc = MultiArchTokenizer(mode=getattr(mlm, "tokenizer_mode", "mnemonic"))
+    print(f"checkpoint={args.mlm_path}  tokenizer_mode={marc.mode}")
 
     tr, te = T.load(T.TRAIN), T.load(T.TEST)
     labels = sorted({r["label"] for r in tr} | {r["label"] for r in te})
@@ -70,8 +73,8 @@ def main():
     Xtr_hand = np.vstack([hf.compute_inline_features(r["sequence"]) for r in tr])
     Xte_hand = np.vstack([hf.compute_inline_features(r["sequence"]) for r in te])
 
-    tr_tok = [tok.tokenize_sequence(r["sequence"]) for r in tr]
-    te_tok = [tok.tokenize_sequence(r["sequence"]) for r in te]
+    tr_tok = [marc.tokenize_record(r) for r in tr]
+    te_tok = [marc.tokenize_record(r) for r in te]
 
     Xtr_mlm = np.vstack([mlm.embed_sequence(t) for t in tr_tok])
     Xte_mlm = np.vstack([mlm.embed_sequence(t) for t in te_tok])

@@ -33,7 +33,20 @@
     "mem_idx": "(?!x)x"
   },
   "realize": {
-    "register_pool": ["a0", "a1", "a2", "a3", "a4", "a5", "t0", "t1", "t2", "s1", "s2", "s3"],
+    "register_pool": [
+      "a0",
+      "a1",
+      "a2",
+      "a3",
+      "a4",
+      "a5",
+      "t0",
+      "t1",
+      "t2",
+      "s1",
+      "s2",
+      "s3"
+    ],
     "mem": "0(BASE)",
     "mem_idx": "0(BASE)",
     "imm_prefix": "",
@@ -45,8 +58,151 @@
     "speculative_window": 10,
     "cache_window": 20,
     "rsb_pair_window": 15,
-    "speculation_sources": ["BRANCH_COND", "CALL_INDIRECT", "JUMP_INDIRECT", "RET"],
-    "serializing_ops": ["fence", "fence.i", "sfence.vma"],
+    "speculation_sources": [
+      "BRANCH_COND",
+      "CALL_INDIRECT",
+      "JUMP_INDIRECT",
+      "RET"
+    ],
+    "serializing_ops": [
+      "fence",
+      "fence.i",
+      "sfence.vma"
+    ],
     "notes": "RV64GC. No base+index addressing (offset(base) only) -> indexed_access/mem_idx never-match. No push/pop -> stack_op never-match."
-  }
+  },
+  "canonical_ops": [
+    {
+      "op": "NOP",
+      "mnemonic": "nop"
+    },
+    {
+      "op": "TIMER",
+      "mnemonic": "rd(cycle|time|instret)h?"
+    },
+    {
+      "op": "FENCE_INSN",
+      "mnemonic": "fence\\.i"
+    },
+    {
+      "op": "FENCE_FULL",
+      "mnemonic": "fence(\\.tso)?|sfence\\.vma|pause"
+    },
+    {
+      "op": "CACHE_FLUSH",
+      "mnemonic": "cbo\\.(inval|flush|clean|zero)"
+    },
+    {
+      "op": "PREFETCH",
+      "mnemonic": "prefetch\\.[rwi]"
+    },
+    {
+      "op": "ATOMIC",
+      "mnemonic": "(lr|sc|amo\\w+)\\.[wd](\\.\\w+)?"
+    },
+    {
+      "op": "LOAD",
+      "mnemonic": "c?\\.?l[bhwd]u?|flw|fld|c\\.ld?sp?"
+    },
+    {
+      "op": "STORE",
+      "mnemonic": "c?\\.?s[bhwd]|fsw|fsd|c\\.sd?sp?"
+    },
+    {
+      "op": "ADDR_GEN",
+      "mnemonic": "lui|auipc"
+    },
+    {
+      "op": "MOV_SX",
+      "mnemonic": "sext\\.[bhw]"
+    },
+    {
+      "op": "MOV_ZX",
+      "mnemonic": "zext\\.[bhw]"
+    },
+    {
+      "op": "MOV",
+      "mnemonic": "mv|li|c\\.mv|c\\.li|fmv(\\.\\w+)*"
+    },
+    {
+      "op": "NEG",
+      "mnemonic": "negw?"
+    },
+    {
+      "op": "NOT",
+      "mnemonic": "not"
+    },
+    {
+      "op": "ADD",
+      "mnemonic": "c?\\.?addi?w?|c\\.add"
+    },
+    {
+      "op": "SUB",
+      "mnemonic": "subw?"
+    },
+    {
+      "op": "MUL",
+      "mnemonic": "mulh?(su|u)?w?"
+    },
+    {
+      "op": "DIV",
+      "mnemonic": "divu?w?|remu?w?"
+    },
+    {
+      "op": "AND",
+      "mnemonic": "andi?"
+    },
+    {
+      "op": "OR",
+      "mnemonic": "ori?"
+    },
+    {
+      "op": "XOR",
+      "mnemonic": "xori?"
+    },
+    {
+      "op": "SHL",
+      "mnemonic": "slli?w?"
+    },
+    {
+      "op": "SHR",
+      "mnemonic": "srli?w?"
+    },
+    {
+      "op": "SAR",
+      "mnemonic": "srai?w?"
+    },
+    {
+      "op": "ROTATE",
+      "mnemonic": "rol|ror|rori"
+    },
+    {
+      "op": "CMP",
+      "mnemonic": "slti?u?|s(eqz|nez|ltz|gtz)"
+    },
+    {
+      "op": "BRANCH_COND",
+      "mnemonic": "b(eq|ne|lt|ge|ltu|geu|le|gt|leu|gtu)z?|c\\.b(eq|ne)z"
+    },
+    {
+      "op": "BRANCH_UNCOND",
+      "mnemonic": "j|c\\.j|tail"
+    },
+    {
+      "op": "CALL_IND",
+      "mnemonic": "jalr|c\\.jalr"
+    },
+    {
+      "op": "CALL",
+      "mnemonic": "call|jal|c\\.jal"
+    },
+    {
+      "op": "JMP_IND",
+      "mnemonic": "jr|c\\.jr"
+    },
+    {
+      "op": "RET",
+      "mnemonic": "ret"
+    }
+  ]
 }

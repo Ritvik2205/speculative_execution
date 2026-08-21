@@ -64,5 +64,179 @@
     "memory_operand": "\\(.*%|\\(%",
     "reg": "%([re]?[abcd]x|[re]?[sd]i|[re]?[sb]p|r[0-9]+[dwb]?)"
   },
-  "provenance": "B1: ISA-only grammar overriding base UNION; contamination-free + mnemonic fixes (blr/jcc/bare-b)."
+  "provenance": "B1: ISA-only grammar overriding base UNION; contamination-free + mnemonic fixes (blr/jcc/bare-b).",
+  "canonical_ops": [
+    {
+      "op": "NOP",
+      "mnemonic": "nop|endbr64|hint"
+    },
+    {
+      "op": "TIMER",
+      "mnemonic": "rdtscp?|rdpmc|rdtscp?64"
+    },
+    {
+      "op": "SERIALIZE",
+      "mnemonic": "cpuid"
+    },
+    {
+      "op": "FENCE_LOAD",
+      "mnemonic": "lfence"
+    },
+    {
+      "op": "FENCE_STORE",
+      "mnemonic": "sfence"
+    },
+    {
+      "op": "FENCE_FULL",
+      "mnemonic": "mfence|dsb|dmb"
+    },
+    {
+      "op": "FENCE_INSN",
+      "mnemonic": "isb"
+    },
+    {
+      "op": "CLEAR_BUF",
+      "mnemonic": "verw"
+    },
+    {
+      "op": "NONTEMP_LOAD",
+      "mnemonic": "movntdqa|movnti"
+    },
+    {
+      "op": "CACHE_FLUSH",
+      "mnemonic": "clflushopt(_x86)?|clflush(_x86)?|dc|wbinvd"
+    },
+    {
+      "op": "PREFETCH",
+      "mnemonic": "prefetch(t0|t1|t2|nta|w)?"
+    },
+    {
+      "op": "SYSCALL",
+      "mnemonic": "syscall|sysenter|int"
+    },
+    {
+      "op": "ATOMIC",
+      "mnemonic": "lock|xbegin|xend|xacquire|xrelease|cmpxchg[qlwb]?"
+    },
+    {
+      "op": "XCHG",
+      "mnemonic": "xchg[qlwb]?"
+    },
+    {
+      "op": "PUSH",
+      "mnemonic": "push[qlwb]?"
+    },
+    {
+      "op": "POP",
+      "mnemonic": "pop[qlwb]?|leave"
+    },
+    {
+      "op": "FLOAT",
+      "mnemonic": "(add|sub|mul|div|comi|ucomi|sqrt|max|min|mov|cvt\\w*)(sd|ss|pd|ps)|cvtsi2\\w+|fld\\w*|fst\\w*"
+    },
+    {
+      "op": "VECTOR",
+      "mnemonic": "mov(dqa|dqu|aps|apd|ups|upd|d|q?_?)|p(xor|shufd|unpck\\w+|add[bwdq]|sub[bwdq]|cmp\\w+)|xorps|xorpd|[lu]dmxcsr|stmxcsr"
+    },
+    {
+      "op": "COND_MOV",
+      "mnemonic": "cmov[a-z]+|set[a-z]+"
+    },
+    {
+      "op": "MOV_ZX",
+      "mnemonic": "movz[bwl][wlq]"
+    },
+    {
+      "op": "MOV_SX",
+      "mnemonic": "movs[bwl][wlq]|movslq|cltq|cltd|cqto|cwtl"
+    },
+    {
+      "op": "ADDR_GEN",
+      "mnemonic": "lea[qlwb]?"
+    },
+    {
+      "op": "MOV",
+      "mnemonic": "mov[qlwb]?|movabsq?"
+    },
+    {
+      "op": "ADD",
+      "mnemonic": "add[qlwb]?|adc[qlwb]?|inc[qlwb]?"
+    },
+    {
+      "op": "SUB",
+      "mnemonic": "sub[qlwb]?|sbb[qlwb]?|dec[qlwb]?"
+    },
+    {
+      "op": "MUL",
+      "mnemonic": "i?mul[qlwb]?"
+    },
+    {
+      "op": "DIV",
+      "mnemonic": "i?div[qlwb]?"
+    },
+    {
+      "op": "NEG",
+      "mnemonic": "neg[qlwb]?"
+    },
+    {
+      "op": "NOT",
+      "mnemonic": "not[qlwb]?"
+    },
+    {
+      "op": "AND",
+      "mnemonic": "and[qlwb]?"
+    },
+    {
+      "op": "OR",
+      "mnemonic": "or[qlwb]?"
+    },
+    {
+      "op": "XOR",
+      "mnemonic": "xor[qlwb]?"
+    },
+    {
+      "op": "TEST",
+      "mnemonic": "test[qlwb]?"
+    },
+    {
+      "op": "BIT_FIELD",
+      "mnemonic": "bt[srcqlwb]?|bs[fr][qlwb]?|shld|shrd"
+    },
+    {
+      "op": "SHL",
+      "mnemonic": "sh[l][qlwb]?|sal[qlwb]?"
+    },
+    {
+      "op": "SHR",
+      "mnemonic": "shr[qlwb]?"
+    },
+    {
+      "op": "SAR",
+      "mnemonic": "sar[qlwb]?"
+    },
+    {
+      "op": "ROTATE",
+      "mnemonic": "ro[lr][qlwb]?|rc[lr][qlwb]?"
+    },
+    {
+      "op": "CMP",
+      "mnemonic": "cmp[qlwb]?"
+    },
+    {
+      "op": "BRANCH_COND",
+      "mnemonic": "j(e|ne|z|nz|g|ge|l|le|a|ae|b|be|o|no|c|nc|s|ns|p|np|na|nae|nb|nbe|ng|nge|nl|nle|pe|po|cxz|ecxz|rcxz)"
+    },
+    {
+      "op": "BRANCH_UNCOND",
+      "mnemonic": "jmp[ql]?"
+    },
+    {
+      "op": "CALL",
+      "mnemonic": "call[ql]?"
+    },
+    {
+      "op": "RET",
+      "mnemonic": "ret[ql]?|iret[ql]?"
+    }
+  ]
 }

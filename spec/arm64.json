@@ -65,5 +65,171 @@
     "memory_operand": "\\[",
     "reg": "\\b([xwbhsdq][0-9]+|sp|lr|fp|pc|xzr|wzr)\\b"
   },
-  "provenance": "B1: ISA-only grammar overriding base UNION; contamination-free + mnemonic fixes (blr/jcc/bare-b)."
+  "provenance": "B1: ISA-only grammar overriding base UNION; contamination-free + mnemonic fixes (blr/jcc/bare-b).",
+  "canonical_ops": [
+    {
+      "op": "NOP",
+      "mnemonic": "nop|hint"
+    },
+    {
+      "op": "TIMER",
+      "mnemonic": "mrs|mrc"
+    },
+    {
+      "op": "FENCE_SPEC",
+      "mnemonic": "csdb|ssbb|pssbb"
+    },
+    {
+      "op": "FENCE_INSN",
+      "mnemonic": "isb"
+    },
+    {
+      "op": "FENCE_FULL",
+      "mnemonic": "dsb|dmb"
+    },
+    {
+      "op": "FENCE_LOAD",
+      "mnemonic": "lfence"
+    },
+    {
+      "op": "CACHE_FLUSH",
+      "mnemonic": "dc|ic|clflush"
+    },
+    {
+      "op": "PREFETCH",
+      "mnemonic": "prfm|prfum"
+    },
+    {
+      "op": "VECTOR",
+      "mnemonic": ".+\\.\\d*[bhsdq]"
+    },
+    {
+      "op": "LOAD",
+      "mnemonic": "ldurs[bhw]|ldrs[bhw]|ldtrs[bhw]"
+    },
+    {
+      "op": "LOAD_PAIR",
+      "mnemonic": "ldp|ldpsw|ldnp"
+    },
+    {
+      "op": "STORE_PAIR",
+      "mnemonic": "stp|stnp"
+    },
+    {
+      "op": "ADDR_GEN",
+      "mnemonic": "adrp|adr"
+    },
+    {
+      "op": "COND_MOV",
+      "mnemonic": "cs(el|inc|inv|neg)|c(set|inc|inv|neg)m?|csetm"
+    },
+    {
+      "op": "MOV_SX",
+      "mnemonic": "sxt[bhwx]"
+    },
+    {
+      "op": "MOV_ZX",
+      "mnemonic": "uxt[bhwx]"
+    },
+    {
+      "op": "NOT",
+      "mnemonic": "mvn"
+    },
+    {
+      "op": "MOV",
+      "mnemonic": "mov[kzn]?|fmov"
+    },
+    {
+      "op": "TEST",
+      "mnemonic": "tst"
+    },
+    {
+      "op": "CMP",
+      "mnemonic": "cmp|cmn|ccmp|ccmn"
+    },
+    {
+      "op": "NEG",
+      "mnemonic": "negs?"
+    },
+    {
+      "op": "ADD",
+      "mnemonic": "adds?|adcs?|madd|umaddl|smaddl"
+    },
+    {
+      "op": "SUB",
+      "mnemonic": "subs?|sbcs?|msub|umsubl|smsubl"
+    },
+    {
+      "op": "MUL",
+      "mnemonic": "mul|[us]mull|[us]mulh|mneg"
+    },
+    {
+      "op": "DIV",
+      "mnemonic": "[us]div"
+    },
+    {
+      "op": "MIN_MAX",
+      "mnemonic": "[us](min|max)v?"
+    },
+    {
+      "op": "BIC",
+      "mnemonic": "bics?|eon|orn"
+    },
+    {
+      "op": "AND",
+      "mnemonic": "ands?"
+    },
+    {
+      "op": "OR",
+      "mnemonic": "orr"
+    },
+    {
+      "op": "XOR",
+      "mnemonic": "eor"
+    },
+    {
+      "op": "SHL",
+      "mnemonic": "lslv?"
+    },
+    {
+      "op": "SHR",
+      "mnemonic": "lsrv?"
+    },
+    {
+      "op": "SAR",
+      "mnemonic": "asrv?"
+    },
+    {
+      "op": "ROTATE",
+      "mnemonic": "rorv?|extr"
+    },
+    {
+      "op": "BIT_FIELD",
+      "mnemonic": "[us]bfiz|[us]bfx|bfi|bfxil|bfm|[us]bfm|rbit|rev\\d*|clz|cls"
+    },
+    {
+      "op": "BRANCH_COND",
+      "mnemonic": "b\\.\\w+|cbn?z|tbn?z|b(eq|ne|lt|le|gt|ge|hs|lo|hi|ls|mi|pl|cs|cc|vs|vc)"
+    },
+    {
+      "op": "BRANCH_UNCOND",
+      "mnemonic": "b"
+    },
+    {
+      "op": "CALL_IND",
+      "mnemonic": "blr"
+    },
+    {
+      "op": "CALL",
+      "mnemonic": "bl"
+    },
+    {
+      "op": "JMP_IND",
+      "mnemonic": "br"
+    },
+    {
+      "op": "RET",
+      "mnemonic": "ret"
+    }
+  ]
 }

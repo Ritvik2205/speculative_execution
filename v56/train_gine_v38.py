@@ -283,7 +283,8 @@ class GINEDatasetV47(Dataset):
             # Learned contextual node embeddings, aligned 1:1 with PDG nodes.
             # PDG is built from `sequence` (post-strip); tokenize the SAME sequence
             # so token i corresponds to node i (identical skip rules).
-            toks = self.tokenizer.tokenize_sequence(sequence)
+            toks = self.tokenizer.for_arch(
+                rec.get('arch', 'unknown')).tokenize_sequence(sequence)
             emb = self.mlm.embed_instructions(toks)              # [m, dim]
             learned = np.zeros((self.max_nodes, self.mlm.dim), dtype=np.float32)
             m = min(n_nodes, emb.shape[0])
@@ -824,16 +825,21 @@ def main():
         from asm_tokenizer import AsmTokenizer
         from train_mlm import MlmEncoder
         mlm_enc = MlmEncoder.load(args.mlm_path)
-        asm_tok = AsmTokenizer(load_engine('base.json'))
+        # Tokenize the way this checkpoint's vocabulary was built. A canonical
+        # checkpoint indexes ISA-neutral op names resolved from each ISA's own
+        # spec, so a single base-engine tokenizer would miss every lookup.
+        from asm_tokenizer import MultiArchTokenizer
+        _tok_mode = getattr(mlm_enc, 'tokenizer_mode', 'mnemonic')
+        asm_tok = MultiArchTokenizer(mode=_tok_mode)
         print(f"Loaded MLM encoder ({args.node_feature_mode}) dim={mlm_enc.dim} "
-              f"vocab={len(mlm_enc.vocab)} from {args.mlm_path}")
+              f"vocab={len(mlm_enc.vocab)} tokenizer={_tok_mode} from {args.mlm_path}")
 
     # Phase 4: benign representative built from TRAIN only (no test leakage),
     # tokenized/embedded the same way node features will be.
     benign_repr_H = None
     if args.node_feature_mode in ('diff_gated', 'diff_gated_both'):
         from class_diff_features import build_class_representatives
-        tr_tok_for_repr = [asm_tok.tokenize_sequence(r['sequence']) for r in train_records]
+        tr_tok_for_repr = [asm_tok.tokenize_record(r) for r in train_records]
         benign_toks = build_class_representatives(train_records, tr_tok_for_repr, mlm_enc).get('BENIGN')
         benign_repr_H = (mlm_enc.embed_instructions(benign_toks) if benign_toks is not None
                          else np.zeros((0, mlm_enc.dim), dtype=np.float32))

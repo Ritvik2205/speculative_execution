@@ -97,6 +97,19 @@ class SpecEngine:
             name: re.compile(src) for name, src in self.addressing.items()
         }
 
+        # Canonical (ISA-neutral) operation vocabulary. Per-ISA specs map their
+        # own mnemonic spellings onto shared semantic names, so `addq` (x86),
+        # `adds` (arm64) and `addi` (riscv) all normalize to "ADD" — letting the
+        # learned encoder's vocabulary transfer to an ISA it never trained on.
+        self.canonical_op_vocab: List[str] = spec.get("canonical_op_vocab", [])
+        self._canon_from_cat: Dict[str, str] = spec.get("canonical_op_from_category", {})
+        self._canon_authoritative: Set[str] = set(
+            spec.get("canonical_category_authoritative", []))
+        self._canon_rules: List[Tuple[re.Pattern, str]] = [
+            (re.compile(r["mnemonic"], re.IGNORECASE), r["op"])
+            for r in spec.get("canonical_ops", [])
+        ]
+
     # ---- opcode category ------------------------------------------------
     def classify_opcode(self, instr: str) -> int:
         cats = self.opcode_categories
@@ -192,6 +205,34 @@ class SpecEngine:
             if fire:
                 flags[self.spec_flags[rule["set"]]] = 1.0
         return flags
+
+    # ---- canonical operation name ---------------------------------------
+    def canonical_op(self, instr: str) -> str:
+        """ISA-neutral semantic name for this instruction's operation.
+
+        Resolution order, and why:
+          1. If the opcode category is one the *operands* determine rather than
+             the mnemonic (LOAD/STORE/STACK/RET/CALL/CALL_INDIRECT/
+             JUMP_INDIRECT — see ``canonical_category_authoritative``), trust
+             the category. x86 ``movq (%rsi),%rax`` is a LOAD despite being
+             spelled as a move; RISC-V ``jr ra`` is a RET while ``jr t0`` is an
+             indirect jump — only operand context separates those.
+          2. Otherwise try the per-ISA mnemonic rules, which are strictly more
+             informative than a coarse category (they split ARITHMETIC into
+             ADD/SUB/MUL/DIV, and they recognize size-suffixed spellings like
+             ``addq`` that the category patterns miss).
+          3. Otherwise fall back to mapping the category through
+             ``canonical_op_from_category``.
+        """
+        cat_name = self._cat_name(self.classify_opcode(instr))
+        if cat_name in self._canon_authoritative:
+            return self._canon_from_cat.get(cat_name, "OTHER")
+        toks = instr.strip().split()
+        mnem = toks[0].rstrip(":").lower() if toks else ""
+        for pat, op in self._canon_rules:
+            if pat.fullmatch(mnem):
+                return op
+        return self._canon_from_cat.get(cat_name, "OTHER")
 
     # ---- helpers --------------------------------------------------------
     def _cat_name(self, idx: int) -> str:

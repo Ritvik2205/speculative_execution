@@ -104,6 +104,10 @@ class MlmEncoder(nn.Module):
             "cfg": {"vocab_size": self.vocab_size, "dim": self.dim,
                     "layers": self.layers, "heads": self.heads,
                     "max_len": self.max_len},
+            # Which tokenizer produced this vocabulary. Consumers must tokenize
+            # the same way or every lookup misses; older checkpoints have no
+            # such key and are mnemonic-mode by construction.
+            "tokenizer_mode": getattr(self, "tokenizer_mode", "mnemonic"),
         }, path)
 
     @classmethod
@@ -114,6 +118,7 @@ class MlmEncoder(nn.Module):
                 heads=c["heads"], max_len=c["max_len"])
         m.load_state_dict(ck["state"])
         m.vocab = ck["vocab"]
+        m.tokenizer_mode = ck.get("tokenizer_mode", "mnemonic")
         return m
 
 
@@ -176,6 +181,11 @@ def main():
                     help="cpu | mps | cuda | auto")
     ap.add_argument("--save", type=str, default=None,
                     help="path to save trained MlmEncoder (e.g. spec/mlm.pt)")
+    ap.add_argument("--tokenizer-mode", choices=["mnemonic", "canonical"],
+                    default="mnemonic",
+                    help="mnemonic = literal opcode (original, ISA-specific); "
+                         "canonical = spec's ISA-neutral op name, so the vocabulary "
+                         "transfers to unseen ISAs (SPECDISCOVER_CANONICAL_OPS_PLAN.md)")
     args = ap.parse_args()
 
     torch.manual_seed(42); np.random.seed(42)
@@ -185,18 +195,20 @@ def main():
     device = torch.device(args.device)
     print(f"device={device} dim={args.dim} layers={args.layers} heads={args.heads}")
 
-    engine = load_engine("base.json")
-    tok = AsmTokenizer(engine)
+    from asm_tokenizer import MultiArchTokenizer
+    tok = MultiArchTokenizer(mode=args.tokenizer_mode)
     train_rows, test_rows = load(TRAIN), load(TEST)
-    tr_tok = [tok.tokenize_sequence(r["sequence"]) for r in train_rows]
-    te_tok = [tok.tokenize_sequence(r["sequence"]) for r in test_rows]
+    tr_tok = [tok.tokenize_record(r) for r in train_rows]
+    te_tok = [tok.tokenize_record(r) for r in test_rows]
 
     vocab = build_vocab(tr_tok)
+    print(f"tokenizer mode: {args.tokenizer_mode}")
     print(f"vocab={len(vocab)} train={len(tr_tok)} test={len(te_tok)}")
 
     epochs = 1 if args.smoke else args.epochs
     model = MlmEncoder(len(vocab), dim=args.dim, layers=args.layers, heads=args.heads)
     model.vocab = vocab
+    model.tokenizer_mode = args.tokenizer_mode
     model.to(device)
     train(model, tr_tok, vocab, epochs, model.max_len, lr=args.lr)
 

@@ -1,0 +1,374 @@
+# Canonical Operation Vocabulary — Plan + Implementation
+
+*Fixes the root cause found by `eval/diagnose_riscv_learned_features.py`:
+the learned-feature tokenizer abstracts **operands** ISA-agnostically but
+keeps the **mnemonic** as a literal string, so 78.3% of RISC-V tokens are
+out-of-vocabulary and every MLM-derived feature is noise on any ISA the
+encoder wasn't trained on. Goal: "an add is an ADD" regardless of whether
+it's spelled `addq`, `adds`, or `addi`.*
+
+---
+
+## 0. Grounding — measured, not assumed
+
+### The OOV problem (why we're here)
+
+`spec/asm_tokenizer.py` emits `"<mnemonic> <operand-kinds…>"`, e.g.
+`"addi <reg> <reg> <imm>"`. Operand kinds come from the spec
+(ISA-agnostic, correct). The mnemonic does not. `train_mlm.py::build_vocab`
+saw only x86_64/arm64, so:
+
+```
+MLM vocab (x86/arm only): 449 tokens
+RISC-V token OOV rate:    15693/20049 (78.3%)
+```
+
+### A second, independent bug this surfaces: the spec can't see x86 size suffixes
+
+Counting real category assignments over all 154,195 training instructions
+via the existing spec engine:
+
+```
+category          #distinct mnemonics      count
+OTHER                             194      43199   <-- 28% of ALL instructions
+STORE                              12      22903
+LOAD                               10      17611
+ARITHMETIC                         11      12193
+...
+STACK                               2         13   <-- x86 push/pop NOT here
+```
+
+`OTHER`'s top entries are `adrp, movq, pushq, popq, leaq, movl, addq,
+movzbl, subq, cmpq, shlq, …` — i.e. **every size-suffixed x86 mnemonic**.
+`base.json`'s `arithmetic` pattern is `\b(add|sub|mul|…)\b`; `addq` fails
+`\badd\b` because the word doesn't end there, so it falls through every
+rule to `OTHER`. Same for `pushq`/`popq` vs the `stack_op` pattern —
+hence `STACK` has 13 instances instead of ~8,000.
+
+This is not a new regression: the spec was verified 0-mismatch against
+`v54/pdg_builder.py`, so it faithfully reproduces a **pre-existing bug in
+the original hand-written builder**. It's the same bug class already fixed
+once in `scripts/augment_asm_windows.py` (`_X86_FLAG_CLOBBER` missed
+size-suffixed mnemonics — see project memory). It affects the GINE
+classifier directly whenever `--use-spec-builder` is on: 28% of x86 nodes
+carry the `OTHER` category one-hot instead of their real semantics.
+
+**So a canonical-op layer fixes two things at once**: cross-ISA transfer
+(the RISC-V ask) and x86 suffix blindness (a latent accuracy bug on the
+main training ISAs).
+
+### Vocabulary sizes to reconcile
+
+| ISA | distinct mnemonics in corpus |
+|---|---|
+| x86_64 | 212 |
+| arm64 | 122 |
+| riscv64 | 42 |
+| shared between x86 & arm | 22 (`add, and, b, cmp, mov, mul, nop, ret, sub, …`) |
+
+376 raw spellings across three ISAs, only 22 accidentally shared. Target: a
+single ~45-name semantic vocabulary all three map onto.
+
+### Why not just use the 19 existing categories?
+
+Tried on paper and rejected: collapsing to `opcode_categories` would map
+194 distinct `OTHER` mnemonics (28% of the corpus) to one token, and would
+merge `lfence`/`mfence`/`dsb`/`cpuid` into a single `FENCE` — despite the
+spec keeping `is_lfence` and `is_mfence_or_sfence` as *separate flags*
+precisely because that distinction drives Spectre-V1 detection. Categories
+are too coarse; mnemonics are too ISA-specific. The canonical-op set sits
+deliberately between them.
+
+---
+
+## 1. Design
+
+### Canonical op vocabulary (~45 names), declared once in `base.json`
+
+Semantic, ISA-neutral names grouped by what the instruction *does*:
+
+- **Move/address**: `MOV`, `MOV_ZX`, `MOV_SX`, `COND_MOV`, `ADDR_GEN`
+- **Memory**: `LOAD`, `LOAD_PAIR`, `STORE`, `STORE_PAIR`, `PUSH`, `POP`,
+  `XCHG`, `ATOMIC`
+- **Arithmetic**: `ADD`, `SUB`, `MUL`, `DIV`, `NEG`, `MIN_MAX`
+- **Logic/bits**: `AND`, `OR`, `XOR`, `NOT`, `BIC`, `TEST`, `BIT_FIELD`
+- **Shift**: `SHL`, `SHR`, `SAR`, `ROTATE`
+- **Compare**: `CMP`
+- **Control**: `BRANCH_COND`, `BRANCH_UNCOND`, `CALL`, `CALL_IND`, `RET`,
+  `JMP_IND`, `SYSCALL`
+- **Speculation-relevant** (kept deliberately fine-grained — these are the
+  distinctions this whole project detects on): `FENCE_LOAD`,
+  `FENCE_STORE`, `FENCE_FULL`, `FENCE_INSN`, `FENCE_SPEC`, `SERIALIZE`,
+  `CLEAR_BUF`, `CACHE_FLUSH`, `PREFETCH`, `NONTEMP_LOAD`, `TIMER`
+- **Rest**: `NOP`, `VECTOR`, `FLOAT`, `OTHER`
+
+### Where the mappings live — and why per-ISA, not in base
+
+`base.json` declares only the **vocabulary** (`canonical_op_vocab`) plus a
+generic category→op fallback. Each ISA spec (`x86_64.json`, `arm64.json`,
+`riscv.json`) declares its own `canonical_ops`: an ordered list of
+`{"op": NAME, "mnemonic": REGEX}` rules over the *mnemonic only*.
+
+This keeps the project's core invariant intact — **a new ISA still needs
+only a new JSON file**, no Python change — while making the emitted token
+ISA-independent. Putting every ISA's spellings in `base.json` would have
+worked too but would make `base.json` ISA-specific, breaking the layering
+the spec engine exists to enforce.
+
+### Resolution order (operand-aware where it must be)
+
+```
+canonical_op(instr):
+    cat  = classify_opcode(instr)      # existing, operand-aware machinery
+    mnem = first token, lowercased
+    if cat in MEMORY_RESOLVED (LOAD/STORE/STACK):
+        # x86 `movq (%rsi),%rax` is a LOAD even though the mnemonic is a move —
+        # only the operand context knows this, so category wins here.
+        consult mnemonic rules restricted to memory ops, else use category
+    for rule in spec.canonical_ops:    # ordered, per-ISA
+        if re.fullmatch(rule.mnemonic, mnem): return rule.op
+    if cat != OTHER: return category-name mapped through base fallback
+    return "OTHER"
+```
+
+Category wins for memory-resolved cases (operand context is strictly more
+informative than the mnemonic there); mnemonic rules win everywhere else
+(they're strictly more informative than a coarse category).
+
+### Emitted token
+
+`"<CANONICAL_OP> <operand-kind>…"` — e.g. all three of
+
+```
+x86:    addq   $1, %rax        ->  "ADD <imm> <reg>"
+arm64:  add    x1, x1, #1      ->  "ADD <reg> <reg> <imm>"
+riscv:  addi   a5, a5, 1       ->  "ADD <reg> <reg> <imm>"
+```
+
+Operand *arity* still differs by ISA (2-address vs 3-address), which is
+real structural information and is deliberately preserved, not flattened.
+
+---
+
+## 2. Phases and gates
+
+| phase | what | gate before moving on |
+|---|---|---|
+| A | Add `canonical_op_vocab` + per-ISA `canonical_ops`; `SpecEngine.canonical_op()`; `AsmTokenizer(mode=)` | coverage check: `OTHER` rate < 5% on **all three** ISAs, RISC-V OOV → ~0% |
+| B | Retrain MLM on canonical tokens (`spec/mlm_canonical.pt`) | trains, vocab size sane |
+| C | RF ablation, x86/ARM locked split, multi-seed | **no significant regression vs mnemonic MLM** |
+| D | RISC-V zero-shot re-run | improvement over the 1.81–2.22% floor |
+| E | GINE retrain (v57) if C+D pass | vs v54-spec 96.14%±1.59 |
+
+Phase A's coverage gate is the honest one to fail on: if a large `OTHER`
+share survives, the mapping is incomplete and everything downstream
+inherits it, so it's checked before any retraining cost is spent.
+
+---
+
+## 3. Results
+
+### Phase A — coverage gate: **PASSED**
+
+`spec/check_canonical_coverage.py`:
+
+```
+arch          instrs     OTHER   OTHER%  distinct ops
+x86_64         63880       169    0.26%           47
+arm64          90138       166    0.18%           38
+riscv64        20114         0    0.00%           23
+
+x86+arm canonical token vocabulary: 275
+RISC-V OOV against it: 1838/20114 (9.1%)   [was 78.3% with mnemonic tokens]
+```
+
+**OOV 78.3% → 9.1%.** The `OTHER` share is under 0.3% on every ISA (was 28%
+on the x86 side under the old category scheme, because `addq`/`pushq`/`movl`
+matched no pattern).
+
+Everything still falling to `OTHER` was inspected by name rather than left
+as an aggregate, and all of it is genuine:
+- **cross-ISA contamination in the corpus** — `blr`/`br`/`b` appearing inside
+  *x86* files and `jge`/`jmp`/`call`/`leave` inside *arm* files. This is the
+  already-documented inline-`__asm__` contamination (G6), correctly refusing
+  to classify an ARM mnemonic under the x86 spec.
+- **symbol artifacts** — `main_func`, `target_fn`, `mds_msbds_store_tap`,
+  `v4_ssb_timing`: function labels the sequence extractor kept as if they
+  were instructions. Not instructions, correctly `OTHER`.
+- **`rep`** — an x86 prefix, not an opcode.
+
+The 9.1% residual RISC-V OOV is only **5 distinct token shapes**, all real
+structural ISA differences rather than spelling:
+
+```
+1080  RET <reg>                         riscv `jr ra` names the link register; x86/arm `ret` is implicit
+ 310  TIMER <reg>                       `rdcycle a5` vs x86 `rdtsc`'s implicit edx:eax
+ 254  BRANCH_COND <reg> <reg> <sym>     riscv compares *in* the branch; x86/arm use a flags register
+  97  ADDR_GEN <reg> <mem>              3-address form
+  97  ADD <reg> <reg> <mem>             3-address form
+```
+
+Operand arity is real information the plan deliberately preserves, so this
+residual is the floor, not a defect — and the *operation name itself* is
+now always in-vocabulary.
+
+### Phase B — MLM retrained
+
+`spec/mlm_canonical.pt`, same architecture as `mlm_large.pt` (dim=128,
+4 layers, 4 heads, 8 epochs). Vocabulary **226 tokens vs 449** — nearly
+halved, because 376 raw mnemonic spellings collapsed onto ~50 shared
+semantic ops. Final MLM loss 2.10.
+
+### Phase C — cost on the ISAs we actually train on: roughly a **wash**, with real winners and losers
+
+10 seeds, paired by seed, one process, identical RF configs — only the
+tokenizer differs (`eval/compare_tokenizer_modes.py`):
+
+| metric (hand+MLM) | mnemonic | canonical | delta | |
+|---|---|---|---|---|
+| test accuracy | 95.35 ± 0.26 | 94.94 ± 0.21 | −0.41pp | p=0.005 **sig** |
+| macro-F1 | 83.77 ± 3.65 | 89.39 ± 0.34 | +5.61pp | p=0.008 sig — **but see below** |
+| recall L1TF | 63.51 ± 1.02 | **69.46 ± 0.93** | +5.95pp | p<0.001 **sig** |
+| recall SPECTRE_V2 | 78.25 ± 2.68 | **80.39 ± 1.76** | +2.14pp | p=0.028 **sig** |
+| recall INCEPTION | 80.43 ± 0.39 | 71.70 ± 1.15 | **−8.72pp** | p<0.001 **sig** |
+| recall BHI | 95.52 ± 0.00 | 89.70 ± 0.34 | **−5.82pp** | p<0.001 **sig** |
+| recall RETBLEED | 93.73 ± 0.90 | 92.67 ± 0.50 | −1.07pp | ns |
+| recall MDS | 100.00 ± 0.00 | 99.78 ± 0.50 | −0.22pp | ns |
+
+#### The macro-F1 gain is an n=1 artifact — do not cite it
+
+The +5.61pp looked like the headline until it was decomposed per class:
+
+```
+class                          mnem F1  canon F1     delta   test support
+SPECTRE_RSB                     40.00%   100.00%   +60.00pp        1   <-- 
+L1TF                            76.41%    79.32%    +2.90pp       37
+RETBLEED                        92.81%    94.88%    +2.07pp       75
+SPECTRE_V4                      99.19%    99.23%    +0.04pp      124
+SPECTRE_V1                      88.89%    88.99%    +0.10pp       42
+BENIGN                          99.66%    99.39%    -0.27pp     1031
+SPECTRE_V2                      86.12%    85.25%    -0.87pp      154
+MDS                             91.94%    90.53%    -1.41pp       45
+BRANCH_HISTORY_INJECTION        79.85%    78.05%    -1.80pp       67
+INCEPTION                       82.87%    78.24%    -4.62pp       94
+```
+
+**`SPECTRE_RSB` has exactly one record in the locked test set.** It flips
+from wrong to right, worth +60pp of its own F1 — which is `+60/10 = +6.0pp`
+of macro-F1, *more than the entire +5.61pp reported gain*. Excluding it, the
+other nine classes sum to −3.86pp (mean −0.43pp): canonical tokenization is
+marginally **worse** on every class that has enough support to measure.
+
+This is the same failure mode this project's audit history keeps surfacing
+(see G2/G5/G11 in `SPECDISCOVER_VERIFICATION_GAPS.md`) — an aggregate metric
+moved by one unstable record. It's also why the mnemonic run's macro-F1 CI
+was ±3.65 while canonical's is ±0.34: the variance *was* that one record
+flipping seed to seed. Reporting "canonical improves macro-F1 by 5.6pp"
+would have been wrong; the honest statement is **the two tokenizers are
+within noise of each other on aggregate x86/ARM performance**, with a real
+redistribution underneath: **L1TF and RETBLEED gain, INCEPTION and BHI
+lose.**
+
+Whether that trade is worth taking depends on which classes matter — and it
+is *separate* from the reason to adopt canonical ops at all, which is
+cross-ISA transfer (Phase D), not x86/ARM accuracy.
+
+**Second-order finding:** with canonical tokens, Phase 1/2's diff-gating and
+pruning stop helping (`hand+MLM` is now the best config; `hand+diff+prunedMLM`
+is −2.66pp on SPECTRE_V2, ns). Consistent reading: those mechanisms were
+compensating for noise the mnemonic vocabulary injected, and once the
+vocabulary is clean there's less left for them to suppress. They should not
+be stacked on top of canonical tokens without re-justifying them.
+
+### Phase D — RISC-V zero-shot: real improvement, still not sufficient
+
+`eval/diagnose_riscv_learned_features.py --mlm-path spec/mlm_canonical.pt`:
+
+| config | mnemonic MLM | canonical MLM |
+|---|---|---|
+| hand-58 (no MLM) | 6.25% | 6.25% |
+| hand+MLM | 2.22% | **5.24%** |
+| hand+diffMLM | 1.81% | 5.04% |
+| hand+diff+prunedMLM | 1.81% | **5.24%** |
+
+Learned features on RISC-V improved **~2.4x** (2.22% → 5.24%) and stopped
+being actively harmful. **But they still don't beat hand-58 alone (6.25%),
+and L1TF/MDS/BHI/SPECTRE_V2 remain at 0% recall.** So the vocabulary fix was
+necessary but is *not* sufficient — being honest about that, the headline
+"RISC-V now works" is not available from this result.
+
+The remaining barrier is not the tokenizer: it's that the encoder has never
+seen a RISC-V *distribution* (only its vocabulary now overlaps), plus the
+corpus contamination and untrained `riscv64` arch embedding already
+documented in `SPECDISCOVER_VERIFICATION_GAPS.md` (G6) and project memory.
+The natural follow-up — not attempted here — is to include RISC-V records in
+MLM pre-training, which is now *possible* for the first time precisely
+because the vocabulary is shared: previously a RISC-V record contributed
+almost nothing but `<unk>`.
+
+### Phase E — GINE
+
+`v56/train_gine_v38.py` now auto-detects the checkpoint's tokenizer mode and
+dispatches per-ISA (`MultiArchTokenizer`). Smoke-verified end-to-end with
+`--mlm-path ../spec/mlm_canonical.pt --node-feature-mode diff_gated_both`
+(vocab=226, tokenizer=canonical, `node_feat_dim=169`). The full multi-seed
+GINE benchmark is the outstanding piece — see the machine-split plan in
+`SPECDISCOVER_LEARNED_FEATURES_PLAN.md`; given Phase C's finding that
+diff-gating no longer helps on canonical tokens, the mode worth running is
+plain `both` with `mlm_canonical.pt`, compared against `hand` and against
+`both` with `mlm_large.pt`.
+
+---
+
+## 4. Honest summary
+
+**What was asked:** abstract instruction names so an `add` is an `ADD`
+regardless of ISA, then retrain.
+
+**Done.** `addq` (x86), `adds` (arm64) and `addi` (riscv64) all now tokenize
+to `ADD`. Mappings live in each ISA's own JSON spec, so the project's "a new
+ISA needs only a spec file" contract is preserved — no Python was made
+ISA-specific to achieve this.
+
+**What genuinely improved:**
+- RISC-V token OOV **78.3% → 9.1%**, and the residual is 5 structural
+  operand-arity differences, not spellings.
+- Learned features on RISC-V went from **actively harmful** (1.81–2.22%, i.e.
+  worse than using no MLM at all) to **2.4x better** (5.24%).
+- A real latent bug was found and fixed along the way: the spec put **28% of
+  all instructions** in `OTHER` because `\badd\b` doesn't match `addq` —
+  every size-suffixed x86 mnemonic. Now under 0.3% on all three ISAs. This
+  bug was inherited faithfully from `v54/pdg_builder.py` and had been
+  affecting the GINE classifier's node categories on x86 all along.
+- L1TF recall +5.95pp and SPECTRE_V2 +2.14pp (both significant, 10 seeds).
+
+**What did not improve, stated plainly:**
+- RISC-V learned features still **lose to hand-58 alone** (5.24% vs 6.25%),
+  and L1TF/MDS/BHI/SPECTRE_V2 remain at **0% recall** there. The vocabulary
+  was a necessary fix, not a sufficient one.
+- On x86/ARM this is a **wash, not a win**: accuracy −0.41pp (significant),
+  INCEPTION −8.72pp and BHI −5.82pp (both significant), offsetting the L1TF
+  and SPECTRE_V2 gains. The +5.61pp macro-F1 headline is an **n=1 artifact**
+  (`SPECTRE_RSB`, one test record) and must not be quoted.
+- Phase 1/2's diff-gating/pruning no longer helps once tokens are canonical.
+
+**Next step this unlocks (not done here):** including RISC-V records in MLM
+pre-training is now meaningful for the first time — previously a RISC-V
+record contributed almost nothing but `<unk>`, so there was no point. That,
+not further tokenizer work, is the plausible route to moving RISC-V's 0%
+classes.
+
+## 5. Files
+
+| file | change |
+|---|---|
+| `spec/base.json` | `canonical_op_vocab` (53 names), `canonical_op_from_category`, `canonical_category_authoritative` |
+| `spec/x86_64.json` / `arm64.json` / `riscv.json` | `canonical_ops`: 43 / 41 / 33 ordered mnemonic→op rules |
+| `spec/isa_spec.py` | `SpecEngine.canonical_op()` |
+| `spec/asm_tokenizer.py` | `AsmTokenizer(mode=)`, `MultiArchTokenizer` (per-ISA dispatch) |
+| `spec/train_mlm.py` | `--tokenizer-mode`, mode persisted in checkpoint |
+| `spec/check_canonical_coverage.py` | **new** — Phase A gate |
+| `eval/compare_tokenizer_modes.py` | **new** — Phase C paired gate |
+| `eval/phase12_class_diff_multiseed.py`, `eval/diagnose_riscv_learned_features.py` | auto-detect checkpoint tokenizer mode |
+| `v56/train_gine_v38.py` | auto-detects mode, dispatches per-ISA |
+| `spec/mlm_canonical.pt` | **new** — retrained encoder, vocab 226 (was 449) |

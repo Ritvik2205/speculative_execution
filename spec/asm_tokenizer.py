@@ -47,7 +47,14 @@ def _operands(rest: str) -> List[str]:
 
 
 class AsmTokenizer:
-    def __init__(self, engine: SpecEngine):
+    def __init__(self, engine: SpecEngine, mode: str = "mnemonic"):
+        """mode='mnemonic' keeps the literal opcode (original behavior, so the
+        existing mlm_large.pt checkpoint stays reproducible); mode='canonical'
+        replaces it with the spec's ISA-neutral operation name, so a vocabulary
+        learned on one ISA transfers to another (see SPECDISCOVER_CANONICAL_OPS_PLAN.md)."""
+        if mode not in ("mnemonic", "canonical"):
+            raise ValueError(f"unknown tokenizer mode: {mode}")
+        self.mode = mode
         self.engine = engine
         # Register patterns come from the spec (arm_reg / x86_reg by default).
         self._reg_pats = [engine._pat[p] for p in engine.reg_pattern_names]
@@ -79,7 +86,8 @@ class AsmTokenizer:
         if not instr or instr.endswith(':') or instr.startswith('.'):
             return None
         parts = instr.split(None, 1)
-        opcode = parts[0].rstrip(':').lower()
+        opcode = (self.engine.canonical_op(instr) if self.mode == "canonical"
+                  else parts[0].rstrip(':').lower())
         toks = [opcode]
         if len(parts) > 1:
             for operand in _operands(parts[1]):
@@ -93,3 +101,43 @@ class AsmTokenizer:
             if n is not None:
                 out.append(n)
         return out
+
+
+# Which spec each arch string resolves to. Mirrors the mapping already used by
+# v54/train_gine_v38.py's spec-builder path, kept in one place so tokenizer and
+# graph builder can't drift apart.
+SPEC_FOR_ARCH = {
+    "x86_64": "x86_64.json",
+    "arm64": "arm64.json",
+    "arm32": "arm64.json",
+    "riscv64": "riscv.json",
+    "unknown": "base.json",
+}
+
+
+class MultiArchTokenizer:
+    """Dispatches to the right per-ISA tokenizer for each record.
+
+    Canonical mode *requires* this: the mnemonic->canonical-op rules live in
+    each ISA's own spec, so tokenizing a RISC-V record with the x86 engine
+    would silently produce OTHER for everything. Mnemonic mode keeps using a
+    single base engine, preserving the exact behavior the existing
+    spec/mlm_large.pt checkpoint was trained under.
+    """
+
+    def __init__(self, mode: str = "canonical"):
+        from isa_spec import load_engine
+        self.mode = mode
+        if mode == "canonical":
+            self._by_arch = {a: AsmTokenizer(load_engine(f), mode="canonical")
+                             for a, f in SPEC_FOR_ARCH.items()}
+        else:
+            base = AsmTokenizer(load_engine("base.json"), mode="mnemonic")
+            self._by_arch = {a: base for a in SPEC_FOR_ARCH}
+
+    def for_arch(self, arch: str) -> AsmTokenizer:
+        return self._by_arch.get(arch, self._by_arch["unknown"])
+
+    def tokenize_record(self, record: dict) -> List[str]:
+        return self.for_arch(record.get("arch", "unknown")).tokenize_sequence(
+            record["sequence"])

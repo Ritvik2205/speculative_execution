@@ -44,11 +44,21 @@ from eval_riscv_real import build_riscv_records       # noqa: E402
 
 
 def main():
-    engine = load_engine("base.json")
-    tok = AsmTokenizer(engine)
-    riscv_engine = load_engine("riscv.json")
-    tok_riscv = AsmTokenizer(riscv_engine)
-    mlm = MlmEncoder.load(str(ROOT / "spec" / "mlm_large.pt"))
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--mlm-path", default=str(ROOT / "spec" / "mlm_large.pt"))
+    args = ap.parse_args()
+
+    mlm = MlmEncoder.load(args.mlm_path)
+    mode = getattr(mlm, "tokenizer_mode", "mnemonic")
+    print(f"checkpoint={args.mlm_path}  tokenizer_mode={mode}\n")
+    # Tokenize each ISA with its own spec engine. In canonical mode this is
+    # required for correctness (mnemonic->op rules are per-ISA); in mnemonic
+    # mode it reproduces the original single-engine behavior.
+    from asm_tokenizer import MultiArchTokenizer
+    marc = MultiArchTokenizer(mode=mode)
+    tok = marc.for_arch("x86_64") if mode == "canonical" else AsmTokenizer(load_engine("base.json"))
+    tok_riscv = marc.for_arch("riscv64")
 
     tr = T.load(T.TRAIN)
     riscv_records = build_riscv_records()
@@ -74,7 +84,9 @@ def main():
     Xtr_hand = np.vstack([hf.compute_inline_features(r["sequence"]) for r in tr])
     Xte_hand = np.vstack([hf.compute_inline_features(r["sequence"]) for r in riscv_records])
 
-    tr_tok = [tok.tokenize_sequence(r["sequence"]) for r in tr]
+    # Train records carry mixed x86_64/arm64; tokenize each with its own spec
+    # engine (a no-op in mnemonic mode, required for correctness in canonical).
+    tr_tok = [marc.tokenize_record(r) for r in tr]
     # RISC-V records get tokenized with the riscv.json-driven tokenizer for
     # operand classification, same as real deployment would use.
     te_tok = [tok_riscv.tokenize_sequence(r["sequence"]) for r in riscv_records]
