@@ -54,6 +54,10 @@ from asm_tokenizer import AsmTokenizer      # noqa: E402
 from spec_features import compute_spec_features  # noqa: E402
 import train_mlm as T                       # noqa: E402
 from train_mlm import MlmEncoder            # noqa: E402
+from class_diff_features import (           # noqa: E402
+    build_class_representatives, diff_embed_sequence,
+    pruned_embed_sequence, diff_pruned_embed_sequence,
+)
 
 ENGINES = {"x86_64": "x86_64.json", "arm64": "arm64.json",
            "arm32": "arm64.json", "unknown": "base.json"}
@@ -98,6 +102,29 @@ def main():
     Xtr_hand, Xte_hand = hand_X(tr), hand_X(te)
     Xtr_mlm, Xte_mlm = mlm_X(tr), mlm_X(te)
 
+    # Phase 1/2 (SPECDISCOVER_LEARNED_FEATURES_PLAN.md): class-representative
+    # differencing and intra-sequence redundancy pruning, as alternatives to
+    # embed_sequence's flat mean-pool. Tokenize once, reuse for both.
+    tr_tok = [tok.tokenize_sequence(r["sequence"]) for r in tr]
+    te_tok = [tok.tokenize_sequence(r["sequence"]) for r in te]
+    benign_repr_tokens = build_class_representatives(tr, tr_tok, mlm).get("BENIGN")
+    benign_repr_H = (mlm.embed_instructions(benign_repr_tokens)
+                     if benign_repr_tokens is not None
+                     else np.zeros((0, mlm.dim), dtype=np.float32))
+
+    def diff_X(toks_list):
+        return np.vstack([diff_embed_sequence(t, mlm, benign_repr_H) for t in toks_list])
+
+    def pruned_X(toks_list):
+        return np.vstack([pruned_embed_sequence(t, mlm) for t in toks_list])
+
+    def diff_pruned_X(toks_list):
+        return np.vstack([diff_pruned_embed_sequence(t, mlm, benign_repr_H) for t in toks_list])
+
+    Xtr_diff, Xte_diff = diff_X(tr_tok), diff_X(te_tok)
+    Xtr_pruned, Xte_pruned = pruned_X(tr_tok), pruned_X(te_tok)
+    Xtr_dp, Xte_dp = diff_pruned_X(tr_tok), diff_pruned_X(te_tok)
+
     def cat(*mats):
         return np.hstack(mats)
 
@@ -108,10 +135,17 @@ def main():
         "spec+MLM (two-tier)": (cat(Xtr_spec, Xtr_mlm), cat(Xte_spec, Xte_mlm)),
         "hand+MLM": (cat(Xtr_hand, Xtr_mlm), cat(Xte_hand, Xte_mlm)),
         "spec+hand+MLM": (cat(Xtr_spec, Xtr_hand, Xtr_mlm), cat(Xte_spec, Xte_hand, Xte_mlm)),
+        "hand+diffMLM": (cat(Xtr_hand, Xtr_diff), cat(Xte_hand, Xte_diff)),
+        "hand+prunedMLM": (cat(Xtr_hand, Xtr_pruned), cat(Xte_hand, Xte_pruned)),
+        "hand+diff+prunedMLM": (cat(Xtr_hand, Xtr_dp), cat(Xte_hand, Xte_dp)),
+        "spec+hand+diffMLM": (cat(Xtr_spec, Xtr_hand, Xtr_diff), cat(Xte_spec, Xte_hand, Xte_diff)),
+        "spec+hand+prunedMLM": (cat(Xtr_spec, Xtr_hand, Xtr_pruned), cat(Xte_spec, Xte_hand, Xte_pruned)),
+        "spec+hand+diff+prunedMLM": (cat(Xtr_spec, Xtr_hand, Xtr_dp), cat(Xte_spec, Xte_hand, Xte_dp)),
     }
 
     print(f"spec-generic dim={Xtr_spec.shape[1]} (zero ISA literals in code)  "
-          f"hand={Xtr_hand.shape[1]}  mlm={Xtr_mlm.shape[1]}\n")
+          f"hand={Xtr_hand.shape[1]}  mlm={Xtr_mlm.shape[1]}  "
+          f"diffMLM={Xtr_diff.shape[1]}  prunedMLM={Xtr_pruned.shape[1]}\n")
 
     def run_one(Xtr, Xte, seed):
         clf = RandomForestClassifier(n_estimators=300, n_jobs=-1,
