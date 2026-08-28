@@ -372,3 +372,44 @@ classes.
 | `eval/phase12_class_diff_multiseed.py`, `eval/diagnose_riscv_learned_features.py` | auto-detect checkpoint tokenizer mode |
 | `v56/train_gine_v38.py` | auto-detects mode, dispatches per-ISA |
 | `spec/mlm_canonical.pt` | **new** — retrained encoder, vocab 226 (was 449) |
+
+---
+
+## Automated feature generation now beats the hand-engineered tier (2026-08-28)
+
+Group-holdout split, 5 seeds, paired. Measured **after** the x86 load/store fix
+(`e3258d1`); the pre-fix column is kept because the comparison is itself
+informative.
+
+| config | dim | pre-fix acc | post-fix acc | vs hand-58 (post-fix) |
+|---|---|---|---|---|
+| hand-58 | 58 | 94.07% | 94.07% | — |
+| spec-42 (old automated tier) | 42 | 92.05% | 92.52% | −1.55pp, **sig** |
+| cand-all | 366 | 94.13% | 94.71% | +0.64pp, **sig** |
+| cand-ensemble | 295 | 94.01% | 94.56% | +0.50pp, ns |
+| **cand-impurity** | **31** | 94.72% | **95.15%** | **+1.08pp, sig** |
+
+**`hand-58` is identical to two decimal places before and after the fix.** That
+is not a coincidence and it is the useful control here: `v54/inline_features.py`
+computes its features with its own ISA-literal regexes and never calls the spec
+engine, so a spec fix cannot move it. Every config that *does* read the spec
+moved up by 0.43–0.58pp. That isolates the fix's effect cleanly.
+
+Two things this settles:
+
+1. **The automated tier now significantly beats the hand-engineered one** —
+   +1.08pp with **31** spec-derived features against 58 hand-written ones. The
+   old automated tier (`spec-42`) sits at −1.55pp, which exactly reproduces the
+   historically recorded group-holdout gap, so the split and harness are
+   behaving consistently with earlier work. This is the portability result the
+   paper needs: an automated tier that a new ISA gets by shipping a spec file,
+   and which no longer costs accuracy to adopt.
+
+2. **Paul's ensemble rule still does not buy accuracy.** `cand-ensemble` −
+   `cand-impurity` = −0.58pp (p=0.130), same direction as pre-fix. The cause is
+   unchanged: `mutual_info` keeps 293/366 while impurity keeps 31, and under a
+   unanimity rule the most permissive arm dominates, so the ensemble barely
+   prunes. What the rule *does* buy is semantic coverage — impurity alone
+   discards `op_FENCE_LOAD`, `op_TIMER` and `op_CALL_IND`, which dissent from
+   the other arms rescues. Report both halves; do not claim the ensemble
+   improves accuracy.
