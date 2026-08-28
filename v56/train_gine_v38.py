@@ -159,6 +159,9 @@ class GINEDatasetV47(Dataset):
         tokenizer=None,
         use_spec_builder: bool = False,
         benign_repr_H=None,
+        ensemble_ctx=None,
+        ensemble_thresholds=None,
+        spec_engines=None,
     ):
         self.label_to_id = label_to_id
         self.handcrafted_feature_names = handcrafted_feature_names
@@ -193,18 +196,24 @@ class GINEDatasetV47(Dataset):
         self.mlm = mlm
         self.tokenizer = tokenizer
         self.benign_repr_H = benign_repr_H
+        self.ensemble_ctx = ensemble_ctx
+        self.ensemble_thresholds = ensemble_thresholds or {}
+        self.spec_engines = spec_engines or {}
+        self.gate_uncertainty = []   # per-record, for reporting
         base_dim, pos_dim = 40, 1
         learned_dim = int(mlm.dim) if mlm is not None else 0
         if node_feature_mode == 'hand':
             self.node_feature_dim = base_dim + pos_dim            # 41
-        elif node_feature_mode in ('learned', 'diff_gated'):
+        elif node_feature_mode in ('learned', 'diff_gated', 'ensemble_gated'):
             self.node_feature_dim = learned_dim + pos_dim
-        else:  # both, diff_gated_both
+        else:  # both, diff_gated_both, ensemble_gated_both
             self.node_feature_dim = base_dim + learned_dim + pos_dim
         if node_feature_mode != 'hand' and (mlm is None or tokenizer is None):
-            raise ValueError("learned/both/diff_gated* modes require mlm and tokenizer")
+            raise ValueError("learned/both/*_gated* modes require mlm and tokenizer")
         if node_feature_mode in ('diff_gated', 'diff_gated_both') and benign_repr_H is None:
             raise ValueError("diff_gated/diff_gated_both modes require benign_repr_H")
+        if node_feature_mode in ('ensemble_gated', 'ensemble_gated_both') and ensemble_ctx is None:
+            raise ValueError("ensemble_gated* modes require ensemble_ctx")
 
         print(f"Pre-computing PDGs (strip_boilerplate={strip_bp}) ...")
         self.data = []
@@ -294,9 +303,26 @@ class GINEDatasetV47(Dataset):
                     from class_diff_features import node_gate_scores
                     gate = node_gate_scores(emb[:m], self.benign_repr_H)
                     learned[:m] *= gate[:, None]
-            if self.node_feature_mode in ('learned', 'diff_gated'):
+                elif self.node_feature_mode in ('ensemble_gated', 'ensemble_gated_both'):
+                    from class_diff_features import (
+                        ensemble_gate_scores, spec_flag_relevance)
+                    # spec_flag arm needs the raw instruction text, filtered the
+                    # same way the tokenizer filtered it so positions align 1:1.
+                    flags = None
+                    eng = self.spec_engines.get(rec.get('arch', 'unknown'))
+                    if eng is not None:
+                        tk = self.tokenizer.for_arch(rec.get('arch', 'unknown'))
+                        kept = [s for s in sequence if tk.normalize(s) is not None]
+                        if len(kept) >= m:
+                            flags = spec_flag_relevance(kept[:m], eng)
+                    gate, unc = ensemble_gate_scores(
+                        emb[:m], self.ensemble_ctx, flags=flags,
+                        **self.ensemble_thresholds)
+                    learned[:m] *= gate[:, None]
+                    self.gate_uncertainty.append(unc)
+            if self.node_feature_mode in ('learned', 'diff_gated', 'ensemble_gated'):
                 node_features = np.concatenate([learned, pos_enc], axis=1)
-            else:  # both, diff_gated_both
+            else:  # both, diff_gated_both, ensemble_gated_both
                 node_features = np.concatenate([base_features, learned, pos_enc], axis=1)
 
         edge_index, edge_type = pdg.get_edge_index_and_type(self.max_nodes)
@@ -658,11 +684,16 @@ def main():
     parser.add_argument('--arch-emb-dim', type=int, default=8)
     # SpecDiscover Phase 1: learned node features (default 'hand' = original behavior)
     parser.add_argument('--node-feature-mode',
-                        choices=['hand', 'learned', 'both', 'diff_gated', 'diff_gated_both'],
+                        choices=['hand', 'learned', 'both', 'diff_gated', 'diff_gated_both',
+                                 'ensemble_gated', 'ensemble_gated_both'],
                         default='hand',
                         help="node features: hand (40-dim PDG), learned (MLM embeds), both, "
-                             "or diff_gated[_both] (Phase 4: MLM embeds soft-gated by "
-                             "class_diff_features.node_gate_scores)")
+                             "diff_gated[_both] (single-arm gate), or ensemble_gated[_both] "
+                             "(multi-arm agreement gate, only suppresses on unanimity)")
+    parser.add_argument('--gate-percentile', type=float, default=60.0,
+                        help="percentile of the TRAIN benign-similarity distribution used "
+                             "as the ensemble gate's cutoff (Confident-Learning-style "
+                             "data-derived threshold instead of a hardcoded cosine constant)")
     parser.add_argument('--mlm-path', type=str, default=None,
                         help="path to trained MlmEncoder (required for learned/both)")
     parser.add_argument('--use-spec-builder', action='store_true',
@@ -846,13 +877,37 @@ def main():
         print(f"  Built BENIGN representative for diff-gating: "
               f"{benign_repr_H.shape[0]} instructions")
 
+    # Ensemble agreement gate: reference sets + data-derived thresholds, both
+    # built from TRAIN records only. Thresholds are calibrated rather than
+    # hardcoded (Confident Learning) because cosine scale differs per encoder.
+    ensemble_ctx, ensemble_thresholds, spec_engines = None, None, None
+    if args.node_feature_mode in ('ensemble_gated', 'ensemble_gated_both'):
+        from class_diff_features import build_ensemble_context, calibrate_thresholds
+        from isa_spec import load_engine
+        tr_tok_for_repr = [asm_tok.tokenize_record(r) for r in train_records]
+        ensemble_ctx = build_ensemble_context(train_records, tr_tok_for_repr, mlm_enc)
+        ensemble_thresholds = calibrate_thresholds(
+            tr_tok_for_repr, mlm_enc, ensemble_ctx,
+            percentile=args.gate_percentile)
+        spec_engines = {a: load_engine(f) for a, f in
+                        {"x86_64": "x86_64.json", "arm64": "arm64.json",
+                         "arm32": "arm64.json", "riscv64": "riscv.json",
+                         "unknown": "base.json"}.items()}
+        print(f"  Ensemble gate: benign_repr={ensemble_ctx.benign_repr_H.shape[0]} "
+              f"knn={ensemble_ctx.benign_knn_H.shape[0]} "
+              f"attack_reps={ensemble_ctx.attack_reps_H.shape[0]} instrs; "
+              f"calibrated thresholds={ {k: round(v, 4) for k, v in ensemble_thresholds.items()} }")
+
     print("\nCreating datasets...")
     _ds_kw = dict(speculative_window=args.speculative_window,
                   strip_bp=not args.no_strip,
                   node_feature_mode=args.node_feature_mode,
                   mlm=mlm_enc, tokenizer=asm_tok,
                   use_spec_builder=args.use_spec_builder,
-                  benign_repr_H=benign_repr_H)
+                  benign_repr_H=benign_repr_H,
+                  ensemble_ctx=ensemble_ctx,
+                  ensemble_thresholds=ensemble_thresholds,
+                  spec_engines=spec_engines)
     train_dataset = GINEDatasetV47(train_records, label_to_id, feature_names, **_ds_kw)
     val_dataset = GINEDatasetV47(val_records, label_to_id, feature_names, **_ds_kw)
     test_dataset = GINEDatasetV47(test_records, label_to_id, feature_names, **_ds_kw)
