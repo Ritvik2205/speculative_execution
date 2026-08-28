@@ -23,7 +23,9 @@ MODES=(${MODES:-hand learned both diff_gated_both})
 MLM="${MLM:-../spec/mlm_large.pt}"
 TRAIN="../v54/data/v54_train.jsonl"
 TEST="../v54/data/v54_test.jsonl"
-OUT="../eval/v56_multiseed"
+# Overridable so a pre-fix and a post-fix run can be kept in separate
+# directories instead of silently interleaving in one results file.
+OUT="${OUT:-../eval/v56_multiseed}"
 CLASSES="SPECTRE_V2 L1TF RETBLEED INCEPTION BRANCH_HISTORY_INJECTION MDS"
 
 # ---- preflight: fail loudly and early, not 20 crashed runs later ----------
