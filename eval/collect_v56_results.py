@@ -70,9 +70,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dirs", nargs="+", default=[str(ROOT / "eval" / "v56_multiseed")])
     ap.add_argument("--baseline", default="hand")
-    ap.add_argument("--tsv-out", default=str(ROOT / "eval" / "v56_multiseed" / "results_collected.tsv"))
+    # Default derives from the FIRST --dirs entry. A fixed default silently
+    # overwrote the pre-fix collected table when re-run against a post-fix dir.
+    ap.add_argument("--tsv-out", default=None)
     args = ap.parse_args()
 
+    if args.tsv_out is None:
+        args.tsv_out = str(Path(args.dirs[0]) / "results_collected.tsv")
     runs = collect(args.dirs)
     if not runs:
         print("no completed runs found (no viz_*/gine_metrics.json)")

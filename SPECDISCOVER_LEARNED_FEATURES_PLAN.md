@@ -936,3 +936,69 @@ measured properly. **On the real model, neither helps.** The honest report
 is that the learned tier is not currently earning its place in the pipeline,
 and the paper's classification results should stand on the hand/spec feature
 model (96.01% ± 0.55, 10 seeds) rather than on a learned-feature story.
+
+---
+
+## Post-fix GINE (2026-08-28): the ensemble gate still loses, and the spec fix is correctness-only
+
+Both batches, 10 seeds each, run **after** the x86 load/store fix (`e3258d1`)
+into a separate directory (`eval/v56_postfix/`) so pre- and post-fix seeds
+cannot interleave — the trainer loads specs per-process, so a mid-run spec edit
+silently mixes them.
+
+### The ensemble gate does not rescue the learned tier
+
+| mode | n | test-acc | macro-F1 |
+|---|---|---|---|
+| **hand** | 10 | **95.75% ± 0.47** | **82.67% ± 2.39** |
+| ensemble_gated_both | 10 | 94.25% ± 0.54 | 78.78% ± 0.62 |
+
+Paired: **−1.50pp acc (p=0.001)**, **−3.88pp macro-F1 (p=0.007)**, both
+significant against `hand`. Per class: RETBLEED +2.40pp (sig) is the only gain;
+INCEPTION −5.53pp and BHI −2.54pp are significant losses; SPECTRE_V2 −7.73pp
+sits exactly on the line (p=0.050).
+
+So the calibrated multi-arm gate — which touches **55.4%** of positions where
+the old single-arm gate touched **4.2%** — still does not beat hand features.
+That is now a fair test of Paul's proposal rather than the near-inert one the
+earlier `diff_gated_both` run turned out to be, and it comes out negative:
+−1.50pp here vs `diff_gated_both`'s −1.69pp and `learned`'s −1.66pp. Making the
+gate actually fire moved the number by ~0.2pp, well inside noise.
+
+### The x86 load/store fix does NOT move GINE accuracy
+
+`hand` mode, same 10 seeds, pre- vs post-fix:
+
+| metric | pre | post | delta | |
+|---|---|---|---|---|
+| test-acc | 96.01 | 95.75 | −0.26pp | p=0.485 ns |
+| macro-F1 | 82.81 | 82.67 | −0.14pp | p=0.781 ns |
+| SPECTRE_V2 | 85.26 | 80.00 | −5.26pp | p=0.090 ns |
+| L1TF | 69.19 | 69.19 | +0.00pp | p=1.000 ns |
+| INCEPTION | 89.79 | 89.15 | −0.64pp | p=0.814 ns |
+| MDS | 94.44 | 94.67 | +0.22pp | p=0.888 ns |
+| RETBLEED | 92.40 | 93.87 | +1.47pp | p=0.227 ns |
+
+**Nothing is significant.** A bug that misclassified 58.5% of x86 memory
+instructions, and that took `is_secret_source` from 0.01% to 0.87%, leaves the
+graph model's accuracy statistically unchanged.
+
+Read honestly, that means the fix is a **correctness fix, not an accuracy
+lever** — the same shape as the earlier `ARCH_VOCAB` `riscv64` fix. The most
+plausible explanation is that GINE already recovers the load/store distinction
+from the rest of the 40-dim node vector (memory-access type, register def/use
+counts) and from graph structure, so the category one-hot being wrong was
+recoverable. It still matters for three reasons that are not accuracy:
+the spec-derived **RF** tiers each gained 0.43–0.58pp from it; `is_secret_source`
+/ `is_transmitter` are what the project reports as evidence and they were
+near-dead on x86; and any future ISA onboarded from a spec inherits the
+corrected semantics.
+
+### Where this leaves Paul's proposal
+
+Measured properly and twice, on the real model: the agreement gate does not
+improve GINE. It does two other things that are real and worth reporting —
+it rescues semantically critical features from a single-arm cut
+(`FENCE_LOAD`, `TIMER`, `CALL_IND`), and it surfaces a per-record uncertainty
+(arms disagree on 36.8% of adjudicated positions). Neither converts into
+accuracy on this task.
