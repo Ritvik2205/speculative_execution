@@ -238,5 +238,6 @@
       "op": "RET",
       "mnemonic": "ret[ql]?|iret[ql]?"
     }
-  ]
+  ],
+  "operand_order": "src_first"
 }

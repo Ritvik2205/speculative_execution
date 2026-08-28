@@ -112,3 +112,52 @@ def test_all_arms_are_represented_in_the_vote_matrix():
     H = _rows([1, 0, 0, 0, 0, 0, 0, 0])
     votes = _arm_votes(H, _ctx(), None, 0.5, 0.5, 0.02, 0.95, 0)
     assert set(votes) == set(ARM_NAMES)
+
+
+# --- candidate feature space -------------------------------------------------
+# Regression test for a real bug: fitting the candidate space with a SINGLE
+# engine over a mixed-ISA corpus silently zeroed whole feature groups, because
+# ARM's `ldr` does not match x86's load pattern and fell through to OTHER.
+# `op_LOAD` measured 0.0% nonzero before the fix and 60.1% after.
+
+from candidate_features import build_space, load_engines  # noqa: E402
+
+
+def _recs():
+    x86 = {"arch": "x86_64", "label": "L1TF",
+           "sequence": ["movq (%rsi), %rax", "shlq $12, %rax",
+                        "movq (%rdi,%rax), %rbx", "lfence", "retq"]}
+    arm = {"arch": "arm64", "label": "L1TF",
+           "sequence": ["ldr x0, [x1]", "lsl x0, x0, #12",
+                        "ldr x2, [x3, x0]", "dsb sy", "ret"]}
+    return [x86, arm] * 12
+
+
+def test_candidate_space_is_arch_aware_for_both_isas():
+    """A LOAD must register as a LOAD on x86 AND on arm64. With one shared
+    engine, whichever ISA it didn't match silently produced OTHER."""
+    recs = _recs()
+    space = build_space(recs, load_engines())
+    names = space.feature_names()
+    assert "op_LOAD" in names, "canonical LOAD never observed during fit"
+    X = space.transform(recs)
+    col = X[:, names.index("op_LOAD")]
+    x86_rows = [i for i, r in enumerate(recs) if r["arch"] == "x86_64"]
+    arm_rows = [i for i, r in enumerate(recs) if r["arch"] == "arm64"]
+    assert col[x86_rows].max() > 0, "LOAD not detected on x86_64"
+    assert col[arm_rows].max() > 0, "LOAD not detected on arm64"
+
+
+def test_single_engine_fallback_still_constructs():
+    """Passing one engine must not crash — it just loses cross-ISA coverage."""
+    eng = load_engines()["x86_64"]
+    space = build_space(_recs(), eng)
+    assert space.transform(_recs()).shape[0] == len(_recs())
+
+
+def test_bigrams_capture_ordering():
+    """The reason bigrams exist: a histogram cannot express LOAD -> SHIFT."""
+    recs = _recs()
+    space = build_space(recs, load_engines())
+    assert any(n.startswith("bg_LOAD__") for n in space.feature_names()), \
+        "no LOAD-initiated bigram was generated"

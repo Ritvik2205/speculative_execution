@@ -136,12 +136,23 @@ class SpecEngine:
                 if has_mem and any(self._pat[p].search(instr) for p in rule["store_pats"]):
                     if rule.get("stack_token", "") and rule["stack_token"] in low:
                         return cats[rule["stack_cat"]]
+                    # Disambiguate a mnemonic that matches BOTH load and store
+                    # patterns (x86 `movq` does: it is one mnemonic for both
+                    # directions). Without this the first-listed rule wins and
+                    # every x86 load is recorded as a store — which also kills
+                    # is_secret_source/is_transmitter, since those gate on LOAD.
+                    d = self._mem_direction(instr)
+                    if d == "LOAD" and self._matches_load(instr):
+                        return cats["LOAD"]
                     return cats[rule["cat"]]
 
             elif kind == "mem_load":
                 if has_mem and any(self._pat[p].search(instr) for p in rule["load_pats"]):
                     if rule.get("stack_token", "") and rule["stack_token"] in low:
                         return cats[rule["stack_cat"]]
+                    d = self._mem_direction(instr)
+                    if d == "STORE" and self._matches_store(instr):
+                        return cats["STORE"]
                     return cats[rule["cat"]]
 
             elif kind == "contains":
@@ -152,6 +163,60 @@ class SpecEngine:
                 raise ValueError(f"unknown classify rule kind: {kind}")
 
         return cats[self.spec["default_category"]]
+
+    # ---- load/store direction (only used when a mnemonic is ambiguous) ---
+    def _matches_load(self, instr: str) -> bool:
+        return bool(self._pat["load"].search(instr))
+
+    def _matches_store(self, instr: str) -> bool:
+        return bool(self._pat["store"].search(instr))
+
+    def _mem_direction(self, instr: str) -> Optional[str]:
+        """LOAD / STORE / None, from which operand holds the memory reference.
+
+        Only meaningful for ISAs whose mnemonics don't encode direction (x86's
+        `mov` family). `operand_order` comes from the spec — "src_first" for
+        AT&T syntax (`movq src, dst`), "dst_first" for Intel/ARM-style — so this
+        method carries no ISA literal. ISAs that omit the key (ARM, RISC-V,
+        whose `ldr`/`str` and `ld`/`sd` are unambiguous) return None and keep
+        their existing behavior exactly.
+        """
+        order = self.spec.get("operand_order")
+        if not order:
+            return None
+        parts = instr.strip().split(None, 1)
+        if len(parts) < 2:
+            return None
+        ops = self._split_operands(parts[1])
+        if len(ops) < 2:
+            return None
+        mem = self._addr_pat.get("mem")
+        if mem is None:
+            return None
+        first, last = bool(mem.search(ops[0])), bool(mem.search(ops[-1]))
+        if first == last:
+            return None                      # both or neither — no evidence
+        src_first = order == "src_first"
+        mem_is_source = first if src_first else last
+        return "LOAD" if mem_is_source else "STORE"
+
+    @staticmethod
+    def _split_operands(rest: str) -> List[str]:
+        """Split on top-level commas, ignoring those inside () or []."""
+        out, buf, depth = [], [], 0
+        for ch in rest:
+            if ch in "([":
+                depth += 1
+            elif ch in ")]":
+                depth = max(0, depth - 1)
+            if ch == "," and depth == 0:
+                out.append("".join(buf).strip())
+                buf = []
+            else:
+                buf.append(ch)
+        if buf:
+            out.append("".join(buf).strip())
+        return [o for o in out if o]
 
     # ---- memory access type ---------------------------------------------
     def memory_access_type(self, instr: str) -> int:
