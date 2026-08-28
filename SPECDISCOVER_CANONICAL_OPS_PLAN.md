@@ -413,3 +413,83 @@ Two things this settles:
    discards `op_FENCE_LOAD`, `op_TIMER` and `op_CALL_IND`, which dissent from
    the other arms rescues. Report both halves; do not claim the ensemble
    improves accuracy.
+
+---
+
+## Cross-ISA test: the feature set that wins in-distribution is NOT the one that transfers
+
+`eval/eval_candidate_features_riscv.py` — train on x86_64+arm64 only, evaluate
+zero-shot on 496 real RISC-V records. The candidate space is fitted on the
+training ISAs, so RISC-V never influences which features exist.
+
+| config | dim | x86/arm (group-holdout) | **RISC-V zero-shot** |
+|---|---|---|---|
+| hand-58 (ISA-locked) | 58 | 94.07% | **6.77% ± 1.00** |
+| **spec-42** | 42 | 92.52% | **73.19% ± 1.38** |
+| cand-all | 368 | 94.71% | 51.49% ± 9.28 |
+| cand-ensemble | 286 | 94.56% | 46.57% ± 1.67 |
+| cand-impurity | 29 | **95.15%** | 56.81% ± 2.64 |
+
+### Two findings, and the second corrects the first
+
+**1. The portability argument is now empirically settled.** `hand-58` collapses
+to **6.77%** on an unseen ISA — near chance. That is the expected and correct
+result: its features are literal x86/ARM regexes (`frac_movq`, `_X86_ONLY`),
+so it has no mechanism for reading RISC-V at all. Every spec-derived tier beats
+it by 40–66pp, all p<0.001. "Onboard a new ISA by shipping a spec file" is not
+a design aspiration; it is the difference between 6.77% and 73.19%.
+
+**2. But the richer candidate pool does NOT transfer, and the old coarse tier
+wins.** `spec-42` — the tier the candidate pool was built to replace — is the
+**best** on RISC-V at 73.19%, beating `cand-impurity` by 16.4pp, despite losing
+to it by 2.6pp on x86/arm.
+
+This directly contradicts the reading in the previous section, which is
+corrected here rather than left standing: adding 300+ canonical-op **bigrams**
+buys in-distribution accuracy and costs cross-ISA generalization. The
+explanation is straightforward and worth stating plainly — `spec-42` is coarse
+(19 category fractions, 14 flag fractions, 5 memory-type fractions, 4
+structural counters), and coarse statistics survive a change of ISA. Bigrams
+encode *instruction sequencing*, which is exactly what differs between a
+2-address CISC and a 3-address RISC: x86's `MOV → ADD` idiom has no RISC-V
+counterpart, so a bigram tuned on x86/ARM co-occurrence is close to noise on
+RISC-V.
+
+**Consequence for the paper:** report both axes. A single in-distribution
+accuracy table would have selected `cand-impurity` and shipped a feature set
+that is 16pp worse on the thing the paper claims as its contribution. The
+selection criterion for an "automated, portable" tier has to include a
+held-out ISA, not just a held-out split.
+
+### Per-class on RISC-V (spec-42, seed 42)
+
+```
+                          precision  recall  f1   support
+BRANCH_HISTORY_INJECTION      0.83     0.98  0.90     116
+L1TF                          0.89     0.90  0.90     162
+SPECTRE_V4                    0.57     1.00  0.73      12
+SPECTRE_V2                    0.89     0.57  0.70      14
+INCEPTION                     0.80     0.58  0.67      48
+RETBLEED                      1.00     0.35  0.52     102
+MDS                           0.53     0.50  0.51      36
+SPECTRE_RSB                   0.00     0.00  0.00       4
+BENIGN                        0.03     1.00  0.07       2
+                accuracy                    0.73     496
+```
+
+L1TF at 0.90 recall zero-shot is the notable one — this is the class that has
+repeatedly sat at 0% in earlier RISC-V work. RETBLEED shows the opposite
+pattern (precision 1.00, recall 0.35): when it fires it is right, but it misses
+two thirds.
+
+**Caveats, stated so these numbers aren't over-read:**
+- BENIGN (n=2) and SPECTRE_RSB (n=4) carry no evidential weight. BENIGN's two
+  records are additionally the known `utils.c → BENIGN` filename-heuristic
+  mislabels, so its 0.03 precision is measuring a label bug, not a model.
+- These are RandomForest numbers on the full 496-record corpus. They are **not**
+  comparable to the recorded GINE RISC-V figures (24.85% withheld control /
+  75.45% riscv-augmented), which use a different model, a different
+  group-holdout eval set, and a label set that excludes BENIGN. Do not place
+  them side by side.
+- Labels here come from `eval_riscv_real.py`'s filename-keyword heuristic, not
+  ground truth.

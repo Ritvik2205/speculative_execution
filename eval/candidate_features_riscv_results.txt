@@ -1,0 +1,40 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+train (x86+arm): 5533   test (riscv64, zero-shot): 496
+train archs: {'arm64': 3434, 'x86_64': 2094, 'arm32': 5}
+riscv class support: {np.str_('BRANCH_HISTORY_INJECTION'): 116, np.str_('INCEPTION'): 48, np.str_('L1TF'): 162, np.str_('MDS'): 36, np.str_('SPECTRE_V2'): 14, np.str_('SPECTRE_V4'): 12, np.str_('RETBLEED'): 102, np.str_('SPECTRE_RSB'): 4, np.str_('BENIGN'): 2}
+
+candidate pool: 368 features (fitted on x86+arm only)
+ensemble keeps 286   impurity keeps 29
+
+config                     dim    riscv zero-shot acc         macro-F1
+------------------------------------------------------------------------
+hand-58 (ISA-locked)        58         6.77% +/- 1.00pp      4.57% +/- 0.55pp
+spec-42                     42        73.19% +/- 1.38pp     53.11% +/- 3.16pp
+cand-all                   368        51.49% +/- 9.28pp     47.66% +/- 4.23pp
+cand-ensemble              286        46.57% +/- 1.67pp     46.11% +/- 1.23pp
+cand-impurity               29        56.81% +/- 2.64pp     45.68% +/- 1.53pp
+
+--- paired vs hand-58, the ISA-locked control (5 seeds) ---
+  spec-42                   +66.41pp  95%CI=[+65.45,+67.37]  p=0.000  significant
+  cand-all                  +44.72pp  95%CI=[+35.69,+53.74]  p=0.000  significant
+  cand-ensemble             +39.80pp  95%CI=[+37.90,+41.69]  p=0.000  significant
+  cand-impurity             +50.04pp  95%CI=[+47.19,+52.89]  p=0.000  significant
+
+per-class recall on RISC-V, cand-impurity (seed 42):
+                          precision    recall  f1-score   support
+
+                  BENIGN       0.03      1.00      0.05         2
+BRANCH_HISTORY_INJECTION       0.95      0.98      0.97       116
+               INCEPTION       0.82      0.69      0.75        48
+                    L1TF       0.92      0.30      0.45       162
+                     MDS       0.22      0.89      0.35        36
+                RETBLEED       1.00      0.24      0.38       102
+             SPECTRE_RSB       0.00      0.00      0.00         4
+              SPECTRE_V2       0.54      1.00      0.70        14
+              SPECTRE_V4       0.57      0.33      0.42        12
+
+                accuracy                           0.55       496
+               macro avg       0.56      0.60      0.45       496
+            weighted avg       0.85      0.55      0.58       496
+
