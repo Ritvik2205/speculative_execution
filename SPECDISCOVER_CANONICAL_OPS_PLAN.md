@@ -493,3 +493,70 @@ two thirds.
   them side by side.
 - Labels here come from `eval_riscv_real.py`'s filename-keyword heuristic, not
   ground truth.
+
+---
+
+## Stub split: part of the RISC-V transfer number is a compiler artifact
+
+`eval/audit_riscv_labels.py` (check C) found that **57/496 (11.5%)** of RISC-V
+records are degenerate stubs — ≤10 instructions, **all at -O2**, where the
+compiler deleted the gadget but the file kept its attack label. Rather than
+re-run on a filtered test set (which changes the denominator and class balance,
+the trap already documented for the 64.24%/75.45% figures), the *same*
+predictions were scored on three subsets.
+
+| config | dim | ALL (n=496) | **NON-STUB (n=439)** | STUBS (n=57) |
+|---|---|---|---|---|
+| hand-58 (ISA-locked) | 58 | 6.77 | 7.65 | 0.00 |
+| **spec-42** | 42 | **73.19** | **69.70** | **100.00 ± 0.00** |
+| cand-all | 368 | 51.49 | 55.44 | 21.05 |
+| cand-ensemble | 286 | 46.57 | 49.89 | 21.05 |
+| cand-impurity | 29 | 56.81 | **61.91** | 17.54 |
+
+### spec-42 scores 100% on the stubs, and that is a problem, not a result
+
+Perfect precision *and* recall on all four stub classes (INCEPTION 4, L1TF 45,
+SPECTRE_V2 2, SPECTRE_V4 6), on every seed. A 5–10 instruction stub cannot
+contain a distinguishable gadget — the gadget is what `-O2` removed. Perfect
+separation therefore means the model is reading a **class-correlated compiler
+artifact**, not an attack.
+
+The mechanism is visible directly. Each class's source leaves a different
+residual op-shape:
+
+```
+INCEPTION   (9)  RET RET FENCE_FULL FENCE_INSN ADDR_GEN ADD CALL_IND CALL_IND RET
+L1TF        (7)  FENCE_FULL FENCE_INSN TIMER LOAD CACHE_FLUSH FENCE_INSN RET
+SPECTRE_V2  (9)  NOP RET FENCE_FULL FENCE_INSN TIMER ADDR_GEN ADD JMP_IND RET
+SPECTRE_V4  (5)  FENCE_FULL FENCE_INSN TIMER STORE RET
+```
+
+`spec-42` is a histogram over exactly these categories, so the stubs are
+trivially separable. It is fitting the shape of what the optimiser left behind.
+
+### What this changes
+
+- **The honest RISC-V figure for `spec-42` is 69.70%, not 73.19%.** The
+  headline was inflated ~3.5pp by records that contain no attack.
+- **The ranking still holds but the margin halves.** `spec-42` (69.70) still
+  beats `cand-impurity` (61.91), but by **7.8pp** rather than 16.4pp. The
+  cross-ISA conclusion — coarse features transfer, bigrams do not — survives;
+  its effect size does not.
+- **The candidate tiers were being *penalised* by the stubs** (17–21% on them),
+  so their non-stub numbers are all ~3–5pp higher than reported.
+
+### The larger worry this raises, stated rather than resolved
+
+The stubs are the extreme, visible case of a general risk: if `-O2` leaves
+class-correlated fingerprints in *short* files, it plausibly leaves them in
+longer ones too. And RISC-V is evaluated **entirely zero-shot**, so there is no
+train/test group split *within* RISC-V to control for it — the group-holdout
+machinery protects the x86/ARM split, not this one. Some unknown share of the
+remaining 69.70% may still be "which source-file family is this" rather than
+"which attack is this."
+
+That is not demonstrated here, and it should not be asserted. The cheap test
+that would settle it: hold out whole *source families* (the `_gen_N` blocks)
+rather than scoring all of them, and see whether accuracy survives. Until that
+runs, treat every RISC-V transfer number — including 69.70% — as an upper
+bound.

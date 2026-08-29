@@ -59,6 +59,9 @@ def ci95(x):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, nargs="+", default=[42, 1, 7, 13, 21])
+    ap.add_argument("--stub-max", type=int, default=10,
+                    help="records with <= this many instructions are degenerate stubs "
+                         "(see eval/audit_riscv_labels.py check C)")
     args = ap.parse_args()
 
     tr = T.load(T.TRAIN)                       # x86_64 + arm64 only
@@ -104,9 +107,27 @@ def main():
         "cand-impurity": (Xtr_cand[:, imp], Xte_cand[:, imp]),
     }
 
+    # Degenerate ("stub") records: the compiler deleted the gadget at -O2 but
+    # the file kept its attack label. See eval/audit_riscv_labels.py — 11.5% of
+    # the corpus, all -O2, hitting SPECTRE_V4 at 50% and L1TF at 27.8%.
+    #
+    # These are scored, then metrics are reported on three subsets of the SAME
+    # predictions: all records, non-stubs only, and stubs only. Re-running with
+    # a filtered test set instead would change the denominator and the class
+    # balance, making the two accuracies incomparable — the same trap already
+    # documented for the 64.24%/75.45% RISC-V figures.
+    n_instr = np.array([len([l for l in r["sequence"]
+                             if l.strip() and not l.strip().startswith(".")
+                             and not l.strip().endswith(":")]) for r in te])
+    is_stub = n_instr <= args.stub_max
+    print(f"stubs (<= {args.stub_max} instrs): {int(is_stub.sum())}/{len(te)} "
+          f"({100*is_stub.mean():.1f}%)  non-stubs: {int((~is_stub).sum())}")
+    print(f"stub class mix: {dict(Counter(yte[is_stub]))}\n")
+
     acc, f1, preds = {}, {}, {}
+    acc_ns, f1_ns, acc_stub = {}, {}, {}
     for name, (A, B) in configs.items():
-        a_, f_ = [], []
+        a_, f_, ans, fns, ast = [], [], [], [], []
         for sd in args.seeds:
             clf = RandomForestClassifier(n_estimators=300, n_jobs=-1,
                                          random_state=sd, class_weight="balanced")
@@ -114,16 +135,28 @@ def main():
             p = clf.predict(B)
             a_.append(accuracy_score(yte, p) * 100)
             f_.append(f1_score(yte, p, average="macro", zero_division=0) * 100)
+            ans.append(accuracy_score(yte[~is_stub], p[~is_stub]) * 100)
+            fns.append(f1_score(yte[~is_stub], p[~is_stub], average="macro",
+                                zero_division=0) * 100)
+            ast.append(accuracy_score(yte[is_stub], p[is_stub]) * 100
+                       if is_stub.any() else float("nan"))
             if sd == args.seeds[0]:
                 preds[name] = p
         acc[name], f1[name] = a_, f_
+        acc_ns[name], f1_ns[name], acc_stub[name] = ans, fns, ast
 
-    print(f"{'config':24s} {'dim':>5s} {'riscv zero-shot acc':>22s} {'macro-F1':>16s}")
-    print("-" * 72)
+    print(f"{'config':24s} {'dim':>5s} {'ALL (n=%d)' % len(te):>16s} "
+          f"{'NON-STUB (n=%d)' % int((~is_stub).sum()):>18s} {'STUBS (n=%d)' % int(is_stub.sum()):>16s}")
+    print("-" * 80)
     for name, (A, _) in configs.items():
-        am, ah = ci95(acc[name])
-        fm, fh = ci95(f1[name])
-        print(f"{name:24s} {A.shape[1]:5d} {am:12.2f}% +/- {ah:4.2f}pp {fm:9.2f}% +/- {fh:4.2f}pp")
+        am, ah = ci95(acc[name]); nm, nh = ci95(acc_ns[name]); sm, sh = ci95(acc_stub[name])
+        print(f"{name:24s} {A.shape[1]:5d} {am:8.2f}+/-{ah:4.2f} "
+              f"{nm:11.2f}+/-{nh:4.2f} {sm:9.2f}+/-{sh:4.2f}")
+    print(f"\n{'config':24s} {'macro-F1 ALL':>16s} {'macro-F1 NON-STUB':>20s}")
+    print("-" * 62)
+    for name in configs:
+        fm, fh = ci95(f1[name]); gm, gh = ci95(f1_ns[name])
+        print(f"{name:24s} {fm:9.2f}+/-{fh:4.2f} {gm:13.2f}+/-{gh:4.2f}")
 
     print(f"\n--- paired vs hand-58, the ISA-locked control ({len(args.seeds)} seeds) ---")
     base = np.array(acc["hand-58 (ISA-locked)"], float)
