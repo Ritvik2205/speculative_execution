@@ -88,12 +88,36 @@ CONFUSED_CLASS_NAMES = [
 # GLOBAL GRAPH FEATURES — computed from raw sequence (no label leakage)
 # =============================================================================
 
-_INDIRECT_GLOBAL = re.compile(
-    r'\b(blr|br)\b'                    # ARM indirect branch/call
-    r'|\b(jmpq?|callq?)\s*\*'          # x86 indirect: jmp *%rax, jmpq *(%rbx)
-    r'|\[x[0-9]+\]',                   # ARM register indirect: ldr x0, [x1]
-    re.I
-)
+def _build_indirect_global():
+    """Union of every ISA spec's `indirect` pattern.
+
+    This used to be three hardcoded alternations covering ARM and x86 only, so
+    `indirect_frac` read exactly 0.0000 on all 496 RISC-V records despite ~7%
+    indirect-branch density — `jr`/`jalr` matched nothing. That value feeds the
+    GINE global-feature vector in every node-feature mode, so a whole feature
+    was dead for RISC-V.
+
+    Sourcing it from the specs fixes RISC-V and removes the ISA literals at the
+    same time: a new ISA now contributes its own indirect grammar by shipping a
+    spec, which is the property the rest of the pipeline already claims.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+    spec_dir = _Path(__file__).resolve().parent.parent / "spec"
+    pats = []
+    for name in ("x86_64.json", "arm64.json", "riscv.json", "base.json"):
+        f = spec_dir / name
+        if not f.exists():
+            continue
+        pat = _json.loads(f.read_text()).get("patterns", {}).get("indirect")
+        if pat and pat not in pats:
+            pats.append(pat)
+    if not pats:      # never expected; keeps the module importable
+        pats = [r'\b(blr|br)\b|\b(jmpq?|callq?)\s*\*|\[x[0-9]+\]']
+    return re.compile("|".join(f"(?:{p})" for p in pats), re.I)
+
+
+_INDIRECT_GLOBAL = _build_indirect_global()
 
 
 def compute_global_features(sequence: List[str]) -> np.ndarray:

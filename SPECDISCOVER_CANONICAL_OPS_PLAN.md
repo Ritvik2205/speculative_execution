@@ -168,6 +168,38 @@ inherits it, so it's checked before any retraining cost is spent.
 
 ## 3. Results
 
+### CORRECTION (2026-08-29): this gate measures `canonical_op`, not the node category
+
+The table below reports the `OTHER` rate of **`SpecEngine.canonical_op()`** —
+the tokenizer's vocabulary layer. It does **not** measure
+`SpecEngine.classify_opcode()`, which produces the opcode-category one-hot that
+`v54/pdg_builder.py` puts on every PDG node and that GINE actually consumes.
+Those are different functions and only the first was fixed.
+
+Re-measured directly:
+
+```
+classify_opcode OTHER rate      x86_64  32765/63880 = 51.3%   (STACK = 9)
+                                arm64   10742/90138 = 11.9%
+                                riscv64    209/20049 =  1.0%
+```
+
+**Half of every x86 PDG node still carries the `OTHER` category**, for the same
+reason described below (`\badd\b` does not match `addq`, `\b(push|pop)\b`
+does not match `pushq`/`popq`). The canonical-op layer routes around it for
+tokenisation and for `candidate_features.py`, but the graph model's node
+features were never fixed.
+
+Note the ordering this produces: **RISC-V has the best spec coverage of the
+three ISAs (1.0% OTHER), and x86 the worst.** The ISA with the least data has
+the cleanest categories, because `riscv.json` was authored from the manual
+rather than inherited from `pdg_builder.py`'s regexes.
+
+This is a real, unfixed gap, not a documentation nit. It is left unfixed here
+deliberately: changing `classify_opcode` alters every PDG node feature, so it
+needs the same measure-first treatment the load/store fix got (which turned out
+to be correctness-only, moving GINE accuracy by −0.26pp, ns).
+
 ### Phase A — coverage gate: **PASSED**
 
 `spec/check_canonical_coverage.py`:
