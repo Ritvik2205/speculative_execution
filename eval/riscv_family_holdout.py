@@ -146,17 +146,41 @@ def main():
     # the SAME per-class counts, chosen at random from non-overlapping families,
     # so any difference between HELD-OUT and RAND-CTRL is attributable to the
     # shared families specifically rather than to sample size.
-    rng = np.random.RandomState(0)
-    rand_mask = np.ones(len(tr), dtype=bool)
+    # Two controls, because neither can satisfy both constraints at once and
+    # the objection differs:
+    #   RAND-CLASS : same per-class counts as the holdout. Cannot always reach
+    #                the same TOTAL, because some classes do not have enough
+    #                non-overlapping records left to draw from.
+    #   RAND-SIZE  : same TOTAL count, making up any shortfall from other
+    #                classes. Matches size exactly, at the cost of drifting the
+    #                class mix.
+    # If the held-out-vs-control delta is null under BOTH, neither "it was the
+    # class mix" nor "it was the sample size" survives as an explanation.
+    n_target = int((~keep_mask).sum())
     removed_per_class = Counter(ytr_all[~keep_mask])
     eligible = np.where(keep_mask)[0]
+
+    rng = np.random.RandomState(0)
+    rand_mask = np.ones(len(tr), dtype=bool)
     for cls, n_rm in removed_per_class.items():
         pool_idx = eligible[ytr_all[eligible] == cls]
         n_take = min(n_rm, len(pool_idx))
         if n_take:
             rand_mask[rng.choice(pool_idx, n_take, replace=False)] = False
-    print(f"RAND-CTRL pool: {int(rand_mask.sum())} records "
-          f"(-{len(tr)-int(rand_mask.sum())}, same per-class counts, random families)\n")
+
+    rng2 = np.random.RandomState(1)
+    size_mask = rand_mask.copy()
+    shortfall = n_target - int((~size_mask).sum())
+    if shortfall > 0:
+        remaining = np.array([i for i in eligible if size_mask[i]])
+        take = rng2.choice(remaining, min(shortfall, len(remaining)), replace=False)
+        size_mask[take] = False
+
+    print(f"HOLD-OUT   removed {n_target}")
+    print(f"RAND-CLASS removed {len(tr)-int(rand_mask.sum())} "
+          f"(class-matched; short by {n_target-(len(tr)-int(rand_mask.sum()))})")
+    print(f"RAND-SIZE  removed {len(tr)-int(size_mask.sum())} (size-matched)")
+    print(f"  RAND-SIZE class mix: {dict(Counter(ytr_all[~size_mask]))}\n")
 
     configs = {
         "hand-58": (Xtr_hand, Xte_hand),
@@ -171,7 +195,8 @@ def main():
     for name, (A, B) in configs.items():
         for pool, mask in (("FULL", np.ones(len(tr), dtype=bool)),
                            ("HELD-OUT", keep_mask),
-                           ("RAND-CTRL", rand_mask)):
+                           ("RAND-CLASS", rand_mask),
+                           ("RAND-SIZE", size_mask)):
             a_, ns_, f_ = [], [], []
             for sd in args.seeds:
                 clf = RandomForestClassifier(n_estimators=300, n_jobs=-1,
@@ -201,12 +226,14 @@ def main():
 
     for name in configs:
         paired(name, "FULL", "HELD-OUT", "held-out - full")
-        paired(name, "FULL", "RAND-CTRL", "random-ctrl - full")
-        paired(name, "RAND-CTRL", "HELD-OUT", "held-out - random-ctrl  <-- ")
+        paired(name, "FULL", "RAND-CLASS", "rand-class - full")
+        paired(name, "FULL", "RAND-SIZE", "rand-size - full")
+        paired(name, "RAND-CLASS", "HELD-OUT", "held-out - rand-class  <--")
+        paired(name, "RAND-SIZE", "HELD-OUT", "held-out - rand-size   <--")
         print()
-    print("The third row is the one that matters: it compares withholding the")
-    print("SHARED families against withholding the same amount of random data.")
-    print("If it is null, the drop was sample size, not program recognition.")
+    print("The last two rows are the ones that matter: they compare withholding")
+    print("the SHARED families against withholding comparable random data.")
+    print("Null under both = the drop was sample size, not program recognition.")
 
 
 if __name__ == "__main__":

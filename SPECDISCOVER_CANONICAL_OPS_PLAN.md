@@ -589,11 +589,16 @@ like confirmation. **It isn't.** Removing 827 records also shrinks training by
 15%, and that alone costs accuracy. The control removes a comparable amount of
 *random* data instead:
 
-| config | held-out − full | random-ctrl − full | **held-out − random-ctrl** |
+Two controls are used, because neither can satisfy both constraints at once:
+**RAND-CLASS** matches the holdout's per-class counts (but cannot always reach
+the same total — some classes have too few non-overlapping records left), and
+**RAND-SIZE** matches the total exactly (at the cost of drifting the class mix).
+
+| config | held-out − full | **held-out − rand-class** | **held-out − rand-size** |
 |---|---|---|---|
-| hand-58 | −2.10pp sig | −3.87pp sig | +1.78pp sig |
-| **spec-42** | −4.42pp sig | −3.96pp sig | **−0.46pp, p=0.298, ns** |
-| cand-impurity | −3.19pp sig | −14.72pp sig | **+11.53pp sig** |
+| hand-58 | −2.10pp sig | +1.78pp sig | +1.59pp sig |
+| **spec-42** | −4.42pp sig | **−0.46pp, p=0.298, ns** | **−0.23pp, p=0.746, ns** |
+| cand-impurity | −3.19pp sig | **+11.53pp sig** | **+10.30pp sig** |
 
 **For `spec-42` the shared families are worth no more than random data of
 similar size.** The drop is a sample-size effect, not program recognition. The
@@ -619,14 +624,20 @@ cross-ISA transfer against `hand-58`'s 7.65%. The "treat 69.70% as an upper
 bound" caution from the previous section is withdrawn: it was tested and did not
 hold.
 
-### Limitation of the control, stated
+### Both controls agree, so the refutation is not an artefact of the control
 
-The random control removed **550** records where the family holdout removed
-**827** — for the most-affected classes there were not enough non-overlapping
-records left to match the per-class counts exactly. The control is therefore
-class-matched but not size-matched, and it removed *fewer* records. That biases
-conservatively for the conclusion drawn here: random removal of 33% fewer
-records still cost `spec-42` nearly as much (−3.96 vs −4.42pp), so a
-size-matched control would only widen the gap in the direction of "no
-memorisation." A properly size-matched control would need to draw the shortfall
-from other classes, trading a class-mix mismatch for a size match.
+The two controls disagree on nothing that matters. For `spec-42` the
+held-out-vs-control delta is null under the class-matched control (−0.46pp,
+p=0.298) **and** under the size-matched one (−0.23pp, p=0.746). Neither "it was
+the class mix" nor "it was the sample size" survives as an explanation for the
+−4.42pp drop, which leaves sample size in general — the same cost random data of
+comparable size imposes.
+
+`cand-impurity` is consistent across both too (+11.53 / +10.30pp): withholding
+the shared families hurt it substantially *less* than withholding comparable
+random data, the opposite of what memorisation predicts.
+
+An earlier version of this section disclosed that the only control then
+available removed 550 records against the holdout's 827, and argued the
+mismatch biased conservatively. That argument is now unnecessary — the
+size-matched control removes exactly 827 and reaches the same verdict.
