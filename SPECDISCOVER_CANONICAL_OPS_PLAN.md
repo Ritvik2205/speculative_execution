@@ -560,3 +560,73 @@ that would settle it: hold out whole *source families* (the `_gen_N` blocks)
 rather than scoring all of them, and see whether accuracy survives. Until that
 runs, treat every RISC-V transfer number — including 69.70% — as an upper
 bound.
+
+---
+
+## Family holdout: the program-recognition worry does NOT hold up
+
+The previous section flagged a risk it did not test: the RISC-V corpus is built
+from the *same* c_vulns sources compiled to x86/ARM for training, so the model
+might be recognising a program it already saw rather than detecting an attack.
+Nothing in the setup controls for it — group-holdout splits the x86/ARM data,
+and RISC-V is scored entirely zero-shot.
+
+Measured (`eval/riscv_family_holdout.py`). The overlap is real and large:
+**827/5533 training records (14.9%)** share a source family with the RISC-V
+test set, across 13 families (`bhi`, `l1tf`, `mds`, `retbleed*`, `inception*`,
+`spectre_v2`, `spectre_v4`).
+
+Three training pools, all scored on the same RISC-V test set (non-stub):
+
+| config | FULL | HELD-OUT | RAND-CTRL |
+|---|---|---|---|
+| hand-58 | 7.65 | 5.56 | 3.78 |
+| **spec-42** | **69.70** | 65.28 | 65.74 |
+| cand-impurity | 61.91 | 58.72 | 47.20 |
+
+Withholding the shared families costs `spec-42` −4.42pp (p<0.001), which looks
+like confirmation. **It isn't.** Removing 827 records also shrinks training by
+15%, and that alone costs accuracy. The control removes a comparable amount of
+*random* data instead:
+
+| config | held-out − full | random-ctrl − full | **held-out − random-ctrl** |
+|---|---|---|---|
+| hand-58 | −2.10pp sig | −3.87pp sig | +1.78pp sig |
+| **spec-42** | −4.42pp sig | −3.96pp sig | **−0.46pp, p=0.298, ns** |
+| cand-impurity | −3.19pp sig | −14.72pp sig | **+11.53pp sig** |
+
+**For `spec-42` the shared families are worth no more than random data of
+similar size.** The drop is a sample-size effect, not program recognition. The
+hypothesis this experiment was built to confirm is refuted.
+
+`cand-impurity` goes the other way entirely: withholding the shared families
+hurt it *11.53pp less* than withholding random data, i.e. it is acutely
+sensitive to training volume in general and the overlapping families were not
+special to it.
+
+### Consequence for the headline number
+
+Of the two corrections raised, only the first survives:
+
+```
+73.19%   spec-42, as originally reported
+69.70%   after removing degenerate stubs        <- real, keep this correction
+69.70%   after the family-holdout control        <- no further deduction warranted
+```
+
+**69.70% is the honest RISC-V figure for `spec-42`**, and it is genuine
+cross-ISA transfer against `hand-58`'s 7.65%. The "treat 69.70% as an upper
+bound" caution from the previous section is withdrawn: it was tested and did not
+hold.
+
+### Limitation of the control, stated
+
+The random control removed **550** records where the family holdout removed
+**827** — for the most-affected classes there were not enough non-overlapping
+records left to match the per-class counts exactly. The control is therefore
+class-matched but not size-matched, and it removed *fewer* records. That biases
+conservatively for the conclusion drawn here: random removal of 33% fewer
+records still cost `spec-42` nearly as much (−3.96 vs −4.42pp), so a
+size-matched control would only widen the gap in the direction of "no
+memorisation." A properly size-matched control would need to draw the shortfall
+from other classes, trading a class-mix mismatch for a size match.

@@ -1,0 +1,40 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+riscv test: 496 records -> 22 source families
+training records sharing a source family with the riscv test set: 827/5533 (14.9%)
+shared families (13): ['bhi', 'inception', 'inception_call', 'inception_pht', 'l1tf', 'mds', 'mds_zombie', 'retbleed', 'retbleed_mismatch', 'retbleed_multi_ret', 'retbleed_rsb', 'spectre_v2', 'spectre_v4']
+
+FULL pool     : 5533 records
+HELD-OUT pool : 4706 records (-827)
+  class mix removed: {np.str_('BRANCH_HISTORY_INJECTION'): 70, np.str_('SPECTRE_V2'): 149, np.str_('SPECTRE_V4'): 143, np.str_('INCEPTION'): 245, np.str_('RETBLEED'): 143, np.str_('MDS'): 45, np.str_('L1TF'): 32}
+
+RAND-CTRL pool: 4983 records (-550, same per-class counts, random families)
+
+config                 pool        riscv ALL     riscv NON-STUB    macro-F1 NS
+------------------------------------------------------------------------------
+hand-58                FULL      6.77+/-1.00        7.65+/-1.12     4.62+/-0.57
+hand-58            HELD-OUT      4.92+/-0.49        5.56+/-0.55     3.79+/-0.34
+hand-58           RAND-CTRL      3.35+/-0.80        3.78+/-0.91     2.81+/-0.59
+spec-42                FULL     73.19+/-1.38       69.70+/-1.56    49.82+/-3.22
+spec-42            HELD-OUT     69.03+/-0.68       65.28+/-0.81    45.89+/-3.86
+spec-42           RAND-CTRL     69.68+/-1.42       65.74+/-1.61    43.52+/-6.10
+cand-impurity          FULL     56.81+/-2.64       61.91+/-2.98    43.82+/-2.06
+cand-impurity      HELD-OUT     53.99+/-0.78       58.72+/-0.88    39.77+/-0.85
+cand-impurity     RAND-CTRL     43.71+/-0.54       47.20+/-0.61    35.69+/-0.75
+
+--- HELD-OUT minus FULL, paired (5 seeds), non-stub accuracy ---
+  hand-58          held-out - full              -2.10pp  95%CI=[-3.52,-0.68]  p=0.015  significant
+  hand-58          random-ctrl - full           -3.87pp  95%CI=[-5.11,-2.64]  p=0.001  significant
+  hand-58          held-out - random-ctrl  <--    +1.78pp  95%CI=[+0.97,+2.59]  p=0.004  significant
+
+  spec-42          held-out - full              -4.42pp  95%CI=[-5.54,-3.29]  p=0.000  significant
+  spec-42          random-ctrl - full           -3.96pp  95%CI=[-4.61,-3.31]  p=0.000  significant
+  spec-42          held-out - random-ctrl  <--    -0.46pp  95%CI=[-1.51,+0.60]  p=0.298  ns
+
+  cand-impurity    held-out - full              -3.19pp  95%CI=[-6.18,-0.20]  p=0.042  significant
+  cand-impurity    random-ctrl - full          -14.72pp  95%CI=[-17.63,-11.80]  p=0.000  significant
+  cand-impurity    held-out - random-ctrl  <--   +11.53pp  95%CI=[+10.18,+12.88]  p=0.000  significant
+
+The third row is the one that matters: it compares withholding the
+SHARED families against withholding the same amount of random data.
+If it is null, the drop was sample size, not program recognition.
