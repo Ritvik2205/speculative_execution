@@ -318,6 +318,34 @@ RISC-V speculative gadgets, real or synthetic — it calls them benign.** That i
 untrained-arch / graph-size domain shift (H3), now confirmed on genuinely
 independent RISC-V data rather than on our own transliterated corpus.
 
+## 8. BENIGN RISC-V + generalisation: it's a graph-size shift, not the ISA
+
+Harvested a real BENIGN RISC-V set — 180 mbedTLS/polarssl crypto functions
+compiled to riscv64, 30 families, never trained on (`gen/harvest_benign_riscv.py`).
+First honest false-positive measurement on a new ISA: **36.7% FP** (66/180 real
+crypto functions flagged as attacks). Note the asymmetry — attack RISC-V defaults
+to BENIGN (0% recall), benign RISC-V over-fires 37%: confused in both directions.
+
+Then diagnosed *why*, zero-shot, no RISC-V training:
+
+- **The arch embedding is a red herring.** riscv64's embedding row got zero
+  gradient, so it injects noise; overriding it 5 ways ties on attacks and only
+  shifts a BENIGN-bias on benign. Not the bottleneck.
+- **The real cause is a graph-size domain shift (H3).** Training windows are
+  ~24-28 instructions; RISC-V functions are 40-1927 (real median 159). The model
+  classifies graphs 2-6x larger than anything it trained on.
+- **Fixed without retraining** by matching the test window to the training window:
+  slide a 24-instruction window, classify each, aggregate with a k-alarm
+  threshold. Whole-function baseline is 0% recall / 36.7% FP; **windowed k=3 is
+  27.3% recall AND 8.9% FP — strictly better on both**, which is only possible if
+  size, not the ISA, was the binding constraint. k=1 reaches 63.6% recall.
+
+Deployment recipe: scan new-ISA functions with training-sized sliding windows +
+calibrated aggregation. Deeper fix (next): retrain with multi-scale size
+augmentation of the existing x86/arm data — no RISC-V — to cover the large-graph
+regime, tested on these held-out sets. Full account:
+`SPECDISCOVER_RISCV_GENERALISATION.md`.
+
 ---
 
 ## Reproduce
@@ -336,3 +364,5 @@ independent RISC-V data rather than on our own transliterated corpus.
 | real RISC-V harvest | `spec/fetch_riscv_pocs.sh` then `spec/harvest_real_riscv.py --apply` |
 | 0/11 on real RISC-V | `eval/riscv_real_eval_2026-08-30.txt` |
 | synth RISC-V at volume | `gen/synth_riscv.py --apply`, `eval/riscv_synth_2026-08-30.txt` |
+| benign RISC-V + FP rate | `gen/harvest_benign_riscv.py --apply`, `eval/riscv_benign_2026-08-30.txt` |
+| generalisation (H3 + windowing) | `SPECDISCOVER_RISCV_GENERALISATION.md`, `eval/riscv_generalisation_2026-08-30.txt` |
