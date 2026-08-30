@@ -177,3 +177,62 @@ screening guarantees every test MDS record contains the trigger; the model there
 never has to learn anything else; and the test set is structurally incapable of
 revealing that it did not. A real MDS gadget that avoids those instructions would be
 missed, and no measurement in this repo would show it.
+
+---
+
+## Rebuild: how much did the screening actually inflate the numbers?
+
+`v50/data/v50_test.jsonl` survives, and v53's own comment says it was chosen
+*because* it is the **pre-specificity-filter** pool (1132 records, vs v52_test's
+1050 post-filter). So the pipeline deliberately sourced unfiltered records to avoid
+this bias — and then filtered them anyway at step 6. That makes the rebuild possible.
+
+Method: take the pre-filter pool, drop records whose sequence hash appears in
+`v54_train` (115, never score on training data), apply only the label-INDEPENDENT
+length floor, then partition by the label-conditioned rule. Train on `v54_train`,
+score both partitions, 5 seeds. Full output: `eval/unscreened_rebuild_results.txt`.
+
+```
+eligible pool 1017   SCREENED-IN 928   SCREENED-OUT 89   (screen removed 8.8%)
+screened-OUT by class: BHI 21, SPECTRE_V4 42, SPECTRE_V1 8, RETBLEED 7,
+                       INCEPTION 5, MDS 5, L1TF 1
+```
+
+**BHI lost 51% of its eligible test records** (21 deleted vs 20 kept).
+
+| | screened-IN (= what `v54_test` is) | screened-OUT (deleted) |
+|---|---|---|
+| hand-58 | 98.81% | **0.22%** |
+| spec-42 | 98.62% | **36.40%** |
+
+Every class drops to 0.0% recall on the deleted records under hand-58. spec-42
+salvages only SPECTRE_V4 (73.8%) and INCEPTION (40.0%).
+
+### The number to actually quote
+
+**Do not quote the 62–98pp subset gap as "the inflation".** That is the gap between
+the kept and deleted subsets, and the deleted subset is defined as "records the rule
+fails on", so a low score there is partly circular by construction.
+
+The population-level effect is the pooled unscreened estimate, weighting the two
+partitions by their real proportions (928 : 89):
+
+| | screened (reported) | **unscreened pool** | inflation |
+|---|---|---|---|
+| hand-58 | 98.81% | **90.18%** | **+8.63pp** |
+| spec-42 | 98.62% | **93.17%** | **+5.45pp** |
+
+**Screening inflates reported accuracy by roughly 5–9pp on this pool.** That is the
+honest correction — large enough to matter for every headline in the repo, far
+smaller than the subset gap suggests.
+
+### Limits
+
+- 89 screened-out records; per class the counts are tiny (L1TF n=1, MDS n=5). The
+  pooled estimate is dominated by SPECTRE_V4 (42) and BHI (21).
+- The screened-out set is *not* a random sample of hard cases — it is exactly the
+  set the rule rejects. Real-world data contains such records at an unknown rate, so
+  8.8% is this pool's rate, not a claim about deployment.
+- This is measured on the RF harness (hand-58, spec-42), not GINE. The GINE flagship
+  is trained and evaluated on the same screened split, so it is subject to the same
+  bias, but the magnitude for GINE is unmeasured.

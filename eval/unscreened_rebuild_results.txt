@@ -1,0 +1,28 @@
+train 5533   screened-IN 928   screened-OUT 89
+
+=== hand-58
+  screened-IN  (what v54_test is made of):  98.81%  (5 seeds, sd=0.12)
+  screened-OUT (deleted from the test set):   0.22%  (5 seeds, sd=0.45)
+  INFLATION from screening: +98.59pp
+  class                         in-recall  out-recall  n_out
+  BRANCH_HISTORY_INJECTION         100.0%        0.0%     21
+  INCEPTION                         89.3%        0.0%      5
+  L1TF                              87.1%        0.0%      1
+  MDS                              100.0%        0.0%      5
+  RETBLEED                          96.4%        0.0%      7
+  SPECTRE_V1                       100.0%        0.0%      8
+  SPECTRE_V4                       100.0%        0.0%     42
+
+=== spec-42
+  screened-IN  (what v54_test is made of):  98.62%  (5 seeds, sd=0.11)
+  screened-OUT (deleted from the test set):  36.40%  (5 seeds, sd=0.90)
+  INFLATION from screening: +62.22pp
+  class                         in-recall  out-recall  n_out
+  BRANCH_HISTORY_INJECTION         100.0%        0.0%     21
+  INCEPTION                         98.2%       40.0%      5
+  L1TF                              90.3%        0.0%      1
+  MDS                              100.0%        0.0%      5
+  RETBLEED                          98.2%        0.0%      7
+  SPECTRE_V1                       100.0%        0.0%      8
+  SPECTRE_V4                       100.0%       73.8%     42
+
