@@ -161,9 +161,40 @@ Findings from a primary-source survey (`SPECDISCOVER_RISCV_DATA_SOURCES.md`):
 trained on — and template-generate for volume, with labels verified structurally
 rather than dynamically. Against a corpus with effective n = 7.34, even three
 genuinely independent samples are meaningful evidence, and they are the only thing
-that can tell us whether generated gadgets are realistic. Independence is enforced by
-measurement, not honour: comparing the generated samples' canonical-op bigram
-distribution against the transliterated corpus, before generating at volume.
+that can tell us whether generated gadgets are realistic.
+
+**The independence gate is built and calibrated** (`eval/isa_independence_check.py`).
+Generated RISC-V will not be accepted on the honour system: it must pass a
+canonical-op **bigram**-distribution test, on the reasoning that a mnemonic
+substitution table rewrites opcodes one at a time and cannot change instruction
+*ordering*. Every distance is reported against an **x86-vs-arm yardstick** — two
+corpora we know were built independently — so the number means something.
+
+Calibrating it on our existing RISC-V corpus, which we *know* is a transliteration,
+produced a result worth reporting on its own:
+
+| comparison | JS divergence | vs yardstick |
+|---|---|---|
+| x86_64 vs arm64 (yardstick) | 0.4420 [0.4172, 0.4992] | — |
+| x86_64 vs riscv64 | 0.5789 [0.5595, 0.6232] | 1.31x |
+| arm64 vs riscv64 | 0.4289 [0.3642, 0.4938] | **0.97x** |
+
+**Pooled, the test detects nothing** — RISC-V sits as far from ARM as x86 does. Run
+per class, which controls for class mix, it inverts: RISC-V is closer to ARM than
+ARM is to x86 in **6 of 6** shared classes (ratios 0.57x–0.81x, sign test
+**p = 0.016**), and `arm-rv` is the smallest column in every single class. ARM is
+exactly the transliteration source — the RISC-V corpus was compiled from
+`arm64`-named sources (`enhanced_variants/l1tf_arm64_gen_*`).
+
+Two things follow. First, this is **independent confirmation of the provenance
+caveat in §1**, arrived at from instruction statistics rather than from reading the
+translation script — the corpus carries ARM's fingerprint in its instruction
+ordering. Second, and more useful going forward: **the pooled test is not fit to
+gate the generator.** Class mix moves the bigram distribution enough to mask
+provenance entirely, so had we shipped the obvious version of this check it would
+have waved through a corpus we already knew was derivative. The gate is the
+per-class table plus the sign test; the pooled number is context. That is recorded
+in the tool itself so it cannot be misread later.
 
 Priority classes: those with no usable evidence at all (SPECTRE_V1 is **absent
 entirely**; SPECTRE_V4, SPECTRE_RSB, BENIGN have one family each), then L1TF and BHI,
@@ -185,3 +216,4 @@ predictions on a class the test set cannot contain.
 | ensemble gate result | `eval/v56_postfix/`, `tests/gate/test_ensemble_gate.py` |
 | generator validity | `eval/check_syntactic_validity_results_2026-08-30.txt` |
 | RISC-V data survey | `SPECDISCOVER_RISCV_DATA_SOURCES.md` |
+| ISA-independence gate | `eval/isa_independence_check.py`, `eval/isa_independence_2026-08-30.txt` |

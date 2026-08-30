@@ -1,0 +1,54 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+corpora (RISC-V stubs excluded):
+  x86_64    2094 records,  703 families
+  arm64     3434 records,  123 families
+  riscv64    439 records,   22 families
+
+==========================================================================
+OVERALL — canonical-op bigram JS divergence (0 = identical, 1 = disjoint)
+==========================================================================
+  x86_64   vs arm64     JS = 0.4420  95%CI [0.4172, 0.4992]  <-- YARDSTICK (independently built corpora)
+  x86_64   vs riscv64   JS = 0.5789  95%CI [0.5595, 0.6232]
+  arm64    vs riscv64   JS = 0.4289  95%CI [0.3642, 0.4938]
+
+  Interpretation. If RISC-V were independently written, its distance to
+  x86 and to arm should be COMPARABLE TO OR GREATER THAN the 0.4420
+  between x86 and arm. Materially smaller means it inherited their
+  instruction ordering — the signature of transliteration.
+    riscv64 vs x86_64: 1.31x the yardstick  -> not detected at this pooling
+    riscv64 vs arm64: 0.97x the yardstick  -> not detected at this pooling
+
+  NOT SUFFICIENT ON ITS OWN. Calibrated against our RISC-V corpus —
+  which is a known transliteration — this pooled comparison returns
+  0.97x and detects nothing. Class mix differs across corpora and
+  moves the bigram distribution enough to mask provenance. Read the
+  per-class table and the sign test below; the pooled row is context.
+
+==========================================================================
+PER CLASS — controls for class mix, which moves bigrams on its own
+==========================================================================
+class                        x86-arm    x86-rv    arm-rv   ratio(rv/yard)
+  BRANCH_HISTORY_INJECTION    0.5466    0.6559    0.3397       0.62x
+  INCEPTION                   0.4800    0.5807    0.3871       0.81x
+  RETBLEED                    0.6498    0.5830    0.4702       0.72x
+  SPECTRE_RSB                 0.4376    0.5658    0.3455       0.79x  LOW n
+  SPECTRE_V2                  0.5503    0.6336    0.3142       0.57x
+  SPECTRE_V4                  0.5038    0.5819    0.3038       0.60x  LOW n
+
+==========================================================================
+SIGN TEST — is the candidate systematically closer to one source ISA?
+==========================================================================
+  classes where arm-vs-riscv < x86-vs-arm: 6/6
+  one-sided sign test p = 0.0156
+  -> SYSTEMATICALLY closer to arm64 than two independent corpora are
+     to each other. The RISC-V corpus was compiled from arm64-named
+     sources (enhanced_variants/l1tf_arm64_gen_*), so arm64 is the
+     expected transliteration source, and this is its signature.
+     NOTE the overall (class-pooled) number MISSES this — class mix
+     masks it. The per-class control is what surfaces it.
+
+USE FOR GENERATED SAMPLES: run this with the generated RISC-V corpus in
+place of riscv64. A ratio well below 1.0 means the generator reproduced
+the training ISAs' instruction ordering rather than writing idiomatic
+RISC-V — i.e. hand-transliteration in slower motion.
