@@ -208,6 +208,11 @@ EXCLUDED = [
 
 _FN_START = re.compile(r'^([A-Za-z_][A-Za-z0-9_.$]*):\s*$')
 _DIRECTIVE = re.compile(r'^\s*\.')
+_TRAIL_COMMENT = re.compile(r'\s+(#|//|;|@).*$')  # clang appends "label: # @name"
+
+
+def _strip_trailing_comment(line: str) -> str:
+    return _TRAIL_COMMENT.sub("", line).rstrip()
 
 
 def compile_asm(entry, opt, tmp: Path) -> Path | None:
@@ -231,14 +236,15 @@ def split_functions(path: Path) -> dict[str, list[str]]:
     dropped; a bare `name:` at column 0 opens a function."""
     funcs, cur = {}, None
     for raw in path.read_text(errors="ignore").splitlines():
-        m = _FN_START.match(raw)
+        stripped = _strip_trailing_comment(raw)   # clang: "aes_init: # @aes_init"
+        m = _FN_START.match(stripped)
         if m:
             cur = m.group(1)
             funcs[cur] = []
             continue
         if cur is None or _DIRECTIVE.match(raw) or not raw.strip():
             continue
-        if raw.strip().endswith(":"):      # local label inside the function
+        if stripped.endswith(":"):        # local label inside the function
             continue
         funcs[cur].append(raw.rstrip())
     return funcs

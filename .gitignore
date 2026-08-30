@@ -193,3 +193,4 @@ vendor_riscv/
 spec/.harvest_tmp/
 gen/.synth_riscv_tmp/
 gen/.benign_tmp/
+v54/data/v54_train_multiscale.jsonl
