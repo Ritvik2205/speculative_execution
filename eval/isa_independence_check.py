@@ -130,6 +130,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n-boot", type=int, default=2000)
     ap.add_argument("--stub-max", type=int, default=STUB_MAX)
+    ap.add_argument("--riscv-jsonl", default=None,
+                    help="use this JSONL as the riscv64 corpus instead of "
+                         "riscv_corpus/. Point it at the real harvested PoCs "
+                         "(spec/data/riscv_real_validation.jsonl) to run the "
+                         "gate's POSITIVE CONTROL: genuinely RISC-V-native code "
+                         "should NOT show the transliteration signature.")
     args = ap.parse_args()
 
     engines = {a: load_engine(f) for a, f in SPEC_FOR_ARCH.items()}
@@ -138,7 +144,13 @@ def main():
         "x86_64": [r for r in train if r.get("arch") == "x86_64"],
         "arm64": [r for r in train if r.get("arch") == "arm64"],
     }
-    rv = build_riscv_records()
+    if args.riscv_jsonl:
+        import json as _json
+        rv = [_json.loads(l) for l in open(args.riscv_jsonl) if l.strip()]
+        print(f"riscv64 corpus OVERRIDDEN with {args.riscv_jsonl} "
+              f"({len(rv)} records)")
+    else:
+        rv = build_riscv_records()
     rv = [r for r in rv
           if len([l for l in r["sequence"] if _is_instr(l)]) > args.stub_max]
     corpora["riscv64"] = rv
@@ -230,7 +242,21 @@ def main():
             print("     NOTE the overall (class-pooled) number MISSES this — class mix")
             print("     masks it. The per-class control is what surfaces it.")
         else:
-            print("  -> no systematic asymmetry detected at this class count")
+            # A sign test over k classes cannot go below 0.5**k. With fewer than
+            # 5 shared classes it CANNOT reach p<0.05 even if every class points
+            # the same way, so "no signature detected" is not evidence of
+            # independence — it is absence of power. Say so, loudly, or a small
+            # corpus buys a free pass by being small.
+            floor = 0.5 ** total
+            if floor >= 0.05:
+                print(f"  -> UNDERPOWERED: with {total} shared classes the "
+                      f"smallest reachable p is {floor:.3f}, so this test could "
+                      f"NOT have fired whatever the data said.")
+                print("     Report as 'no signature detected, test underpowered',")
+                print(f"     never as 'independent'. Needs >=5 shared classes.")
+            else:
+                print("  -> no systematic asymmetry detected; the test had the "
+                      "power to fire and did not")
 
     print("\nUSE FOR GENERATED SAMPLES: run this with the generated RISC-V corpus in")
     print("place of riscv64. A ratio well below 1.0 means the generator reproduced")

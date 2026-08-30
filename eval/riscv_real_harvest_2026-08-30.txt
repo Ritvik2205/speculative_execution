@@ -1,0 +1,27 @@
+harvesting (each record must exhibit its class's structure):
+  KEEP  SPECTRE_V1   boom_condBranchMispred.O0    gadget_function   50 instrs
+  KEEP  SPECTRE_V1   boom_condBranchMispred.O0    attack_unit      233 instrs  [victimFunc+main]
+  KEEP  SPECTRE_V1   boom_condBranchMispred.O2    attack_unit      128 instrs  [victimFunc+main]
+  KEEP  SPECTRE_V2   boom_indirBranchMispred.O0   attack_unit      254 instrs  [victimFunc+main]
+  KEEP  SPECTRE_V2   boom_indirBranchMispred.O2   attack_unit      147 instrs  [victimFunc+main]
+  KEEP  SPECTRE_RSB  boom_returnStackBuffer.O0    attack_unit       41 instrs  [specFunc+frameDump(stack.S)]
+  KEEP  SPECTRE_RSB  boom_returnStackBuffer.O2    attack_unit       22 instrs  [specFunc+frameDump(stack.S)]
+  KEEP  SPECTRE_V1   cispa_spectre.O0             gadget_function  275 instrs
+  KEEP  SPECTRE_V1   cispa_spectre.O0             attack_unit      328 instrs  [leak_byte+main]
+  KEEP  SPECTRE_V1   cispa_spectre.O2             gadget_function  159 instrs
+  KEEP  SPECTRE_V1   cispa_spectre.O2             attack_unit      206 instrs  [leak_byte+main]
+
+REJECTED (kept out of the set, with the reason):
+  boom_condBranchMispred.O2      gadget_function  SPECTRE_V1   missing BRANCH_COND>=1 (got 0), LOAD>=2 (got 1)
+  boom_indirBranchMispred.O0     gadget_function  (none)       window carries no class-distinguishing structure — labelable only as attack_unit
+  boom_indirBranchMispred.O2     gadget_function  (none)       window carries no class-distinguishing structure — labelable only as attack_unit
+  boom_returnStackBuffer.O0      gadget_function  (none)       window carries no class-distinguishing structure — labelable only as attack_unit
+  boom_returnStackBuffer.O2      gadget_function  (none)       window carries no class-distinguishing structure — labelable only as attack_unit
+
+records: 11   classes: {'SPECTRE_V1': 7, 'SPECTRE_V2': 2, 'SPECTRE_RSB': 2}
+independent upstream gadgets: 4   groups: 6
+overlap with v54_train: 0 (clean)
+class-naming tokens surviving neutralization: (none)
+
+wrote /Users/ritvikgupta/SpecExec/spec/data/riscv_real_validation.jsonl
+NEVER train on this file — it is the only RISC-V evidence we have that is independent of our own corpus.

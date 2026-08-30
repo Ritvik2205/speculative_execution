@@ -149,7 +149,19 @@ def main():
         print(f"missing checkpoint {CKPT}")
         sys.exit(2)
 
-    records = build_riscv_records()
+    import argparse as _ap
+    _p = _ap.ArgumentParser()
+    _p.add_argument("--records-jsonl", default=None,
+                    help="evaluate this JSONL instead of riscv_corpus/. Use "
+                         "spec/data/riscv_real_validation.jsonl for the real, "
+                         "non-transliterated PoCs.")
+    _a, _ = _p.parse_known_args()
+    if _a.records_jsonl:
+        records = [json.loads(l) for l in open(_a.records_jsonl) if l.strip()]
+        print(f"records OVERRIDDEN from {_a.records_jsonl}: {len(records)}")
+        assert all(r.get("split") != "train" for r in records)
+    else:
+        records = build_riscv_records()
     if not records:
         print("no labeled RISC-V records built")
         sys.exit(2)
@@ -209,6 +221,12 @@ def main():
     print(f"RISC-V zero-shot accuracy: {acc*100:.2f}%  (n={len(labels)})")
     print(f"{'='*60}")
     print(classification_report(labels, preds, labels=present, target_names=names, zero_division=0))
+    from collections import Counter as _C
+    print(f"{'true':26s} {'predicted':26s} detail")
+    for r, pr, la in zip(records, preds, labels):
+        det = f"{r.get('window_tier','')} {r.get('group','')} {r.get('opt','')}".strip()
+        print(f"  {id_to_label[la]:24s} {id_to_label[pr]:24s} {det}")
+    print("prediction distribution:", dict(_C(id_to_label[p] for p in preds)))
     print("NOTE: ARCH_VOCAB now has a real 'riscv64' key (fixed) so arch_id"
           "\ncorrectly resolves to its own row rather than falling back to"
           "\n'unknown' — but that row still never received a gradient update"

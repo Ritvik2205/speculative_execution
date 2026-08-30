@@ -65,6 +65,15 @@ _LO12_SYM_RE = re.compile(
 _LEAQ_RIP_RE = re.compile(
     r'^(\s*leaq?\s+)([A-Za-z_][A-Za-z0-9_$@.]*)(\(%rip\).*)$', re.I
 )
+# RISC-V: symbols reach the operand as %hi(SYMBOL) / %lo(SYMBOL) — the ISA has no
+# adrp/lo12 or rip-relative form, so neither rule above sees them. Without this the
+# corpus keeps names like `mds_secret`, `leak_gadget_bhi`, `secret_retbleed_data`,
+# which name their own class. Inert today (AsmTokenizer.normalize maps every symbol
+# to <sym> and canonical_op reads only the mnemonic), so this changes no reported
+# number — it closes the gap before a raw-text consumer makes it live.
+_RISCV_HILO_SYM_RE = re.compile(
+    r'^(.*%(?:hi|lo)\()([A-Za-z_][A-Za-z0-9_$@.]*)(\).*)$'
+)
 _BB_LABEL_RE = re.compile(r'^L(BB|tmp)\d', re.I)
 _NON_INSTR = re.compile(r'^\s*(?:\.|#|;|//)')
 _INDIRECT_PAT = re.compile(r'\b(blr|br)\b|\b(jmpq?\s*\*|callq?\s*\*|jmp\s+\*|call\s+\*)', re.I)
@@ -108,6 +117,10 @@ def _neutralize(instrs: List[str]) -> List[str]:
             result.append(f"{m.group(1)}<fn>{m.group(3)}")
             continue
         m = _LEAQ_RIP_RE.match(line)
+        if m and not _BB_LABEL_RE.match(m.group(2)):
+            result.append(f"{m.group(1)}<fn>{m.group(3)}")
+            continue
+        m = _RISCV_HILO_SYM_RE.match(line)
         if m and not _BB_LABEL_RE.match(m.group(2)):
             result.append(f"{m.group(1)}<fn>{m.group(3)}")
             continue

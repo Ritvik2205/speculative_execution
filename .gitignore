@@ -67,6 +67,7 @@ ENV/
 .env/
 .venv/
 .venv312/
+.venv_fix/
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
@@ -152,7 +153,7 @@ docker-compose.override.yml.backup.10
 *.cpp
 
 *.tmp
-*.jsonl
+# *.jsonl
 *.pkl
 *.log
 *.db
@@ -181,3 +182,11 @@ oracle/build/
 oracle/results/*.jsonl
 gen/synth/tuned_out/
 gen/synth/grid_out/
+
+
+core
+
+# Git worktrees (scratch, not tracked)
+.worktrees/
+# Third-party RISC-V PoC repos — fetched by spec/fetch_riscv_pocs.sh, not vendored
+vendor_riscv/

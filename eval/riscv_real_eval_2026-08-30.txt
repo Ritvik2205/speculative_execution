@@ -1,0 +1,67 @@
+=== v54_spec GINE on REAL harvested RISC-V PoCs (never trained on) ===
+RISC-V zero-shot accuracy: 0.00%  (n=11)
+============================================================
+              precision    recall  f1-score   support
+
+ SPECTRE_RSB       0.00      0.00      0.00       2.0
+  SPECTRE_V1       0.00      0.00      0.00       7.0
+  SPECTRE_V2       0.00      0.00      0.00       2.0
+
+   micro avg       0.00      0.00      0.00      11.0
+   macro avg       0.00      0.00      0.00      11.0
+weighted avg       0.00      0.00      0.00      11.0
+
+true                       predicted                  detail
+  SPECTRE_V1               BENIGN                   gadget_function boom_condBranchMispred:gadget_function O0
+  SPECTRE_V1               RETBLEED                 attack_unit boom_condBranchMispred:attack_unit O0
+  SPECTRE_V1               BENIGN                   attack_unit boom_condBranchMispred:attack_unit O2
+  SPECTRE_V2               RETBLEED                 attack_unit boom_indirBranchMispred:attack_unit O0
+  SPECTRE_V2               INCEPTION                attack_unit boom_indirBranchMispred:attack_unit O2
+  SPECTRE_RSB              INCEPTION                attack_unit boom_returnStackBuffer:attack_unit O0
+  SPECTRE_RSB              INCEPTION                attack_unit boom_returnStackBuffer:attack_unit O2
+  SPECTRE_V1               RETBLEED                 gadget_function cispa_spectre:gadget_function O0
+  SPECTRE_V1               RETBLEED                 attack_unit cispa_spectre:attack_unit O0
+  SPECTRE_V1               INCEPTION                gadget_function cispa_spectre:gadget_function O2
+  SPECTRE_V1               INCEPTION                attack_unit cispa_spectre:attack_unit O2
+prediction distribution: {'BENIGN': 2, 'RETBLEED': 4, 'INCEPTION': 5}
+
+=== same checkpoint on the TRANSLITERATED riscv_corpus (baseline) ===
+RISC-V zero-shot accuracy: 33.87%  (n=496)
+============================================================
+                          precision    recall  f1-score   support
+
+                  BENIGN       0.01      0.50      0.01         2
+BRANCH_HISTORY_INJECTION       0.93      0.34      0.50       116
+               INCEPTION       0.33      0.60      0.42        48
+                    L1TF       0.96      0.34      0.50       162
+                     MDS       0.08      0.17      0.11        36
+                RETBLEED       0.55      0.32      0.41       102
+             SPECTRE_RSB       0.00      0.00      0.00         4
+              SPECTRE_V2       0.00      0.00      0.00        14
+              SPECTRE_V4       1.00      0.33      0.50        12
+
+               micro avg       0.34      0.34      0.34       496
+               macro avg       0.43      0.29      0.27       496
+            weighted avg       0.71      0.34      0.43       496
+
+=== independence gate: positive control (real) vs negative (transliterated) ===
+PER CLASS — controls for class mix, which moves bigrams on its own
+==========================================================================
+class                        x86-arm    x86-rv    arm-rv   ratio(rv/yard)
+  SPECTRE_RSB                 0.4376    0.7301    0.5630       1.29x  LOW n
+  SPECTRE_V1                  0.7313    0.6106    0.7620       0.83x  LOW n
+  SPECTRE_V2                  0.5503    0.7543    0.4902       0.89x  LOW n
+
+==========================================================================
+SIGN TEST — is the candidate systematically closer to one source ISA?
+==========================================================================
+  classes where arm-vs-riscv < x86-vs-arm: 1/3
+  one-sided sign test p = 0.8750
+  -> UNDERPOWERED: with 3 shared classes the smallest reachable p is 0.125, so this test could NOT have fired whatever the data said.
+     Report as 'no signature detected, test underpowered',
+     never as 'independent'. Needs >=5 shared classes.
+
+USE FOR GENERATED SAMPLES: run this with the generated RISC-V corpus in
+place of riscv64. A ratio well below 1.0 means the generator reproduced
+the training ISAs' instruction ordering rather than writing idiomatic
+RISC-V — i.e. hand-transliteration in slower motion.
