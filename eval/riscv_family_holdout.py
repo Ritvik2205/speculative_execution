@@ -27,7 +27,6 @@ Run: python3 eval/riscv_family_holdout.py [--seeds 42 1 7 13 21]
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -48,31 +47,18 @@ from candidate_features import build_space, load_engines   # noqa: E402
 from select_features import select, KEEP             # noqa: E402
 import train_mlm as T                                # noqa: E402
 from eval_riscv_real import build_riscv_records      # noqa: E402
+from group_stats import family, _DIR_PREFIXES        # noqa: E402,F401
 
 ENGINES = {"x86_64": "x86_64.json", "arm64": "arm64.json",
            "arm32": "arm64.json", "riscv64": "riscv.json",
            "unknown": "base.json"}
 
-# Directory prefixes flattened into the RISC-V group name. Stripping them puts
-# both sides into the same namespace as the v54 basenames, which carry no
-# directory component.
-_DIR_PREFIXES = ("enhanced_variants_", "generated_variants_", "expanded_variants_",
-                 "retbleed_variants_", "generated_", "c_code_")
-
-
-def family(name: str) -> str:
-    """Source family shared by every _gen_N variant, arch and opt level."""
-    s = name
-    s = re.sub(r"^c_vulns_c_code_", "", s)
-    for p in _DIR_PREFIXES:
-        if s.startswith(p):
-            s = s[len(p):]
-    s = re.sub(r"\.(c|s)$", "", s)
-    s = re.sub(r"[._](clang|gcc)[._]O[0-9s]+$", "", s)
-    s = re.sub(r"\.(x86_64|arm64|aarch64)(\..*)?$", "", s)
-    s = re.sub(r"_gen_\d+$", "", s)
-    s = re.sub(r"_(x86_64|arm64|aarch64)$", "", s)
-    return s
+# family() / _DIR_PREFIXES (source-family name normalisation: collapse
+# _gen_N variants, arch suffixes, compiler/opt decoration) now live in
+# eval/group_stats.py — imported above, not duplicated. See that module's
+# docstring for why (group_stats.py needs to stay stdlib+numpy/scipy only,
+# so the definitions moved there rather than this module's heavy spec/v54
+# import chain moving the other way).
 
 
 def ci95(x):
