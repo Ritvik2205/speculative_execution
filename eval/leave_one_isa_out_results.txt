@@ -1,0 +1,151 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+leave_one_isa_out.py — every ordered (train-ISAs -> held-out ISA) direction available in the existing x86_64/arm64/riscv64 data.
+
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+riscv64: 496 labeled corpus records; excluded 57 degenerate stubs (<= 10 instructions, gadget optimized away at -O2 — audit_riscv_labels.py check C); 439 usable.
+  stub class mix: {'INCEPTION': 4, 'L1TF': 45, 'SPECTRE_V2': 2, 'SPECTRE_V4': 6}
+
+x86_64     n= 2094  classes=['BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+arm64      n= 3434  classes=['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+riscv64    n=  439  classes=['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V2', 'SPECTRE_V4']
+
+====================================================================================================
+x86_64 -> arm64
+====================================================================================================
+train n=2094 (archs=['x86_64'])   held-out ISA=arm64, full n=3434, scoreable n=614 (restricted to class intersection)
+  DROPPED — arm64 has these classes but the train pool never saw them, so they cannot be scored: ['BENIGN']
+  train-only classes (train pool has them, arm64 does not; never appear in y_true so they are simply never scored, not an error): ['L1TF', 'MDS']
+  class support (held-out, post class-intersection filter):
+    BRANCH_HISTORY_INJECTION     n=  79
+    INCEPTION                    n= 171
+    RETBLEED                     n=  15
+    SPECTRE_RSB                  n= 168
+    SPECTRE_V1                   n=   2  <-- LOW SUPPORT, not evidence
+    SPECTRE_V2                   n= 116
+    SPECTRE_V4                   n=  63
+  held-out test set clusters into 116 unique source families (effective_n=27.07 of 614 records) — this is the resampling unit for the group-aware CIs below.
+  candidate pool: 317 dims (fitted on train ISAs only) -> cand-impurity keeps 22
+
+  tier               dim    acc seed-mean      acc group-CI95    macroF1 seed-mean     macroF1 group-CI95
+  --------------------------------------------------------------------------------------------------------
+  hand-58             58   29.22+/- 2.37       [19.79,40.68]       31.61+/- 2.00          [24.47,38.21]
+  spec-42             42   59.22+/- 2.57       [44.74,79.17]       43.62+/- 2.38          [34.12,58.07]
+  cand-impurity       22   62.48+/- 1.09       [44.53,80.97]       46.31+/- 1.14          [33.05,58.37]
+
+====================================================================================================
+arm64 -> x86_64
+====================================================================================================
+train n=3434 (archs=['arm64'])   held-out ISA=x86_64, full n=2094, scoreable n=1772 (restricted to class intersection)
+  DROPPED — x86_64 has these classes but the train pool never saw them, so they cannot be scored: ['L1TF', 'MDS']
+  train-only classes (train pool has them, x86_64 does not; never appear in y_true so they are simply never scored, not an error): ['BENIGN']
+  class support (held-out, post class-intersection filter):
+    BRANCH_HISTORY_INJECTION     n= 110
+    INCEPTION                    n= 195
+    RETBLEED                     n= 201
+    SPECTRE_RSB                  n= 291
+    SPECTRE_V1                   n= 551
+    SPECTRE_V2                   n= 284
+    SPECTRE_V4                   n= 140
+  held-out test set clusters into 584 unique source families (effective_n=69.72 of 1772 records) — this is the resampling unit for the group-aware CIs below.
+  candidate pool: 279 dims (fitted on train ISAs only) -> cand-impurity keeps 21
+
+  tier               dim    acc seed-mean      acc group-CI95    macroF1 seed-mean     macroF1 group-CI95
+  --------------------------------------------------------------------------------------------------------
+  hand-58             58   16.70+/- 1.10        [9.78,24.08]       17.11+/- 1.33          [10.94,23.57]
+  spec-42             42   17.19+/- 0.72       [11.61,24.72]       20.12+/- 0.56          [15.51,25.14]
+  cand-impurity       21   14.72+/- 0.81       [10.88,21.38]       18.79+/- 1.16          [15.17,27.11]
+
+====================================================================================================
+x86_64+arm64 -> riscv64
+====================================================================================================
+train n=5528 (archs=['x86_64', 'arm64'])   held-out ISA=riscv64, full n=439, scoreable n=439 (restricted to class intersection)
+  train-only classes (train pool has them, riscv64 does not; never appear in y_true so they are simply never scored, not an error): ['SPECTRE_V1']
+  class support (held-out, post class-intersection filter):
+    BENIGN                       n=   2  <-- LOW SUPPORT, not evidence
+    BRANCH_HISTORY_INJECTION     n= 116
+    INCEPTION                    n=  44
+    L1TF                         n= 117
+    MDS                          n=  36
+    RETBLEED                     n= 102
+    SPECTRE_RSB                  n=   4  <-- LOW SUPPORT, not evidence
+    SPECTRE_V2                   n=  12
+    SPECTRE_V4                   n=   6  <-- LOW SUPPORT, not evidence
+  held-out test set clusters into 22 unique source families (effective_n=8.07 of 439 records) — this is the resampling unit for the group-aware CIs below.
+  candidate pool: 368 dims (fitted on train ISAs only) -> cand-impurity keeps 27
+
+  tier               dim    acc seed-mean      acc group-CI95    macroF1 seed-mean     macroF1 group-CI95
+  --------------------------------------------------------------------------------------------------------
+  hand-58             58    7.97+/- 0.96        [2.47,15.11]        5.38+/- 0.62            [2.31,7.26]
+  spec-42             42   70.30+/- 0.43       [42.90,85.50]       52.20+/- 3.18          [29.05,57.56]
+  cand-impurity       27   52.16+/- 0.94       [24.13,79.48]       37.87+/- 2.78          [21.76,44.47]
+
+====================================================================================================
+x86_64+riscv64 -> arm64
+====================================================================================================
+train n=2533 (archs=['x86_64', 'riscv64'])   held-out ISA=arm64, full n=3434, scoreable n=3434 (restricted to class intersection)
+  train-only classes (train pool has them, arm64 does not; never appear in y_true so they are simply never scored, not an error): ['L1TF', 'MDS']
+  class support (held-out, post class-intersection filter):
+    BENIGN                       n=2820
+    BRANCH_HISTORY_INJECTION     n=  79
+    INCEPTION                    n= 171
+    RETBLEED                     n=  15
+    SPECTRE_RSB                  n= 168
+    SPECTRE_V1                   n=   2  <-- LOW SUPPORT, not evidence
+    SPECTRE_V2                   n= 116
+    SPECTRE_V4                   n=  63
+  held-out test set clusters into 123 unique source families (effective_n=8.95 of 3434 records) — this is the resampling unit for the group-aware CIs below.
+  candidate pool: 329 dims (fitted on train ISAs only) -> cand-impurity keeps 20
+
+  tier               dim    acc seed-mean      acc group-CI95    macroF1 seed-mean     macroF1 group-CI95
+  --------------------------------------------------------------------------------------------------------
+  hand-58             58    6.31+/- 0.32        [3.25,16.66]       17.25+/- 1.12          [13.22,24.58]
+  spec-42             42   10.99+/- 0.34        [5.85,28.57]       23.22+/- 1.41          [18.05,31.40]
+  cand-impurity       20   12.28+/- 0.29        [6.20,30.48]       27.90+/- 1.33          [19.76,35.37]
+
+====================================================================================================
+arm64+riscv64 -> x86_64
+====================================================================================================
+train n=3873 (archs=['arm64', 'riscv64'])   held-out ISA=x86_64, full n=2094, scoreable n=2094 (restricted to class intersection)
+  train-only classes (train pool has them, x86_64 does not; never appear in y_true so they are simply never scored, not an error): ['BENIGN']
+  class support (held-out, post class-intersection filter):
+    BRANCH_HISTORY_INJECTION     n= 110
+    INCEPTION                    n= 195
+    L1TF                         n= 161
+    MDS                          n= 161
+    RETBLEED                     n= 201
+    SPECTRE_RSB                  n= 291
+    SPECTRE_V1                   n= 551
+    SPECTRE_V2                   n= 284
+    SPECTRE_V4                   n= 140
+  held-out test set clusters into 703 unique source families (effective_n=90.19 of 2094 records) — this is the resampling unit for the group-aware CIs below.
+  candidate pool: 283 dims (fitted on train ISAs only) -> cand-impurity keeps 18
+
+  tier               dim    acc seed-mean      acc group-CI95    macroF1 seed-mean     macroF1 group-CI95
+  --------------------------------------------------------------------------------------------------------
+  hand-58             58   16.91+/- 0.78       [10.81,25.39]       10.30+/- 0.76           [7.20,15.55]
+  spec-42             42   28.87+/- 1.23       [19.66,39.94]       30.75+/- 1.78          [23.36,38.95]
+  cand-impurity       18   25.72+/- 0.36       [18.42,32.47]       29.50+/- 0.78          [22.10,35.93]
+
+====================================================================================================
+VERDICTS
+====================================================================================================
+
+[1] Is cross-ISA transfer symmetric (x86->arm vs arm->x86)?
+  x86->arm hand-58 acc = 29.22%  (n_test=614, classes scored=['BRANCH_HISTORY_INJECTION', 'INCEPTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4'])
+  arm->x86 hand-58 acc = 16.70%  (n_test=1772, classes scored=['BRANCH_HISTORY_INJECTION', 'INCEPTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4'])
+  difference (x86->arm minus arm->x86) = +12.51pp
+  VERDICT: NOT symmetric — x86->arm transfers markedly better (12.5pp). NOTE: the two directions score different, non-nested class sets and very different held-out sample sizes/support (see class support tables above) — this is a comparison of point estimates under different conditions, not a paired test.
+
+[2] Is ~70% a ceiling in general, or specific to the riscv64 direction?
+  x86+arm -> riscv64 hand-58 acc = 7.97% (n_test=439)
+  x86_64 -> arm64                  hand-58 acc = 29.22%  (n_test=614)
+  arm64 -> x86_64                  hand-58 acc = 16.70%  (n_test=1772)
+  x86_64+riscv64 -> arm64          hand-58 acc = 6.31%  (n_test=3434)
+  arm64+riscv64 -> x86_64          hand-58 acc = 16.91%  (n_test=2094)
+  VERDICT: MIXED — riscv64 (7.97%) is neither clearly below nor clearly at the level of the other directions (mean 17.29%, range 6.31-29.22%); the data does not cleanly support either story.
+
+[3] Does 'coarse spec-42 beats rich candidate features' replicate on x86<->arm (an ISA pair that is NOT a transliteration of the other)?
+  x86_64 -> arm64     : spec-42=59.22%  cand-impurity=62.48%  (spec-42 minus cand-impurity = -3.26pp)
+  arm64 -> x86_64     : spec-42=17.19%  cand-impurity=14.72%  (spec-42 minus cand-impurity = +2.47pp)
+  VERDICT: MIXED — the direction of the effect flips between x86->arm and arm->x86. 'Coarse beats rich' is not a stable property of cross-ISA transfer in general; at best it holds in one direction.
+
