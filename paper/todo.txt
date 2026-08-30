@@ -87,3 +87,23 @@ Phase 0 — turn hardcoded ISA rules into data
   -- use the emulator to generate examples (esp for riscV)
  -- train the generation model
 
+- METHODS/RESULTS: disclose the test-set screening defect and the unscreened
+  re-measurement. v53/build_dataset.py applied the label-conditioned filter
+  has_train_attack_signal() to the TEST pool (three lines below a comment saying
+  it did not), so every record in the locked test set satisfies a hand-written
+  rule keyed on its own label. Arp et al. P3 (selective data snooping), inducing
+  P4 and P1. Fixed 2026-08-30; the filter now raises if pointed at a non-train
+  split. Impact: flat feature tiers -4 to -5pp on an unscreened split, GINE
+  flagship -0.32pp. Full evidence + numbers: SPECDISCOVER_TEST_SET_SCREENING.md
+- RESULTS: the draft bolds "Hand + contextual MLM" as the best configuration
+  (specexec_methodology.tex:1126). 10 paired seeds on GINE now say learned
+  features LOSE: -1.66pp acc, -3.47pp macro-F1, both significant. The
+  automated-feature-engineering section needs reframing as a negative result,
+  not patching. Evidence: eval/v56_postfix/, SPECDISCOVER_LEARNED_FEATURES_PLAN.md
+- RESULTS: report RISC-V numbers with group-aware uncertainty, not record-level.
+  496 records collapse to 22 source families, Kish effective n = 7.34, CI
+  inflation 3.5x. Three classes have ONE family (CI undefined, not narrow).
+  Tooling: eval/group_stats.py
+- SCOPE: qualify the RISC-V claim to OUT-OF-ORDER cores. In-order RISC-V (SiFive
+  U74, T-Head C906/C908, SpacemiT X60) is empirically not vulnerable; OoO (P550,
+  C910, C920) is, confirmed on silicon. See SPECDISCOVER_RISCV_DATA_SOURCES.md
