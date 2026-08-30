@@ -131,21 +131,21 @@ VERDICTS
 ====================================================================================================
 
 [1] Is cross-ISA transfer symmetric (x86->arm vs arm->x86)?
-  x86->arm hand-58 acc = 29.22%  (n_test=614, classes scored=['BRANCH_HISTORY_INJECTION', 'INCEPTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4'])
-  arm->x86 hand-58 acc = 16.70%  (n_test=1772, classes scored=['BRANCH_HISTORY_INJECTION', 'INCEPTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4'])
-  difference (x86->arm minus arm->x86) = +12.51pp
-  VERDICT: NOT symmetric — x86->arm transfers markedly better (12.5pp). NOTE: the two directions score different, non-nested class sets and very different held-out sample sizes/support (see class support tables above) — this is a comparison of point estimates under different conditions, not a paired test.
+  x86->arm hand-58 acc = 29.22%  group-CI95=[19.79,40.68]  (n_test=614, classes scored=['BRANCH_HISTORY_INJECTION', 'INCEPTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4'])
+  arm->x86 hand-58 acc = 16.70%  group-CI95=[9.78,24.08]  (n_test=1772, classes scored=['BRANCH_HISTORY_INJECTION', 'INCEPTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4'])
+  difference (x86->arm minus arm->x86) = +12.51pp (point estimate)
+  VERDICT: NO DETECTABLE DIFFERENCE — x86->arm ([19.79,40.68]) vs arm->x86 ([9.78,24.08]) group-aware CIs overlap, despite a +12.51pp point-estimate gap. The sign of that gap is well within group-aware noise and must not be read as a directional finding. NOTE: the two directions also score different, non-nested class sets and very different held-out sample sizes/support (see class support tables above) — this compares point estimates under different conditions, not a formal paired test.
 
 [2] Is ~70% a ceiling in general, or specific to the riscv64 direction?
-  x86+arm -> riscv64 hand-58 acc = 7.97% (n_test=439)
-  x86_64 -> arm64                  hand-58 acc = 29.22%  (n_test=614)
-  arm64 -> x86_64                  hand-58 acc = 16.70%  (n_test=1772)
-  x86_64+riscv64 -> arm64          hand-58 acc = 6.31%  (n_test=3434)
-  arm64+riscv64 -> x86_64          hand-58 acc = 16.91%  (n_test=2094)
-  VERDICT: MIXED — riscv64 (7.97%) is neither clearly below nor clearly at the level of the other directions (mean 17.29%, range 6.31-29.22%); the data does not cleanly support either story.
+  x86+arm -> riscv64 hand-58 acc = 7.97%  group-CI95=[2.47,15.11]  (n_test=439)
+  x86_64 -> arm64                  hand-58 acc = 29.22%  group-CI95=[19.79,40.68]  (n_test=614)  -> distinguishably ABOVE riscv64
+  arm64 -> x86_64                  hand-58 acc = 16.70%  group-CI95=[9.78,24.08]  (n_test=1772)  -> indistinguishable from riscv64
+  x86_64+riscv64 -> arm64          hand-58 acc = 6.31%  group-CI95=[3.25,16.66]  (n_test=3434)  -> indistinguishable from riscv64
+  arm64+riscv64 -> x86_64          hand-58 acc = 16.91%  group-CI95=[10.81,25.39]  (n_test=2094)  -> indistinguishable from riscv64
+  VERDICT: MIXED, resolved per-direction above — 1/4 direction(s) distinguishably above riscv64, 0 below, 3 indistinguishable, 0 undefined. In any case, riscv64 does NOT stand out as uniquely low against the directions it can be distinguished from (none are as low or lower) — ~70% (spec-42) is not shown to be a general ceiling, but the riscv64-specific story is not clean either.
 
 [3] Does 'coarse spec-42 beats rich candidate features' replicate on x86<->arm (an ISA pair that is NOT a transliteration of the other)?
-  x86_64 -> arm64     : spec-42=59.22%  cand-impurity=62.48%  (spec-42 minus cand-impurity = -3.26pp)
-  arm64 -> x86_64     : spec-42=17.19%  cand-impurity=14.72%  (spec-42 minus cand-impurity = +2.47pp)
-  VERDICT: MIXED — the direction of the effect flips between x86->arm and arm->x86. 'Coarse beats rich' is not a stable property of cross-ISA transfer in general; at best it holds in one direction.
+  x86_64 -> arm64     : spec-42=59.22% [44.74,79.17]   cand-impurity=62.48% [44.53,80.97]   (point-estimate gap -3.26pp)  -> CIs OVERLAP (no detectable difference)
+  arm64 -> x86_64     : spec-42=17.19% [11.61,24.72]   cand-impurity=14.72% [10.88,21.38]   (point-estimate gap +2.47pp)  -> CIs OVERLAP (no detectable difference)
+  VERDICT: NO DETECTABLE DIFFERENCE in either direction — both x86->arm and arm->x86 show spec-42 vs cand-impurity group-aware CIs that overlap substantially. The point estimates disagree in sign between the two directions (spec-42 ahead in one, cand-impurity ahead in the other), but that sign difference is well within group-aware noise in both cases and must NOT be read as a 'flip', a replication, or a refutation. On the one ISA pair in this project that is genuinely independent (x86 and arm64 corpora were built independently, unlike riscv64's transliteration from both), this experiment does not have the power to confirm OR refute 'coarse beats rich' — the honest conclusion is that the claim is untested here, not that it is disproven.
 

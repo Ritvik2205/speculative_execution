@@ -157,6 +157,54 @@ def fmt_ci(lo: float, hi: float) -> str:
     return f"[{lo:+.2f},{hi:+.2f}]" if lo < 0 or hi < 0 else f"[{lo:.2f},{hi:.2f}]"
 
 
+def _is_undefined_bound(v) -> bool:
+    return v is None or (isinstance(v, float) and math.isnan(v))
+
+
+def ci_overlap(ci_a, ci_b):
+    """True if two (lo, hi) group-aware CIs overlap, False if they are
+    cleanly separated, None if either CI has an undefined bound (nan/None),
+    in which case no distinguishability call can be made at all.
+
+    This is the conservative, unpaired-interval-overlap heuristic (not a
+    formal test on the paired difference): treating overlapping CIs as "not
+    distinguishable from noise" is stricter than it needs to be in general,
+    but it is the right default here because a point-estimate sign
+    difference between two configs is otherwise easy to over-read as a
+    finding — see task-4-report.md fix-round-1 for the concrete case this
+    caught (spec-42 vs cand-impurity on x86<->arm)."""
+    lo_a, hi_a = ci_a
+    lo_b, hi_b = ci_b
+    if any(_is_undefined_bound(v) for v in (lo_a, hi_a, lo_b, hi_b)):
+        return None
+    return max(lo_a, lo_b) <= min(hi_a, hi_b)
+
+
+def describe_comparison(diff: float, ci_a, ci_b, label_a: str, label_b: str) -> str:
+    """Render a verdict fragment comparing two point estimates GIVEN their
+    group-aware CIs. Overlap always wins over the raw point-estimate sign:
+    a nonzero point-estimate difference whose CIs overlap is reported as not
+    distinguishable from noise, never as a directional finding — this is
+    the exact defect a review caught in the original verdict code (it
+    derived directional claims from seed-mean point estimates alone and
+    never consulted the group-aware CIs computed earlier in the same run)."""
+    overlap = ci_overlap(ci_a, ci_b)
+    if overlap is None:
+        return (f"UNDEFINED — group-aware CI is undefined for {label_a} and/or "
+                f"{label_b} (too few source-family groups); distinguishability "
+                f"cannot be judged.")
+    if overlap:
+        return (f"NO DETECTABLE DIFFERENCE — {label_a} ({fmt_ci(*ci_a)}) vs "
+                f"{label_b} ({fmt_ci(*ci_b)}) group-aware CIs overlap, despite "
+                f"a {diff:+.2f}pp point-estimate gap. The sign of that gap is "
+                f"well within group-aware noise and must not be read as a "
+                f"directional finding.")
+    better = label_a if diff > 0 else label_b
+    return (f"DISTINGUISHABLE — {label_a} ({fmt_ci(*ci_a)}) vs {label_b} "
+            f"({fmt_ci(*ci_b)}) group-aware CIs do not overlap ({diff:+.2f}pp "
+            f"gap); {better} is measurably higher.")
+
+
 def ci95_seeds(x):
     """Ordinary across-seed CI (mean, half-width) — seed variability, NOT
     group-aware. Reported alongside the group-aware CI, not instead of it."""
@@ -386,12 +434,20 @@ def main():
         c = r["configs"].get(tier)
         return c["acc_seed_mean"] if c else None
 
-    def hw_of(split_name, tier):
+    def group_ci_of(split_name, tier):
+        """(lo, hi) accuracy group-aware CI for a (split, tier), or (nan, nan)
+        if unavailable — the ONLY CI these verdicts are allowed to make
+        directional claims from. Never use acc_seed_hw (across-seed CI) to
+        decide direction: it is training-stochasticity noise only, known too
+        narrow for this design (see task-4-report.md)."""
         r = all_results.get(split_name)
         if r is None:
-            return None
+            return (float("nan"), float("nan"))
         c = r["configs"].get(tier)
-        return c["acc_seed_hw"] if c else None
+        if c is None:
+            return (float("nan"), float("nan"))
+        lo, hi = c["acc_group_ci"]
+        return (float("nan") if lo is None else lo, float("nan") if hi is None else hi)
 
     # --- Q1: symmetry ---------------------------------------------------
     print("\n[1] Is cross-ISA transfer symmetric (x86->arm vs arm->x86)?")
@@ -402,55 +458,75 @@ def main():
         print("  UNDEFINED: one direction produced no scoreable test records.")
     else:
         diff = a1 - a2
-        print(f"  x86->arm hand-58 acc = {a1:.2f}%  (n_test={r1['test_n']}, "
-              f"classes scored={r1['keep']})")
-        print(f"  arm->x86 hand-58 acc = {a2:.2f}%  (n_test={r2['test_n']}, "
-              f"classes scored={r2['keep']})")
-        print(f"  difference (x86->arm minus arm->x86) = {diff:+.2f}pp")
-        note = ("NOTE: the two directions score different, non-nested class "
-                "sets and very different held-out sample sizes/support "
-                "(see class support tables above) — this is a comparison of "
-                "point estimates under different conditions, not a paired test.")
-        if abs(diff) <= 5:
-            verdict = "roughly SYMMETRIC at the hand-58 tier"
-        else:
-            better = "x86->arm" if diff > 0 else "arm->x86"
-            verdict = f"NOT symmetric — {better} transfers markedly better ({abs(diff):.1f}pp)"
-        print(f"  VERDICT: {verdict}. {note}")
+        ci1 = group_ci_of("x86_64 -> arm64", "hand-58")
+        ci2 = group_ci_of("arm64 -> x86_64", "hand-58")
+        print(f"  x86->arm hand-58 acc = {a1:.2f}%  group-CI95={fmt_ci(*ci1)}  "
+              f"(n_test={r1['test_n']}, classes scored={r1['keep']})")
+        print(f"  arm->x86 hand-58 acc = {a2:.2f}%  group-CI95={fmt_ci(*ci2)}  "
+              f"(n_test={r2['test_n']}, classes scored={r2['keep']})")
+        print(f"  difference (x86->arm minus arm->x86) = {diff:+.2f}pp (point estimate)")
+        note = ("NOTE: the two directions also score different, non-nested class "
+                "sets and very different held-out sample sizes/support (see class "
+                "support tables above) — this compares point estimates under "
+                "different conditions, not a formal paired test.")
+        cmp_ = describe_comparison(diff, ci1, ci2, "x86->arm", "arm->x86")
+        print(f"  VERDICT: {cmp_} {note}")
 
     # --- Q2: is ~70% a general ceiling or riscv64-specific --------------
     print("\n[2] Is ~70% a ceiling in general, or specific to the riscv64 direction?")
     riscv_split = "x86_64+arm64 -> riscv64"
     a_riscv = acc_of(riscv_split, "hand-58")
+    ci_riscv = group_ci_of(riscv_split, "hand-58")
     other_dirs = ["x86_64 -> arm64", "arm64 -> x86_64",
                   "x86_64+riscv64 -> arm64", "arm64+riscv64 -> x86_64"]
     other_accs = {d: acc_of(d, "hand-58") for d in other_dirs if acc_of(d, "hand-58") is not None}
     if a_riscv is None:
         print("  UNDEFINED: the riscv64 direction produced no scoreable test records.")
     else:
-        print(f"  x86+arm -> riscv64 hand-58 acc = {a_riscv:.2f}% "
-              f"(n_test={all_results[riscv_split]['test_n']})")
+        print(f"  x86+arm -> riscv64 hand-58 acc = {a_riscv:.2f}%  "
+              f"group-CI95={fmt_ci(*ci_riscv)}  (n_test={all_results[riscv_split]['test_n']})")
+        per_dir_calls = {}
         for d, v in other_accs.items():
-            print(f"  {d:32s} hand-58 acc = {v:.2f}%  (n_test={all_results[d]['test_n']})")
+            ci_d = group_ci_of(d, "hand-58")
+            diff_d = v - a_riscv
+            overlap = ci_overlap(ci_riscv, ci_d)
+            call = ("undefined" if overlap is None
+                    else "indistinguishable from riscv64" if overlap
+                    else ("distinguishably ABOVE riscv64" if diff_d > 0
+                          else "distinguishably BELOW riscv64"))
+            per_dir_calls[d] = call
+            print(f"  {d:32s} hand-58 acc = {v:.2f}%  group-CI95={fmt_ci(*ci_d)}  "
+                  f"(n_test={all_results[d]['test_n']})  -> {call}")
         if other_accs:
-            mean_other = float(np.mean(list(other_accs.values())))
-            min_other = min(other_accs.values())
-            if a_riscv <= min_other - 5:
-                verdict = ("riscv64-SPECIFIC — every non-riscv64 direction clears the "
-                           f"riscv64 number by at least 5pp (lowest non-riscv64 direction "
-                           f"= {min_other:.2f}% vs riscv64 = {a_riscv:.2f}%). ~70% is not a "
-                           "general cross-ISA transfer ceiling in this data.")
-            elif a_riscv >= mean_other - 5 and a_riscv <= mean_other + 5:
-                verdict = (f"a GENERAL cross-ISA transfer ceiling — riscv64 "
-                           f"({a_riscv:.2f}%) is in the same range as the other directions "
-                           f"(mean {mean_other:.2f}%), so the difficulty is not specific to "
-                           "riscv64.")
+            above = [d for d, c in per_dir_calls.items() if c == "distinguishably ABOVE riscv64"]
+            below = [d for d, c in per_dir_calls.items() if c == "distinguishably BELOW riscv64"]
+            indist = [d for d, c in per_dir_calls.items() if c == "indistinguishable from riscv64"]
+            undef = [d for d, c in per_dir_calls.items() if c == "undefined"]
+            if len(above) == len(other_accs):
+                verdict = ("riscv64-SPECIFIC — every non-riscv64 direction's group-aware "
+                           "CI is distinguishably above riscv64's. ~70% (the spec-42 "
+                           "number on this direction) is not a general cross-ISA "
+                           "transfer ceiling in this data.")
+            elif len(below) + len(indist) == len(other_accs) and below:
+                verdict = ("NOT riscv64-specific — riscv64 is at or below every other "
+                           "direction whose CI can be distinguished from it, so the "
+                           "difficulty this direction shows is not unique to riscv64.")
+            elif len(indist) == len(other_accs):
+                verdict = ("NO DETECTABLE DIFFERENCE from any other direction — every "
+                           "other direction's group-aware CI overlaps riscv64's. There "
+                           "is no statistical basis, at this tier, for calling riscv64 "
+                           "uniquely hard OR unremarkable; the data simply cannot "
+                           "distinguish it from the others at the group level.")
             else:
-                verdict = (f"MIXED — riscv64 ({a_riscv:.2f}%) is neither clearly below nor "
-                           f"clearly at the level of the other directions (mean "
-                           f"{mean_other:.2f}%, range {min(other_accs.values()):.2f}-"
-                           f"{max(other_accs.values()):.2f}%); the data does not cleanly "
-                           "support either story.")
+                verdict = (f"MIXED, resolved per-direction above — "
+                           f"{len(above)}/{len(other_accs)} direction(s) distinguishably "
+                           f"above riscv64, {len(below)} below, {len(indist)} "
+                           f"indistinguishable, {len(undef)} undefined. In any case, "
+                           "riscv64 does NOT stand out as uniquely low against the "
+                           "directions it can be distinguished from ("
+                           f"{', '.join(below) if below else 'none'} are as low or "
+                           "lower) — ~70% (spec-42) is not shown to be a general "
+                           "ceiling, but the riscv64-specific story is not clean either.")
         else:
             verdict = "UNDEFINED: no other direction produced scoreable results to compare."
         print(f"  VERDICT: {verdict}")
@@ -459,37 +535,52 @@ def main():
     print("\n[3] Does 'coarse spec-42 beats rich candidate features' replicate on "
           "x86<->arm (an ISA pair that is NOT a transliteration of the other)?")
     pair_dirs = ["x86_64 -> arm64", "arm64 -> x86_64"]
-    lines = []
-    replicate_votes = []
+    per_dir_cmp = {}
     for d in pair_dirs:
         spec_acc = acc_of(d, "spec-42")
         cand_acc = acc_of(d, "cand-impurity")
         if spec_acc is None or cand_acc is None:
-            lines.append(f"  {d:20s}: UNDEFINED (no scoreable test records)")
+            print(f"  {d:20s}: UNDEFINED (no scoreable test records)")
             continue
+        ci_spec = group_ci_of(d, "spec-42")
+        ci_cand = group_ci_of(d, "cand-impurity")
         diff = spec_acc - cand_acc
-        lines.append(f"  {d:20s}: spec-42={spec_acc:.2f}%  cand-impurity={cand_acc:.2f}%  "
-                     f"(spec-42 minus cand-impurity = {diff:+.2f}pp)")
-        replicate_votes.append(diff > 0)
-    for l in lines:
-        print(l)
-    if not replicate_votes:
+        overlap = ci_overlap(ci_spec, ci_cand)
+        per_dir_cmp[d] = overlap
+        print(f"  {d:20s}: spec-42={spec_acc:.2f}% {fmt_ci(*ci_spec)}   "
+              f"cand-impurity={cand_acc:.2f}% {fmt_ci(*ci_cand)}   "
+              f"(point-estimate gap {diff:+.2f}pp)  -> "
+              f"{'CIs OVERLAP (no detectable difference)' if overlap else 'CIs SEPARATE (distinguishable)' if overlap is False else 'undefined'}")
+    if not per_dir_cmp:
         print("  VERDICT: UNDEFINED — neither x86<->arm direction produced comparable "
               "scoreable results.")
-    elif all(replicate_votes):
-        print("  VERDICT: REPLICATES — spec-42 beats cand-impurity on both x86<->arm "
-              "directions, on corpora that are genuinely independent of each other. "
-              "The granularity story is not an artifact of RISC-V being a "
-              "transliteration.")
-    elif not any(replicate_votes):
-        print("  VERDICT: DOES NOT REPLICATE — cand-impurity beats (or ties) spec-42 on "
-              "both x86<->arm directions. 'Coarse beats rich' does not hold on a "
-              "genuinely independent ISA pair; the original result may be specific to "
-              "the riscv64-is-a-transliteration setting it was measured in.")
+    elif any(v is None for v in per_dir_cmp.values()):
+        print("  VERDICT: UNDEFINED for at least one direction (group-aware CI "
+              "unavailable) — cannot render a full verdict.")
+    elif all(per_dir_cmp.values()):
+        print("  VERDICT: NO DETECTABLE DIFFERENCE in either direction — both "
+              "x86->arm and arm->x86 show spec-42 vs cand-impurity group-aware CIs "
+              "that overlap substantially. The point estimates disagree in sign "
+              "between the two directions (spec-42 ahead in one, cand-impurity ahead "
+              "in the other), but that sign difference is well within group-aware "
+              "noise in both cases and must NOT be read as a 'flip', a replication, "
+              "or a refutation. On the one ISA pair in this project that is "
+              "genuinely independent (x86 and arm64 corpora were built "
+              "independently, unlike riscv64's transliteration from both), this "
+              "experiment does not have the power to confirm OR refute 'coarse "
+              "beats rich' — the honest conclusion is that the claim is untested "
+              "here, not that it is disproven.")
+    elif not any(per_dir_cmp.values()):
+        print("  VERDICT: DISTINGUISHABLE in both directions, but check the printed "
+              "signs above before citing a consistent winner — CIs separate in both "
+              "x86->arm and arm->x86, so whichever tier's point estimate leads in "
+              "each direction is a real, group-level-distinguishable effect there.")
     else:
-        print("  VERDICT: MIXED — the direction of the effect flips between x86->arm "
-              "and arm->x86. 'Coarse beats rich' is not a stable property of "
-              "cross-ISA transfer in general; at best it holds in one direction.")
+        print("  VERDICT: MIXED (CIs separate in one direction, overlap in the "
+              "other) — 'coarse beats rich' is distinguishable in only one of the "
+              "two x86<->arm directions; treat it as, at best, a direction-specific "
+              "effect, not a general property of independent-corpus cross-ISA "
+              "transfer.")
 
     print()
 

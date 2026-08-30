@@ -11,7 +11,9 @@ import numpy as np
 from eval.leave_one_isa_out import (
     SPLITS,
     build_split,
+    ci_overlap,
     class_intersection,
+    describe_comparison,
     filter_by_arch,
     fmt_ci,
     group_bootstrap_f1,
@@ -201,3 +203,62 @@ def test_group_bootstrap_f1_defined_with_multiple_groups():
     point, lo, hi = group_bootstrap_f1(y_true, y_pred, groups, labels, n_boot=200, seed=1)
     assert not math.isnan(lo) and not math.isnan(hi)
     assert lo <= point <= hi
+
+
+# ---------------------------------------------------------------------------
+# ci_overlap / describe_comparison — fix-round-1 regression coverage.
+#
+# The bug this guards against: the original verdict code derived directional
+# claims (e.g. "coarse beats rich", "x86->arm is markedly better") purely
+# from seed-mean point estimates, without ever consulting the group-aware
+# CIs computed earlier in the same run. A nonzero point-estimate gap whose
+# group-aware CIs overlap substantially must be reported as NOT
+# distinguishable from noise, never as a directional finding — this is
+# exactly the spec-42-vs-cand-impurity-on-x86<->arm case a review caught.
+# ---------------------------------------------------------------------------
+
+def test_ci_overlap_true_for_overlapping_intervals():
+    # Real numbers from the x86->arm run: spec-42 [44.74,79.17] vs
+    # cand-impurity [44.53,80.97] — near-total overlap.
+    assert ci_overlap((44.74, 79.17), (44.53, 80.97)) is True
+
+
+def test_ci_overlap_false_for_disjoint_intervals():
+    assert ci_overlap((0.0, 10.0), (20.0, 30.0)) is False
+
+
+def test_ci_overlap_true_at_the_touching_boundary():
+    # Intervals that share exactly one point are not "cleanly separated".
+    assert ci_overlap((0.0, 10.0), (10.0, 20.0)) is True
+
+
+def test_ci_overlap_none_when_either_bound_is_nan_or_none():
+    assert ci_overlap((float("nan"), 10.0), (5.0, 15.0)) is None
+    assert ci_overlap((0.0, 10.0), (None, 15.0)) is None
+
+
+def test_describe_comparison_reports_no_detectable_difference_on_overlap():
+    # This is the exact regression: a real point-estimate gap (+34.5pp)
+    # whose CIs overlap must NOT be described as a directional finding.
+    msg = describe_comparison(34.48, (44.74, 79.17), (44.53, 80.97),
+                              "spec-42", "cand-impurity")
+    assert "NO DETECTABLE DIFFERENCE" in msg
+    assert "measurably higher" not in msg
+
+
+def test_describe_comparison_reports_distinguishable_on_separation():
+    msg = describe_comparison(15.0, (30.0, 40.0), (5.0, 15.0), "A", "B")
+    assert "DISTINGUISHABLE" in msg
+    assert "A is measurably higher" in msg
+
+
+def test_describe_comparison_direction_follows_sign_when_distinguishable():
+    msg_a_higher = describe_comparison(15.0, (30.0, 40.0), (5.0, 15.0), "A", "B")
+    msg_b_higher = describe_comparison(-15.0, (5.0, 15.0), (30.0, 40.0), "A", "B")
+    assert "A is measurably higher" in msg_a_higher
+    assert "B is measurably higher" in msg_b_higher
+
+
+def test_describe_comparison_undefined_when_ci_missing():
+    msg = describe_comparison(5.0, (float("nan"), float("nan")), (5.0, 15.0), "A", "B")
+    assert "UNDEFINED" in msg

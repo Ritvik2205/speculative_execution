@@ -65,10 +65,12 @@ def family(name: str) -> str:
 
 
 def group_of(record: dict) -> str:
-    """Source-family group for a RISC-V record dict (as returned by
-    spec/eval_riscv_real.py::build_riscv_records()). Normalises the record's
-    `group` field via family() — this is the grouping key the statistics
-    below cluster on."""
+    """Source-family group for any record dict carrying a `group` field —
+    riscv64 records from spec/eval_riscv_real.py::build_riscv_records(), and
+    equally x86_64/arm64 records from v54/data/*.jsonl, which carry the same
+    `group` field (see eval/leave_one_isa_out.py, which applies this to all
+    three ISAs). Normalises the record's `group` field via family() — this is
+    the grouping key the statistics below cluster on."""
     return family(record["group"])
 
 
