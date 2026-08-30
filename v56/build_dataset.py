@@ -140,7 +140,56 @@ _HEAP_DEREF = re.compile(
 )
 
 
-def has_train_attack_signal(label: str, lines: List[str]) -> bool:
+
+# =============================================================================
+# SPLIT-SAFETY: label-independent vs label-conditioned admission
+# =============================================================================
+# A record must never be admitted to, or excluded from, the TEST split on the
+# basis of its own label. Doing so is selective data snooping (Arp et al.,
+# "Dos and Don'ts of Machine Learning in Computer Security", P3): it uses
+# information that is not available at deployment, because you cannot know an
+# incoming gadget's class before classifying it.
+#
+# This repo did exactly that for three model generations. v53/build_dataset.py
+# carried the comment "NOT applied to test" three lines above code that applied
+# it to test, and nobody noticed. A comment is not an enforcement mechanism, so
+# the split is now a required argument and the wrong value raises.
+#
+# Measured consequence of the original defect (SPECDISCOVER_TEST_SET_SCREENING.md):
+# the locked test set contained only records satisfying the rule (45/45 MDS,
+# 37/37 L1TF), reported accuracy was inflated ~5-9pp against an unscreened pool,
+# and MDS/L1TF/SPECTRE_V4 recall collapses to 0-9% once the rule's trigger
+# opcodes are neutralised.
+
+
+class LabelConditionedFilterOnTestSplit(RuntimeError):
+    """Raised when a label-conditioned filter is pointed at a non-train split."""
+
+
+def passes_quality_filter(lines, min_instructions: int = 4) -> bool:
+    """Label-INDEPENDENT record quality. Safe on every split.
+
+    Nothing here may consult the label. These are properties of the code alone:
+    it has to be long enough to contain a gadget and to actually be instructions
+    rather than a stub the compiler emptied out.
+    """
+    real = [l for l in lines
+            if l.strip() and not l.strip().startswith('.') and not l.strip().endswith(':')]
+    return len(real) >= min_instructions
+
+
+def has_train_attack_signal(label: str, lines: List[str], *, split: str) -> bool:
+    """Label-CONDITIONED admission. TRAIN SPLIT ONLY.
+
+    `split` is keyword-only and required so that no call site can apply this
+    to test by omission or by positional accident. See the SPLIT-SAFETY note
+    above for why this is enforced in code rather than in a comment.
+    """
+    if split != "train":
+        raise LabelConditionedFilterOnTestSplit(
+            f"has_train_attack_signal conditions on the label and must never "
+            f"touch the {split!r} split — that is selective data snooping. "
+            f"Use passes_quality_filter() for label-independent screening.")
     ops = []
     for line in lines:
         parts = line.strip().split()
@@ -496,7 +545,7 @@ def main():
         if h in seen:
             n_dup += 1
             continue
-        if not has_train_attack_signal(rec['label'], seq):
+        if not has_train_attack_signal(rec['label'], seq, split='train'):
             n_no_signal += 1
             continue
         # Cap FastSpec so it doesn't dominate the class

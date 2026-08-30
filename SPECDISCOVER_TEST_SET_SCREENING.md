@@ -236,3 +236,74 @@ smaller than the subset gap suggests.
 - This is measured on the RF harness (hand-58, spec-42), not GINE. The GINE flagship
   is trained and evaluated on the same screened split, so it is subject to the same
   bias, but the magnitude for GINE is unmeasured.
+
+---
+
+## Root fix implemented, and the inflation re-measured on a real unscreened split
+
+### The fix
+
+1. **`passes_quality_filter(lines)`** — label-independent. Length floor over real
+   instructions only. Safe on every split; a test asserts its signature cannot even
+   accept a label.
+2. **`has_train_attack_signal(label, lines, *, split)`** — label-conditioned, with
+   `split` **keyword-only and required**. Anything other than `"train"` raises
+   `LabelConditionedFilterOnTestSplit`. A comment failed to prevent this for three
+   model generations; a raise does not.
+3. **`v53/build_dataset.py`'s call site is fixed** — test now receives only the
+   label-independent quality filter.
+4. 12 regression tests (`tests/v54/test_split_safety.py`), including that positional
+   or omitted `split` raises `TypeError`, and that case/whitespace variants of
+   `"train"` are rejected rather than coerced.
+
+`v54/build_unscreened_test.py` rebuilds the evaluation split from the pre-filter pool
+using only label-independent screening. **1017 records.** The locked
+`v54_test.jsonl` is left byte-identical so every prior number stays reproducible.
+
+### The result, and it revises my own earlier estimate
+
+| model | locked (screened) | unscreened | delta |
+|---|---|---|---|
+| hand-58 (RF) | 95.15% | 90.19% | **−4.96pp** |
+| spec-42 (RF) | 96.90% | 93.18% | **−3.72pp** |
+| **GINE (`viz_v54_spec`)** | **92.75%** | **92.43%** | **−0.32pp** |
+
+**The flat feature tiers lose 4–5pp. The graph model loses essentially nothing.**
+
+That is consistent with the trigger-neutralisation ablation: hand-58 collapsed to 0%
+and spec-42 to 8.9% on MDS when the trigger opcodes were removed, because a flat
+histogram has nothing else to fall back on. GINE carries the same 58 hand features
+*plus* PDG structure, and the structure survives the screening.
+
+So the earlier pooled estimate of "5–9pp inflation" was **an RF-harness number that I
+should not have generalised to the flagship**. The correct statement is: screening
+inflates the flat feature tiers by 4–5pp and the GINE flagship by ~0.3pp.
+
+### Per-class, the movement is not uniform
+
+GINE, locked → unscreened recall:
+
+| class | locked | unscreened |
+|---|---|---|
+| BRANCH_HISTORY_INJECTION | 0.209 | **0.488** (better) |
+| SPECTRE_V2 | 0.779 | **1.000** (better) |
+| L1TF | 0.838 | **0.906** (better) |
+| SPECTRE_RSB | 0.000 (n=1) | **1.000** (n=63) |
+| SPECTRE_V1 | 1.000 | **0.474** (worse) |
+| SPECTRE_V4 | 0.984 | 0.883 (worse) |
+| MDS | 0.867 | 0.846 |
+
+Macro-F1 *rises* 0.742 → 0.860, but most of that is the `SPECTRE_RSB` n=1 artifact
+disappearing (1 record → 63). Do not read it as the model improving.
+
+### What must be stated alongside these numbers
+
+- The unscreened set is **not the same population** as the locked set. Class mix
+  differs substantially (BENIGN 43% vs 62%; SPECTRE_RSB 63 vs 1; SPECTRE_V4 197 vs
+  124), because `v54_test` reached its final form through v52/v53 template splits and
+  augmentation, not from `v50_test` alone. Accuracy across the two is therefore not a
+  clean paired comparison; per-class recall is the more comparable view.
+- The GINE figure is **one checkpoint** (`viz_v54_spec`, 92.75% on the locked set),
+  not the 96.01% ± 0.55 ten-seed `hand` mean from `eval/v56_postfix`. Those are
+  different models and must not be conflated. A multi-seed GINE run against the
+  unscreened split is not yet done.

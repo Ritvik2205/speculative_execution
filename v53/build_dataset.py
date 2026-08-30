@@ -196,7 +196,56 @@ _HEAP_DEREF = re.compile(
 )
 
 
-def has_train_attack_signal(label: str, lines: list[str]) -> bool:
+
+# =============================================================================
+# SPLIT-SAFETY: label-independent vs label-conditioned admission
+# =============================================================================
+# A record must never be admitted to, or excluded from, the TEST split on the
+# basis of its own label. Doing so is selective data snooping (Arp et al.,
+# "Dos and Don'ts of Machine Learning in Computer Security", P3): it uses
+# information that is not available at deployment, because you cannot know an
+# incoming gadget's class before classifying it.
+#
+# This repo did exactly that for three model generations. v53/build_dataset.py
+# carried the comment "NOT applied to test" three lines above code that applied
+# it to test, and nobody noticed. A comment is not an enforcement mechanism, so
+# the split is now a required argument and the wrong value raises.
+#
+# Measured consequence of the original defect (SPECDISCOVER_TEST_SET_SCREENING.md):
+# the locked test set contained only records satisfying the rule (45/45 MDS,
+# 37/37 L1TF), reported accuracy was inflated ~5-9pp against an unscreened pool,
+# and MDS/L1TF/SPECTRE_V4 recall collapses to 0-9% once the rule's trigger
+# opcodes are neutralised.
+
+
+class LabelConditionedFilterOnTestSplit(RuntimeError):
+    """Raised when a label-conditioned filter is pointed at a non-train split."""
+
+
+def passes_quality_filter(lines, min_instructions: int = 4) -> bool:
+    """Label-INDEPENDENT record quality. Safe on every split.
+
+    Nothing here may consult the label. These are properties of the code alone:
+    it has to be long enough to contain a gadget and to actually be instructions
+    rather than a stub the compiler emptied out.
+    """
+    real = [l for l in lines
+            if l.strip() and not l.strip().startswith('.') and not l.strip().endswith(':')]
+    return len(real) >= min_instructions
+
+
+def has_train_attack_signal(label: str, lines: list[str], *, split: str) -> bool:
+    """Label-CONDITIONED admission. TRAIN SPLIT ONLY.
+
+    `split` is keyword-only and required so that no call site can apply this
+    to test by omission or by positional accident. See the SPLIT-SAFETY note
+    above for why this is enforced in code rather than in a comment.
+    """
+    if split != "train":
+        raise LabelConditionedFilterOnTestSplit(
+            f"has_train_attack_signal conditions on the label and must never "
+            f"touch the {split!r} split — that is selective data snooping. "
+            f"Use passes_quality_filter() for label-independent screening.")
     """
     Return True if the sequence has structural evidence of the claimed vulnerability.
     Applied to BOTH training and test pools.
@@ -468,20 +517,33 @@ def main():
     test_pool  = [r for r in test_pool  if len(get_seq(r)) >= 4]
     print(f"After length filter: {len(train_pool)} train, {len(test_pool)} test")
 
-    # ── 6. Training specificity filter (RF3: strengthened, NOT applied to test) ─
-    def apply_specificity(recs, tag):
+    # ── 6. Training specificity filter — label-conditioned, TRAIN ONLY ──────
+    def apply_specificity(recs, tag, split):
         kept, dropped = [], 0
         for r in recs:
-            if has_train_attack_signal(r['label'], get_seq(r)):
+            if has_train_attack_signal(r['label'], get_seq(r), split=split):
                 kept.append(r)
             else:
                 dropped += 1
         print(f"  {tag}: {len(recs)} → {len(kept)} kept, {dropped} dropped by specificity")
         return kept
 
-    print("\nApplying specificity filter to BOTH pools (removes mislabeled harness code):")
-    train_pool = apply_specificity(train_pool, "train_pool")
-    test_pool  = apply_specificity(test_pool,  "test_pool")
+    def apply_quality(recs, tag):
+        kept = [r for r in recs if passes_quality_filter(get_seq(r))]
+        print(f"  {tag}: {len(recs)} → {len(kept)} kept, {len(recs)-len(kept)} dropped by quality")
+        return kept
+
+    # FIXED (2026-08-30): this previously applied the LABEL-CONDITIONED filter to
+    # test_pool as well, directly contradicting the section header above. That
+    # screened the locked test set so that every record satisfied a hand-written
+    # rule keyed on its own label — selective data snooping, and it inflated
+    # reported accuracy by ~5-9pp. Test now gets only label-INDEPENDENT quality
+    # screening; the label-conditioned filter is train-only and raises if pointed
+    # anywhere else. See SPECDISCOVER_TEST_SET_SCREENING.md.
+    print("\nApplying specificity filter to TRAIN ONLY (label-conditioned):")
+    train_pool = apply_specificity(train_pool, "train_pool", split="train")
+    print("Applying label-INDEPENDENT quality filter to test:")
+    test_pool  = apply_quality(test_pool, "test_pool")
 
     # ── 7. SHA-256 deduplication ─────────────────────────────────────────────
     # Compute test hashes first, then remove any train records that collide.

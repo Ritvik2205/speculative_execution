@@ -1,0 +1,34 @@
+train 5533   locked test 1670   unscreened test 1017
+
+=== hand-58  (5 seeds)
+  LOCKED (screened)   acc  95.15%  macro-F1  80.07%
+  UNSCREENED          acc  90.19%  macro-F1  84.62%
+  delta               acc  -4.96pp  macro-F1  +4.55pp
+  class                           locked    unscr    delta  n_unscr
+  BENIGN                           99.5%   100.0%    +0.5pp      442
+  BRANCH_HISTORY_INJECTION         95.5%    48.8%   -46.7pp       41
+  INCEPTION                        79.8%    82.0%    +2.2pp       61
+  L1TF                             67.6%    84.4%   +16.8pp       32
+  MDS                              97.8%    87.2%   -10.6pp       39
+  RETBLEED                         96.0%    85.7%   -10.3pp       63
+  SPECTRE_RSB                       0.0%   100.0%  +100.0pp       63
+  SPECTRE_V1                       97.6%    57.9%   -39.7pp       19
+  SPECTRE_V2                       77.3%   100.0%   +22.7pp       60
+  SPECTRE_V4                       99.2%    78.7%   -20.5pp      197
+
+=== spec-42  (5 seeds)
+  LOCKED (screened)   acc  96.90%  macro-F1  92.58%
+  UNSCREENED          acc  93.18%  macro-F1  85.06%
+  delta               acc  -3.72pp  macro-F1  -7.52pp
+  class                           locked    unscr    delta  n_unscr
+  BENIGN                          100.0%   100.0%    +0.0pp      442
+  BRANCH_HISTORY_INJECTION         89.6%    48.8%   -40.8pp       41
+  INCEPTION                        88.3%    93.4%    +5.1pp       61
+  L1TF                             64.9%    87.5%   +22.6pp       32
+  MDS                             100.0%    87.2%   -12.8pp       39
+  RETBLEED                         94.7%    87.3%    -7.4pp       63
+  SPECTRE_RSB                     100.0%   100.0%    +0.0pp       63
+  SPECTRE_V1                      100.0%    57.9%   -42.1pp       19
+  SPECTRE_V2                       92.9%    88.3%    -4.5pp       60
+  SPECTRE_V4                       99.2%    94.4%    -4.8pp      197
+
