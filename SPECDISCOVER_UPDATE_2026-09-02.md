@@ -110,10 +110,9 @@ single-arm cut discards (`FENCE_LOAD` — the Spectre-V1 mitigation primitive, `
 ## 4. Generator baseline, re-measured
 
 The previously-quoted figures were from **9 August** and predate the `<fn>` placeholder
-fix (11 August), so they were stale. Re-run today at the same 300-sequence sample:
-
-Two independent 300-sequence runs, so the numbers are replicated rather than a
-single favourable sample:
+fix (11 August), so they were stale. Re-run today at the same 300-sequence sample,
+twice independently, so the numbers are replicated rather than a single favourable
+sample:
 
 | | Aug-09 (stale) | **Aug-30 run A** | **run B** | delta |
 |---|---|---|---|---|
@@ -126,7 +125,7 @@ single favourable sample:
 The two runs agree closely, so the roughly-doubled per-sequence rate is real and
 not sampling noise. Quote it as **~4%**, not 4.7%.
 
-The fix worked and the number roughly doubled — but **4.7% is still the binding
+The fix worked and the number roughly doubled — but **~4% is still the binding
 constraint on the whole generation pipeline.** The arithmetic is unforgiving: a
 sequence needs *every* instruction to assemble, so at 80% per-instruction and ~25
 instructions per gadget, per-sequence validity cannot get far off the floor. Getting
