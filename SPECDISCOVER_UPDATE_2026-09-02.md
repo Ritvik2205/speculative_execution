@@ -264,6 +264,39 @@ so it reports **underpowered** instead of letting a small corpus buy a free pass
 
 ---
 
+## 7. Synthetic RISC-V at volume — same 0% failure, now measurable at n=358
+
+The ML generator cannot do RISC-V: `gen/generator.pt` is trained on x86_64+arm64
+only and hits 1.1% per-sequence validity even there. So volume comes from
+templates, as the plan said — but at the **C level**, compiled by a real RISC-V
+compiler, so diversity is compiler-driven and idiomatic rather than a
+register-renaming of one exemplar (`gen/synth_riscv.py`).
+
+Only the two hardware-confirmed classes are generated — SPECTRE_V1 and SPECTRE_V2.
+SPECTRE_RSB is deliberately absent: its only real RISC-V exemplar is upstream-listed
+as "not working yet", so there is no demonstrated leak to imitate and no honest
+label. Every sample is triple-gated: it must assemble (real assembler), its window
+must exhibit the class's structure in canonical ops (the same -O2 gadget-deletion
+guard), and it is de-duplicated against itself, the real set, and v54_train.
+
+**358 records, 106 families.** Two results:
+
+- **The corpus is a faithful stand-in for the real PoCs.** Its per-class bigram
+  ratios (0.88x, 0.85x) match the real harvested set (0.83x, 0.89x), not the
+  transliteration's V2 (0.57x) — and the classifier fails on it the *same way*:
+  **0/358, defaulting to BENIGN (319/358)**, exactly as on the real 0/11. Same
+  failure mode at 30x the volume.
+- **It makes the RISC-V gap measurable.** At n=11 the real set cannot detect
+  whether a fix (e.g. the roadmap's "mix real RISC-V into training") moves
+  anything. n=358 with 106 families can. This is a measurement instrument, not
+  training data — template samples share a generative process, so it stays a TEST
+  corpus and the tiny real set remains the anchor.
+
+The headline stands and is now robust: **the v54_spec classifier does not recognise
+RISC-V speculative gadgets, real or synthetic — it calls them benign.** That is the
+untrained-arch / graph-size domain shift (H3), now confirmed on genuinely
+independent RISC-V data rather than on our own transliterated corpus.
+
 ---
 
 ## Reproduce
@@ -280,3 +313,4 @@ so it reports **underpowered** instead of letting a small corpus buy a free pass
 | ISA-independence gate | `eval/isa_independence_check.py`, `eval/isa_independence_2026-08-30.txt` |
 | real RISC-V harvest | `spec/fetch_riscv_pocs.sh` then `spec/harvest_real_riscv.py --apply` |
 | 0/11 on real RISC-V | `eval/riscv_real_eval_2026-08-30.txt` |
+| synth RISC-V at volume | `gen/synth_riscv.py --apply`, `eval/riscv_synth_2026-08-30.txt` |

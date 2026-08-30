@@ -190,3 +190,5 @@ core
 .worktrees/
 # Third-party RISC-V PoC repos — fetched by spec/fetch_riscv_pocs.sh, not vendored
 vendor_riscv/
+spec/.harvest_tmp/
+gen/.synth_riscv_tmp/

@@ -1,0 +1,38 @@
+=== synth_riscv corpus generation ===
+per-class kept: {'SPECTRE_V1': 250, 'SPECTRE_V2': 108}
+compile: {'SPECTRE_V1': (421, 0), 'SPECTRE_V2': (1152, 0)}
+structural rejects: {'SPECTRE_V2:gadget_function:struct_fail': 1152}
+dedup collisions: {'SPECTRE_V1:gadget_function:dup': 316, 'SPECTRE_V1:attack_unit:dup': 276, 'SPECTRE_V2:attack_unit:dup': 1044}
+
+records: 358  from 576 knob-sets x 4 opt levels x 2 tiers — these are NOT independent samples
+class mix: {'SPECTRE_V1': 250, 'SPECTRE_V2': 108}
+class-naming tokens surviving neutralization: (none)
+
+dry run — pass --apply to write
+
+=== v54_spec GINE on SYNTHETIC RISC-V (n=358) ===
+RISC-V zero-shot accuracy: 0.00%  (n=358)
+============================================================
+              precision    recall  f1-score   support
+
+  SPECTRE_V1       0.00      0.00      0.00     250.0
+  SPECTRE_V2       0.00      0.00      0.00     108.0
+
+   micro avg       0.00      0.00      0.00     358.0
+   macro avg       0.00      0.00      0.00     358.0
+weighted avg       0.00      0.00      0.00     358.0
+prediction distribution: {'BENIGN': 319, 'SPECTRE_V1': 12, 'INCEPTION': 27}
+
+=== independence gate on synthetic vs real+transliterated ===
+PER CLASS — controls for class mix, which moves bigrams on its own
+==========================================================================
+class                        x86-arm    x86-rv    arm-rv   ratio(rv/yard)
+  SPECTRE_V1                  0.7313    0.6888    0.6411       0.88x
+  SPECTRE_V2                  0.5503    0.7298    0.4652       0.85x
+
+==========================================================================
+SIGN TEST — is the candidate systematically closer to one source ISA?
+==========================================================================
+  classes where arm-vs-riscv < x86-vs-arm: 2/2
+  one-sided sign test p = 0.2500
+  -> UNDERPOWERED: with 2 shared classes the smallest reachable p is 0.250, so this test could NOT have fired whatever the data said.
