@@ -16,3 +16,16 @@ int fclose(FILE *);
 int fputs(const char *, FILE *);
 #define NULL ((void*)0)
 #endif
+#ifndef _STUB_STDIO_FILEOPS
+#define _STUB_STDIO_FILEOPS
+unsigned long fread(void *, unsigned long, unsigned long, FILE *);
+unsigned long fwrite(const void *, unsigned long, unsigned long, FILE *);
+int fseek(FILE *, long, int);
+long ftell(FILE *);
+int feof(FILE *);
+int fgetc(FILE *);
+int snprintf(char *, unsigned long, const char *, ...);
+int sscanf(const char *, const char *, ...);
+#define SEEK_SET 0
+#define SEEK_END 2
+#endif

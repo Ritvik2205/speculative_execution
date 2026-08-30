@@ -1,0 +1,19 @@
+=== BENIGN RISC-V harvest (real mbedTLS crypto, never trained on) ===
+BENIGN records: 180 from 30 source files (families)
+compile: 81 ok, 144 failed; dedup collisions: 16
+per-file spread: min=6 max=6 mean=6.0
+class-naming tokens surviving neutralization: (none)
+
+dry run — pass --apply to write
+
+=== FALSE-POSITIVE test: v54_spec GINE on 180 real benign RISC-V functions ===
+RISC-V zero-shot accuracy: 63.33%  (n=180)
+============================================================
+              precision    recall  f1-score   support
+
+      BENIGN       1.00      0.63      0.78       180
+
+   micro avg       1.00      0.63      0.78       180
+   macro avg       1.00      0.63      0.78       180
+weighted avg       1.00      0.63      0.78       180
+prediction distribution: {'BENIGN': 114, 'BRANCH_HISTORY_INJECTION': 2, 'SPECTRE_RSB': 31, 'RETBLEED': 20, 'SPECTRE_V1': 5, 'INCEPTION': 7, 'MDS': 1}

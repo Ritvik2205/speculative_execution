@@ -192,3 +192,4 @@ core
 vendor_riscv/
 spec/.harvest_tmp/
 gen/.synth_riscv_tmp/
+gen/.benign_tmp/
