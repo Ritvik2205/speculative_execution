@@ -70,7 +70,7 @@ class CandidateFeatureSpace:
     """
 
     def __init__(self, engines, top_ops: int = 20,
-                 min_bigram_count: int = 20):
+                 min_bigram_count: int = 20, use_taint: bool = False):
         # Arch-aware by construction. A single engine over a mixed-ISA corpus
         # silently mislabels everything from the other ISAs as OTHER — ARM's
         # `ldr` does not match x86's load pattern — which zeroes out whole
@@ -79,6 +79,14 @@ class CandidateFeatureSpace:
         self._ref = self.engines.get("x86_64") or next(iter(self.engines.values()))
         self.top_ops = top_ops
         self.min_bigram_count = min_bigram_count
+        # OPT-IN, default OFF (see spec/spec_features.py::compute_spec_features
+        # for the identical contract). With it off, transform_one is
+        # byte-identical to before. With it on, the flag-pair and
+        # flag-distance groups (which read the pairable flags, including
+        # is_secret_source/is_transmitter) are derived from a per-record PDG
+        # built via SpecBackedPDGBuilder (dataflow_taint=True) instead of
+        # per-instruction engine.spec_flags_vector calls.
+        self.use_taint = use_taint
         self.ops: List[str] = []
         self.bigrams: List[tuple] = []
         self.flag_pairs: List[tuple] = []
@@ -143,12 +151,25 @@ class CandidateFeatureSpace:
         # Per-instruction flag matrix, reused by both the pair and distance groups.
         names = sorted(self._flag_idx)
         F = np.zeros((len(lines), len(names)), dtype=bool)
-        for i, line in enumerate(lines):
-            cat = eng.classify_opcode(line)
-            mem = eng.memory_access_type(line)
-            fv = eng.spec_flags_vector(line, cat, mem)
-            for k, f in enumerate(names):
-                F[i, k] = bool(fv[self._flag_idx[f]])
+        if self.use_taint:
+            # PDGNode order matches `lines` 1:1 — both filter with the same
+            # _is_instr predicate the underlying PDGBuilder.build() uses.
+            # node.spec_flags is the union of the regex-based flags computed
+            # via this same engine (SpecBackedPDGBuilder delegates to
+            # eng.spec_flags_vector) and the taint-derived flags, so this is
+            # strictly additive relative to the OFF branch below.
+            from spec_pdg_builder import SpecBackedPDGBuilder
+            pdg = SpecBackedPDGBuilder(eng, dataflow_taint=True).build(sequence)
+            for i, node in enumerate(pdg.nodes):
+                for k, f in enumerate(names):
+                    F[i, k] = bool(node.spec_flags[self._flag_idx[f]])
+        else:
+            for i, line in enumerate(lines):
+                cat = eng.classify_opcode(line)
+                mem = eng.memory_access_type(line)
+                fv = eng.spec_flags_vector(line, cat, mem)
+                for k, f in enumerate(names):
+                    F[i, k] = bool(fv[self._flag_idx[f]])
 
         name_pos = {f: k for k, f in enumerate(names)}
         v_pair = np.zeros(len(self.flag_pairs), dtype=np.float32)

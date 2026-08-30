@@ -46,7 +46,26 @@ def feature_names(engine: SpecEngine) -> List[str]:
     return names
 
 
-def compute_spec_features(sequence: List[str], engine: SpecEngine) -> np.ndarray:
+def compute_spec_features(sequence: List[str], engine: SpecEngine,
+                           use_taint: bool = False) -> np.ndarray:
+    """Compute the spec-driven structural feature vector.
+
+    ``use_taint`` is OPT-IN and defaults to False. With it off, this function
+    is byte-identical to its pre-taint behavior: the two taint-eligible flags
+    (``is_secret_source`` / ``is_transmitter``) are read straight off
+    ``engine.spec_flags_vector`` per instruction, exactly as before — the
+    default path feeds every measurement in the repo and must not move.
+
+    With ``use_taint=True``, a PDG is additionally built via
+    ``SpecBackedPDGBuilder`` (which runs ``apply_dataflow_taint`` internally),
+    and the flag histogram is instead accumulated from
+    ``PDGNode.spec_flags`` — the union of the regex-based flags and the
+    ISA-agnostic DATA_DEP-reachability taint (see spec/dataflow_taint.py).
+    This is strictly additive: it can only turn flag bits on relative to the
+    OFF path, never off. Vector length and column order (see
+    ``feature_names``) are unaffected either way; only the two flag-fraction
+    VALUES can change.
+    """
     nc = engine.num_categories
     nf = engine.num_spec_flags
     nm = len(engine.mem_access_types)
@@ -65,10 +84,21 @@ def compute_spec_features(sequence: List[str], engine: SpecEngine) -> np.ndarray
         mem = engine.memory_access_type(line)
         cat_h[cat] += 1.0
         mem_h[mem] += 1.0
-        flag_h += engine.spec_flags_vector(line, cat, mem)
+        if not use_taint:
+            flag_h += engine.spec_flags_vector(line, cat, mem)
         toks = line.strip().split(None, 1)
         opcodes.append(toks[0].rstrip(":").lower() if toks else "")
         operand_counts.append(0 if len(toks) < 2 else len([o for o in toks[1].split(",") if o.strip()]))
+
+    if use_taint:
+        # Local import: keeps the OFF path free of the PDG-builder import
+        # cost, and avoids a module-level import cycle (spec_pdg_builder
+        # imports v54/pdg_builder, which this module has no other reason to
+        # touch).
+        from spec_pdg_builder import SpecBackedPDGBuilder
+        pdg = SpecBackedPDGBuilder(engine, dataflow_taint=True).build(sequence)
+        for node in pdg.nodes:
+            flag_h += node.spec_flags
 
     denom = max(n, 1)
     cat_h /= denom
