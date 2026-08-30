@@ -234,7 +234,15 @@ Three things had to be got right, and each one nearly went wrong:
   the contamination we measured at 11.5% of `riscv_corpus`. Every record must now
   exhibit its class's defining structure in canonical ops; 5 were rejected.
 
-**The result: 0/11.** The model never once predicts any of the three classes
+**Nine of the eleven are hardware-confirmed.** boom-attacks' own README splits its
+PoCs into "Implemented Attacks" and "Not Completed Attacks … not working yet" —
+`returnStackBuffer.c` is in the latter, because the RSB was disconnected in the
+BOOM BPU they tested. Its two SPECTRE_RSB records are genuine hand-written RISC-V
+RSB attack code whose leak was **never demonstrated**. They are kept for their
+structure but stamped `hardware_confirmed: false` and counted separately, so
+SPECTRE_RSB on RISC-V still has *no* demonstrated sample.
+
+**The result: 0/11 — and 0/9 on the hardware-confirmed subset.** The model never once predicts any of the three classes
 present (it says RETBLEED 4, INCEPTION 5, BENIGN 2 — two real attack gadgets
 called benign).
 

@@ -43,6 +43,15 @@ noisy labels this project has spent its time removing. Instead:
   tier `attack_unit`     — gadget + its mistraining site, which is where the
       class actually becomes visible.
 
+CONFIRMED VS MERELY WRITTEN. boom-attacks' own README splits its PoCs into
+"Implemented Attacks" (condBranchMispred, indirBranchMispred) and "Not Completed
+Attacks ... not working yet" — returnStackBuffer, because the RSB was disconnected
+in the BOOM BPU they tested. So its SPECTRE_RSB records are real hand-written
+RISC-V RSB attack code whose leak was NEVER DEMONSTRATED. They are kept, because
+the structure is genuine and rare, but stamped `hardware_confirmed: false` and
+counted separately. A validation set that silently mixes demonstrated leaks with
+undemonstrated intent is not worth having.
+
 STRUCTURAL VERIFICATION, NOT A LENGTH FLOOR. A length floor cannot catch the real
 failure: at -O2 GCC deletes condBranchMispred's entire gadget (`dummy` is dead on
 the next line) leaving a 14-instruction function that still *looks* substantial,
@@ -122,6 +131,7 @@ MANIFEST = [
         trainer_fns=["main"],
         attack_label="SPECTRE_V1",
         confirmed_on="BOOM (SonicBOOM) RTL, Verilator/FPGA",
+        hardware_confirmed=True,   # upstream README: "Implemented Attacks"
         why="Bounds-check bypass: `if (idx < array1_sz) dummy = "
             "array2[array1[idx] * L1_BLOCK_SZ_BYTES];`, with array1_sz stalled "
             "behind a chain of FP divides so the branch resolves late. The "
@@ -137,6 +147,7 @@ MANIFEST = [
         trainer_fns=["main"],
         attack_label="SPECTRE_V2",
         confirmed_on="BOOM (SonicBOOM) RTL, Verilator/FPGA",
+        hardware_confirmed=True,   # upstream README: "Implemented Attacks"
         why="BTB poisoning: main trains an indirect `jalr` to wantFunc then "
             "redirects it, so victimFunc runs transiently. victimFunc itself is "
             "only `array2[array1[idx] * 64]` — upstream's own comment calls it a "
@@ -151,7 +162,10 @@ MANIFEST = [
         gadget_label=None,   # transmit gadget only; RSB mechanism is in stack.S
         trainer_asm=["boom-attacks/src/stack.S"],   # hand-written RISC-V asm
         attack_label="SPECTRE_RSB",
-        confirmed_on="BOOM (SonicBOOM) RTL, Verilator/FPGA",
+        confirmed_on="NOT DEMONSTRATED — upstream README lists this under "
+                     "\"Not Completed Attacks ... not working yet\", because the "
+                     "RSB was disconnected (commented out) in the BOOM BPU tested",
+        hardware_confirmed=False,
         why="frameDump (stack.S) pops the stack frame and rewrites `ra` through "
             "a stalled FP divide, so the `ret` resolves to an address the RSB "
             "did not predict and specFunc's probe of attackArray runs "
@@ -167,6 +181,7 @@ MANIFEST = [
         trainer_fns=["main"],
         attack_label="SPECTRE_V1",
         confirmed_on="T-Head Xuantie C910 — real commercial silicon",
+        hardware_confirmed=True,   # upstream README: leaks a real string on C910
         why="`if (idx >= 0 && idx < buf_size) { tmp = victim[idx]; return "
             "probe_array[tmp << 11]; }` — bounds-check bypass with an "
             "11-bit-strided probe. Upstream reports it leaking a real string on "
@@ -267,6 +282,7 @@ def make_record(entry, label, seq, tier, opt, fn_desc):
         "opt": opt,
         "provenance": "real",
         "confirmed_on": entry["confirmed_on"],
+        "hardware_confirmed": entry["hardware_confirmed"],
         "label_rationale": entry["why"],
         "split": "validation_never_train",
     }
@@ -360,6 +376,11 @@ def main():
 
     print(f"\nrecords: {len(records)}   "
           f"classes: {dict(Counter(r['label'] for r in records))}")
+    conf = [r for r in records if r["hardware_confirmed"]]
+    print(f"hardware-confirmed records: {len(conf)}/{len(records)}   "
+          f"classes(confirmed): {dict(Counter(r['label'] for r in conf))}")
+    print("  the rest are genuine hand-written RISC-V attack code whose LEAK was "
+          "never demonstrated — usable as structure, not as ground truth")
     print(f"independent upstream gadgets: "
           f"{len({r['source_file'] for r in records})}   "
           f"groups: {len({r['group'] for r in records})}")

@@ -19,6 +19,8 @@ REJECTED (kept out of the set, with the reason):
   boom_returnStackBuffer.O2      gadget_function  (none)       window carries no class-distinguishing structure — labelable only as attack_unit
 
 records: 11   classes: {'SPECTRE_V1': 7, 'SPECTRE_V2': 2, 'SPECTRE_RSB': 2}
+hardware-confirmed records: 9/11   classes(confirmed): {'SPECTRE_V1': 7, 'SPECTRE_V2': 2}
+  the rest are genuine hand-written RISC-V attack code whose LEAK was never demonstrated — usable as structure, not as ground truth
 independent upstream gadgets: 4   groups: 6
 overlap with v54_train: 0 (clean)
 class-naming tokens surviving neutralization: (none)
