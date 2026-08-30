@@ -135,6 +135,27 @@ The failure profile has also shifted. `unresolved_placeholder` is no longer domi
 **78.4% of malformed instructions are now in the uncategorised "other" bucket**, which
 nobody has triaged. That triage is the obvious next piece of work on the generator.
 
+## 4b. Generator "other" bucket triaged — and its dominant cause fixed (+6x)
+
+The uncategorised `other` bucket (52.4% of malformed instructions) is now opened
+up (`gen/triage_other_failures.py`, clustering by llvm-mc's real diagnostic).
+**70.4% of it is a single Realizer bug**: the x86 register pool is all 64-bit, so
+size-suffixed mnemonics got 64-bit registers (`movl (%rsi), %rcx`) that the
+assembler rejects. Width-matching the register (spec-driven, x86-only, no retrain)
+gives, in a controlled n=50 A/B:
+
+| metric | before | after |
+|---|---|---|
+| per-instruction | 81.1% | 87.9% |
+| &nbsp;&nbsp;x86_64 | 82.9% | **94.5%** |
+| &nbsp;&nbsp;arm64 (control) | 78.5% | 78.6% |
+| **per-sequence** | **3.5%** | **21.5% (6.1x)** |
+
+arm64 flat confirms the gain is the fix, not sampling. Per-sequence is still far
+from the ~99% per-instruction a usable generator needs, but the floor moved 6x at
+the Realizer. Residual bucket, ranked: cross-ISA mnemonic leakage (next),
+symbol-in-mnemonic-position, ARM register-indexed addressing.
+
 ## 5. What I propose next
 
 Source real RISC-V data to test the classifier against, because the transliterated
@@ -309,6 +330,7 @@ independent RISC-V data rather than on our own transliterated corpus.
 | window census | `SPECDISCOVER_LEARNED_FEATURES_PLAN.md` §Phase 3 |
 | ensemble gate result | `eval/v56_postfix/`, `tests/gate/test_ensemble_gate.py` |
 | generator validity | `eval/check_syntactic_validity_results_2026-08-30.txt` |
+| "other" bucket triage + fix | `gen/OTHER_BUCKET_TRIAGE.md`, `gen/triage_other_failures.py` |
 | RISC-V data survey | `SPECDISCOVER_RISCV_DATA_SOURCES.md` |
 | ISA-independence gate | `eval/isa_independence_check.py`, `eval/isa_independence_2026-08-30.txt` |
 | real RISC-V harvest | `spec/fetch_riscv_pocs.sh` then `spec/harvest_real_riscv.py --apply` |
