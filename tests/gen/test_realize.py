@@ -57,3 +57,48 @@ def test_realize_sequence_with_fn_token_no_longer_guaranteed_invalid():
     oracle = ExternalOracle()
     code = oracle.assemble(instr, "x86_64")
     assert code is not None, f"expected {instr!r} to assemble cleanly, oracle rejected it"
+
+
+# ---------------------------------------------------------------------------
+# Register-width vs size-suffix fix (gen/OTHER_BUCKET_TRIAGE.md). The x86
+# register pool is all 64-bit, so a size-suffixed mnemonic used to get a 64-bit
+# register (movl ... %rcx) that llvm-mc rejects -- 70.4% of the "other" bucket.
+# ---------------------------------------------------------------------------
+import pytest  # noqa: E402
+
+
+def _oracle_or_skip():
+    o = ExternalOracle()
+    if not getattr(o, "mc", None):
+        pytest.skip("llvm-mc not available")
+    return o
+
+
+@pytest.mark.parametrize("norm", [
+    "movl <mem> <reg>", "addl <imm> <reg>", "subw <imm> <reg>",
+    "addb <imm> <reg>", "movq <mem> <reg>", "movzbl <mem-idx> <reg>",
+])
+def test_size_suffixed_x86_now_assembles(norm):
+    o = _oracle_or_skip()
+    r = Realizer(load_spec("x86_64.json"), seed=1)
+    instr = r.realize_instruction(norm)
+    assert o.assemble_error(instr, "x86_64") is None, \
+        f"llvm-mc still rejects width-fixed instruction: {instr!r}"
+
+
+def test_width_fix_leaves_call_target_64bit():
+    # 'call' ends in 'l' but is not a size-suffixed mnemonic; the stems allowlist
+    # must not shrink its operand to a 32-bit register.
+    o = _oracle_or_skip()
+    r = Realizer(load_spec("x86_64.json"), seed=1)
+    assert o.assemble_error(r.realize_instruction("call <fn>"), "x86_64") is None
+
+
+def test_arm64_realization_unchanged_by_width_tables():
+    # arm64 has no register_widths table, so realization must be byte-identical
+    # to the pre-fix behaviour: every register stays as-emitted.
+    r = Realizer(load_spec("arm64.json"), seed=7)
+    for norm in ["ldr <mem> <reg>", "add <imm> <reg>", "str <reg> <mem-idx>"]:
+        out = r.realize_instruction(norm)
+        assert "%e" not in out and "%r" not in out  # no x86 width artifacts
+        assert "x" in out or "w" in out              # arm registers intact

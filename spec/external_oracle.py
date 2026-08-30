@@ -141,6 +141,24 @@ class ExternalOracle:
             return None
         return bytes(_parse_byte(t) for t in toks)
 
+    def assemble_error(self, instr: str, arch: str) -> Optional[str]:
+        """Like assemble(), but returns llvm-mc's stderr diagnostic (str) when it
+        rejects `instr`, or None when it assembles cleanly. For failure triage:
+        assemble() collapses every rejection to None, discarding the reason."""
+        if arch not in _ARCH:
+            return "unsupported arch"
+        mc_arch, flags, _ = _ARCH[arch]
+        cmd = [self.mc, f"--arch={mc_arch}", "--show-encoding", "--assemble", *flags]
+        try:
+            out = subprocess.run(
+                cmd, input=instr + "\n", capture_output=True, text=True, timeout=10
+            )
+        except (subprocess.TimeoutExpired, OSError) as e:
+            return f"llvm-mc did not run: {e}"
+        if out.returncode == 0 and _ENC_RE.search(out.stdout):
+            return None
+        return out.stderr.strip() or f"rc={out.returncode}, no encoding emitted"
+
     # -- bytes -> coarse category ----------------------------------------
     def category(self, instr: str, arch: str) -> Optional[str]:
         """Return coarse control-flow category, or None if the oracle cannot

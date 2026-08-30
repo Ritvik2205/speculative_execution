@@ -27,7 +27,37 @@ class Realizer:
         self.imm_prefix = r["imm_prefix"]
         self.sym = r["sym"]
         self.fn_sym = r["fn_sym"]
+        # Optional, x86-only: map a 64-bit register to its b/w/l/q width variants
+        # so a size-suffixed mnemonic (movl, addq) gets a width-matched register
+        # instead of always a 64-bit one — the single largest cause of llvm-mc
+        # rejections in the "other" bucket (70.4%). ISAs with no such table
+        # (arm64, riscv64) leave every register untouched.
+        self.reg_widths = r.get("register_widths", {})
+        self.suffix_idx = r.get("suffix_width_index", {})
+        self.width_stems = set(r.get("width_suffix_stems", []))
+        self.mixed_prefixes = tuple(r.get("mixed_width_prefixes", []))
         self.rng = random.Random(seed)
+
+    def _suffix_widths(self, opcode):
+        """-> (src_idx, dst_idx) width indices for a size-suffixed x86 opcode, or
+        None when the opcode carries no size suffix. dst_idx applies to the last
+        register operand, src_idx to the others (they differ only for movz/movs)."""
+        if not self.reg_widths or len(opcode) < 2:
+            return None
+        last = opcode[-1]
+        if last not in self.suffix_idx:
+            return None
+        if opcode.startswith(self.mixed_prefixes) and len(opcode) >= 3 \
+                and opcode[-2] in self.suffix_idx:
+            return self.suffix_idx[opcode[-2]], self.suffix_idx[last]
+        if opcode[:-1] in self.width_stems:
+            i = self.suffix_idx[last]
+            return i, i
+        return None
+
+    def _to_width(self, reg, idx):
+        v = self.reg_widths.get(reg)
+        return v[idx] if v else reg
 
     def _reg(self, used):
         choices = [x for x in self.pool if x not in used] or self.pool
@@ -58,6 +88,14 @@ class Realizer:
         opcode, operands = parts[0], parts[1:]
         used: set = set()
         concrete = [self._operand(o, used) for o in operands]
+        widths = self._suffix_widths(opcode)
+        if widths and concrete:
+            src_i, dst_i = widths
+            last = len(operands) - 1
+            for j, (kind, val) in enumerate(zip(operands, concrete)):
+                if kind == "<reg>":              # registers inside <mem>/<mem-idx>
+                    concrete[j] = self._to_width( # stay 64-bit (addressing)
+                        val, dst_i if j == last else src_i)
         return f"{opcode}\t{', '.join(concrete)}" if concrete else opcode
 
     def realize_sequence(self, norm_seq: List[str]) -> List[str]:
