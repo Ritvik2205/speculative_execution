@@ -1,0 +1,29 @@
+RISC-V GENERALISATION EXPERIMENTS (no retraining) — 2026-08-30
+==============================================================
+
+## 1. Arch embedding is a bias knob, not the bottleneck
+(eval/arch_embedding_diagnostic.py — full output)
+condition    arch row                accuracy   prediction distribution
+------------------------------------------------------------------------------------------------
+as-is        riscv64 (untrained, random)    63.89%   {'BENIGN': 115, 'BRANCH_HISTORY_INJECTION': 2, 'SPECTRE_RSB': 32, 'RETBLEED': 21, 'SPECTRE_V1': 3, 'INCEPTION': 7}
+as-x86       x86_64 (trained)          49.44%   {'SPECTRE_RSB': 50, 'BRANCH_HISTORY_INJECTION': 2, 'BENIGN': 89, 'RETBLEED': 25, 'SPECTRE_V1': 8, 'INCEPTION': 6}
+as-arm       arm64 (trained)           69.44%   {'BENIGN': 125, 'BRANCH_HISTORY_INJECTION': 2, 'SPECTRE_RSB': 27, 'RETBLEED': 18, 'INCEPTION': 7, 'SPECTRE_V1': 1}
+averaged     mean(x86,arm) -> row3     63.33%   {'BENIGN': 114, 'BRANCH_HISTORY_INJECTION': 2, 'SPECTRE_RSB': 33, 'RETBLEED': 22, 'SPECTRE_V1': 3, 'INCEPTION': 6}
+zeroed       zeros -> row3             48.89%   {'SPECTRE_RSB': 50, 'BRANCH_HISTORY_INJECTION': 2, 'BENIGN': 88, 'RETBLEED': 24, 'SPECTRE_V1': 9, 'INCEPTION': 6, 'MDS': 1}
+
+Read: if 'averaged'/'zeroed'/'as-x86' beat 'as-is' materially, the untrained
+arch row is a real bottleneck and the fix is architectural. If all rows tie,
+the failure is in the graph/feature representation (H3 size shift), not the arch
+embedding.
+
+## 2. Graph-size domain shift (H3) — instruction-count census
+train arm64/x86 median 24-28 (p90<=47); RISC-V real median 159, synth 56, benign mean 121
+
+## 3. Re-windowing to training size recovers signal (window=24, stride=12)
+  k  real attack recall(n=11) benign FP(n=180)    
+  1  7/11 = 63.6%             90/180 = 50.0%      
+  2  3/11 = 27.3%             25/180 = 13.9%      
+  3  3/11 = 27.3%             16/180 = 8.9%       
+
+baseline (whole-function, no windowing): attack recall 0%, benign FP 36.7%
+=> windowed w=24 k=3 STRICTLY dominates baseline: 27.3% recall AND 8.9% FP
