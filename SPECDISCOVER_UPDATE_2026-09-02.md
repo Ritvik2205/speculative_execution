@@ -203,6 +203,59 @@ which look well-populated at 162 and 116 records but carry effective n of 1.55 a
 requires no attack design, and the classifier currently spends ~11.5% of its RISC-V
 predictions on a class the test set cannot contain.
 
+## 6. The real RISC-V validation set exists — and the classifier scores 0/11 on it
+
+The harvest proposed in §5 is done (`spec/harvest_real_riscv.py`). Four published
+PoCs — `riscv-boom/boom-attacks` (BOOM RTL) and `cispa/Security-RISC` (confirmed on
+T-Head C910 silicon) — compiled to riscv64 by a real RISC-V compiler at O0 and O2.
+**11 records, 4 independent upstream gadgets, zero overlap with training, no
+class-naming token surviving neutralization.** It is stamped
+`validation_never_train` and must stay that way; it is the only RISC-V evidence we
+have that is not derived from our own corpus.
+
+Three things had to be got right, and each one nearly went wrong:
+
+- **Triage beats volume.** The two repos hold 25+ experiments; only four are
+  transient-execution gadgets. `Security-RISC/spectre-v1/` is the trap — the
+  *name* says spectre-v1, but it is an instruction-prefetch histogram and its own
+  README reports C906/U74, **in-order cores confirmed not vulnerable**. It would
+  have gone straight into the class we have least evidence for.
+- **The function is the wrong window for V2/RSB.** `indirBranchMispred`'s
+  victimFunc is a bare transmit gadget with *no indirect branch* — upstream's own
+  comment calls it a Variant 1 body — and `specFunc` holds no RSB structure. Those
+  mechanisms live in `main`'s mistrained `jalr` and in `frameDump`'s rewrite of
+  `ra`. Labeling the functions V2/RSB would have injected exactly the noisy labels
+  we have spent this project removing, so they are emitted only as wider
+  `attack_unit` windows that contain the mistraining site.
+- **A length floor cannot catch a deleted gadget.** At O2, GCC removes
+  condBranchMispred's gadget outright (`dummy` is dead on the next line), leaving
+  14 instructions that still look substantial, and reduces victimFunc to a bare
+  `ret`. Both would have shipped as attack-labeled records containing no attack —
+  the contamination we measured at 11.5% of `riscv_corpus`. Every record must now
+  exhibit its class's defining structure in canonical ops; 5 were rejected.
+
+**The result: 0/11.** The model never once predicts any of the three classes
+present (it says RETBLEED 4, INCEPTION 5, BENIGN 2 — two real attack gadgets
+called benign).
+
+**Read that against the like-for-like baseline, not against the §1 headline.** On
+the transliterated corpus the same checkpoint *already* scores **0.00 recall on
+SPECTRE_V2 (n=14) and SPECTRE_RSB (n=4)**. So on the classes the two sets share,
+the real PoCs are consistent with what we had already measured — this is not
+evidence that real RISC-V is uniquely hard. What is genuinely new is **SPECTRE_V1,
+previously unmeasurable on RISC-V for want of any sample at all: 0/7.**
+
+Caveats stated plainly: n=11 across 6 groups, and the `v54_spec` checkpoint saw
+zero riscv64 in training, so its arch-embedding row never received a gradient.
+
+**This also validates the §5 gate.** Run against the real PoCs the independence
+check does *not* fire (1/3, p=0.875) where it fires on the transliterated corpus
+(6/6, p=0.016) — it discriminates rather than always firing. It now also refuses
+to be over-read: below 5 shared classes the sign test cannot reach p<0.05 at all,
+so it reports **underpowered** instead of letting a small corpus buy a free pass.
+
+---
+
 ---
 
 ## Reproduce
@@ -217,3 +270,5 @@ predictions on a class the test set cannot contain.
 | generator validity | `eval/check_syntactic_validity_results_2026-08-30.txt` |
 | RISC-V data survey | `SPECDISCOVER_RISCV_DATA_SOURCES.md` |
 | ISA-independence gate | `eval/isa_independence_check.py`, `eval/isa_independence_2026-08-30.txt` |
+| real RISC-V harvest | `spec/fetch_riscv_pocs.sh` then `spec/harvest_real_riscv.py --apply` |
+| 0/11 on real RISC-V | `eval/riscv_real_eval_2026-08-30.txt` |
