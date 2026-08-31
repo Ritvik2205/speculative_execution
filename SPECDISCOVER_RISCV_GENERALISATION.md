@@ -70,6 +70,40 @@ This is also a deployment recipe: scan a new-ISA function the way the training
 data was constructed (training-sized sliding windows) and aggregate with a
 calibrated threshold, rather than classifying whole functions.
 
+## Windowing scan — the calibrated operating curve
+
+The windowing fix is a deployment knob, not a single number. Full sweep
+(`eval/riscv_windowing_curve_2026-08-31.txt`), window W, stride W/2, threshold k
+(function flagged only if >=k windows alarm):
+
+| W | k | synth recall (n=358) | real recall (n=11) | benign FP (n=180) |
+|---|---|---|---|---|
+| 20 | 1 | 44.4% | 54.5% | 55.0% |
+| 20 | 2 | 10.1% | 36.4% | 24.4% |
+| 20 | 3 | 0.0% | 27.3% | 16.1% |
+| 24 | 1 | 23.7% | 63.6% | 50.0% |
+| 24 | 2 | 0.0% | 27.3% | 13.9% |
+| 24 | 3 | 0.0% | 27.3% | **8.9%** |
+| 32 | 1 | 3.9% | 27.3% | 31.7% |
+| 32 | 3 | 0.0% | 0.0% | 0.6% |
+
+baseline (whole function): synth 0%, real 0%, benign FP 36.7%.
+
+Reading it:
+- **Smaller window recovers more attack signal.** W=20 gives the best synth recall
+  (44.4% at k=1) and W=24 the best real recall (63.6% at k=1); the synth gadgets
+  are compact, so a large window dilutes them.
+- **k trades recall for FP.** Raising k from 1 to 3 at W=24 cuts benign FP 50%->8.9%
+  while real recall holds at 27.3% (synth collapses because its gadgets are single-
+  window).
+- **Recommended operating points:**
+  - *max recall*: W=20, k=1 — real 54.5% / synth 44.4%, FP 55% (triage/scan use).
+  - *balanced, dominates baseline*: W=20, k=2 — real 36.4% / synth 10.1%, FP 24.4%.
+  - *low FP, dominates baseline*: W=24, k=3 — real 27.3%, FP 8.9%.
+- Several points **strictly beat the whole-function baseline on both axes at once**
+  (recall > 0 AND FP < 36.7%), which a single global threshold cannot — the size
+  match is doing real work, not trading one error for another.
+
 ## Honest limits
 
 - n=11 real: 27–64% is 3–7 gadgets. The synth (n=358) and benign (n=180) sets
