@@ -576,6 +576,18 @@ def main():
     v54_train = v53_train + ext_accepted
     v54_test  = v53_test  # LOCKED — identical to v53
 
+    # Cross-split dedup (root fix): v53 inherited a handful of records whose
+    # NEUTRALIZED sequence appears in BOTH its train and test split (e.g. two
+    # augmentation variants p17_..._t3 and _t4 that neutralize identically). The
+    # external dedup above never checked train-vs-test, so those survived into
+    # v54. The test split is LOCKED, so the train side yields.
+    _test_h = {seq_hash(get_seq(r)) for r in v54_test}
+    _before = len(v54_train)
+    v54_train = [r for r in v54_train if seq_hash(get_seq(r)) not in _test_h]
+    if len(v54_train) < _before:
+        print(f"Cross-split dedup: dropped {_before - len(v54_train)} train "
+              f"record(s) whose sequence also appears in the locked test split")
+
     print_dist("v53 train (base)", v53_train)
     print_dist("External additions", ext_accepted)
     print_dist("v54 train (combined)", v54_train)
