@@ -32,10 +32,18 @@ def main():
     ap.add_argument("--n", type=int, default=50, help="samples per (class, arch)")
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--gen", default=str(ROOT / "gen" / "generator.pt"))
+    ap.add_argument("--no-arch-purity", action="store_true",
+                    help="disable target-arch opcode constraint")
     ap.add_argument("--out", default=str(ROOT / "gen" / "synth" / "neural_out"))
     args = ap.parse_args()
 
     model = CondTransformerLM.load(args.gen)
+    # arch purity ON by default: constrain sampling to target-arch-valid opcodes,
+    # eliminating cross-ISA mnemonic leakage and symbol-as-opcode tokens
+    # (gen/arch_purity.py). Strictly improves validity; no downside.
+    if not getattr(args, "no_arch_purity", False):
+        from arch_purity import attach_arch_masks
+        attach_arch_masks(model, {"x86_64": "x86_64.json", "arm64": "arm64.json"})
     # Derive from the trained model's own vocab rather than hardcoding label
     # spellings (the label set doesn't exactly match gen/synth/params.py's
     # CLASSES -- e.g. "BRANCH_HISTORY_INJECTION" not "BHI").

@@ -1,0 +1,38 @@
+ARCH-PURITY A/B (both n=40, post-width-fix). BEFORE = purity off.
+=== WITHOUT (baseline) ===
+per-instruction syntactic validity (llvm-mc assembles cleanly):
+  17529/19914 (88.0%) valid
+  x86_64  : 10927/11577 (94.4%) valid
+  arm64   : 6602/8337 (79.2%) valid
+
+per-sequence (ALL instructions in the gadget must assemble):
+  169/800 (21.1%) fully valid
+
+Note: this only checks syntax (does llvm-mc accept it), not whether 
+the gadget is the RIGHT vulnerability class (still classifier-judged, 
+unresolved without a real execution oracle — see G10).
+
+============================================================
+failure categorization (of 2385 malformed instructions):
+  unresolved_placeholder      703 (29.5%)
+  operand_type_violation       89 (3.7%)
+  other                      1593 (66.8%)
+
+=== WITH --arch-purity ===
+per-instruction syntactic validity (llvm-mc assembles cleanly):
+  17845/20117 (88.7%) valid
+  x86_64  : 11008/11502 (95.7%) valid
+  arm64   : 6837/8615 (79.4%) valid
+
+per-sequence (ALL instructions in the gadget must assemble):
+  194/800 (24.2%) fully valid
+
+Note: this only checks syntax (does llvm-mc accept it), not whether 
+the gadget is the RIGHT vulnerability class (still classifier-judged, 
+unresolved without a real execution oracle — see G10).
+
+============================================================
+failure categorization (of 2272 malformed instructions):
+  unresolved_placeholder     1128 (49.6%)
+  operand_type_violation       96 (4.2%)
+  other                      1048 (46.1%)

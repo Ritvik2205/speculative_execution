@@ -105,6 +105,13 @@ class CondTransformerLM(nn.Module):
             # never emit pad / class / arch tokens mid-stream
             for cid in v.control_ids:
                 logits[cid] = -1e9
+            # arch purity: if a per-arch disallow mask is attached
+            # (arch_purity.attach_arch_masks), forbid every instruction token not
+            # valid for target_arch in one masked assignment — the other ISA's
+            # opcodes and the symbol/number tokens both go.
+            dis = getattr(self, "_arch_disallow", None)
+            if dis is not None and target_arch in dis:
+                logits[dis[target_arch].to(logits.device)] = -1e9
             if greedy:
                 nxt = int(logits.argmax())
             else:

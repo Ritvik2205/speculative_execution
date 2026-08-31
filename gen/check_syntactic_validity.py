@@ -120,9 +120,16 @@ def main():
     ap.add_argument("--n", type=int, default=50, help="samples per (class, arch)")
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--gen", default=str(ROOT / "gen" / "generator.pt"))
+    ap.add_argument("--arch-purity", action="store_true",
+                    help="constrain sampling to target-arch-valid opcodes "
+                         "(arch_purity.attach_arch_masks)")
     args = ap.parse_args()
 
     model = CondTransformerLM.load(args.gen)
+    if args.arch_purity:
+        from arch_purity import attach_arch_masks
+        attach_arch_masks(model, {"x86_64": "x86_64.json", "arm64": "arm64.json"})
+        print("arch purity: ON (sampling constrained to target-arch opcodes)")
     oracle = ExternalOracle()
     trained_classes = [c for c in CLASSES if c in model.vocab.cls_id]
 
