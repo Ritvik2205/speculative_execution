@@ -6,8 +6,10 @@ recovers RISC-V generalisation.
 
 ## Data (already generated, committed)
 
-- `v54/data/v54_train_multiscale.jsonl` — 16,508 records = 5,533 originals +
-  10,975 enlarged. Size median 28→72 instr, p90 33→156 (RISC-V real is 159/275).
+- `v54/data/v54_train_multiscale.jsonl` — ~17,052 records = 5,532 originals +
+  ~10,970 enlarged (size aug) + ~547 real x86/arm BENIGN records (closes the
+  x86-benign gap: v54_spec flags 98.4% of real x86 benign as attacks — see
+  `eval/benign_xarch_fp_2026-08-31.txt`). Size median 28→72 instr, p90 33→156 (RISC-V real is 159/275).
   Active graph nodes median 28→108. Gadgets preserved verbatim; labels preserved;
   no RISC-V; no new train/test overlap.
 - `v54/data/v54_test.jsonl` — the LOCKED test split, unchanged.
@@ -46,9 +48,13 @@ CKPT=viz_v54_multiscale/gine_best.pt   # point eval at the new checkpoint
 python3 ../spec/eval_riscv_real.py --records-jsonl ../spec/data/riscv_real_validation.jsonl
 python3 ../spec/eval_riscv_real.py --records-jsonl ../spec/data/riscv_synth_validation.jsonl
 python3 ../spec/eval_riscv_real.py --records-jsonl ../spec/data/riscv_benign_validation.jsonl
+# x86/arm benign FP — the size aug also injects x86 benign records, so these must improve:
+python3 ../spec/eval_riscv_real.py --records-jsonl ../spec/data/benign_x86_64_validation.jsonl
+python3 ../spec/eval_riscv_real.py --records-jsonl ../spec/data/benign_arm64_validation.jsonl
 ```
-Success = RISC-V attack recall up from 0% and/or benign FP down from 36.7%,
-WITHOUT the locked-test accuracy regressing. (eval_riscv_real.py currently hardcodes
+Success = (a) x86 benign FP down from 98.4% (the biggest, clearest target);
+(b) RISC-V attack recall up from 0% and/or RISC-V benign FP down from 36.7%;
+ALL without the locked-test accuracy regressing. (eval_riscv_real.py currently hardcodes
 CKPT near line 57 — point it at the new checkpoint.)
 
 Expectation from the no-retrain windowing proxy: whole-function RISC-V recall

@@ -144,6 +144,36 @@ def main():
                         "multiscale_target": target,
                         "multiscale_base_n": base_n})
 
+    # Close the x86-benign gap directly. The corpus has ZERO x86 benign (BENIGN is
+    # arm64-only), and v54_spec flags 98.4% of real x86 benign code as attacks
+    # (eval/benign_xarch_fp_2026-08-31.txt). The filler pools ARE real x86/arm
+    # benign functions, so add them as standalone BENIGN training records (both at
+    # native size and enlarged), giving the model the x86-benign counterexamples
+    # it never had. Deduped against test and against what is already emitted.
+    benign_added = Counter()
+    for arch, pool_recs in [(a, load(FILLER[a])) for a in FILLER]:
+        pool = [r["sequence"] for r in pool_recs]
+        for r in pool_recs:
+            base = r["sequence"]
+            variants = [base]
+            for target in TARGETS:
+                if target > len(ic(base)) and target <= NODE_CAP:
+                    variants.append(enlarge(base, pool, target, rng))
+            for v in variants[:1 + args.variants]:
+                if len(ic(v)) < 4 or len(ic(v)) > NODE_CAP:
+                    continue
+                hv = h(v)
+                if hv in seen or hv in test_h:
+                    continue
+                seen.add(hv)
+                benign_added[arch] += 1
+                out.append({"label": "BENIGN", "sequence": v, "arch": arch,
+                            "group": r.get("group", "filler"),
+                            "augmentation": "benign_filler_record",
+                            "provenance": "benign_filler"})
+    print(f"\nx86/arm BENIGN records added (closes the x86-benign gap): "
+          f"{dict(benign_added)}")
+
     print(f"\nenlarged variants made: {made} "
           f"(dup-skipped {skipped_dup}, cap-skipped {skipped_cap}, "
           f"no-filler {skipped_nofiller})")
