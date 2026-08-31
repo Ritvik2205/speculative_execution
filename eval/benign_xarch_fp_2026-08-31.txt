@@ -1,0 +1,11 @@
+x86 vs arm64 BENIGN false-positive rate (v54_spec GINE) — 2026-08-31
+same mbedTLS functions, disjoint slice (files 40..), only target arch differs
+
+x86_64 (n=62): BENIGN recall=1.61%  => FALSE-POSITIVE rate=98.4%
+  prediction distribution: {'RETBLEED': 20, 'L1TF': 7, 'INCEPTION': 2, 'SPECTRE_V1': 13, 'SPECTRE_RSB': 10, 'SPECTRE_V4': 4, 'BRANCH_HISTORY_INJECTION': 4, 'SPECTRE_V2': 1, 'BENIGN': 1}
+arm64 (n=62): BENIGN recall=72.58%  => FALSE-POSITIVE rate=27.4%
+  prediction distribution: {'BENIGN': 45, 'RETBLEED': 9, 'SPECTRE_RSB': 3, 'BRANCH_HISTORY_INJECTION': 2, 'INCEPTION': 3}
+
+CONTEXT: RISC-V benign FP=36.7% (n=180). So x86 (98.4%) >> RISC-V (36.7%) >> arm64 (27.4%).
+Cause: corpus BENIGN class is ARM64-ONLY (0 x86 benign in v50/v53/v54); model learned
+'x86 + structure = attack' with no x86-benign counterexamples.

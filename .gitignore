@@ -194,3 +194,4 @@ spec/.harvest_tmp/
 gen/.synth_riscv_tmp/
 gen/.benign_tmp/
 v54/data/v54_train_multiscale.jsonl
+gen/.benign_xarch_tmp/
