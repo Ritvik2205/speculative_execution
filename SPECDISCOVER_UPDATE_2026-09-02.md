@@ -346,6 +346,32 @@ augmentation of the existing x86/arm data — no RISC-V — to cover the large-g
 regime, tested on these held-out sets. Full account:
 `SPECDISCOVER_RISCV_GENERALISATION.md`.
 
+## 9. Parallel work while the size-augmentation retrain runs (GPU box)
+
+Four independent streams, none blocked on the retrain:
+
+- **x86 benign FP is catastrophic — and it was invisible.** The corpus has ZERO
+  x86 benign (BENIGN is arm64-only). Compiling the SAME mbedTLS functions to each
+  arch and running v54_spec: **x86 benign FP 98.4%** (61/62 flagged) vs arm64
+  27.4%. The model learned "x86 + structure = attack" with no x86-benign
+  counterexamples. Worse than RISC-V benign (36.7%) — the gap hurts the trained
+  arch harder than the unseen one. **Fix folded into the retrain**: the size
+  augmentation now also injects ~547 real x86/arm BENIGN records, so the retrain
+  closes this directly (`eval/benign_xarch_fp_2026-08-31.txt`).
+- **Generator cross-ISA leakage fixed** (Alik/supervisor's "make generation
+  accurate"). The shared vocab let the generator draw ARM opcodes for x86 and 41
+  symbol-name tokens as opcodes. A sample-time arch-purity mask
+  (`gen/arch_purity.py`, no retrain) eliminates both: per-sequence validity
+  21.1%->24.2%, x86 per-instruction 94.4%->95.7%, and the "other" bucket's
+  cross-ISA class is gone. Stacks with the width fix; generator now ~24%
+  per-sequence (from ~1-3%).
+- **Windowing scan calibrated** into a deployment operating curve (§ in
+  `SPECDISCOVER_RISCV_GENERALISATION.md`): W=20/k=1 max recall (real 54.5%), W=24/k=3
+  low FP (8.9% at 27.3% recall); several points strictly beat the 0%/36.7% baseline.
+- **Fixed a train/test leak**: 1 record (L1TF x86 p17 t3/t4) inherited from v53's
+  split appeared in both halves; build_dataset now dedups train-vs-test. Negligible
+  numeric impact (<=0.06pp) but a real data-snooping leak, now closed.
+
 ---
 
 ## Reproduce
