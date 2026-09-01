@@ -151,6 +151,8 @@ def main():
 
     import argparse as _ap
     _p = _ap.ArgumentParser()
+    _p.add_argument("--ckpt", default=None,
+                    help="checkpoint to evaluate (default: the hardcoded v54_spec)")
     _p.add_argument("--records-jsonl", default=None,
                     help="evaluate this JSONL instead of riscv_corpus/. Use "
                          "spec/data/riscv_real_validation.jsonl for the real, "
@@ -170,7 +172,11 @@ def main():
     print("label distribution:", dict(Counter(r["label"] for r in records)))
 
     device = select_device()
-    ckpt = torch.load(CKPT, map_location=device, weights_only=False)
+    _ckpt_path = Path(_a.ckpt) if _a.ckpt else CKPT
+    if not _ckpt_path.exists():
+        print(f"missing checkpoint {_ckpt_path}"); sys.exit(2)
+    print(f"checkpoint: {_ckpt_path}")
+    ckpt = torch.load(_ckpt_path, map_location=device, weights_only=False)
     label_to_id = ckpt["label_to_id"]
     feature_names = ckpt["feature_names"]
     ckpt_args = ckpt["args"]
