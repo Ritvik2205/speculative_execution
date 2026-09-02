@@ -1,0 +1,17 @@
+RUN B (benign-records-only, --frac 0.0) — local CPU retrain, 2026-09-02
+==================================================================
+6079 train records = 5532 originals + 547 real x86/arm BENIGN (no size enlargement)
+
+held-out sets (recall; FP = 100-recall for benign):
+  set               v54_spec   multiscale(sizeaug)   RUN B(benign-only)
+  x86 benign        1.6%       75.8%                 91.9%  (FP 8.1%)
+  arm64 benign      72.6%      96.8%                 100.0% (FP 0%)
+  riscv benign      63.3%      44.4% (worse)         86.1%  (FP 13.9%)
+  riscv real attack 0/11       0/11                  0/11
+  locked test acc   95.27      92.93                 93.59  (macro-F1 78.31)
+
+Verdict: benign-only BEATS size-aug on every FP metric (x86 8% vs 24%, riscv
+benign improved not regressed) and half-recovers the locked test (92.93->93.59),
+but still ~1.7pp under baseline 95.27 (single-run; multi-seed baseline 96.14).
+The 547 benign records shift the precision/recall balance: benign FP way down,
+attack macro-F1 down ~2.5pp. Multi-seed needed to separate the cost from variance.

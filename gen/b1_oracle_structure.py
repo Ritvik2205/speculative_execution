@@ -67,6 +67,9 @@ def main():
     ap.add_argument("--n", type=int, default=40, help="samples per (class, arch)")
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--gen", default=str(ROOT / "gen" / "generator.pt"))
+    ap.add_argument("--archs", default="x86_64,arm64",
+                    help="comma list; Spectector is x86-only so --validate is "
+                         "meaningful for x86_64 only")
     ap.add_argument("--validate", action="store_true",
                     help="run Spectector for a real verdict (Docker + image needed)")
     args = ap.parse_args()
@@ -89,7 +92,8 @@ def main():
             args.validate = False
 
     records = []
-    for arch in SPEC_FOR_ARCH:
+    want_archs=[a for a in args.archs.split(",") if a in SPEC_FOR_ARCH]
+    for arch in want_archs:
         R = Realizer(load_spec(f"{arch}.json"), seed=0)
         eng = engines[arch]
         for cls in classes:
