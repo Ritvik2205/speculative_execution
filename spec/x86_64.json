@@ -164,7 +164,8 @@
     "safe_imm": "1",
     "branch_prefixes": [
       "j"
-    ]
+    ],
+    "branch_self_rel": ".+2"
   },
   "pipeline": {
     "model": "out_of_order",

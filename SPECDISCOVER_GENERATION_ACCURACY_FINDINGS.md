@@ -69,7 +69,9 @@ Ranked, with evidence:
 1. **arm64 syntactic validity — FIXED this pass: L2 2% → 57%** (operand realization:
    <sym>→immediate, ldp/stp immediate-offset, barrier options; see
    `eval/generator_arm_operand_fix_2026-09-02.txt`). Now on par with x86.
-2. **`.L0` / `<sym>` placeholder** — top x86 link-ready blocker (A3).
+2. **`.L0` branch target — FIXED (A3): self-relative offset** (`jmp .+2` / `b .+4`),
+   link-ready without an undefined label. x86 link-ready 22%→43%; arm undefined-symbol
+   blockers eliminated (0). arm's remaining gap is pure assembly (L2), not symbols.
 3. x86 indirect branch — **fixed this pass**.
 
 ## A1 — re-triage of the `other` bucket, arch-purity ON (n=100, 2043 instrs)
@@ -94,8 +96,10 @@ addresses within the ISA's legal ranges/scales.
 
 ## Pending
 
-- **A3** (define the `.L0` / repair `<sym>` placeholder) — top remaining x86
-  link-ready blocker; proof-of-concept recovers ~+11pp.
+- **A3** — DONE (self-relative branch targets). x86 link-ready 22%→43%; arm
+  undefined-symbol blockers eliminated.
+- **arm64 assembly (L2) residual** — arm link-ready now gated entirely by assembly
+  failures (0 undefined syms), not labels: immediate-range / bitfield / post-index.
 - **arm64 operand realization** — DONE (L2 2%→57%). Residual: bitfield/post-index
   immediate ranges (small).
 - **B1** (oracle verdict × structure cross-tab) needs a fresh Spectector run on

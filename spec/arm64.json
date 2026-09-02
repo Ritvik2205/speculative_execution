@@ -48,7 +48,8 @@
     "branch_prefixes": [
       "b."
     ],
-    "repair_sym_operands": true
+    "repair_sym_operands": true,
+    "branch_self_rel": ".+4"
   },
   "pipeline": {
     "model": "out_of_order",

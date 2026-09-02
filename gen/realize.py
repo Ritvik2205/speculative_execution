@@ -56,6 +56,7 @@ class Realizer:
         self.safe_imm = r.get("safe_imm", "1")  # valid everywhere incl. arm bitmask
         self.branch_prefixes = tuple(r.get("branch_prefixes", []))
         self.repair_sym_operands = bool(r.get("repair_sym_operands", False))
+        self.branch_self_rel = r.get("branch_self_rel")  # e.g. .+2 / .+4
         self.rng = random.Random(seed)
 
     def _suffix_widths(self, opcode):
@@ -126,6 +127,10 @@ class Realizer:
         # arm only: a label cannot be an arithmetic/logical/data operand, so a
         # non-branch <sym> is a mislabel -> a valid immediate. x86 tolerates a bare
         # symbol as an absolute operand (mov %al, .L0), so it is left alone.
+        if is_branch and self.branch_self_rel:
+            for j, kind in enumerate(operands):
+                if kind == "<sym>":
+                    concrete[j] = self.branch_self_rel
         if self.repair_sym_operands and not is_branch:
             for j, kind in enumerate(operands):
                 if kind == "<sym>":
