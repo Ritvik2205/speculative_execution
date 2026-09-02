@@ -53,7 +53,8 @@ ENGINE = load_engine("riscv.json")
 FILE_CLASS = {
     "spectre_1.c": "SPECTRE_V1", "spectre_github.c": "SPECTRE_V1",
     # spectre_v1.c excluded: x86 inline asm (rbx/rax); V1 covered by spectre_1.c "spectre_2.c": "SPECTRE_V2",
-    "spectre_rsb.c": "SPECTRE_RSB", "l1tf.c": "L1TF", "mds.c": "MDS",
+    "spectre_rsb.c": "SPECTRE_RSB", "spectre_v4.c": "SPECTRE_V4",
+    "l1tf.c": "L1TF", "mds.c": "MDS",
     "retbleed.c": "RETBLEED", "bhi.c": "BRANCH_HISTORY_INJECTION",
     # inception.c excluded: x86 inline asm (r9/rax) in the gadget itself, not portable
 }

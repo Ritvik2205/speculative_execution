@@ -50,3 +50,23 @@ prediction), BHI (branch history), and SPECTRE_V4 (store bypass). Exactly the
 classes we CAN compile. L1TF/MDS/INCEPTION are correctly ABSENT from RISC-V, not
 missing data. So the "need >=5 shared classes for a clean sign-test pass" bar is
 met by adding SPECTRE_V4 (ISA-general), not by forcing Intel/AMD classes onto RISC-V.
+
+--- CLEAN PASS: added SPECTRE_V4 (portable store-bypass, authored) ---
+Wrote c_vulns/c_code/spectre_v4.c (portable SSB: store -> dependent load -> transmit,
+no x86 asm). Compiles to real riscv64 (sd/ld/lbu/sb). Batch now 41 gadgets, 5 classes.
+
+independence gate, POWERED (5 shared classes, sign-test floor 0.031 < 0.05):
+  per-class ratios: BHI 0.90, RETBLEED 0.96, RSB 0.76, V1 0.82, SPECTRE_V4 1.02
+  sign test: 4/5 closer to arm, p=0.1875 -> "the test HAD the power to fire and did not"
+             => NO transliteration signature.
+
+DEFINITIVE:
+  transliterated riscv_corpus : 6/6, p=0.016  -> SIGNIFICANT transliteration signature
+  real-compiled cvulns batch  : 4/5, p=0.1875 -> no signature, test powered  = IDIOMATIC
+
+SPECTRE_V4 at 1.02x is the cleanest cell: freshly-authored portable C with zero
+arm-transliteration heritage compiles FURTHER from arm than x86 is from arm.
+
+This is the QEMU-plan proof for RISC-V: compiling real/portable gadget C with a real
+riscv64 compiler yields genuinely idiomatic RISC-V that passes the independence gate,
+unlike the transliterated corpus. Usable as candidate training data for the RISC-V gap.

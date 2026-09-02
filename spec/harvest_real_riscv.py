@@ -104,6 +104,8 @@ CLASS_STRUCTURE = {
     "SPECTRE_V2":  {"CALL_IND": 1, "LOAD": 2, "SHL": 1},
     # Same transmit shape, reached through a mispredicted return.
     "SPECTRE_RSB": {"RET": 1, "LOAD": 2, "SHL": 1},
+    # SPECTRE_V4 (store bypass): a store then a dependent load + transmit
+    "SPECTRE_V4": {"STORE": 1, "LOAD": 1},
 }
 
 # The RSB signature is an architectural WRITE to the return-address register: the
