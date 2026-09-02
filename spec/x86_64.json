@@ -186,7 +186,7 @@
     "notes": "Phase 0: inherits base patterns verbatim; per-ISA pattern pruning deferred to Phase 1."
   },
   "patterns": {
-    "load": "\\b(mov[qldwb]?|movzx|movsx|movabs|lods[bwdq]?|pop[qldw]?|lea)\\b",
+    "load": "\\b(mov[qldwb]?|movzx|movsx|movz[bw][blwq]|movs[bwl][blwq]|movabs|lods[bwdq]?|pop[qldw]?|lea)\\b",
     "store": "\\b(mov[qldwb]?|movnti|stos[bwdq]?|push[qldw]?)\\b",
     "branch_cond": "\\b(j(e|ne|z|nz|g|ge|l|le|a|ae|b|be|o|no|c|nc|s|ns|p|np|cxz|ecxz|rcxz))\\b",
     "branch_uncond": "\\b(jmp|jmpq)\\b",
