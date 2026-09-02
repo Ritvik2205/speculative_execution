@@ -125,6 +125,38 @@ Reading it:
 3. Give unseen ISAs the averaged arch embedding rather than a random row (cheap,
    already implemented in the diagnostic).
 
+## RETRAIN RESULT (2026-09-02) — size-in-training is the wrong lever
+
+The multiscale retrain ran (`SPECDISCOVER_MULTISCALE_RETRAIN_RESULT.md`). Outcome
+splits cleanly into what the augmentation's two components each did:
+
+- **x86-benign record injection WORKED, decisively.** x86 benign FP 98.4% -> 24.2%;
+  arm64 benign 27.4% -> 3.2%. The real x86/arm BENIGN records closed the gap.
+- **Size enlargement BACKFIRED.** Locked test regressed 95.27% -> 92.93% (the drop
+  is concentrated in SPECTRE_V2 recall, 71.4% — its indirect-branch signal gets
+  buried when the gadget is diluted inside a large benign graph). RISC-V benign FP
+  got *worse* (36.7% -> 55.6%). RISC-V attack recall did not move (0/11, 0/358).
+
+**Conclusion: training on large graphs does not buy RISC-V transfer, even though
+windowing to training size at INFERENCE recovered 27-64% on the same sets.** The
+windowing proxy's benefit was *isolation* (the window contains the gadget alone),
+not *size familiarity* (the model having seen big graphs) — multiscale training
+reproduces the size but not the isolation, so it reproduces none of the benefit.
+
+Two consequences for the plan:
+1. **RISC-V deployment = windowing scan at inference** (the calibrated curve above),
+   NOT a size-augmented retrain. That lever is closed.
+2. **Ship the x86-benign fix WITHOUT the size enlargement.** The two are separable:
+   `augment_size_multiscale.py --frac 0.0` injects the ~547 benign records and
+   skips all enlargement. Predicted: keeps the x86 FP fix, recovers the locked test
+   (no V2 dilution), avoids the RISC-V-benign regression. This is the next run
+   (LINUX_BOX_RUNBOOK.md "Run B").
+
+Caveat carried from the result doc: single run, and the negative RISC-V number is
+partly confounded by the 2.3pp locked-test regression (a uniformly worse model).
+The `--frac 0.0` ablation is also the cleaner test — if locked test recovers and
+RISC-V stays 0%, the isolation-not-size reading is confirmed.
+
 ## Reproduce
 
 | claim | command |

@@ -128,6 +128,30 @@ git push -u origin linux-box-multiscale
 
 (Then the Mac session pulls `origin/linux-box-multiscale` and folds the numbers in.)
 
+## Run B (NEXT) — x86-benign fix WITHOUT size enlargement
+
+Run A (the size-augmented retrain, `--frac 1.0`) fixed x86 benign FP (98.4%->24.2%)
+but regressed the locked test 2.3pp (SPECTRE_V2 dilution) and did not help RISC-V
+(`SPECDISCOVER_MULTISCALE_RETRAIN_RESULT.md`). Run B isolates the good half: inject
+the benign records, skip all enlargement.
+
+```bash
+# regenerate with NO size enlargement (benign records only): 5,532 + ~547 = ~6,079
+python3 v54/augment_size_multiscale.py --apply --variants 2 --frac 0.0
+cd v54
+CUDA_VISIBLE_DEVICES="" TQDM_DISABLE=1 python3 -u train_gine_v38.py   --train-data data/v54_train_multiscale.jsonl --test-data data/v54_test.jsonl   --output-dir viz_v54_benignonly --viz-dir viz_v54_benignonly --use-spec-builder   --epochs 100 --patience 12 --hidden-dim 128 --num-layers 3 --jk-mode cat   --batch-size 32 --lr 1e-3 --weight-decay 5e-4 --dropout 0.5   --lambda-con 0.5 --temperature 0.07 --hard-neg-weight 2.0 --arch-emb-dim 8
+cd ..
+for S in benign_x86_64 benign_arm64 riscv_benign riscv_real riscv_synth; do
+  echo "=== $S ==="
+  CUDA_VISIBLE_DEVICES="" python3 spec/eval_riscv_real.py     --ckpt v54/viz_v54_benignonly/gine_best.pt     --records-jsonl spec/data/${S}_validation.jsonl 2>/dev/null     | grep -E "zero-shot accuracy|prediction distribution"
+done
+```
+
+Success for Run B: x86 benign FP stays low (~<=25%) AND locked test recovers to
+~95% (near the v54_spec baseline) AND RISC-V benign does not regress past 36.7%.
+If so, ship Run B as the new base model; RISC-V handled separately by the windowing
+scan at inference (§operating curve in SPECDISCOVER_RISCV_GENERALISATION.md).
+
 ## Notes / gotchas
 
 - Do NOT add any `spec/data/*_validation.jsonl` to training — they are held-out

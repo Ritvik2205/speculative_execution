@@ -372,6 +372,32 @@ Four independent streams, none blocked on the retrain:
   split appeared in both halves; build_dataset now dedups train-vs-test. Negligible
   numeric impact (<=0.06pp) but a real data-snooping leak, now closed.
 
+## 10. Multiscale retrain came back — x86 fix works, size-for-RISC-V refuted
+
+The GPU-box retrain ran (`SPECDISCOVER_MULTISCALE_RETRAIN_RESULT.md`). Result splits
+by the augmentation's two components:
+
+| held-out set | v54_spec | multiscale | verdict |
+|---|---|---|---|
+| x86 benign FP | 98.4% | **24.2%** | fixed |
+| arm64 benign FP | 27.4% | **3.2%** | improved |
+| RISC-V benign FP | 36.7% | 55.6% | worse |
+| RISC-V attack (real/synth) | 0/0 | 0/0 | unchanged |
+| locked test acc | 95.27% | 92.93% | regressed 2.3pp (SPECTRE_V2 recall 71%) |
+
+- **The x86-benign record injection worked** — the 98.4% FP finding is fixed.
+- **Size enlargement backfired**: it regressed the base task (V2 signal diluted in
+  large graphs) and did NOT transfer to RISC-V, even though windowing to train size
+  at *inference* recovered 27-64%. So the windowing benefit was *isolation*, not
+  *size familiarity*; training on big graphs reproduces size but not isolation.
+
+Plan moves: (1) **RISC-V deployment = windowing scan at inference**, not a size
+retrain — that lever is closed. (2) **Ship the x86 fix without the enlargement**:
+`augment_size_multiscale.py --frac 0.0` (benign records only, no dilution) is the
+next run — predicted to keep the x86 fix and recover the locked test
+(LINUX_BOX_RUNBOOK.md "Run B"). Caveat: single run, RISC-V negative partly
+confounded by the regression; Run B is also the cleaner test.
+
 ---
 
 ## Reproduce
