@@ -71,6 +71,26 @@ Ranked, with evidence:
 2. **`.L0` / `<sym>` placeholder** — top x86 link-ready blocker (A3).
 3. x86 indirect branch — **fixed this pass**.
 
+## A1 — re-triage of the `other` bucket, arch-purity ON (n=100, 2043 instrs)
+
+The arch-purity mask changed the bucket's composition decisively:
+
+- **100% known_mnemonic / wrong_operands** (was 84.5%; the 15.5% unknown-mnemonic /
+  cross-ISA / symbol-as-opcode class is GONE — clean confirmation the arch-purity
+  mask did its job).
+- Residual is now purely operand-shape:
+  - 80.6% `invalid operand for instruction` (incl. the pre-fix `call %rax`-no-`*`
+    cases, which the indirect-star fix above now removes)
+  - 8.3% `expected compatible register, symbol or integer in range` — arm immediate range
+  - 3.1% `index must be a multiple of N in range` — arm addressing scale
+  - 2.1% `without a size suffix` — x86 `str`-like
+
+The arm-flavoured clusters (immediate-range, index-multiple) are the realizer
+violating arm's operand constraints — the arm side of the "arm64 is the big hole"
+finding, and the concrete A-phase arm target: realize arm immediates and indexed
+addresses within the ISA's legal ranges/scales.
+(`eval/generator_other_triage_archpurity_2026-09-02.txt`)
+
 ## Pending
 
 - **A1** (re-triage `other` bucket with arch-purity, n=100) is running in the
