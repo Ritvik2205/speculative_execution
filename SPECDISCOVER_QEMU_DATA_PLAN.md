@@ -131,6 +131,16 @@ so the source+flag label is not taken on faith:
 - **x86_64 deeper / arm**: gem5, InvisiSpec (Docker images present, slow).
 - **any arch, real silicon**: Revizor (bare-metal, slowest, final confirmation).
 
+**Match the oracle to the mitigation — proven on the first cell**
+(`qemu_data/mitigation_pair_x86_RESULT.md`): a SPECTRE_V1 gadget compiled with vs
+without an `lfence` was confirmed leak vs safe by Spectector end-to-end. But
+Spectector models the PHT and serialization barriers only — it reports SPECTRE_V2/
+retpoline pairs safe/unsupported, and it flags SLH-hardened code as *unsafe* even
+though the loads are masked. So pair the oracle to the mitigation: **lfence →
+Spectector; retpoline (V2) and SLH → gem5 / InvisiSpec** (microarchitectural). SLH
+builds are labelled by construction (the flag) and confirmed on a microarch oracle,
+never on Spectector.
+
 The mitigated cell should come back **safe** on the same oracle — a paired
 leak/safe confirmation on the same source is the strongest label we can produce.
 
