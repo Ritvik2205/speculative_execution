@@ -1,0 +1,51 @@
+CROSS-ISA STUDY: same attack source compiled to x86 / arm64 / riscv64 (2026-09-02)
+==================================================================================
+One minimal gadget SOURCE per class, compiled to all 3 ISAs (clang x86/arm,
+riscv64-elf-gcc). Same semantics, different codegen. Baseline classifier v54_spec
+(NO riscv training). qemu_data/xisa/, reproduce with the .c + compile lines below.
+
+1. SEMANTICS ARE IDENTICAL, INSTRUCTION SHAPE IS NOT
+   The attack (bounds-check -> secret load -> cache-line-strided transmit) is the
+   same on all 3, but the instruction count differs by ISA class:
+     SPECTRE_V1:  x86  8 instrs |  arm 16 |  riscv 14
+   x86 (CISC) folds addressing into the load (movzbl (%rax,%rdi)); arm/riscv (RISC)
+   MATERIALIZE every global address explicitly (arm: adrp+ldr+ldr via GOT; riscv:
+   lui+ld), inflating instruction and LOAD counts.
+
+2. CANONICAL-OP ABSTRACTION PRESERVES THE CLASS SIGNATURE, NOT THE COUNTS
+   V1 canonical-op multiset per ISA:
+     x86_64 : BRANCH_COND 1, LOAD 1, SHL 1, STORE 1
+     arm64  : BRANCH_COND 1, LOAD 6, SHL 1, STORE 1, ADDR_GEN 3, MOV 1
+     riscv64: BRANCH_COND 1, LOAD 3, SHL 1, STORE 1, ADDR_GEN 3, ADD 3, MOV 1
+   The discriminative primitives (BRANCH_COND+LOAD+SHL+STORE) survive on ALL 3 --
+   but the LOAD count is inflated 3-6x on RISC by addressing overhead.
+
+3. PDG (graph) scales with instruction count: x86 8 nodes, arm 16, riscv 14.
+
+4. CLASSIFIER VERDICT (baseline, size-matched small gadgets):
+   SPECTRE_V1 (strong-signal class):
+     x86_64  -> SPECTRE_V1 conf 1.00
+     arm64   -> SPECTRE_V1 conf 0.67
+     riscv64 -> SPECTRE_V1 conf 0.94   <== CORRECT, zero-shot, despite no riscv training
+   SPECTRE_V4 (weaker-signal class), same-source 3 ISAs:
+     x86_64  (LOAD 4) -> SPECTRE_RSB  conf 0.61  (V4 prob 0.04) WRONG
+     arm64   (LOAD 8) -> BENIGN       conf 1.00  (V4 prob 0.00) WRONG
+     riscv64 (LOAD 5) -> SPECTRE_V1   conf 0.57  (V4 prob 0.00) WRONG
+
+CONCLUSION -- cross-ISA robustness is a function of CLASS SIGNAL STRENGTH:
+- For a WELL-REPRESENTED class (V1), the spec-neutral representation TRANSFERS: the
+  same gadget classifies consistently and correctly across all 3 ISAs, even zero-shot
+  on riscv, WHEN SIZE-MATCHED. This is WHY windowing the large real riscv PoCs to
+  training size recovered them, and why a clean small riscv V1 scores 0.94 at baseline.
+- For a WEAKER-SIGNAL class (V4), the ISA-specific addressing overhead (LOAD-count
+  inflation on RISC) DOMINATES the weak class signal and pushes the SAME gadget to
+  three DIFFERENT wrong labels. The representation does not rescue an under-learned class.
+
+This reconciles the whole RISC-V arc: the representation is ISA-robust; the RISC-V
+failure was (a) graph SIZE (large real functions vs small training windows -> H3) and
+(b) DATA (no idiomatic per-class riscv training). The fix -- idiomatic riscv training
+data per class -- targets exactly (b): it strengthens each class's signal on riscv so
+the ISA noise no longer flips the label.
+
+Reproduce: qemu_data/xisa/gadget.c, gadget_v4.c + the clang/riscv64-elf-gcc lines;
+eval via v54/viz_v54_spec + spec/eval machinery.
