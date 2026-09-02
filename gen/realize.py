@@ -57,6 +57,10 @@ class Realizer:
         self.branch_prefixes = tuple(r.get("branch_prefixes", []))
         self.repair_sym_operands = bool(r.get("repair_sym_operands", False))
         self.branch_self_rel = r.get("branch_self_rel")  # e.g. .+2 / .+4
+        self.pc_ref_ops = set(r.get("pc_ref_ops", []))       # adrp/adr -> "."
+        self.shift_imm_ops = set(r.get("shift_imm_ops", []))  # shift amt must be <64
+        self.cond_ops = set(r.get("cond_ops", []))            # last operand = cond code
+        self.cond_default = r.get("cond_default", "eq")
         self.rng = random.Random(seed)
 
     def _suffix_widths(self, opcode):
@@ -131,15 +135,31 @@ class Realizer:
             for j, kind in enumerate(operands):
                 if kind == "<sym>":
                     concrete[j] = self.branch_self_rel
-        if self.repair_sym_operands and not is_branch:
+        if self.repair_sym_operands and not is_branch and opcode not in self.pc_ref_ops:
             for j, kind in enumerate(operands):
-                if kind == "<sym>":
+                if kind in ("<sym>", "<fn>"):
                     concrete[j] = self.imm_prefix + self.safe_imm
+        # adrp/adr take a label / PC-page reference, never an immediate; "." (the
+        # current location) is always valid and needs no symbol.
+        if opcode in self.pc_ref_ops:
+            for j in range(1, len(concrete)):   # 1st is the dest register
+                concrete[j] = "."
+        # shift amount must be < register width (0-63); the CRITICAL_IMMS pool has
+        # 64/256/4096, all invalid as a shift.
+        if opcode in self.shift_imm_ops:
+            for j, kind in enumerate(operands):
+                if kind == "<imm>":
+                    concrete[j] = self.imm_prefix + self.safe_imm
+        # conditional-select/compare ops end in a condition code, not a reg/imm.
+        if opcode in self.cond_ops and concrete:
+            concrete[-1] = self.cond_default
         # pair load/store reject a register index: [base, idx] -> [base]
         if opcode in self.no_reg_offset_ops:
             for j, kind in enumerate(operands):
                 if kind == "<mem-idx>":
                     concrete[j] = re.sub(r"\[([^,\]]+),[^\]]+\]", r"[\1]", concrete[j])
+                elif kind == "<imm>":            # post-index offset must be a
+                    concrete[j] = self.imm_prefix + "0"   # multiple of the pair size
         if opcode in self.indirect_star_ops and operands:
             starred = []
             for kind, val in zip(operands, concrete):

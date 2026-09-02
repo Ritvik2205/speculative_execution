@@ -49,7 +49,35 @@
       "b."
     ],
     "repair_sym_operands": true,
-    "branch_self_rel": ".+4"
+    "branch_self_rel": ".+4",
+    "pc_ref_ops": [
+      "adrp",
+      "adr"
+    ],
+    "shift_imm_ops": [
+      "lsl",
+      "lsr",
+      "asr",
+      "ror",
+      "lslv",
+      "lsrv",
+      "asrv",
+      "rorv"
+    ],
+    "cond_ops": [
+      "csel",
+      "csinc",
+      "csinv",
+      "csneg",
+      "cset",
+      "csetm",
+      "cinc",
+      "cinv",
+      "cneg",
+      "ccmp",
+      "ccmn"
+    ],
+    "cond_default": "eq"
   },
   "pipeline": {
     "model": "out_of_order",

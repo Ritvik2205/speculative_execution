@@ -34,3 +34,18 @@ relocation, fails at link) -- next, via self-relative offsets or link-ready-time
 label definition. And arm bitfield/post-index immediate ranges (small residual).
 
 Reproduce: python3 gen/check_syntactic_validity.py --n 40 --arch-purity --link-ready
+
+--- Residual pass (same day) ---
+Second diagnosis after the first arm fix (per-instr bad 20% -> 3%) cleared the tail:
+  <fn> in non-branch operand (add x,x,fn_target)  -> immediate (extended the <sym> repair)
+  adrp/adr expecting a label (adrp x2,#1)          -> "." (pc-ref; all non-dest operands)
+  shift amount >=64 (lsr x,x,#64)                  -> safe immediate (shift_imm_ops, <64)
+  condition-code slot got #1 (csinc ...,#1)        -> "eq" (cond_ops last operand)
+  ldp/stp post-index #1 (not multiple of 8)        -> #0 (aligned)
+
+Result (3-seed, arch-purity on):
+  arm64  L2  2% -> 79.3%   link-ready 2% -> 28.7%   per-instr bad 20% -> 1.4%
+  x86_64 unchanged path (arm opcode names don't collide with x86)
+arm64 now exceeds x86 on assembly. Remaining <0.4%-each tail: dc cache-op operand,
+literal-pool ldr =sym, push/pop (an arch-purity gap: arm classify maps push/pop to
+the PUSH category so the mask keeps them though aarch64 has neither), mrs/msr sysreg.

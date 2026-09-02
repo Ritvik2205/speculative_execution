@@ -98,8 +98,10 @@ addresses within the ISA's legal ranges/scales.
 
 - **A3** — DONE (self-relative branch targets). x86 link-ready 22%→43%; arm
   undefined-symbol blockers eliminated.
-- **arm64 assembly (L2) residual** — arm link-ready now gated entirely by assembly
-  failures (0 undefined syms), not labels: immediate-range / bitfield / post-index.
+- **arm64 assembly residual — FIXED**: L2 57%→79.3% (per-instr bad 3%→1.4%) via
+  <fn>-operand repair, adrp/adr→".", shift-amount clamp, condition-code ops→"eq",
+  ldp/stp post-index alignment. arm64 now exceeds x86 on assembly. Tiny tail
+  (<0.4% each): dc cache-op, literal-pool ldr, push/pop (an arch-purity gap).
 - **arm64 operand realization** — DONE (L2 2%→57%). Residual: bitfield/post-index
   immediate ranges (small).
 - **B1** — driver built (`gen/b1_oracle_structure.py`); structure half run and
