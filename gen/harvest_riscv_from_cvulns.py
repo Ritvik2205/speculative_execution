@@ -60,7 +60,10 @@ FILE_CLASS = {
 }
 # harness functions from utils.c — never gadgets
 HARNESS = {"flush_probe_array", "measure_access_time", "benign_target",
-           "common_init", "perform_measurement", "main", "rdtsc"}
+           "common_init", "perform_measurement", "main", "rdtsc",
+           # riscv shim helpers (utils_riscv.c) — timing/fence, never gadgets
+           "__rdtsc", "_rdtsc", "__rdtscp", "_mm_mfence", "_mm_lfence",
+           "_mm_sfence", "_mm_clflush"}
 
 
 def compile_riscv(src: Path, opt: str, tmp: Path):
