@@ -60,8 +60,8 @@ TQDM_DISABLE=1 python3 -u train_gine_v38.py \
 ```
 
 Checkpoint lands at `v54/viz_v54_multiscale/gine_best.pt`; metrics at
-`viz_v54_multiscale/gine_metrics.json`. Run it 3-5 times if time allows — there is NO `--seed` CLI flag, so just rerun
-(each run reinitializes; variance comes from training stochasticity). This model
+`viz_v54_multiscale/gine_metrics.json`. Run it 3-5 times if time allows — pass `--seed N` (sets torch+numpy+random for a reproducible run; keep
+`--val-split-seed` fixed to hold the val split constant across seeds). This model
 has ~1-2pp run-to-run test variance, so a single run is a data point, not a
 verdict; keep the best-val checkpoint and report the spread.
 

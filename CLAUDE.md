@@ -335,3 +335,17 @@ Each version has corresponding training script and visualization directory.
 - **Dataset**: 45,942 samples (training), 5,834 GitHub files scanned
 
 Use batch processing and multiprocessing for large-scale scans.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as markdown files under `.scratch/<feature-slug>/` in this repo. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary; each label string equals its role name. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

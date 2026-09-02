@@ -1,0 +1,11 @@
+base seed0 test=95.39 macroF1=81.03
+benignonly seed0 test=93.05 macroF1=77.97
+base seed1 test=95.87 macroF1=87.53
+benignonly seed1 test=94.31 macroF1=79.11
+base seed2 test=95.45 macroF1=81.27
+benignonly seed2 test=93.41 macroF1=78.32
+base seed3 test=96.53 macroF1=85.11
+benignonly seed3 test=93.11 macroF1=76.78
+base seed4 test=96.17 macroF1=81.39
+benignonly seed4 test=95.93 macroF1=83.26
+MULTISEED_DONE
