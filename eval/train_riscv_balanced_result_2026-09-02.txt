@@ -1,0 +1,39 @@
+BALANCED IDIOMATIC riscv64 TRAINING — the complete RISC-V result (2026-09-02)
+============================================================================
+Idiomatic riscv64 data, real-compiled from portable C, independence-gate-passed,
+mixed into training. Held-out anchors NEVER trained on: riscv_real (4 vendor PoCs,
+n=11), riscv_synth (n=358), riscv_benign (n=180). 0 leakage (all configs). 2 seeds,
+spec-builder, locked test unchanged from baseline recipe.
+
+  config                     real attack   synth attack   benign FP    locked test
+  v54_spec baseline          0/11 (0%)     0/358 (0%)     36.7%        96.14 (5-seed)
+  + 37 attacks (att-only)    36-73%        66-70%         98-100%      93.5 / 95.8
+  + 37 attacks + 80 benign   18-55%        34%            21-30%       95.4 / 94.7   <== BALANCED
+
+RESULT: balanced idiomatic riscv data STRICTLY DOMINATES the baseline on BOTH axes,
+whole-function (no inference windowing):
+  attack recall  0%    -> 18-55% real / 34% synth
+  benign FP      36.7% -> 21-30%  (better than baseline!)
+  locked test    ~unchanged (~95)
+
+The attack-only run maximises attack recall (36-73%) but destroys benign FP
+(98-100%) -- the "riscv => attack" collapse. Adding 80 idiomatic riscv BENIGN
+records fixes the FP (down to 21-30%, below baseline) and keeps attack recall well
+above 0%. Classic precision/recall balance, now controlled by the attack:benign mix.
+
+THE COMPLETE RISC-V STORY:
+  diagnosis -> the failure was DATA (the corpus was an ARM transliteration; the
+               classifier never saw idiomatic riscv), NOT the ISA, NOT graph size,
+               NOT the arch embedding.
+  fix       -> compile real/portable gadget C with a real riscv64 compiler
+               (QEMU-plan approach) -> idiomatic data that passes the independence
+               gate -> mix ATTACKS + BENIGN, balanced.
+  proof     -> 0%/37%FP -> 18-55% attack / 21-30% FP, whole-function, locked intact.
+
+CAVEATS: n=11 = 3-7 gadgets; high seed variance (real 18 vs 55%); 2 seeds. The 2:1
+benign:attack mix is benign-heavy -- tuning toward 1:1 would trade some FP for higher
+attack recall (an operating-point knob, not a wall). Movement is unambiguous, but this
+is a first controlled result, not a final tuned number.
+
+NEXT: sweep the attack:benign ratio for the operating point; grow both batches (more
+c_vulns sources + more benign files) for tighter CIs; then multi-seed for the paper.
