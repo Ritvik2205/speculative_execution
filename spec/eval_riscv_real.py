@@ -142,13 +142,6 @@ def build_riscv_records():
 
 
 def main():
-    if not CORPUS.exists():
-        print(f"missing {CORPUS} — run the RISC-V compile step first")
-        sys.exit(2)
-    if not CKPT.exists():
-        print(f"missing checkpoint {CKPT}")
-        sys.exit(2)
-
     import argparse as _ap
     _p = _ap.ArgumentParser()
     _p.add_argument("--ckpt", default=None,
@@ -163,6 +156,9 @@ def main():
         print(f"records OVERRIDDEN from {_a.records_jsonl}: {len(records)}")
         assert all(r.get("split") != "train" for r in records)
     else:
+        if not CORPUS.exists():
+            print(f"missing {CORPUS} — run the RISC-V compile step first")
+            sys.exit(2)
         records = build_riscv_records()
     if not records:
         print("no labeled RISC-V records built")

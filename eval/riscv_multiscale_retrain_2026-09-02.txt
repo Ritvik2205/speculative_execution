@@ -1,0 +1,871 @@
+# v54 multiscale retrain — RISC-V generalisation + x86-benign gate eval
+# Run 2026-09-02, CPU (GTX 1050 Pascal has no CUDA kernels in available torch builds; cu126 reinstall hit a disk quota wall)
+# Checkpoint: v54/viz_v54_multiscale/gine_best.pt (best epoch 14, val_acc=0.9389, early-stopped epoch 26)
+
+=== benign_x86_64 ===
+records OVERRIDDEN from spec/data/benign_x86_64_validation.jsonl: 62
+label distribution: {'BENIGN': 62}
+checkpoint: v54/viz_v54_multiscale/gine_best.pt
+
+checkpoint classes (10): ['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 62/62
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 10005 -> 10005 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :     7616 (47.0%)
+    CONTROL_FLOW        :     6755 (41.7%)
+    SPEC_CONDITIONAL    :     1458 (9.0%)
+    SPEC_INDIRECT       :      152 (0.9%)
+    SPEC_RETURN         :       34 (0.2%)
+    MEMORY_ORDER        :      154 (0.9%)
+    RSB_CHAIN           :       47 (0.3%)
+============================================================
+RISC-V zero-shot accuracy: 75.81%  (n=62)
+============================================================
+              precision    recall  f1-score   support
+
+      BENIGN       1.00      0.76      0.86        62
+
+   micro avg       1.00      0.76      0.86        62
+   macro avg       1.00      0.76      0.86        62
+weighted avg       1.00      0.76      0.86        62
+
+true                       predicted                  detail
+  BENIGN                   BENIGN                   pkcs5
+  BENIGN                   BENIGN                   pkcs5
+  BENIGN                   SPECTRE_RSB              pkcs5
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   SPECTRE_RSB              ssl_cache
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   SPECTRE_RSB              ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   SPECTRE_V2               ssl_srv
+  BENIGN                   SPECTRE_V2               ssl_srv
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   SPECTRE_RSB              ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   SPECTRE_V1               ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   BENIGN                   x509_crl
+  BENIGN                   SPECTRE_RSB              x509_crl
+  BENIGN                   SPECTRE_RSB              x509_crl
+  BENIGN                   BENIGN                   x509_crl
+  BENIGN                   SPECTRE_RSB              x509_crl
+  BENIGN                   SPECTRE_RSB              x509_crl
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   SPECTRE_RSB              x509_csr
+  BENIGN                   SPECTRE_RSB              x509_csr
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   SPECTRE_RSB              x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   SPECTRE_RSB              x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   xtea
+  BENIGN                   BENIGN                   xtea
+  BENIGN                   BENIGN                   xtea
+  BENIGN                   BENIGN                   xtea
+  BENIGN                   BENIGN                   xtea
+prediction distribution: {'BENIGN': 47, 'SPECTRE_RSB': 12, 'SPECTRE_V2': 2, 'SPECTRE_V1': 1}
+NOTE: ARCH_VOCAB now has a real 'riscv64' key (fixed) so arch_id
+correctly resolves to its own row rather than falling back to
+'unknown' — but that row still never received a gradient update
+(v54's training pool has zero riscv64 records), so this result
+still reflects spec-driven graph features filtered through an
+untrained arch embedding, not a fully realistic deployment scenario.
+
+=== benign_arm64 ===
+records OVERRIDDEN from spec/data/benign_arm64_validation.jsonl: 62
+label distribution: {'BENIGN': 62}
+checkpoint: v54/viz_v54_multiscale/gine_best.pt
+
+checkpoint classes (10): ['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 62/62
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 9857 -> 9857 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :     7774 (43.3%)
+    CONTROL_FLOW        :     6428 (35.8%)
+    SPEC_CONDITIONAL    :     2018 (11.3%)
+    SPEC_INDIRECT       :      158 (0.9%)
+    SPEC_RETURN         :       51 (0.3%)
+    MEMORY_ORDER        :     1463 (8.2%)
+    RSB_CHAIN           :       42 (0.2%)
+============================================================
+RISC-V zero-shot accuracy: 96.77%  (n=62)
+============================================================
+              precision    recall  f1-score   support
+
+      BENIGN       1.00      0.97      0.98        62
+
+   micro avg       1.00      0.97      0.98        62
+   macro avg       1.00      0.97      0.98        62
+weighted avg       1.00      0.97      0.98        62
+
+true                       predicted                  detail
+  BENIGN                   BENIGN                   pkcs5
+  BENIGN                   BENIGN                   pkcs5
+  BENIGN                   BENIGN                   pkcs5
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   rsa
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cache
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_cli
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   BENIGN                   ssl_srv
+  BENIGN                   SPECTRE_V2               ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   BENIGN                   ssl_tls
+  BENIGN                   BENIGN                   version
+  BENIGN                   BENIGN                   version
+  BENIGN                   BENIGN                   x509_crl
+  BENIGN                   BENIGN                   x509_crl
+  BENIGN                   BENIGN                   x509_crl
+  BENIGN                   BENIGN                   x509_crl
+  BENIGN                   BENIGN                   x509_crl
+  BENIGN                   BENIGN                   x509_crl
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   SPECTRE_RSB              x509_csr
+  BENIGN                   BENIGN                   x509_csr
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_crt
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   x509write_csr
+  BENIGN                   BENIGN                   xtea
+  BENIGN                   BENIGN                   xtea
+  BENIGN                   BENIGN                   xtea
+  BENIGN                   BENIGN                   xtea
+  BENIGN                   BENIGN                   xtea
+prediction distribution: {'BENIGN': 60, 'SPECTRE_V2': 1, 'SPECTRE_RSB': 1}
+NOTE: ARCH_VOCAB now has a real 'riscv64' key (fixed) so arch_id
+correctly resolves to its own row rather than falling back to
+'unknown' — but that row still never received a gradient update
+(v54's training pool has zero riscv64 records), so this result
+still reflects spec-driven graph features filtered through an
+untrained arch embedding, not a fully realistic deployment scenario.
+
+=== riscv_benign ===
+records OVERRIDDEN from spec/data/riscv_benign_validation.jsonl: 180
+label distribution: {'BENIGN': 180}
+checkpoint: v54/viz_v54_multiscale/gine_best.pt
+
+checkpoint classes (10): ['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 180/180
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 21846 -> 21846 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    25800 (51.6%)
+    CONTROL_FLOW        :    13185 (26.4%)
+    SPEC_CONDITIONAL    :     4266 (8.5%)
+    SPEC_INDIRECT       :       20 (0.0%)
+    SPEC_RETURN         :       48 (0.1%)
+    MEMORY_ORDER        :     6603 (13.2%)
+    RSB_CHAIN           :       82 (0.2%)
+============================================================
+RISC-V zero-shot accuracy: 44.44%  (n=180)
+============================================================
+              precision    recall  f1-score   support
+
+      BENIGN       1.00      0.44      0.62       180
+
+   micro avg       1.00      0.44      0.62       180
+   macro avg       1.00      0.44      0.62       180
+weighted avg       1.00      0.44      0.62       180
+
+true                       predicted                  detail
+  BENIGN                   BENIGN                   aes O0
+  BENIGN                   BENIGN                   aes O0
+  BENIGN                   SPECTRE_RSB              aes O0
+  BENIGN                   BENIGN                   aes O0
+  BENIGN                   BENIGN                   aes O0
+  BENIGN                   INCEPTION                aes O0
+  BENIGN                   SPECTRE_RSB              arc4 O0
+  BENIGN                   BENIGN                   arc4 O0
+  BENIGN                   INCEPTION                arc4 O0
+  BENIGN                   INCEPTION                arc4 O0
+  BENIGN                   BENIGN                   arc4 O0
+  BENIGN                   SPECTRE_RSB              arc4 O1
+  BENIGN                   BENIGN                   asn1parse O0
+  BENIGN                   SPECTRE_RSB              asn1parse O0
+  BENIGN                   BENIGN                   asn1parse O0
+  BENIGN                   BENIGN                   asn1parse O0
+  BENIGN                   SPECTRE_RSB              asn1parse O0
+  BENIGN                   BENIGN                   asn1parse O0
+  BENIGN                   BENIGN                   asn1write O0
+  BENIGN                   BENIGN                   asn1write O0
+  BENIGN                   SPECTRE_RSB              asn1write O0
+  BENIGN                   SPECTRE_RSB              asn1write O0
+  BENIGN                   SPECTRE_RSB              asn1write O0
+  BENIGN                   SPECTRE_RSB              asn1write O0
+  BENIGN                   BENIGN                   base64 O0
+  BENIGN                   BENIGN                   base64 O0
+  BENIGN                   BENIGN                   base64 O0
+  BENIGN                   BENIGN                   base64 O1
+  BENIGN                   BENIGN                   base64 O1
+  BENIGN                   BENIGN                   base64 O1
+  BENIGN                   BENIGN                   camellia O0
+  BENIGN                   SPECTRE_RSB              camellia O0
+  BENIGN                   BENIGN                   camellia O0
+  BENIGN                   BENIGN                   camellia O0
+  BENIGN                   INCEPTION                camellia O0
+  BENIGN                   INCEPTION                camellia O0
+  BENIGN                   SPECTRE_RSB              ctr_drbg O0
+  BENIGN                   SPECTRE_RSB              ctr_drbg O0
+  BENIGN                   SPECTRE_RSB              ctr_drbg O0
+  BENIGN                   SPECTRE_V4               ctr_drbg O0
+  BENIGN                   SPECTRE_V4               ctr_drbg O0
+  BENIGN                   SPECTRE_V4               ctr_drbg O0
+  BENIGN                   SPECTRE_RSB              des O0
+  BENIGN                   BENIGN                   des O0
+  BENIGN                   SPECTRE_RSB              des O0
+  BENIGN                   BENIGN                   des O0
+  BENIGN                   INCEPTION                des O0
+  BENIGN                   INCEPTION                des O0
+  BENIGN                   BENIGN                   dhm O0
+  BENIGN                   BENIGN                   dhm O0
+  BENIGN                   SPECTRE_RSB              dhm O0
+  BENIGN                   SPECTRE_RSB              dhm O0
+  BENIGN                   INCEPTION                dhm O0
+  BENIGN                   BENIGN                   dhm O0
+  BENIGN                   SPECTRE_RSB              ecdh O0
+  BENIGN                   BENIGN                   ecdh O0
+  BENIGN                   SPECTRE_RSB              ecdh O0
+  BENIGN                   SPECTRE_RSB              ecdh O0
+  BENIGN                   BENIGN                   ecdh O0
+  BENIGN                   SPECTRE_RSB              ecdh O0
+  BENIGN                   BENIGN                   ecdsa O0
+  BENIGN                   SPECTRE_RSB              ecdsa O0
+  BENIGN                   SPECTRE_RSB              ecdsa O0
+  BENIGN                   SPECTRE_RSB              ecdsa O0
+  BENIGN                   SPECTRE_RSB              ecdsa O0
+  BENIGN                   BENIGN                   ecdsa O0
+  BENIGN                   BENIGN                   ecp_curves O0
+  BENIGN                   BENIGN                   ecp_curves O0
+  BENIGN                   SPECTRE_RSB              ecp_curves O0
+  BENIGN                   SPECTRE_RSB              ecp_curves O0
+  BENIGN                   BENIGN                   ecp_curves O0
+  BENIGN                   BENIGN                   ecp_curves O0
+  BENIGN                   SPECTRE_RSB              entropy O0
+  BENIGN                   SPECTRE_RSB              entropy O0
+  BENIGN                   BENIGN                   entropy O0
+  BENIGN                   SPECTRE_RSB              entropy O0
+  BENIGN                   SPECTRE_RSB              entropy O0
+  BENIGN                   SPECTRE_V1               entropy O0
+  BENIGN                   SPECTRE_RSB              entropy_poll O0
+  BENIGN                   SPECTRE_RSB              entropy_poll O0
+  BENIGN                   BENIGN                   entropy_poll O1
+  BENIGN                   BENIGN                   entropy_poll O1
+  BENIGN                   SPECTRE_RSB              entropy_poll O2
+  BENIGN                   BENIGN                   entropy_poll O2
+  BENIGN                   BENIGN                   error O0
+  BENIGN                   SPECTRE_RSB              error O0
+  BENIGN                   BENIGN                   error O1
+  BENIGN                   SPECTRE_RSB              error O1
+  BENIGN                   BENIGN                   error O2
+  BENIGN                   BENIGN                   error Os
+  BENIGN                   BENIGN                   oid O0
+  BENIGN                   SPECTRE_RSB              oid O0
+  BENIGN                   BENIGN                   oid O0
+  BENIGN                   SPECTRE_RSB              oid O0
+  BENIGN                   BENIGN                   oid O0
+  BENIGN                   SPECTRE_RSB              oid O0
+  BENIGN                   BENIGN                   pkcs5 O0
+  BENIGN                   BENIGN                   pkcs5 O0
+  BENIGN                   BENIGN                   pkcs5 O0
+  BENIGN                   BENIGN                   pkcs5 O0
+  BENIGN                   BENIGN                   pkcs5 O0
+  BENIGN                   BENIGN                   pkcs5 O1
+  BENIGN                   SPECTRE_RSB              rsa O0
+  BENIGN                   BENIGN                   rsa O0
+  BENIGN                   BENIGN                   rsa O0
+  BENIGN                   BENIGN                   rsa O0
+  BENIGN                   SPECTRE_RSB              rsa O0
+  BENIGN                   SPECTRE_RSB              rsa O0
+  BENIGN                   SPECTRE_RSB              ssl_cache O0
+  BENIGN                   BENIGN                   ssl_cache O0
+  BENIGN                   BENIGN                   ssl_cache O0
+  BENIGN                   SPECTRE_V4               ssl_cache O0
+  BENIGN                   SPECTRE_V4               ssl_cache O0
+  BENIGN                   BENIGN                   ssl_cache O0
+  BENIGN                   BENIGN                   ssl_cli O0
+  BENIGN                   BENIGN                   ssl_cli O0
+  BENIGN                   INCEPTION                ssl_cli O0
+  BENIGN                   BENIGN                   ssl_cli O0
+  BENIGN                   SPECTRE_RSB              ssl_cli O0
+  BENIGN                   SPECTRE_RSB              ssl_cli O0
+  BENIGN                   SPECTRE_RSB              ssl_srv O0
+  BENIGN                   BENIGN                   ssl_srv O0
+  BENIGN                   INCEPTION                ssl_srv O0
+  BENIGN                   BENIGN                   ssl_srv O0
+  BENIGN                   SPECTRE_RSB              ssl_srv O0
+  BENIGN                   BENIGN                   ssl_srv O0
+  BENIGN                   BENIGN                   ssl_tls O0
+  BENIGN                   BENIGN                   ssl_tls O0
+  BENIGN                   BENIGN                   ssl_tls O0
+  BENIGN                   INCEPTION                ssl_tls O0
+  BENIGN                   BENIGN                   ssl_tls O0
+  BENIGN                   SPECTRE_RSB              ssl_tls O0
+  BENIGN                   INCEPTION                version O0
+  BENIGN                   SPECTRE_RSB              version O0
+  BENIGN                   SPECTRE_RSB              version O0
+  BENIGN                   BENIGN                   version O1
+  BENIGN                   SPECTRE_RSB              version O1
+  BENIGN                   BENIGN                   version O2
+  BENIGN                   SPECTRE_RSB              x509_crl O0
+  BENIGN                   BENIGN                   x509_crl O0
+  BENIGN                   BENIGN                   x509_crl O0
+  BENIGN                   BENIGN                   x509_crl O0
+  BENIGN                   BENIGN                   x509_crl O0
+  BENIGN                   BENIGN                   x509_crl O0
+  BENIGN                   BENIGN                   x509_csr O0
+  BENIGN                   BENIGN                   x509_csr O0
+  BENIGN                   SPECTRE_RSB              x509_csr O0
+  BENIGN                   BENIGN                   x509_csr O0
+  BENIGN                   SPECTRE_RSB              x509_csr O0
+  BENIGN                   SPECTRE_RSB              x509_csr O0
+  BENIGN                   SPECTRE_RSB              x509write_crt O0
+  BENIGN                   SPECTRE_RSB              x509write_crt O0
+  BENIGN                   SPECTRE_V4               x509write_crt O0
+  BENIGN                   SPECTRE_V4               x509write_crt O0
+  BENIGN                   SPECTRE_V4               x509write_crt O0
+  BENIGN                   SPECTRE_V4               x509write_crt O0
+  BENIGN                   SPECTRE_RSB              x509write_csr O0
+  BENIGN                   SPECTRE_RSB              x509write_csr O0
+  BENIGN                   SPECTRE_V4               x509write_csr O0
+  BENIGN                   SPECTRE_V4               x509write_csr O0
+  BENIGN                   SPECTRE_RSB              x509write_csr O0
+  BENIGN                   SPECTRE_RSB              x509write_csr O0
+  BENIGN                   SPECTRE_RSB              xtea O0
+  BENIGN                   BENIGN                   xtea O0
+  BENIGN                   SPECTRE_RSB              xtea O0
+  BENIGN                   INCEPTION                xtea O0
+  BENIGN                   BENIGN                   xtea O0
+  BENIGN                   BENIGN                   xtea O0
+  BENIGN                   INCEPTION                hist O0
+  BENIGN                   INCEPTION                hist O0
+  BENIGN                   SPECTRE_RSB              hist O0
+  BENIGN                   INCEPTION                hist O0
+  BENIGN                   SPECTRE_RSB              hist O0
+  BENIGN                   SPECTRE_RSB              hist O0
+  BENIGN                   INCEPTION                main O0
+  BENIGN                   INCEPTION                main O0
+  BENIGN                   INCEPTION                main O0
+  BENIGN                   SPECTRE_RSB              main O0
+  BENIGN                   RETBLEED                 main O1
+  BENIGN                   L1TF                     main O1
+prediction distribution: {'BENIGN': 80, 'SPECTRE_RSB': 67, 'INCEPTION': 19, 'SPECTRE_V4': 11, 'SPECTRE_V1': 1, 'RETBLEED': 1, 'L1TF': 1}
+NOTE: ARCH_VOCAB now has a real 'riscv64' key (fixed) so arch_id
+correctly resolves to its own row rather than falling back to
+'unknown' — but that row still never received a gradient update
+(v54's training pool has zero riscv64 records), so this result
+still reflects spec-driven graph features filtered through an
+untrained arch embedding, not a fully realistic deployment scenario.
+
+=== riscv_real ===
+records OVERRIDDEN from spec/data/riscv_real_validation.jsonl: 11
+label distribution: {'SPECTRE_V1': 7, 'SPECTRE_V2': 2, 'SPECTRE_RSB': 2}
+checkpoint: v54/viz_v54_multiscale/gine_best.pt
+
+checkpoint classes (10): ['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 11/11
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 1843 -> 1843 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :     3981 (58.9%)
+    CONTROL_FLOW        :     1685 (24.9%)
+    SPEC_CONDITIONAL    :      408 (6.0%)
+    SPEC_INDIRECT       :       40 (0.6%)
+    SPEC_RETURN         :       52 (0.8%)
+    MEMORY_ORDER        :      583 (8.6%)
+    FENCE_BOUNDARY      :        4 (0.1%)
+    RSB_CHAIN           :        2 (0.0%)
+============================================================
+RISC-V zero-shot accuracy: 0.00%  (n=11)
+============================================================
+              precision    recall  f1-score   support
+
+ SPECTRE_RSB       0.00      0.00      0.00       2.0
+  SPECTRE_V1       0.00      0.00      0.00       7.0
+  SPECTRE_V2       0.00      0.00      0.00       2.0
+
+   micro avg       0.00      0.00      0.00      11.0
+   macro avg       0.00      0.00      0.00      11.0
+weighted avg       0.00      0.00      0.00      11.0
+
+true                       predicted                  detail
+  SPECTRE_V1               BENIGN                   gadget_function boom_condBranchMispred:gadget_function O0
+  SPECTRE_V1               BENIGN                   attack_unit boom_condBranchMispred:attack_unit O0
+  SPECTRE_V1               BENIGN                   attack_unit boom_condBranchMispred:attack_unit O2
+  SPECTRE_V2               BENIGN                   attack_unit boom_indirBranchMispred:attack_unit O0
+  SPECTRE_V2               BENIGN                   attack_unit boom_indirBranchMispred:attack_unit O2
+  SPECTRE_RSB              INCEPTION                attack_unit boom_returnStackBuffer:attack_unit O0
+  SPECTRE_RSB              INCEPTION                attack_unit boom_returnStackBuffer:attack_unit O2
+  SPECTRE_V1               BENIGN                   gadget_function cispa_spectre:gadget_function O0
+  SPECTRE_V1               BENIGN                   attack_unit cispa_spectre:attack_unit O0
+  SPECTRE_V1               BRANCH_HISTORY_INJECTION gadget_function cispa_spectre:gadget_function O2
+  SPECTRE_V1               INCEPTION                attack_unit cispa_spectre:attack_unit O2
+prediction distribution: {'BENIGN': 7, 'INCEPTION': 3, 'BRANCH_HISTORY_INJECTION': 1}
+NOTE: ARCH_VOCAB now has a real 'riscv64' key (fixed) so arch_id
+correctly resolves to its own row rather than falling back to
+'unknown' — but that row still never received a gradient update
+(v54's training pool has zero riscv64 records), so this result
+still reflects spec-driven graph features filtered through an
+untrained arch embedding, not a fully realistic deployment scenario.
+
+=== riscv_synth ===
+records OVERRIDDEN from spec/data/riscv_synth_validation.jsonl: 358
+label distribution: {'SPECTRE_V1': 250, 'SPECTRE_V2': 108}
+checkpoint: v54/viz_v54_multiscale/gine_best.pt
+
+checkpoint classes (10): ['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 358/358
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 21362 -> 21362 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    37826 (52.9%)
+    CONTROL_FLOW        :    21004 (29.4%)
+    SPEC_CONDITIONAL    :     3065 (4.3%)
+    SPEC_INDIRECT       :     2664 (3.7%)
+    SPEC_RETURN         :     1450 (2.0%)
+    MEMORY_ORDER        :     5231 (7.3%)
+    RSB_CHAIN           :      253 (0.4%)
+============================================================
+RISC-V zero-shot accuracy: 0.00%  (n=358)
+============================================================
+              precision    recall  f1-score   support
+
+  SPECTRE_V1       0.00      0.00      0.00     250.0
+  SPECTRE_V2       0.00      0.00      0.00     108.0
+
+   micro avg       0.00      0.00      0.00     358.0
+   macro avg       0.00      0.00      0.00     358.0
+weighted avg       0.00      0.00      0.00     358.0
+
+true                       predicted                  detail
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_0 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_0 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_0 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_0 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_0 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_0 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_0 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_0 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_1 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_2 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_2 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_2 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_2 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_2 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_2 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_2 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_2 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_3 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_4 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_4 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_4 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_4 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_4 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_4 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_4 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_4 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_5 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_6 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_6 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_6 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_6 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_6 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_6 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_6 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_6 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_7 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_8 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_8 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_8 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_8 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_8 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_8 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_8 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_8 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_9 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_10 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_10 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_10 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_10 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_10 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_10 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_10 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_10 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_11 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_24 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_24 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_24 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_24 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_24 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_24 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_24 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_24 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_25 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_26 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_26 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_26 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_26 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_26 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_26 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_26 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_26 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_27 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_28 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_28 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_28 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_28 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_28 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_28 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_28 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_28 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_29 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_30 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_30 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_30 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_30 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_30 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_30 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_30 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_30 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_31 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_32 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_32 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_32 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_32 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_32 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_32 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_32 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_32 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_33 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_34 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_34 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_34 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_34 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_34 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_34 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_34 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_34 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_35 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_48 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_48 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_48 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_48 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_48 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_48 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_48 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_48 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_49 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_50 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_50 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_50 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_50 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_50 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_50 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_50 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_50 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_51 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_52 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_52 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_52 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_52 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_52 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_52 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_52 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_52 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_53 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_54 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_54 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_54 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_54 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_54 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_54 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_54 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_54 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_55 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_56 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_56 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_56 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_56 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_56 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_56 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_56 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_56 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_57 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_58 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_58 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_58 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_58 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_58 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_58 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_58 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_58 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_59 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_72 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_72 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_72 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_72 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_72 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_72 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_72 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_73 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_74 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_74 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_74 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_74 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_74 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_74 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_74 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_75 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_76 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_76 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_76 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_76 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_76 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_76 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_76 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_77 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_78 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_78 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_78 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_78 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_78 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_78 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_78 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_79 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_80 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_80 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_80 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_80 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_80 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_80 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_80 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_81 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_82 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_82 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_82 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_82 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_82 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_82 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_82 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_83 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_96 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_96 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_96 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_96 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_96 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_96 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_96 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_97 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_98 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_98 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_98 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_98 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_98 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_98 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_98 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_99 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_100 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_100 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_100 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_100 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_100 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_100 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_100 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_101 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_102 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_102 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_102 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_102 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_102 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_102 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_102 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_103 O0
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_104 O0
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_104 O1
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_104 O1
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_104 O2
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_104 O2
+  SPECTRE_V1               BENIGN                   gadget_function synth_SPECTRE_V1_104 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_104 Os
+  SPECTRE_V1               BENIGN                   attack_unit synth_SPECTRE_V1_105 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_0 O0
+  SPECTRE_V2               BRANCH_HISTORY_INJECTION attack_unit synth_SPECTRE_V2_0 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_0 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_0 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_1 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_2 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_3 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_3 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_3 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_3 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_4 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_5 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_6 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_6 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_6 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_6 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_7 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_8 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_9 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_9 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_9 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_9 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_10 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_11 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_24 O0
+  SPECTRE_V2               BRANCH_HISTORY_INJECTION attack_unit synth_SPECTRE_V2_24 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_24 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_24 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_25 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_26 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_27 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_27 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_27 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_27 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_28 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_29 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_30 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_30 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_30 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_30 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_31 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_32 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_33 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_33 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_33 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_33 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_34 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_35 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_48 O0
+  SPECTRE_V2               BRANCH_HISTORY_INJECTION attack_unit synth_SPECTRE_V2_48 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_48 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_48 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_49 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_50 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_51 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_51 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_51 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_51 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_52 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_53 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_54 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_54 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_54 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_54 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_55 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_56 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_57 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_57 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_57 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_57 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_58 O0
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_59 O0
+  SPECTRE_V2               BRANCH_HISTORY_INJECTION attack_unit synth_SPECTRE_V2_72 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_72 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_72 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_75 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_75 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_75 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_78 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_78 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_78 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_81 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_81 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_81 Os
+  SPECTRE_V2               BRANCH_HISTORY_INJECTION attack_unit synth_SPECTRE_V2_96 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_96 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_96 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_99 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_99 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_99 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_102 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_102 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_102 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_105 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_105 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_105 Os
+  SPECTRE_V2               BRANCH_HISTORY_INJECTION attack_unit synth_SPECTRE_V2_120 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_120 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_120 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_123 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_123 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_123 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_126 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_126 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_126 Os
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_129 O1
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_129 O2
+  SPECTRE_V2               INCEPTION                attack_unit synth_SPECTRE_V2_129 Os
+prediction distribution: {'BENIGN': 250, 'INCEPTION': 102, 'BRANCH_HISTORY_INJECTION': 6}
+NOTE: ARCH_VOCAB now has a real 'riscv64' key (fixed) so arch_id
+correctly resolves to its own row rather than falling back to
+'unknown' — but that row still never received a gradient update
+(v54's training pool has zero riscv64 records), so this result
+still reflects spec-driven graph features filtered through an
+untrained arch embedding, not a fully realistic deployment scenario.
+
