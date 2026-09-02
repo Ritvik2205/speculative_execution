@@ -100,8 +100,15 @@ addresses within the ISA's legal ranges/scales.
   undefined-symbol blockers eliminated.
 - **arm64 assembly residual — FIXED**: L2 57%→79.3% (per-instr bad 3%→1.4%) via
   <fn>-operand repair, adrp/adr→".", shift-amount clamp, condition-code ops→"eq",
-  ldp/stp post-index alignment. arm64 now exceeds x86 on assembly. Tiny tail
-  (<0.4% each): dc cache-op, literal-pool ldr, push/pop (an arch-purity gap).
+  ldp/stp post-index alignment. Tiny tail (<0.4% each): dc cache-op, literal-pool
+  ldr, mrs/msr sysreg.
+- **arch-purity gap — FIXED**: the mask tested `canonical_op(op)!=OTHER`, which
+  (a) kept arm push/pop (base.json's stack_op matched them; arm stack_op now
+  never-matches) and (b) wrongly DROPPED operand-determined str/ldr — arm could
+  not generate stores. Root fix `isa_spec.mnemonic_valid` (canonical_op OR matches
+  the ISA's load/store patterns). Enabling str/ldr then needed a byte/half
+  W-register fix (`ldrb w6` not `x6`) and ldur/stur no-reg-offset. Net: arm
+  link-ready 28.7% → **47.3%**, with stores now usable and valid.
 - **arm64 operand realization** — DONE (L2 2%→57%). Residual: bitfield/post-index
   immediate ranges (small).
 - **B1** — driver built (`gen/b1_oracle_structure.py`); structure half run and
