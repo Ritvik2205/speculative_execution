@@ -13,6 +13,7 @@ semantic well-formedness (that is Phase 4's job to filter via simulation).
 from __future__ import annotations
 
 import random
+import re
 from typing import List
 
 CRITICAL_IMMS = ["0", "1", "64", "256", "4096", "0xff", "8", "16", "32"]
@@ -42,6 +43,19 @@ class Realizer:
         # SPECTRE_V2 (needs an indirect branch) could never be generated. arm has
         # no such marker (blr/br are distinct mnemonics), so this list is x86-only.
         self.indirect_star_ops = set(r.get("indirect_star_ops", []))
+        # operand-repair tables (arm-heavy, spec-driven):
+        #  - branch_ops: opcodes whose <sym> operand is a real label (keep it, and
+        #    define the label at sequence level); for every other opcode a <sym>
+        #    in an operand slot is a mislabel (a symbol where a reg/imm belongs).
+        #  - barrier_ops: opcode -> the barrier option it actually takes (dsb sy).
+        #  - no_reg_offset_ops: pair loads/stores that reject a register index
+        #    ([x,x]) and need an immediate offset.
+        self.branch_ops = set(r.get("branch_ops", []))
+        self.barrier_ops = dict(r.get("barrier_ops", {}))
+        self.no_reg_offset_ops = set(r.get("no_reg_offset_ops", []))
+        self.safe_imm = r.get("safe_imm", "1")  # valid everywhere incl. arm bitmask
+        self.branch_prefixes = tuple(r.get("branch_prefixes", []))
+        self.repair_sym_operands = bool(r.get("repair_sym_operands", False))
         self.rng = random.Random(seed)
 
     def _suffix_widths(self, opcode):
@@ -102,6 +116,25 @@ class Realizer:
                 if kind == "<reg>":              # registers inside <mem>/<mem-idx>
                     concrete[j] = self._to_width( # stay 64-bit (addressing)
                         val, dst_i if j == last else src_i)
+        # barrier ops take an option (sy), never a symbol/register
+        if opcode in self.barrier_ops:
+            return f"{opcode}\t{self.barrier_ops[opcode]}"
+        # a <sym> outside a branch-target slot is a mislabel: a label cannot be an
+        # arithmetic/logical/data operand. Replace with a valid immediate.
+        is_branch = (opcode in self.branch_ops
+                     or (self.branch_prefixes and opcode.startswith(self.branch_prefixes)))
+        # arm only: a label cannot be an arithmetic/logical/data operand, so a
+        # non-branch <sym> is a mislabel -> a valid immediate. x86 tolerates a bare
+        # symbol as an absolute operand (mov %al, .L0), so it is left alone.
+        if self.repair_sym_operands and not is_branch:
+            for j, kind in enumerate(operands):
+                if kind == "<sym>":
+                    concrete[j] = self.imm_prefix + self.safe_imm
+        # pair load/store reject a register index: [base, idx] -> [base]
+        if opcode in self.no_reg_offset_ops:
+            for j, kind in enumerate(operands):
+                if kind == "<mem-idx>":
+                    concrete[j] = re.sub(r"\[([^,\]]+),[^\]]+\]", r"[\1]", concrete[j])
         if opcode in self.indirect_star_ops and operands:
             starred = []
             for kind, val in zip(operands, concrete):

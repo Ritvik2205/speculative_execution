@@ -141,6 +141,29 @@
       "callq",
       "jmp",
       "jmpq"
+    ],
+    "branch_ops": [
+      "jmp",
+      "jmpq",
+      "je",
+      "jne",
+      "jg",
+      "jl",
+      "jge",
+      "jle",
+      "ja",
+      "jb",
+      "jae",
+      "jbe",
+      "jz",
+      "jnz",
+      "call",
+      "callq",
+      "loop"
+    ],
+    "safe_imm": "1",
+    "branch_prefixes": [
+      "j"
     ]
   },
   "pipeline": {

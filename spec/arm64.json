@@ -21,7 +21,34 @@
     "mem_idx": "[BASE, IDX]",
     "imm_prefix": "#",
     "sym": ".L0",
-    "fn_sym": "fn_target"
+    "fn_sym": "fn_target",
+    "branch_ops": [
+      "b",
+      "bl",
+      "br",
+      "blr",
+      "cbz",
+      "cbnz",
+      "tbz",
+      "tbnz",
+      "ret"
+    ],
+    "barrier_ops": {
+      "dsb": "sy",
+      "dmb": "sy",
+      "isb": "sy"
+    },
+    "no_reg_offset_ops": [
+      "ldp",
+      "stp",
+      "ldnp",
+      "stnp"
+    ],
+    "safe_imm": "1",
+    "branch_prefixes": [
+      "b."
+    ],
+    "repair_sym_operands": true
   },
   "pipeline": {
     "model": "out_of_order",

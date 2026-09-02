@@ -66,8 +66,9 @@ recovers ~+11pp in a proof-of-concept).
 ## Where this leaves Phase A
 
 Ranked, with evidence:
-1. **arm64 syntactic validity (L2 ≈ 2%)** — the single biggest hole; blocks arm
-   structure/leak entirely. Needs its own triage (arm side of A1).
+1. **arm64 syntactic validity — FIXED this pass: L2 2% → 57%** (operand realization:
+   <sym>→immediate, ldp/stp immediate-offset, barrier options; see
+   `eval/generator_arm_operand_fix_2026-09-02.txt`). Now on par with x86.
 2. **`.L0` / `<sym>` placeholder** — top x86 link-ready blocker (A3).
 3. x86 indirect branch — **fixed this pass**.
 
@@ -95,8 +96,8 @@ addresses within the ISA's legal ranges/scales.
 
 - **A3** (define the `.L0` / repair `<sym>` placeholder) — top remaining x86
   link-ready blocker; proof-of-concept recovers ~+11pp.
-- **arm64 operand realization** — immediate-range and index-multiple violations
-  (A1 clusters); the biggest single hole (arm L2 ≈ 2%).
+- **arm64 operand realization** — DONE (L2 2%→57%). Residual: bitfield/post-index
+  immediate ranges (small).
 - **B1** (oracle verdict × structure cross-tab) needs a fresh Spectector run on
   generator output; the persisted oracle labels (22 records) are template gadgets,
   not free-generator output. This is the next real oracle job.

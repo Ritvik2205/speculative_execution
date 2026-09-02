@@ -1,0 +1,36 @@
+ARM OPERAND REALIZATION FIX — 2026-09-02
+========================================
+
+Diagnosed arm failures (sample, realize, cluster llvm-mc errors), then fixed the
+top three, spec-driven, no retrain:
+
+  49.3%  <sym> (.L0) in a non-branch operand slot (add x4,x9,.L0) -- a label where
+         an immediate/register belongs. FIX: arm-only, non-branch <sym> -> #<safe_imm>
+         (#1, valid everywhere incl. arm bitmask-immediate ops; #0 is NOT a valid
+         arm logical immediate). Gated OFF for x86, where a bare symbol is a legal
+         absolute operand.
+  38.2%  ldp/stp with register offset ([x3,x1]) -- pair ops need immediate offset.
+         FIX: no_reg_offset_ops collapse [base,idx] -> [base].
+   5.3%  barrier ops (dsb .L0) need an option. FIX: barrier_ops -> dsb/dmb/isb "sy".
+
+Plus: branch detection is now spec-driven (branch_ops + branch_prefixes: x86 "j*"
+catches all Jcc incl. js/jnb that a hand list missed; arm "b." for b.<cc>, with
+bare b/bl/br/blr/cbz.../ret in branch_ops -- 'b' prefix NOT used, it would catch
+bfi/bic/bfm).
+
+Result (3-seed average, arch-purity on):
+             before(this task)   after
+  arm64 L2        ~2%            57.3%     link-ready ~2% -> 21.3%
+  x86_64 L2       (unchanged -- sym-repair gated off, no barrier/pair ops on x86)
+                                 59.3%     link-ready 22.0%
+
+arm64 was the biggest hole (B2: structure absent, tracking L2~2%); it is now on par
+with x86 syntactically. Realize path for x86 is functionally unchanged by this task
+(only the earlier indirect-star fix touched x86). 13 realize tests pass; arm blr
+keeps no '*'.
+
+Remaining (A3): the .L0 branch-target label is still undefined (assembles as a
+relocation, fails at link) -- next, via self-relative offsets or link-ready-time
+label definition. And arm bitfield/post-index immediate ranges (small residual).
+
+Reproduce: python3 gen/check_syntactic_validity.py --n 40 --arch-purity --link-ready
