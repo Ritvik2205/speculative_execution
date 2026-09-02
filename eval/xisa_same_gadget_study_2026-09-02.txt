@@ -86,3 +86,30 @@ Confirmation retrain (2 seeds): locked test 95.45 / 96.11 (mean 95.78) vs pre-fi
 baseline 95.88 ± 0.43 -> NO regression, within variance. The correctness fix is free.
 Cross-ISA base is now consistent (secret load = LOAD everywhere); the dataflow
 data-load normalization builds on this next.
+
+--- DATAFLOW DATA-LOAD FEATURE — retrain test (2026-09-02): NEGATIVE, instructive ---
+Added two inline features: data_load_count (ISA-neutral, V1 1/1/1) and addr_load_count
+(the RISC overhead, V1 0/5/2). Retrained 2 seeds (x86/arm, no riscv), 60-dim.
+
+Result:
+  in-distribution locked test: 96.23 / 96.41  (UP from 95.88 baseline -- feature helps x86/arm)
+  zero-shot riscv attack:      still 0%        (no help)
+  cross-ISA consistency (same gadget, 3 ISAs):
+     baseline: V1 CONSISTENT (all 3 -> V1), V4 inconsistent
+     dlnorm  : V1 now INCONSISTENT (x86 V1, arm/riscv BENIGN); V4 still inconsistent -> WORSE
+
+CONCLUSION -- the feature-ADDITION approach BACKFIRED. data_load_count aligns
+cross-ISA, but pairing it with addr_load_count (ISA-specific by construction) handed
+the model a NEW ISA-discriminating shortcut: it learned "high addr_load => arm/riscv
+=> different", so V1 (previously ISA-consistent) broke. In-distribution improved
+because on x86/arm the addr_load signal is informative -- the classic spurious-
+correlation trap (in-distribution up, out-of-distribution down).
+
+Root mistake: ADDING a feature does not REMOVE the ISA signal already in frac_LOAD
+(still counts all loads, still RISC-inflated). It ADDS competing ISA signal. The
+CORRECT implementation is to RECLASSIFY address-materialization loads -> ADDR_GEN at
+the NODE/opcode level (via the DFG), so frac_LOAD itself becomes data-loads-only and
+the inflated count is REMOVED, not competed with. That is the real follow-up; the
+feature-addition variant is reverted (it hurts the stated cross-ISA goal).
+
+KEPT: the x86 movz/movs -> LOAD correctness fix (separate, committed, +0 regression).
