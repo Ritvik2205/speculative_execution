@@ -36,6 +36,12 @@ class Realizer:
         self.suffix_idx = r.get("suffix_width_index", {})
         self.width_stems = set(r.get("width_suffix_stems", []))
         self.mixed_prefixes = tuple(r.get("mixed_width_prefixes", []))
+        # x86 AT&T: an indirect call/jmp through a register or memory needs a '*'
+        # prefix (call *%rax). Normalization dropped it, so `call <reg>` realized to
+        # the invalid `call %rax` and read as a DIRECT call -- which is why x86
+        # SPECTRE_V2 (needs an indirect branch) could never be generated. arm has
+        # no such marker (blr/br are distinct mnemonics), so this list is x86-only.
+        self.indirect_star_ops = set(r.get("indirect_star_ops", []))
         self.rng = random.Random(seed)
 
     def _suffix_widths(self, opcode):
@@ -96,6 +102,14 @@ class Realizer:
                 if kind == "<reg>":              # registers inside <mem>/<mem-idx>
                     concrete[j] = self._to_width( # stay 64-bit (addressing)
                         val, dst_i if j == last else src_i)
+        if opcode in self.indirect_star_ops and operands:
+            starred = []
+            for kind, val in zip(operands, concrete):
+                if kind in ("<reg>", "<mem>", "<mem-idx>") and not val.startswith("*"):
+                    starred.append("*" + val)
+                else:
+                    starred.append(val)
+            concrete = starred
         return f"{opcode}\t{', '.join(concrete)}" if concrete else opcode
 
     def realize_sequence(self, norm_seq: List[str]) -> List[str]:

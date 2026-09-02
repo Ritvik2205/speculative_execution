@@ -135,6 +135,12 @@
       "movzw",
       "movsb",
       "movsw"
+    ],
+    "indirect_star_ops": [
+      "call",
+      "callq",
+      "jmp",
+      "jmpq"
     ]
   },
   "pipeline": {
