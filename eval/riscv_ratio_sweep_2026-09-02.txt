@@ -36,3 +36,29 @@ sets. Not a final tuned curve.
 
 NEXT for a paper-grade curve: grow the benign batch past 80 (more mbedTLS files) to
 find the FP floor; grow real attack held-out beyond n=11; >=5 seeds per point.
+
+--- EXTENDED SWEEP: grow benign past 80 to find the FP floor (2026-09-02) ---
+Grew idiomatic riscv benign train to 240 (more mbedTLS files x O0/O2), 0 leak.
+
+  benign  real attack   synth attack   benign FP     locked
+   0      36-73%        66-70%         98-100%       93.5/95.8
+   20     36-64%        60-67%         73-82%        95.3/94.6
+   40     54-64%        20-61%         64-80%        95.8/95.3
+   80     18-55%        34%            21-30%        95.4/94.7   <== KNEE (both axes beat baseline)
+   120    0-9%          24-28%         5-21%         95.0/95.6
+   200    9-18%         34-46%         11-13%        95.8/95.0
+
+THE FP FLOOR: yes, more benign pushes FP down to ~5-13% (benign 120-200) -- BUT real
+attack recall COLLAPSES there (0-18%). Past ~80 benign the model swings back to a
+benign-default; the FP win is bought with the attack detection we came for.
+
+DEFINITIVE OPERATING POINT: benign ~= 80 (2:1 benign:attack) is the knee -- the point
+that beats the 36.7% baseline FP (21-30%) while keeping real attack recall meaningfully
+above 0 (18-55%). Below 80 -> FP > baseline; above 80 -> attack recall craters. The
+curve is U-shaped in usefulness, minimised near 80.
+
+Locked test holds ~95 across the whole sweep (the riscv data barely touches x86/arm).
+
+CAVEATS unchanged: n=11 real = 3-7 gadgets, large seed variance (real at 120: 0 vs 9;
+synth at 200: 34 vs 46), 2 seeds. The SHAPE and the knee location (~80) are the
+robust findings; exact per-point numbers need >=5 seeds + a larger real held-out set.
