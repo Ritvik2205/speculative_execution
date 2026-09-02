@@ -102,6 +102,7 @@ addresses within the ISA's legal ranges/scales.
   failures (0 undefined syms), not labels: immediate-range / bitfield / post-index.
 - **arm64 operand realization** — DONE (L2 2%→57%). Residual: bitfield/post-index
   immediate ranges (small).
-- **B1** (oracle verdict × structure cross-tab) needs a fresh Spectector run on
-  generator output; the persisted oracle labels (22 records) are template gadgets,
-  not free-generator output. This is the next real oracle job.
+- **B1** — driver built (`gen/b1_oracle_structure.py`); structure half run and
+  committed (`eval/b1_oracle_structure_records.jsonl`). The oracle `--validate` half
+  needs Docker + the Spectector image → Linux box (LINUX_BOX_RUNBOOK.md "Run C").
+  It produces the verdict×structure cross-tab that gates Phase C.

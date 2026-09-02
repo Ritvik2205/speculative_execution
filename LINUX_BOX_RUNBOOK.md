@@ -152,6 +152,24 @@ Success for Run B: x86 benign FP stays low (~<=25%) AND locked test recovers to
 If so, ship Run B as the new base model; RISC-V handled separately by the windowing
 scan at inference (§operating curve in SPECDISCOVER_RISCV_GENERALISATION.md).
 
+## Run C (independent) — B1 oracle × structure cross-tab (generation accuracy)
+
+Needs Docker + the Spectector image (built via oracle/docker/build_spectector.sh).
+Answers the real generation-accuracy question: of syntactically valid gadgets, how
+many actually leak, and does having the class's defining structure predict leaking?
+
+```bash
+# structure half already runs on any box and is committed
+# (eval/b1_oracle_structure_records.jsonl); this adds the oracle verdict:
+python3 gen/b1_oracle_structure.py --n 40 --validate
+```
+
+Emits the VERDICT x STRUCTURE cross-tab. The key cell is "safe/unrunnable WITH
+has-primitive" = right structure but no leak (dataflow / speculation-window / probe
+missing) -- that is what decides whether Phase-C generator work is worthwhile
+(SPECDISCOVER_GENERATION_PLAN.md Phase B gate). Spectector is x86-first; arm/riscv
+leak coverage is thinner (InvisiSpec/Revizor).
+
 ## Notes / gotchas
 
 - Do NOT add any `spec/data/*_validation.jsonl` to training — they are held-out
