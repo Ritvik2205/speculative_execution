@@ -78,3 +78,11 @@ NEXT (to test the CLASSIFIER effect): add a dataflow data-load feature (or recla
 address loads to ADDR_GEN via the DFG) and retrain; re-run the V4 cross-ISA test --
 does the same gadget then classify consistently across ISAs? Representation aligns;
 classifier effect is the retrain follow-up.
+
+--- x86 movz/movs LOAD fix — confirmation retrain (2026-09-02) ---
+Fixed: x86 memory-source movz*/movs* now classify LOAD (was MOV_ZX), so the secret
+byte-load is LOAD on all 3 ISAs. Touches 48% of x86 train records (feature change).
+Confirmation retrain (2 seeds): locked test 95.45 / 96.11 (mean 95.78) vs pre-fix
+baseline 95.88 ± 0.43 -> NO regression, within variance. The correctness fix is free.
+Cross-ISA base is now consistent (secret load = LOAD everywhere); the dataflow
+data-load normalization builds on this next.
