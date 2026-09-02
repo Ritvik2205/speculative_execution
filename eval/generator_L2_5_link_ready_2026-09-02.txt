@@ -1,0 +1,22 @@
+A2 — whole-sequence / link-ready validity metric (2026-09-02)
+=============================================================
+
+Finding 1: whole-sequence llvm-mc assembly == per-instruction (no added strictness).
+  Measured n=60/arch: L2 per-instr-all == L2' whole-seq exactly (x86 22/22, arm 3/3).
+  llvm-mc emits relocations for undefined symbols in BOTH modes, so it never
+  catches an undefined label/branch target. The stricter gate is the harness LINK.
+
+Finding 2: L2.5 "link-ready" is the honest per-sequence number (new: ExternalOracle
+  .link_ready = assemble to object + no undefined symbols beyond {fn_target}).
+  n=80/arch, arch-purity ON:
+    x86_64 : L2 assembles 34%  ->  L2.5 link-ready 16%   (undefined .L0 blocks ~half)
+    arm64  : L2 assembles  6%  ->  L2.5 link-ready  6%   (arm fails earlier, at assembly)
+  Top symbol blocking x86 link: .L0 (the <sym> placeholder), 10 occurrences.
+
+Finding 3 (A3 preview): defining the referenced .L0 labels at realize time recovers
+  x86 link-ready 25% -> 36% in a proof-of-concept. Confirms A3's direction.
+
+So: the placeholder bug is a real L2.5 blocker (~half of x86's apparently-valid
+sequences), invisible to the old per-instruction metric. A3 targets it.
+
+Reproduce: python3 gen/check_syntactic_validity.py --n 40 --arch-purity --link-ready

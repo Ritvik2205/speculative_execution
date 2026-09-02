@@ -123,6 +123,10 @@ def main():
     ap.add_argument("--arch-purity", action="store_true",
                     help="constrain sampling to target-arch-valid opcodes "
                          "(arch_purity.attach_arch_masks)")
+    ap.add_argument("--link-ready", action="store_true",
+                    help="also report L2.5: whole gadget assembles to an object "
+                         "with no undefined symbols (ExternalOracle.link_ready) -- "
+                         "the honest per-sequence number that predicts harness link")
     args = ap.parse_args()
 
     model = CondTransformerLM.load(args.gen)
@@ -150,7 +154,9 @@ def main():
                 if not concrete:
                     continue
                 seq_ok = True
+                seq_concrete = []
                 for instr in concrete:
+                    seq_concrete.append(instr)
                     code = oracle.assemble(instr, arch)
                     if code is None:
                         overall_instr["malformed"] += 1
@@ -163,6 +169,9 @@ def main():
                         overall_instr["ok"] += 1
                         per_arch_instr[arch]["ok"] += 1
                 overall_seq["all_ok" if seq_ok else "has_malformed"] += 1
+                if args.link_ready:
+                    lr_ok, _ = oracle.link_ready(seq_concrete, arch)
+                    overall_seq["link_ready" if lr_ok else "not_link_ready"] += 1
 
     total_instr = sum(overall_instr.values())
     total_seq = sum(overall_seq.values())
@@ -174,6 +183,12 @@ def main():
         t = sum(per_arch_instr[a].values())
         print(f"  {a:8s}: {per_arch_instr[a]['ok']}/{t} "
               f"({100*per_arch_instr[a]['ok']/max(t,1):.1f}%) valid")
+    if args.link_ready:
+        lr = overall_seq.get("link_ready", 0)
+        lrt = lr + overall_seq.get("not_link_ready", 0)
+        if lrt:
+            print(f"\nL2.5 link-ready (assembles to object, no undefined symbols): "
+                  f"{lr}/{lrt} ({100*lr/lrt:.1f}%)")
     print(f"\nper-sequence (ALL instructions in the gadget must assemble):")
     print(f"  {overall_seq['all_ok']}/{total_seq} "
           f"({100*overall_seq['all_ok']/max(total_seq,1):.1f}%) fully valid")

@@ -159,6 +159,64 @@ class ExternalOracle:
             return None
         return out.stderr.strip() or f"rc={out.returncode}, no encoding emitted"
 
+    def _find_nm(self):
+        import os
+        cand = os.path.join(os.path.dirname(self.mc), "llvm-nm") if self.mc else None
+        if cand and os.path.exists(cand):
+            return cand
+        return "nm"
+
+    def link_ready(self, instrs, arch, allow=("fn_target",)):
+        """Stricter than assemble_sequence: assemble the whole gadget to an OBJECT
+        and require it to have no UNDEFINED symbols beyond `allow`. This is the
+        cheap proxy for the harness link step (L3) -- it catches exactly the
+        placeholder bug (undefined .L0 / <sym> / <fn>) that per-instruction and
+        whole-sequence assembly both tolerate (llvm-mc emits relocations for
+        undefined refs rather than erroring). Returns (ok, undefined_symbols)."""
+        import subprocess, tempfile, os
+        if arch not in _ARCH:
+            return False, ["<unsupported arch>"]
+        mc_arch, flags, _ = _ARCH[arch]
+        obj = tempfile.mktemp(suffix=".o")
+        try:
+            r = subprocess.run(
+                [self.mc, f"--arch={mc_arch}", "--filetype=obj", *flags, "-o", obj],
+                input="\n".join(instrs) + "\n", capture_output=True, text=True, timeout=30)
+            if r.returncode != 0:
+                return False, ["<assemble failed>"]
+            nm = subprocess.run([self._find_nm(), "-u", obj],
+                                capture_output=True, text=True)
+            if nm.returncode != 0:
+                return False, ["<nm failed>"]
+            undef = [l.split()[-1] for l in nm.stdout.splitlines() if l.strip()]
+            bad = [s for s in undef if s not in allow]
+            return (len(bad) == 0), bad
+        except (subprocess.TimeoutExpired, OSError) as e:
+            return False, [f"<{e}>"]
+        finally:
+            if os.path.exists(obj):
+                os.unlink(obj)
+
+    def assemble_sequence(self, instrs, arch):
+        """Assemble a WHOLE gadget as one unit and return (ok, error). Unlike
+        assemble()/assemble_error(), which run one instruction at a time and so
+        tolerate undefined labels and branch targets, this joins the sequence and
+        makes a single llvm-mc call -- the stricter test the gadget-compile step
+        (gen/decode.py) actually needs. `instrs` is a list of instruction lines."""
+        if arch not in _ARCH:
+            return False, "unsupported arch"
+        mc_arch, flags, _ = _ARCH[arch]
+        cmd = [self.mc, f"--arch={mc_arch}", "--assemble", *flags]
+        src = "\n".join(instrs) + "\n"
+        try:
+            out = subprocess.run(cmd, input=src, capture_output=True,
+                                 text=True, timeout=30)
+        except (subprocess.TimeoutExpired, OSError) as e:
+            return False, f"llvm-mc did not run: {e}"
+        if out.returncode == 0:
+            return True, None
+        return False, out.stderr.strip()[:200]
+
     # -- bytes -> coarse category ----------------------------------------
     def category(self, instr: str, arch: str) -> Optional[str]:
         """Return coarse control-flow category, or None if the oracle cannot

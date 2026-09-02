@@ -78,9 +78,15 @@ def main():
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--examples", type=int, default=4)
     ap.add_argument("--gen", default=str(ROOT / "gen" / "generator.pt"))
+    ap.add_argument("--arch-purity", action="store_true",
+                    help="constrain sampling to target-arch opcodes (arch_purity)")
     args = ap.parse_args()
 
     model = CondTransformerLM.load(args.gen)
+    if args.arch_purity:
+        from arch_purity import attach_arch_masks
+        attach_arch_masks(model, {"x86_64": "x86_64.json", "arm64": "arm64.json"})
+        print("arch purity: ON")
     oracle = ExternalOracle()
     engines = {a: load_engine(f) for a, f in SPEC_FOR_ARCH.items()}
     trained = [c for c in CLASSES if c in model.vocab.cls_id]
