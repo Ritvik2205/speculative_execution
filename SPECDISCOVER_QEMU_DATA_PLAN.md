@@ -118,6 +118,16 @@ already have, extended per this plan:
    real riscv64 compiled from real C by a real riscv64 compiler must pass where the
    transliterated corpus fails. This is the check that proves we finally have
    *idiomatic* RISC-V.
+**First real-compiled batch is markedly more idiomatic** (proven,
+`eval/riscv_cvulns_gate_2026-09-02.txt`): compiling the project's own portable
+gadget C to riscv64 (28 gadgets, 4 classes, via a riscv harness shim) gives per-class
+independence ratios ~0.89 vs the transliterated corpus's ~0.65, and does NOT show the
+significant transliteration signature the corpus does (6/6 p=0.016). Two caveats: 4
+classes is underpowered for a clean significance pass (need >=5), and some residual
+"closer to arm" is genuine RISC-family kinship (arm and riscv are both load-store
+ISAs), not transliteration -- so the gate's magnitude, not just its direction, is the
+idiomaticity signal.
+
 6. **Dedup** against `v54_train`, the locked test, and every held-out validation
    set; **neutralize** symbols.
 

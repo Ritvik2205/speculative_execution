@@ -1,0 +1,32 @@
+REAL-COMPILED riscv64 batch vs TRANSLITERATED corpus — independence gate (2026-09-02)
+=====================================================================================
+Source: c_vulns/c_code portable gadget C compiled by riscv64-elf-gcc (real codegen)
+        via a riscv shim for the x86 harness primitives. 28 gadgets, 4 classes.
+Gate: eval/isa_independence_check.py --riscv-jsonl spec/data/riscv_cvulns_batch.jsonl
+
+per-class ratio (rv-to-arm distance / x86-arm yardstick; ->1.0 = idiomatic, low = transliterated):
+                        transliterated riscv_corpus   real-compiled cvulns
+  SPECTRE_V1                 0.60                        0.94
+  SPECTRE_RSB               0.79                        0.76
+  RETBLEED                  0.72                        0.97
+  BRANCH_HISTORY_INJECTION  0.62                        0.90
+  mean                      ~0.65                       ~0.89
+
+sign test (systematically closer to arm = transliteration signature):
+  transliterated : 6/6 classes, p=0.016  -> SIGNIFICANT signature (it IS a transliteration)
+  real-compiled  : 4/4 classes, p=0.0625 -> UNDERPOWERED (4 classes can't reach p<0.05)
+
+VERDICT: the real-compiled batch is markedly MORE idiomatic (+0.20 mean ratio; RETBLEED
+0.97 and V1 0.94 essentially independent) and does NOT show the significant
+transliteration signature the corpus does. Not a clean pass yet: n is small (4 classes,
+LOW n) and it still leans slightly toward arm.
+
+CONFOUND to state: arm and riscv are both RISC load-store ISAs, so their bigram
+distributions are genuinely more similar to each other than to CISC x86 -- some
+"closer to arm" is RISC-family kinship, not transliteration. The transliterated corpus
+shows it STRONGLY (0.65, p=0.016); the real batch WEAKLY (0.89, underpowered). The
+magnitude gap is the idiomaticity signal.
+
+NEXT: extend the riscv shim so l1tf/mds/inception compile (they need mmap/getpagesize),
+adding L1TF/MDS -> >=5-6 shared classes so the sign test can reach significance and
+give a clean pass.
