@@ -1,0 +1,32 @@
+TRAINING WITH THE IDIOMATIC riscv64 BATCH — held-out results (2026-09-02)
+========================================================================
+Train = v54_train (5532) + 41 idiomatic riscv64 gadgets (spec/data/riscv_cvulns_batch.jsonl,
+real-compiled from c_vulns C, passed the independence gate). Held-out anchors NEVER
+trained on: riscv_real (4 vendor PoCs, n=11), riscv_synth (n=358), riscv_benign (n=180).
+0 leakage confirmed. 2 seeds, --use-spec-builder.
+
+                         v54_spec baseline   seed0    seed1
+  real attack recall     0/11 (0%)           36.4%    72.7%
+  synth attack recall    0/358 (0%)          45.3%    69.8%
+  benign recall (n=180)  63.3% (36.7% FP)    10.6%    0.0%   <- COLLAPSED
+  locked test acc        96.14 (5-seed)      93.71    96.35
+
+BREAKTHROUGH: 41 real idiomatic riscv64 ATTACK gadgets moved held-out real attack
+recall 0% -> 36-73% and synth 0% -> 45-70%, WHOLE-FUNCTION (no inference windowing),
+with negligible in-distribution cost (seed1 96.35 ~ baseline). The model now predicts
+the right classes (SPECTRE_V1 dominant, matching 7/11 held-out V1), no longer defaults
+to BENIGN. This CONFIRMS the RISC-V failure was a DATA problem -- no idiomatic training
+data -- exactly what the QEMU-plan real-compile approach provides. The riscv
+arch-embedding row also got its first gradient (41 riscv records).
+
+THE TRADEOFF (honest): benign riscv FP COLLAPSED (36.7% -> 89-100%). Cause: the batch
+is ALL attacks (V1/RSB/V4/RETBLEED/BHI), ZERO riscv benign -- so the model learned
+"riscv => attack" and flags benign riscv as attack. Same imbalance lesson as the
+x86-benign gap, inverted: added attacks without benign counterexamples.
+
+CAVEATS: n=11 is 3-7 gadgets; high seed variance (36 vs 73% real). 2 seeds only.
+Quote the RANGE (0% -> 36-73%), and note it is movement, not "solved".
+
+NEXT: balance the batch with idiomatic riscv BENIGN (compile benign C to riscv64 for
+TRAINING, distinct from the held-out benign set) -> recover attack recall WITHOUT the
+benign-FP collapse. The full recipe = idiomatic riscv attacks + idiomatic riscv benign.
