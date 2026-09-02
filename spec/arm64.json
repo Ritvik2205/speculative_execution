@@ -39,10 +39,19 @@
       "isb": "sy"
     },
     "no_reg_offset_ops": [
-      "ldp",
-      "stp",
       "ldnp",
-      "stnp"
+      "ldp",
+      "ldur",
+      "ldurb",
+      "ldurh",
+      "ldursb",
+      "ldursh",
+      "ldursw",
+      "stnp",
+      "stp",
+      "stur",
+      "sturb",
+      "sturh"
     ],
     "safe_imm": "1",
     "branch_prefixes": [
@@ -77,7 +86,37 @@
       "ccmp",
       "ccmn"
     ],
-    "cond_default": "eq"
+    "cond_default": "eq",
+    "wreg_map": {
+      "x0": "w0",
+      "x1": "w1",
+      "x2": "w2",
+      "x3": "w3",
+      "x4": "w4",
+      "x5": "w5",
+      "x6": "w6",
+      "x7": "w7",
+      "x8": "w8",
+      "x9": "w9",
+      "x10": "w10",
+      "x11": "w11"
+    },
+    "wreg_ops": [
+      "ldrb",
+      "ldrh",
+      "strb",
+      "strh",
+      "ldrsb",
+      "ldrsh",
+      "ldurb",
+      "ldurh",
+      "sturb",
+      "sturh",
+      "ldarb",
+      "ldarh",
+      "stlrb",
+      "stlrh"
+    ]
   },
   "pipeline": {
     "model": "out_of_order",
@@ -115,7 +154,7 @@
     "cache": "\\b(prfm|dc\\s+(civac|cvac|cvau|zva|ivac))\\b",
     "timing": "\\b(mrs\\s+.*cntvct|mrs\\s+.*pmccntr)\\b",
     "move": "\\b(mov[zskn]?)\\b",
-    "stack_op": "\\b(push|pop)\\b",
+    "stack_op": "(?!)",
     "stack_access": "\\[sp|\\[x29|\\[fp",
     "indexed_access": "\\[x[0-9]+,\\s*x[0-9]+|\\[.*,.*,.*\\]|,\\s*lsl\\s+#",
     "memory_operand": "\\[",

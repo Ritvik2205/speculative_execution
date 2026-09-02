@@ -300,6 +300,21 @@ class SpecEngine:
         return self._canon_from_cat.get(cat_name, "OTHER")
 
     # ---- helpers --------------------------------------------------------
+    def mnemonic_valid(self, opcode: str) -> bool:
+        """Is `opcode` a real mnemonic for this ISA? True when the per-ISA rules
+        name its operation (canonical_op != OTHER) OR it is an operand-determined
+        load/store (str/ldr/... resolve to OTHER on the bare mnemonic because
+        LOAD vs STORE needs operands, but they ARE valid mnemonics). Used by the
+        arch-purity mask, which sees only opcodes; canonical_op alone would wrongly
+        drop arm str/ldr and (correctly) push/pop, this keeps the loads/stores.
+        """
+        op = opcode.split()[0] if opcode else ""
+        if not op:
+            return False
+        if self.canonical_op(op) != "OTHER":
+            return True
+        return self._matches_load(op) or self._matches_store(op)
+
     def _cat_name(self, idx: int) -> str:
         for name, i in self.opcode_categories.items():
             if i == idx:

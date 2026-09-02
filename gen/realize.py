@@ -61,6 +61,8 @@ class Realizer:
         self.shift_imm_ops = set(r.get("shift_imm_ops", []))  # shift amt must be <64
         self.cond_ops = set(r.get("cond_ops", []))            # last operand = cond code
         self.cond_default = r.get("cond_default", "eq")
+        self.wreg_map = dict(r.get("wreg_map", {}))     # x-reg -> 32-bit w-reg
+        self.wreg_ops = set(r.get("wreg_ops", []))       # byte/half ld/st: W data reg
         self.rng = random.Random(seed)
 
     def _suffix_widths(self, opcode):
@@ -153,6 +155,10 @@ class Realizer:
         # conditional-select/compare ops end in a condition code, not a reg/imm.
         if opcode in self.cond_ops and concrete:
             concrete[-1] = self.cond_default
+        if opcode in self.wreg_ops:
+            for j, kind in enumerate(operands):
+                if kind == "<reg>":
+                    concrete[j] = self.wreg_map.get(concrete[j], concrete[j])
         # pair load/store reject a register index: [base, idx] -> [base]
         if opcode in self.no_reg_offset_ops:
             for j, kind in enumerate(operands):

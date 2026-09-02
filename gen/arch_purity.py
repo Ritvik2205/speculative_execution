@@ -46,7 +46,7 @@ def build_allowed_ids(vocab, spec_for_arch) -> dict:
             continue
         op = _opcode(tok)
         for a, eng in engines.items():
-            if eng.canonical_op(op) != "OTHER":
+            if eng.mnemonic_valid(op):   # canonical_op OR operand-determined load/store
                 allowed[a].add(i)
     return allowed
 
