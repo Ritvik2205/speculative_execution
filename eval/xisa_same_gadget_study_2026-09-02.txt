@@ -49,3 +49,32 @@ the ISA noise no longer flips the label.
 
 Reproduce: qemu_data/xisa/gadget.c, gadget_v4.c + the clang/riscv64-elf-gcc lines;
 eval via v54/viz_v54_spec + spec/eval machinery.
+
+--- LOAD-NORMALIZATION TEST (2026-09-02) ---
+Hypothesis: RISC address-materialization loads inflate the LOAD count and
+destabilize weak classes cross-ISA (V4 got 3 different labels). Test two normalizers.
+
+(A) NAIVE syntactic (symbol-relative load -> ADDR_GEN): FAILS to align.
+    V1 LOAD after: x86 0 / arm 3 / riscv 1  (worse, not aligned)
+    Root: two deeper inconsistencies -- (a) x86 byte-load is MOV_ZX (movzbl), NOT
+    LOAD; (b) arm's GOT deref is 2 instrs and the second load (ldr [x8]) has no symbol.
+
+(B) DATAFLOW (a DATA-load = memory read whose value is used as data, NOT as a
+    subsequent memory base/index): ALIGNS cross-ISA.
+      class   raw mem-reads (x86/arm/riscv)   dataflow data-loads
+      V1      2 / 6 / 3                        1 / 1 / 1   <- perfectly aligned
+      V4      5 / 8 / 5                        1 / 1 / 2   <- nearly (riscv SSB double-deref)
+    The RISC addressing overhead (2-6x extra loads) is exactly what the dataflow
+    filter removes, leaving the ISA-neutral discriminative load count.
+
+CONCLUSION: load-normalization works, but must be DATAFLOW-based, not syntactic. The
+dataflow data-load count is ISA-neutral (V1 1/1/1) where raw counts are inflated
+(2/6/3). This is a candidate node/graph FEATURE for cross-ISA robustness that needs
+NO extra data -- it strips the ISA-specific noise the V4 study showed flipping labels.
+The PDG already carries data-dependence edges, so "a load whose value feeds only
+addressing" is computable from the existing DFG.
+
+NEXT (to test the CLASSIFIER effect): add a dataflow data-load feature (or reclassify
+address loads to ADDR_GEN via the DFG) and retrain; re-run the V4 cross-ISA test --
+does the same gadget then classify consistently across ISAs? Representation aligns;
+classifier effect is the retrain follow-up.
