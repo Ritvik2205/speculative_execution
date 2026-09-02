@@ -93,9 +93,10 @@ addresses within the ISA's legal ranges/scales.
 
 ## Pending
 
-- **A1** (re-triage `other` bucket with arch-purity, n=100) is running in the
-  background → `eval/generator_other_triage_archpurity_2026-09-02.txt`. Its ranked
-  cause list will refine the arm64 vs placeholder split above.
+- **A3** (define the `.L0` / repair `<sym>` placeholder) — top remaining x86
+  link-ready blocker; proof-of-concept recovers ~+11pp.
+- **arm64 operand realization** — immediate-range and index-multiple violations
+  (A1 clusters); the biggest single hole (arm L2 ≈ 2%).
 - **B1** (oracle verdict × structure cross-tab) needs a fresh Spectector run on
   generator output; the persisted oracle labels (22 records) are template gadgets,
   not free-generator output. This is the next real oracle job.
