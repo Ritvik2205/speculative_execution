@@ -113,3 +113,28 @@ the inflated count is REMOVED, not competed with. That is the real follow-up; th
 feature-addition variant is reverted (it hurts the stated cross-ISA goal).
 
 KEPT: the x86 movz/movs -> LOAD correctness fix (separate, committed, +0 regression).
+
+--- NODE-LEVEL RECLASSIFICATION attempt (2026-09-02): needs real DFG, not a heuristic ---
+Tried reclassifying address-materialization loads LOAD -> MOVE at the node level (to
+REMOVE the inflated load signal, not add a competing feature). Two text heuristics:
+  (i)  "dest reg used as a memory base anywhere later" -> WRONG: a transmit gadget's
+       SECRET load IS eventually used to form the probe address, so it mis-flags the
+       secret load. (V1 node LOAD: x86 0 / arm 1 / riscv 1 -- not aligned)
+  (ii) "FIRST use of the dest is a memory operand (pointer) vs ALU (data)" -> still
+       mis-aligns (V1 x86 0 / arm 2 / riscv 3), broken by REGISTER-WIDTH ALIASING
+       (eax vs rax, w8 vs x8) and by needing to track whether the value passes through
+       a shift/ALU transform before addressing.
+
+CONCLUSION: the load-normalization idea is representation-valid (the study showed the
+data-load COUNT can align 1/1/1), but a ROBUST implementation needs a proper def-use
+dataflow over the PDG's DATA_DEP edges -- using the builder's register model (which
+already resolves width aliasing) and a transform-aware rule (secret load = value goes
+through an ALU/shift before a memory-address use; pointer load = value used directly
+as a base). Text heuristics on raw instructions are too fragile. That is the real
+implementation, deferred. Three quick variants (syntactic, feature-add, node-text)
+all reverted; only the x86 movz/movs -> LOAD correctness fix is kept.
+
+NET for the cross-ISA thread: representation is ISA-robust for strong classes (V1
+transfers, riscv 0.94 zero-shot when size-matched); the x86 byte-load classification
+bug is fixed; and load-normalization is scoped to what it actually requires (DFG
+def-use), not shipped as a fragile heuristic.
