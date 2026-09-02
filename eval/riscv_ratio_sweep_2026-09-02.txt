@@ -1,0 +1,38 @@
+RISC-V attack:benign RATIO SWEEP — operating curve (2026-09-02)
+==============================================================
+Fixed 37 idiomatic riscv ATTACK gadgets; varied idiomatic riscv BENIGN {0,20,40,80}.
+2 seeds each, held-out real(n=11)/synth(n=358)/benign(n=180) never trained on.
+benign FP = 100 - benign recall. baseline (no riscv data): attack 0%, FP 36.7%.
+
+  benign  real attack   synth attack   benign FP     locked
+   0      36-73%        66-70%         98-100%       93.5/95.8
+   20     36-64%        60-67%         73-82%        95.3/94.6
+   40     54-64%        20-61%         64-80%        95.8/95.3
+   80     18-55%        34%            21-30%        95.4/94.7   <== only config below baseline FP
+
+READING THE CURVE:
+- Attack recall stays HIGH (synth 60-67%, real 36-64%) up through benign=40, but
+  benign FP stays ABOVE the 37% baseline until benign jumps to 80.
+- The FP only crosses below baseline at ~2:1 benign:attack (80:37) -> FP 21-30%,
+  and that is the point where BOTH axes beat baseline. It costs attack recall
+  (synth 66% -> 34%).
+- So there is a sharp FP transition between 40 and 80 benign; the sweet spot for
+  "dominates baseline on both axes" is ~60-80 benign. Pushing benign past 80 would
+  likely drop FP further at more attack-recall cost -- but needs MORE benign data
+  (only 80 available).
+
+OPERATING-POINT CONCLUSION:
+- Low-FP deployment (FP < baseline): benign=80 (2:1). Attack real 18-55% / synth 34%,
+  FP 21-30%, locked ~95.
+- High-recall / triage (FP not the priority): benign=20-40. Attack real 36-64% /
+  synth 60-67%, but FP 64-82% (worse than baseline) -- only sensible when a second
+  filter follows.
+
+HONEST CAVEATS: seed variance is LARGE (synth at benign=40: 20 vs 61; real at 20:
+36 vs 64) -- n=11 real is 3-7 gadgets and 2 seeds cannot pin the curve. This maps
+the SHAPE (more benign -> lower FP, lower attack recall) and locates the baseline-
+dominating point (~80), but the exact numbers need >=5 seeds and larger held-out
+sets. Not a final tuned curve.
+
+NEXT for a paper-grade curve: grow the benign batch past 80 (more mbedTLS files) to
+find the FP floor; grow real attack held-out beyond n=11; >=5 seeds per point.
