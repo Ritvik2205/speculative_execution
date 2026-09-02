@@ -4,19 +4,17 @@
    Bare-metal riscv64-elf toolchain: declarations only, never linked. */
 #include <stdint.h>
 #include <stddef.h>
-#ifndef _STUB_STDIO_DECL
-int printf(const char *, ...);
-void *memset(void *, int, unsigned long);
-#endif
+#include <setjmp.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <stdio.h>
+#include <string.h>
 #define CACHE_LINE_SIZE 64
 #define NUM_CACHE_LINES 256
 #define PROBE_ARRAY_SIZE (NUM_CACHE_LINES * CACHE_LINE_SIZE)
 
-/* x86 intrinsic names -> riscv64 semantics */
-static inline void _mm_mfence(void){ __asm__ __volatile__("fence rw,rw":::"memory"); }
-static inline void _mm_lfence(void){ __asm__ __volatile__("fence r,r":::"memory"); }
-static inline void _mm_clflush(volatile void *p){ (void)p; __asm__ __volatile__("fence":::"memory"); }
-static inline uint64_t __rdtsc(void){ uint64_t c; __asm__ __volatile__("rdcycle %0":"=r"(c)); return c; }
+#include <x86intrin.h>   /* _mm_* / __rdtsc -> riscv64, single source of truth */
 static inline uint64_t rdtsc(void){ return __rdtsc(); }
 
 uint8_t probe_array[PROBE_ARRAY_SIZE];

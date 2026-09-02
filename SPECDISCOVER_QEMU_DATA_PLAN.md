@@ -56,6 +56,11 @@ than hunting old binaries:
   `-mlfence-before-indirect-branch=all` (Spectre-v2/RETBLEED surface).
 - **x86 clang**: `-mretpoline`, `-mspeculative-load-hardening` (SLH — Spectre-v1).
 - **arm64**: `-mtrack-speculation`, `-mharden-sls=all` (straight-line speculation).
+- **not every class is ISA-general.** L1TF (Intel L1TF), MDS (Intel fill-buffer),
+  INCEPTION (AMD RSB) are vendor-microarchitecture-specific — their reference
+  gadgets embed x86 asm and they have NO RISC-V analogue. RISC-V's real attack
+  surface is the prediction-based ISA-general set: SPECTRE_V1/V2/V4/RSB, RETBLEED,
+  BHI. Compile those; do not force the Intel/AMD classes onto RISC-V.
 - **riscv64**: fewer mitigation flags exist (the ISA is young) — here old-vs-new
   *compiler version* and `-O0..-O3` carry most of the diversity.
 

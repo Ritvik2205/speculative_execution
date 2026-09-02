@@ -6,5 +6,6 @@ ssize_t read(int, void *, unsigned long);
 ssize_t write(int, const void *, unsigned long);
 int close(int);
 int usleep(unsigned);
+int getpagesize(void);
 unsigned sleep(unsigned);
 #endif

@@ -51,11 +51,11 @@ ENGINE = load_engine("riscv.json")
 
 # file -> vulnerability class (portable cores only; _arm64/x86 variants excluded)
 FILE_CLASS = {
-    "spectre_1.c": "SPECTRE_V1", "spectre_v1.c": "SPECTRE_V1",
-    "spectre_github.c": "SPECTRE_V1", "spectre_2.c": "SPECTRE_V2",
+    "spectre_1.c": "SPECTRE_V1", "spectre_github.c": "SPECTRE_V1",
+    # spectre_v1.c excluded: x86 inline asm (rbx/rax); V1 covered by spectre_1.c "spectre_2.c": "SPECTRE_V2",
     "spectre_rsb.c": "SPECTRE_RSB", "l1tf.c": "L1TF", "mds.c": "MDS",
     "retbleed.c": "RETBLEED", "bhi.c": "BRANCH_HISTORY_INJECTION",
-    "inception.c": "INCEPTION",
+    # inception.c excluded: x86 inline asm (r9/rax) in the gadget itself, not portable
 }
 # harness functions from utils.c — never gadgets
 HARNESS = {"flush_probe_array", "measure_access_time", "benign_target",

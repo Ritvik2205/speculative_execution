@@ -30,3 +30,23 @@ magnitude gap is the idiomaticity signal.
 NEXT: extend the riscv shim so l1tf/mds/inception compile (they need mmap/getpagesize),
 adding L1TF/MDS -> >=5-6 shared classes so the sign test can reach significance and
 give a clean pass.
+
+--- Shim extension (unlock L1TF/MDS/inception attempt) ---
+Extended the riscv shim: setjmp/signal/sys-mman/x86intrin/perror/mprotect stubs.
+Unlocked spectre_github (V1: 4 -> 12 gadgets; batch 28 -> 36).
+
+L1TF, MDS, INCEPTION, spectre_v1 CANNOT be unlocked by a shim: their GADGET CORES
+embed x86 inline assembly (l1tf/spectre_v1: rbx/rax; mds: `shl $12,%%rax` store-
+forward stall; inception: r8/r9/rax). This is not a header gap -- the ATTACKS are
+vendor-microarchitecture-specific:
+  L1TF      = Intel L1 Terminal Fault (Intel-specific microarch)
+  MDS       = Intel Microarchitectural Data Sampling (fill buffers, Intel-specific)
+  INCEPTION = AMD return-stack (AMD-specific)
+They have NO RISC-V analogue -- RISC-V lacks that microarchitecture.
+
+SCOPING CONCLUSION (valuable): the RISC-V-relevant attack surface is the
+PREDICTION-BASED, ISA-general classes -- SPECTRE_V1/V2/RSB, RETBLEED (return
+prediction), BHI (branch history), and SPECTRE_V4 (store bypass). Exactly the
+classes we CAN compile. L1TF/MDS/INCEPTION are correctly ABSENT from RISC-V, not
+missing data. So the "need >=5 shared classes for a clean sign-test pass" bar is
+met by adding SPECTRE_V4 (ISA-general), not by forcing Intel/AMD classes onto RISC-V.

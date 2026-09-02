@@ -29,3 +29,7 @@ int sscanf(const char *, const char *, ...);
 #define SEEK_SET 0
 #define SEEK_END 2
 #endif
+#ifndef _STUB_STDIO_PERROR
+#define _STUB_STDIO_PERROR
+void perror(const char *);
+#endif
