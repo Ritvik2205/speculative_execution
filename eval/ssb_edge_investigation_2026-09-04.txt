@@ -1,0 +1,49 @@
+SPEC_STORE_BYPASS (Spectre-v4) EDGE — investigation & decision NOT to ship (2026-09-04)
+=======================================================================================
+Goal: add a store-bypass speculative edge to the PDG builder, grounded & robust, and
+validate the gadgets actually leak.
+
+TOOL REALITY FIRST:
+- QEMU cannot confirm a speculative leak (functional emulator: no speculation/caches/
+  timing) AND is not installed. It gives a false negative for every gadget.
+- Spectector models BRANCH (PHT) speculation, not store-to-load bypass -> cannot
+  confirm V4 either.
+- The only SSB-capable leak oracles are gem5 / InvisiSpec (microarch, store-forwarding)
+  and Revizor (hardware). Docker daemon was DOWN this pass -> dynamic SSB confirmation
+  is a run-when-docker-up step, not fakeable.
+
+EDGE DESIGN (grounded, mirrors the existing spec machinery):
+SSB = the SPECULATIVE counterpart of the builder's existing store->load MEMORY_ORDER
+relation: an aliasing load inside the store's speculative window, unfenced, whose
+loaded value is dereferenced/transmitted downstream. Implemented with mem-operand base
+aliasing + a fence-clears-window rule + a transmitter-linkage dataflow condition.
+
+VALIDATION -- the core logic is CORRECT on clean cases:
+  unfenced store->load->deref : SSB edge present  (vulnerable)
+  fenced (lfence/SSBD) between: SSB edge ABSENT   (mitigated)   <- fence-sensitive
+  spill: store->load->ARITH   : SSB edge ABSENT   (benign)
+  stack-slot store->load->deref: SSB edge present (vulnerable)
+
+BUT ON REAL -O0 GADGETS IT CANNOT SEPARATE V4 FROM V1:
+  V4 SSB edges: x86 1, arm 0, riscv 4     V1 SSB edges: x86 2, arm 2, riscv 3
+V1 spills its index i (store i; reload i) and uses i to address arr[i] -- STATICALLY
+IDENTICAL to a store->load->deref. So the edge fires on V1's index handling too.
+
+FUNDAMENTAL FINDING -- SSB has NO distinctive static signature:
+- V1/V2/RSB have real STATIC triggers: the conditional branch / indirect call / return
+  instruction. The builder keys speculative edges on those, robustly.
+- V4 (store bypass) has NO such trigger. A store followed by a load of the same slot is
+  a normal spill/reload; whether the load BYPASSES the store is a purely
+  MICROARCHITECTURAL (dynamic) event of the memory-disambiguation predictor, invisible
+  in the static instruction stream. store->load->address-use is ubiquitous at -O0.
+- Fence-ABSENCE is not discriminative either (almost all code is unfenced).
+=> Any static SSB edge either misses real V4 or fires on ubiquitous spills. Both were
+   observed. This is why the builder correctly had no V4 edge.
+
+DECISION: do NOT ship a static SSB edge (it would be the spurious-correlation trap:
+a noisy edge the model latches onto). Reverted. V4 detection must come from:
+  (1) DATA -- idiomatic V4 training examples (already in the harvest: SPECTRE_V4 class),
+  (2) DYNAMIC oracle labels -- gem5/InvisiSpec store-forwarding model (run when docker
+      is up), NOT a static graph edge and NOT QEMU/Spectector.
+This is the grounded, robust answer: the rigorous outcome is that a robust static edge
+for SSB does not exist, distinct from the other (statically-triggered) speculation types.
