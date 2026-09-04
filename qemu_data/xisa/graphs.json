@@ -1,0 +1,1670 @@
+{
+ "x86_64": {
+  "nodes": [
+   {
+    "id": 0,
+    "raw": "pushq\t%rbp",
+    "cat": "OTHER",
+    "canonical": "PUSH",
+    "flags": []
+   },
+   {
+    "id": 1,
+    "raw": "movq\t%rsp, %rbp",
+    "cat": "OTHER",
+    "canonical": "VECTOR",
+    "flags": []
+   },
+   {
+    "id": 2,
+    "raw": "movq\t%rdi, -8(%rbp)",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 3,
+    "raw": "movq\t-8(%rbp), %rax",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 4,
+    "raw": "cmpq\tsz, %rax",
+    "cat": "OTHER",
+    "canonical": "CMP",
+    "flags": []
+   },
+   {
+    "id": 5,
+    "raw": "jae\t.LBB0_2",
+    "cat": "BRANCH_COND",
+    "canonical": "BRANCH_COND",
+    "flags": [
+     "is_branch"
+    ]
+   },
+   {
+    "id": 6,
+    "raw": "movq\tarr, %rax",
+    "cat": "OTHER",
+    "canonical": "VECTOR",
+    "flags": []
+   },
+   {
+    "id": 7,
+    "raw": "movq\t-8(%rbp), %rcx",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 8,
+    "raw": "movb\t(%rax,%rcx), %al",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access",
+     "is_secret_source",
+     "is_transmitter"
+    ]
+   },
+   {
+    "id": 9,
+    "raw": "movb\t%al, -9(%rbp)",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 10,
+    "raw": "movzbl\t-9(%rbp), %eax",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 11,
+    "raw": "shll\t$6, %eax",
+    "cat": "OTHER",
+    "canonical": "SHL",
+    "flags": []
+   },
+   {
+    "id": 12,
+    "raw": "cltq",
+    "cat": "OTHER",
+    "canonical": "MOV_SX",
+    "flags": []
+   },
+   {
+    "id": 13,
+    "raw": "movb\t$1, probe(,%rax)",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 14,
+    "raw": "popq\t%rbp",
+    "cat": "OTHER",
+    "canonical": "POP",
+    "flags": []
+   },
+   {
+    "id": 15,
+    "raw": "retq",
+    "cat": "RET",
+    "canonical": "RET",
+    "flags": [
+     "is_branch"
+    ]
+   },
+   {
+    "id": 16,
+    "raw": "# -- End function",
+    "cat": "OTHER",
+    "canonical": "OTHER",
+    "flags": []
+   }
+  ],
+  "edges": [
+   {
+    "src": 0,
+    "dst": 1,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 1,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 1,
+    "dst": 2,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 2,
+    "dst": 3,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 3,
+    "dst": 4,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 4,
+    "dst": 5,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 5,
+    "dst": 6,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 6,
+    "dst": 7,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 5,
+    "dst": 7,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 7,
+    "dst": 8,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 5,
+    "dst": 8,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 8,
+    "dst": 9,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 9,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 3,
+    "dst": 9,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 9,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 5,
+    "dst": 9,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 9,
+    "dst": 10,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 5,
+    "dst": 10,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 10,
+    "dst": 11,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 11,
+    "dst": 12,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 12,
+    "dst": 13,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 4,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 6,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 5,
+    "dst": 13,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 13,
+    "dst": 14,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 14,
+    "dst": 15,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 15,
+    "dst": 16,
+    "type": "CONTROL_FLOW"
+   }
+  ]
+ },
+ "arm64": {
+  "nodes": [
+   {
+    "id": 0,
+    "raw": "sub\tsp, sp, #16",
+    "cat": "ARITHMETIC",
+    "canonical": "SUB",
+    "flags": []
+   },
+   {
+    "id": 1,
+    "raw": "str\tx0, [sp, #8]",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 2,
+    "raw": "ldr\tx8, [sp, #8]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 3,
+    "raw": "adrp\tx9, :got:sz",
+    "cat": "OTHER",
+    "canonical": "ADDR_GEN",
+    "flags": []
+   },
+   {
+    "id": 4,
+    "raw": "ldr\tx9, [x9, :got_lo12:sz]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 5,
+    "raw": "ldr\tx9, [x9]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access",
+     "is_transmitter"
+    ]
+   },
+   {
+    "id": 6,
+    "raw": "subs\tx8, x8, x9",
+    "cat": "OTHER",
+    "canonical": "SUB",
+    "flags": []
+   },
+   {
+    "id": 7,
+    "raw": "b.hs\t.LBB0_2",
+    "cat": "BRANCH_COND",
+    "canonical": "BRANCH_COND",
+    "flags": [
+     "is_branch"
+    ]
+   },
+   {
+    "id": 8,
+    "raw": "b\t.LBB0_1",
+    "cat": "BRANCH_UNCOND",
+    "canonical": "BRANCH_UNCOND",
+    "flags": [
+     "is_branch"
+    ]
+   },
+   {
+    "id": 9,
+    "raw": "adrp\tx8, :got:arr",
+    "cat": "OTHER",
+    "canonical": "ADDR_GEN",
+    "flags": []
+   },
+   {
+    "id": 10,
+    "raw": "ldr\tx8, [x8, :got_lo12:arr]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 11,
+    "raw": "ldr\tx8, [x8]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access",
+     "is_transmitter"
+    ]
+   },
+   {
+    "id": 12,
+    "raw": "ldr\tx9, [sp, #8]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 13,
+    "raw": "add\tx8, x8, x9",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 14,
+    "raw": "ldrb\tw8, [x8]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access",
+     "is_transmitter"
+    ]
+   },
+   {
+    "id": 15,
+    "raw": "strb\tw8, [sp, #7]",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 16,
+    "raw": "ldrb\tw8, [sp, #7]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access",
+     "is_secret_source"
+    ]
+   },
+   {
+    "id": 17,
+    "raw": "lsl\tw9, w8, #6",
+    "cat": "SHIFT",
+    "canonical": "SHL",
+    "flags": []
+   },
+   {
+    "id": 18,
+    "raw": "adrp\tx8, :got:probe",
+    "cat": "OTHER",
+    "canonical": "ADDR_GEN",
+    "flags": []
+   },
+   {
+    "id": 19,
+    "raw": "ldr\tx8, [x8, :got_lo12:probe]",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 20,
+    "raw": "add\tx9, x8, w9, sxtw",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 21,
+    "raw": "mov\tw8, #1                          // =0x1",
+    "cat": "MOVE",
+    "canonical": "MOV",
+    "flags": []
+   },
+   {
+    "id": 22,
+    "raw": "strb\tw8, [x9]",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access",
+     "is_transmitter"
+    ]
+   },
+   {
+    "id": 23,
+    "raw": "b\t.LBB0_2",
+    "cat": "BRANCH_UNCOND",
+    "canonical": "BRANCH_UNCOND",
+    "flags": [
+     "is_branch"
+    ]
+   },
+   {
+    "id": 24,
+    "raw": "add\tsp, sp, #16",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 25,
+    "raw": "ret",
+    "cat": "RET",
+    "canonical": "RET",
+    "flags": [
+     "is_branch"
+    ]
+   },
+   {
+    "id": 26,
+    "raw": "// -- End function",
+    "cat": "OTHER",
+    "canonical": "OTHER",
+    "flags": []
+   }
+  ],
+  "edges": [
+   {
+    "src": 0,
+    "dst": 1,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 1,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 1,
+    "dst": 2,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 1,
+    "dst": 2,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 2,
+    "dst": 3,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 3,
+    "dst": 4,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 3,
+    "dst": 4,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 4,
+    "dst": 5,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 3,
+    "dst": 5,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 4,
+    "dst": 5,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 5,
+    "dst": 6,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 2,
+    "dst": 6,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 3,
+    "dst": 6,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 4,
+    "dst": 6,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 5,
+    "dst": 6,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 6,
+    "dst": 7,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 7,
+    "dst": 8,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 8,
+    "dst": 9,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 9,
+    "dst": 10,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 2,
+    "dst": 10,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 6,
+    "dst": 10,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 9,
+    "dst": 10,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 10,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 10,
+    "dst": 11,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 6,
+    "dst": 11,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 9,
+    "dst": 11,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 10,
+    "dst": 11,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 11,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 11,
+    "dst": 12,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 12,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 12,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 1,
+    "dst": 12,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 12,
+    "dst": 13,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 9,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 10,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 11,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 4,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 5,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 12,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 13,
+    "dst": 14,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 10,
+    "dst": 14,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 11,
+    "dst": 14,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 13,
+    "dst": 14,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 14,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 14,
+    "dst": 15,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 14,
+    "dst": 15,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 0,
+    "dst": 15,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 15,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 15,
+    "dst": 16,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 16,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 16,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 1,
+    "dst": 16,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 15,
+    "dst": 16,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 16,
+    "dst": 17,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 14,
+    "dst": 17,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 16,
+    "dst": 17,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 17,
+    "dst": 18,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 18,
+    "dst": 19,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 11,
+    "dst": 19,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 13,
+    "dst": 19,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 18,
+    "dst": 19,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 19,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 19,
+    "dst": 20,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 13,
+    "dst": 20,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 18,
+    "dst": 20,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 19,
+    "dst": 20,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 17,
+    "dst": 20,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 20,
+    "dst": 21,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 21,
+    "dst": 22,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 14,
+    "dst": 22,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 16,
+    "dst": 22,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 21,
+    "dst": 22,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 5,
+    "dst": 22,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 12,
+    "dst": 22,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 20,
+    "dst": 22,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 7,
+    "dst": 22,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 22,
+    "dst": 23,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 23,
+    "dst": 24,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 24,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 24,
+    "dst": 25,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 25,
+    "dst": 26,
+    "type": "CONTROL_FLOW"
+   }
+  ]
+ },
+ "riscv64": {
+  "nodes": [
+   {
+    "id": 0,
+    "raw": "addi\tsp,sp,-48",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 1,
+    "raw": "sd\tra,40(sp)",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 2,
+    "raw": "sd\ts0,32(sp)",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 3,
+    "raw": "addi\ts0,sp,48",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 4,
+    "raw": "sd\ta0,-40(s0)",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 5,
+    "raw": "lui\ta5,%hi(sz)",
+    "cat": "MOVE",
+    "canonical": "ADDR_GEN",
+    "flags": []
+   },
+   {
+    "id": 6,
+    "raw": "ld\ta5,%lo(sz)(a5)",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 7,
+    "raw": "ld\ta4,-40(s0)",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 8,
+    "raw": "bgeu\ta4,a5,.L3",
+    "cat": "BRANCH_COND",
+    "canonical": "BRANCH_COND",
+    "flags": [
+     "is_branch"
+    ]
+   },
+   {
+    "id": 9,
+    "raw": "lui\ta5,%hi(arr)",
+    "cat": "MOVE",
+    "canonical": "ADDR_GEN",
+    "flags": []
+   },
+   {
+    "id": 10,
+    "raw": "ld\ta4,%lo(arr)(a5)",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 11,
+    "raw": "ld\ta5,-40(s0)",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 12,
+    "raw": "add\ta5,a4,a5",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 13,
+    "raw": "lbu\ta5,0(a5)",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 14,
+    "raw": "sb\ta5,-17(s0)",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 15,
+    "raw": "lbu\ta5,-17(s0)",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access",
+     "is_secret_source"
+    ]
+   },
+   {
+    "id": 16,
+    "raw": "sext.w\ta5,a5",
+    "cat": "OTHER",
+    "canonical": "MOV_SX",
+    "flags": []
+   },
+   {
+    "id": 17,
+    "raw": "slliw\ta5,a5,6",
+    "cat": "SHIFT",
+    "canonical": "SHL",
+    "flags": []
+   },
+   {
+    "id": 18,
+    "raw": "sext.w\ta5,a5",
+    "cat": "OTHER",
+    "canonical": "MOV_SX",
+    "flags": []
+   },
+   {
+    "id": 19,
+    "raw": "lui\ta4,%hi(probe)",
+    "cat": "MOVE",
+    "canonical": "ADDR_GEN",
+    "flags": []
+   },
+   {
+    "id": 20,
+    "raw": "addi\ta4,a4,%lo(probe)",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 21,
+    "raw": "add\ta5,a4,a5",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 22,
+    "raw": "li\ta4,1",
+    "cat": "MOVE",
+    "canonical": "MOV",
+    "flags": []
+   },
+   {
+    "id": 23,
+    "raw": "sb\ta4,0(a5)",
+    "cat": "STORE",
+    "canonical": "STORE",
+    "flags": [
+     "is_memory_access",
+     "is_transmitter"
+    ]
+   },
+   {
+    "id": 24,
+    "raw": "nop",
+    "cat": "NOP",
+    "canonical": "NOP",
+    "flags": []
+   },
+   {
+    "id": 25,
+    "raw": "ld\tra,40(sp)",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 26,
+    "raw": "ld\ts0,32(sp)",
+    "cat": "LOAD",
+    "canonical": "LOAD",
+    "flags": [
+     "is_memory_access"
+    ]
+   },
+   {
+    "id": 27,
+    "raw": "addi\tsp,sp,48",
+    "cat": "ARITHMETIC",
+    "canonical": "ADD",
+    "flags": []
+   },
+   {
+    "id": 28,
+    "raw": "jr\tra",
+    "cat": "RET",
+    "canonical": "RET",
+    "flags": [
+     "is_branch"
+    ]
+   }
+  ],
+  "edges": [
+   {
+    "src": 0,
+    "dst": 1,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 1,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 1,
+    "dst": 2,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 2,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 2,
+    "dst": 3,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 3,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 3,
+    "dst": 4,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 3,
+    "dst": 4,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 4,
+    "dst": 5,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 5,
+    "dst": 6,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 5,
+    "dst": 6,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 6,
+    "dst": 7,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 3,
+    "dst": 7,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 2,
+    "dst": 7,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 4,
+    "dst": 7,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 7,
+    "dst": 8,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 7,
+    "dst": 8,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 5,
+    "dst": 8,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 6,
+    "dst": 8,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 9,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 9,
+    "dst": 10,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 5,
+    "dst": 10,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 6,
+    "dst": 10,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 9,
+    "dst": 10,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 10,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 10,
+    "dst": 11,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 3,
+    "dst": 11,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 11,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 2,
+    "dst": 11,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 4,
+    "dst": 11,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 11,
+    "dst": 12,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 7,
+    "dst": 12,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 10,
+    "dst": 12,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 6,
+    "dst": 12,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 9,
+    "dst": 12,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 11,
+    "dst": 12,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 12,
+    "dst": 13,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 9,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 11,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 12,
+    "dst": 13,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 13,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 13,
+    "dst": 14,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 11,
+    "dst": 14,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 12,
+    "dst": 14,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 13,
+    "dst": 14,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 3,
+    "dst": 14,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 14,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 14,
+    "dst": 15,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 3,
+    "dst": 15,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 15,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 4,
+    "dst": 15,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 14,
+    "dst": 15,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 15,
+    "dst": 16,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 12,
+    "dst": 16,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 13,
+    "dst": 16,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 15,
+    "dst": 16,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 16,
+    "dst": 17,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 13,
+    "dst": 17,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 15,
+    "dst": 17,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 16,
+    "dst": 17,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 17,
+    "dst": 18,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 15,
+    "dst": 18,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 16,
+    "dst": 18,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 17,
+    "dst": 18,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 18,
+    "dst": 19,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 19,
+    "dst": 20,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 7,
+    "dst": 20,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 10,
+    "dst": 20,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 19,
+    "dst": 20,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 20,
+    "dst": 21,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 10,
+    "dst": 21,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 19,
+    "dst": 21,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 20,
+    "dst": 21,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 16,
+    "dst": 21,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 17,
+    "dst": 21,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 18,
+    "dst": 21,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 21,
+    "dst": 22,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 22,
+    "dst": 23,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 19,
+    "dst": 23,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 20,
+    "dst": 23,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 22,
+    "dst": 23,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 17,
+    "dst": 23,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 18,
+    "dst": 23,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 21,
+    "dst": 23,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 23,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 23,
+    "dst": 24,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 24,
+    "dst": 25,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 25,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 25,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 1,
+    "dst": 25,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 2,
+    "dst": 25,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 25,
+    "dst": 26,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 26,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 8,
+    "dst": 26,
+    "type": "SPEC_CONDITIONAL"
+   },
+   {
+    "src": 1,
+    "dst": 26,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 2,
+    "dst": 26,
+    "type": "MEMORY_ORDER"
+   },
+   {
+    "src": 26,
+    "dst": 27,
+    "type": "CONTROL_FLOW"
+   },
+   {
+    "src": 0,
+    "dst": 27,
+    "type": "DATA_DEP"
+   },
+   {
+    "src": 27,
+    "dst": 28,
+    "type": "CONTROL_FLOW"
+   }
+  ]
+ }
+}

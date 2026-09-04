@@ -1,0 +1,36 @@
+CROSS-ISA GRAPH STRUCTURE: one SPECTRE-V1 gadget, -O0, x86/arm/riscv (2026-09-04)
+=================================================================================
+Same source (if(i<sz){v=arr[i]; probe[v<<6]=1;}), compiled -O0 (no opt, no mitigation)
+to all 3 ISAs. Graph = spec-backed PDG fed to the GINE classifier (boilerplate stripped;
+padding edges omitted -- the 1024 edge count is pad, DATA_DEP=0 is the pad value).
+Interactive viz: artifact fd6f906f. Data: qemu_data/xisa/graphs.json.
+
+  metric                x86_64   arm64   riscv64
+  nodes                 17       27      29
+  edges (real)          29       82      99
+  edge/node density     1.7      3.0     3.4
+  data-dep edges        8        44      53
+  control-flow edges    16       26      28
+  speculative edges     5        8       8
+  memory-order edges    0        4       10
+  LOAD nodes            4        9       8
+  V1 signature present  yes      yes     yes
+
+STRUCTURAL DIFFERENCES -- yes in SIZE/DENSITY, no in the ATTACK SUBGRAPH:
+- The graph grows x86(17,29) -> arm(27,82) -> riscv(29,99); edge/node density nearly
+  DOUBLES (1.7 -> 3.4). The extra structure is almost all DATA-DEP edges (8 -> 44 -> 53).
+- Cause: RISC ISAs materialize every global address with explicit register ops
+  (adrp+ldr, lui+ld) and, at -O0, spill through the stack -> more nodes + def-use edges.
+  x86 (CISC) folds addressing into single memory-operand instructions -> small, sparse.
+- INVARIANT: the discriminative V1 subgraph is topologically present in ALL THREE --
+  a BRANCH_COND whose speculative (dashed) edges reach a LOAD (secret read) whose value
+  flows to a SHIFT then a STORE (cache transmit). The attack pattern is ISA-invariant;
+  the addressing/spill scaffolding is what differs.
+- Speculative edges are stable (5/8/8): the modelled speculation window depends on the
+  single conditional branch, not addressing style.
+- LOAD count inflated on RISC (4/9/8) by address-materialization loads -- the nuisance
+  signal the deferred dataflow load-normalization targets.
+
+TIES TO: representation transfers for a well-learned class when size-matched (V1 riscv
+0.94 zero-shot); raw graph size/density is the nuisance variable (H3). Same-optimization
+(-O0) held across all 3 so the comparison is clean.
