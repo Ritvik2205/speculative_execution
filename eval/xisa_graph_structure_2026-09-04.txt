@@ -34,3 +34,25 @@ STRUCTURAL DIFFERENCES -- yes in SIZE/DENSITY, no in the ATTACK SUBGRAPH:
 TIES TO: representation transfers for a well-learned class when size-matched (V1 riscv
 0.94 zero-shot); raw graph size/density is the nuisance variable (H3). Same-optimization
 (-O0) held across all 3 so the comparison is clean.
+
+--- V4 (store bypass) added — the decisive difference (2026-09-04) ---
+Same -O0, all 3 ISAs. SPECTRE-V4 gadget:
+  metric              x86_64  arm64  riscv64
+  nodes               18      24     28
+  edges (real)        27      62     86
+  data-dep edges      9       38     50
+  speculative edges   0       0      0     <== ZERO on all 3 (V1 had 5/8/8)
+  classifier verdict  RSB✗    BENIGN✗ V1✗
+
+KEY FINDING: V4 has NO speculative (SPEC_CONDITIONAL) edges on any ISA. The builder
+models branch/PHT speculation (edges past a mispredicted CONDITIONAL BRANCH), but the
+V4 store-bypass gadget has no conditional branch -> no speculative edges are produced.
+Its graph is dense, ISA-inflated data-dependence with NO attack signal, so the same V4
+gadget gets 3 DIFFERENT wrong labels -- with no speculative structure to key on, the
+ISA-specific addressing noise decides the verdict. V1's speculative edges are the
+ISA-invariant signal that lets it transfer; V4 has none, so it can't.
+
+This is a MODELLING gap (store-bypass speculation is unmodelled by the spec builder),
+distinct from the DATA gap that the idiomatic-riscv training fix addresses. Two
+separate levers: model the V4 speculation edge (builder), and supply idiomatic data
+(harvest). Viz: artifact fd6f906f (V1/V4 toggle).
