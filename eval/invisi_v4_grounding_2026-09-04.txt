@@ -1,0 +1,83 @@
+InvisiSpec/gem5 dynamic grounding of SPECTRE_V4 (store-bypass) — 2026-09-04
+==========================================================================
+Goal: dynamically confirm whether the V4 store-bypass gadget LEAKS, to ground
+the (reverted) static SSB edge. The static investigation
+(eval/ssb_edge_investigation_2026-09-04.txt) proved SSB has no distinctive
+static signature; this was the attempt to establish leakage the sound way.
+
+Setup: oracle/validators/invisispec_validator.py, image specdiscover-invisispec:pinned.
+gem5 X86_MESI_Two_Level DerivO3CPU, needsTSO=0, scheme=UnsafeBaseline, caches+l2.
+Gadgets (x86-runnable PoCs, static -O0, utils.c harness):
+  v4_unfenced  = c_vulns/c_code/spectre_v4.c        (SSB: *slot=safe; barrier; v=**slot)
+  v4_fenced    = c_vulns/c_code/spectre_v4_fenced.c  (lfence between store and load)
+  v1_control   = c_vulns/c_code/spectre_1.c          (known leaker, positive control)
+
+FIRST PASS (WRONG CONTROL) — all safe with the MINIMAL utils.c harness:
+  v4_unfenced : safe (n_success=0)
+  v4_fenced   : safe (n_success=0)
+  v1_control  : safe (n_success=0)   <-- spectre_1.c is UNDER-TUNED, not a valid control
+
+CORRECTION: spectre_1.c is a known under-tuned PoC (threshold 50, short window)
+that reads SAFE even though V1 leaks — this is already recorded. The VALID
+positive control is oracle/validators/reference/spectre_full.c (the tuned Kocher
+harness: 999 tries, clflush, wide window, mixed-order timing, "Success: 0xNN"),
+which leaks 40/40 bytes under this exact gem5 config (oracle/results/
+cross_validation.json, ref_spectre_full). So the ORACLE WORKS; the first pass
+just used the wrong (weak) harness. The gem5 uniform-3-cycle note below explains
+WHY the weak self-timing fails, but the tuned harness overcomes it.
+
+SECOND PASS (correct, tuned harness): authored spectre_v4_full.c — SSB in the
+spectre_full style. Store-bypass trigger without branch mistraining: leave a
+STALE secret pointer in `slot`, clflush(&slot) to delay the store's resolution,
+then victim stores the public pointer and immediately reloads+derefs `slot`;
+gem5 O3's memory-dependence (StoreSet) predictor lets the reload issue past the
+unresolved store, reading the stale secret pointer and transmitting via array2.
+RESULT: verdict=LEAK, n_success=40/40, style=spectre_full, 2835s (~47 min).
+The V4 SSB gadget LEAKS under gem5 InvisiSpec — all 40 secret bytes recovered
+through speculative store bypass. The feared StoreSet-learns-the-alias failure
+did NOT occur: clflush(&slot) kept the store's resolution lagging so the reload
+bypassed it across all 40 bytes (same 40/40 profile as the ref_spectre_full V1
+positive control). PRECISION NOTE: 40/40 = 40 high-confidence single-line cache
+hits on the speculatively-transmitted value (the parser counts "Success: 0xNN"
+lines; the harness prints Success only when best >= 2*runner-up+5 and excludes
+public_byte=0) — the spectre_full-identical profile is strong evidence of real
+byte recovery, not spurious hits.
+
+CONSEQUENCE for the builder / modelling gap:
+  - V4/SSB is a REAL, dynamically-confirmed leak class (not a weak-gadget
+    artifact) — this settles the earlier open question.
+  - Yet it has NO distinctive STATIC signature (the reverted-edge finding
+    stands: -O0 V1 is statically identical). So the static PDG builder
+    genuinely CANNOT self-derive a V4 label from graph structure.
+  - Path to V4 support is therefore NOT a static edge but ORACLE-SUPERVISED
+    labels: this InvisiSpec harness produces trustworthy leak/safe labels for
+    V4 gadgets that the graph can't itself distinguish. Feed those as training
+    supervision (or add a microarch feature), don't hand-add a graph edge.
+
+Why the WEAK harness fails (gem5 self-timing limitation):
+  gem5 DID speculate. stats.txt from the V1 run:
+    condIncorrect (branch)         1514
+    branchMispredicts (execute)    2082
+    lsq squashedLoads             16769
+    lsq squashedStores            11329
+  So mis-speculation + squashed loads are real. The failure is the RECOVERY
+  channel: the PoC recovers the secret via its own Flush+Reload rdtsc timing,
+  and this gem5 config returns ~uniform ~3-cycle load latencies. V1 stdout:
+    "Leaked ... Access Time: 3 cycles / LEAKED VALUE DOES NOT MATCH ACTUAL secret"
+  The self-timed cache side channel cannot separate hit from miss under gem5,
+  so no PoC (leaky or not) reports success => every verdict collapses to safe.
+  specBuffHits=0 is CORRECT (UnsafeBaseline = no InvisiSpec defense, loads hit
+  L1 directly) so that counter cannot serve as the leak signal either.
+
+Conclusion on the store-bypass edge:
+  - NOT added to the builder (reverted): no robust static SSB signature exists
+    (V1 spills its index through a stack slot -> statically identical
+    store->load->deref, fires on V1 too).
+  - NOT dynamically grounded: the available InvisiSpec path measures the leak
+    through the PoC's own timing, which gem5's latency model does not resolve.
+  - V4 remains the modelling gap. A real dynamic V4 oracle needs a
+    memory-targeted probe (per-line L1 residency of the probe array after the
+    squashed load) via gem5 instrumentation, NOT PoC self-timing; or the
+    Revizor hardware oracle. Both are builds, not config tweaks.
+
+Do NOT cite either V4 "safe" verdict as evidence V4 does/doesn't leak.

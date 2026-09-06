@@ -1,0 +1,64 @@
+V4 family — corrected byte-match metric changes everything
+==========================================================
+2026-09-06. The prior leak metric counted "Success:" lines = CONFIDENT cache
+hits (score[0]>=2*runner-up), NOT recovery of the actual secret byte. Fixed the
+harness to emit "Success" only when recovered==secret and to print "RECOVERED
+k/40". Re-ran structure s0 as a trio (vuln / fenced / safe), corrected harness,
+InvisiSpec gem5 UnsafeBaseline:
+
+  variant   verdict   correct_bytes   (was, buggy metric)
+  vuln      safe      0/40            (leak 40/40)
+  fenced    safe      0/40            (leak 40/40)
+  safe      safe      0/40            (leak 40/40)
+
+Under a CORRECT metric NOTHING recovers the secret — not even the unfenced
+store-bypass. So every earlier "40/40 leak" in this line of work was the
+confident-hit-on-noise artifact, INCLUDING the original V4 grounding
+(spectre_v4_full, eval/invisi_v4full_2026-09-04.log) which used the same
+"Success:"-count path.
+
+Most likely cause (directly observed at the very start, eval/invisi_v4_grounding
+_2026-09-04.txt): gem5 DerivO3 in this InvisiSpec config returns ~uniform
+~3-cycle load latencies, so a self-timed Flush+Reload cannot separate a cached
+line from an uncached one. Every line looks like a hit under threshold 80 ->
+results[] is noise -> the max is a confident hit on a WRONG line -> "Success" on
+a garbage byte. Byte-verification exposes it (0 correct).
+
+DECISIVE CONTROL (running, eval/specfull_verify_2026-09-06.log): the canonical
+spectre_full.c V1 leaker, with the recovered bytes verified against the known
+secret "The Magic Words are Squeamish Ossifrage.":
+  - correct ~40/40  => InvisiSpec self-timing WORKS; my SSB gadget simply does
+                       not trigger SSB in gem5 (gadget/property problem).
+  - correct ~0/40   => InvisiSpec self-timing is categorically broken in this
+                       config; ALL "40/40" results are artifacts; V4 dynamic
+                       grounding is INVALID; a leak oracle here needs gem5 CACHE
+                       STATS / instrumentation (secret-dependent line residency),
+                       not PoC self-timing. Wiring blocked on a working oracle.
+
+Note the SAFE structural arm did read correct_bytes=0 = "safe", which is right
+by construction; but with vuln also 0 there is no leak/safe CONTRAST yet.
+
+RESOLUTION (decisive control): spectre_full.c V1 recovers 40/40 CORRECT bytes
+("The Magic Words are Squeamish Ossifrage.", byte-verified against the secret).
+=> InvisiSpec self-timing WORKS. (My first byte-verify script reported 0/40 due
+to a REGEX BUG — it matched the first 0x on the line, the malicious_x ADDRESS
+0xffff..., not the recovered byte after "Success:"; fixed to
+`(?:Success|Unclear): 0x(..)` -> 40/40. The "oracle broken" hypothesis is
+RETRACTED.)
+
+So the oracle is valid and V1 leaks. The V4/SSB trio genuinely recovers 0 bytes
+(the family harness verifies value==secret IN C, reliable). Therefore SSB does
+NOT trigger in this gem5 config with these gadgets — almost certainly because the
+999x30-iteration harness uses the SAME store/load addresses every time, so gem5's
+StoreSet memory-dependence predictor LEARNS the alias and stops speculating the
+load past the store => no bypass => no leak. SSB in gem5 needs a gadget that
+keeps the disambiguation predictor mistrained; a naive repeat-the-same-address
+harness trains the bypass away.
+
+PENDING: byte-verify the ORIGINAL spectre_v4_full.c (eval/v4full_verify_...) to
+tell "SSB never triggers here" from "my family gadget specifically doesn't":
+  40/40 correct -> SSB DOES leak in gem5; the original grounding was real; the
+                   family gadget differs and needs fixing.
+  ~0/40 correct -> SSB does not manifest in this gem5; the original "40/40" was
+                   the confident-hit artifact; V4 cannot be dynamically grounded
+                   via InvisiSpec here.
