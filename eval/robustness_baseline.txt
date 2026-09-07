@@ -1,0 +1,560 @@
+===== seed 42 =====
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 207/1670 [00:00<00:00, 2063.38it/s]Building PDGs:  25%|██▌       | 423/1670 [00:00<00:00, 2115.63it/s]Building PDGs:  38%|███▊      | 635/1670 [00:00<00:00, 2081.35it/s]Building PDGs:  52%|█████▏    | 866/1670 [00:00<00:00, 2167.59it/s]Building PDGs:  65%|██████▌   | 1092/1670 [00:00<00:00, 2197.46it/s]Building PDGs:  79%|███████▊  | 1312/1670 [00:00<00:00, 2158.46it/s]Building PDGs:  92%|█████████▏| 1529/1670 [00:00<00:00, 2040.19it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 2149.20it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (34.0%)
+    CONTROL_FLOW        :    48834 (47.2%)
+    SPEC_CONDITIONAL    :     7961 (7.7%)
+    SPEC_INDIRECT       :     2152 (2.1%)
+    SPEC_RETURN         :     2483 (2.4%)
+    MEMORY_ORDER        :     4814 (4.7%)
+    CACHE_TEMPORAL      :      414 (0.4%)
+    FENCE_BOUNDARY      :     1023 (1.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 197/1670 [00:00<00:00, 1966.01it/s]Building PDGs:  24%|██▍       | 404/1670 [00:00<00:00, 2022.72it/s]Building PDGs:  36%|███▋      | 607/1670 [00:00<00:00, 1997.61it/s]Building PDGs:  50%|████▉     | 832/1670 [00:00<00:00, 2093.10it/s]Building PDGs:  63%|██████▎   | 1049/1670 [00:00<00:00, 2118.01it/s]Building PDGs:  76%|███████▌  | 1261/1670 [00:00<00:00, 2090.26it/s]Building PDGs:  88%|████████▊ | 1471/1670 [00:00<00:00, 2020.82it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 2083.20it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (33.6%)
+    CONTROL_FLOW        :    48834 (46.6%)
+    SPEC_CONDITIONAL    :     8319 (7.9%)
+    SPEC_INDIRECT       :     3982 (3.8%)
+    SPEC_RETURN         :     3012 (2.9%)
+    MEMORY_ORDER        :     4814 (4.6%)
+    FENCE_BOUNDARY      :       46 (0.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/595 [00:00<?, ?it/s]Building PDGs:  18%|█▊        | 106/595 [00:00<00:00, 1058.11it/s]Building PDGs:  52%|█████▏    | 309/595 [00:00<00:00, 1627.29it/s]Building PDGs:  81%|████████▏ | 484/595 [00:00<00:00, 1678.60it/s]Building PDGs: 100%|██████████| 595/595 [00:00<00:00, 1740.49it/s]
+  Valid samples: 595/595
+  Boilerplate stripped: 44 (7.4%) samples
+  Instructions: 22520 -> 22451 (0.3% reduction)
+  Edge type distribution:
+    DATA_DEP            :    11173 (29.4%)
+    CONTROL_FLOW        :    19724 (51.9%)
+    SPEC_CONDITIONAL    :      924 (2.4%)
+    SPEC_INDIRECT       :     1971 (5.2%)
+    SPEC_RETURN         :     1546 (4.1%)
+    MEMORY_ORDER        :      816 (2.1%)
+    CACHE_TEMPORAL      :      414 (1.1%)
+    FENCE_BOUNDARY      :     1013 (2.7%)
+    RSB_CHAIN           :      433 (1.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1063 [00:00<?, ?it/s]Building PDGs:  20%|██        | 215/1063 [00:00<00:00, 2147.29it/s]Building PDGs:  41%|████      | 433/1063 [00:00<00:00, 2165.76it/s]Building PDGs:  61%|██████    | 651/1063 [00:00<00:00, 2169.32it/s]Building PDGs:  82%|████████▏ | 871/1063 [00:00<00:00, 2181.14it/s]Building PDGs: 100%|██████████| 1063/1063 [00:00<00:00, 2183.07it/s]
+  Valid samples: 1063/1063
+  Boilerplate stripped: 11 (1.0%) samples
+  Instructions: 29983 -> 29970 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23778 (36.7%)
+    CONTROL_FLOW        :    28907 (44.6%)
+    SPEC_CONDITIONAL    :     7001 (10.8%)
+    SPEC_INDIRECT       :      181 (0.3%)
+    SPEC_RETURN         :      937 (1.4%)
+    MEMORY_ORDER        :     3914 (6.0%)
+    FENCE_BOUNDARY      :       10 (0.0%)
+    RSB_CHAIN           :      111 (0.2%)
+ckpt: eval/full_tost/viz_hand_s42/gine_best.pt
+test: v54/data/v54_test.jsonl
+
+condition          macro_f1  benign_fp      ece
+-----------------------------------------------
+locked               0.7447     0.0058   0.0387
+trigger_masked       0.4926     0.0058   0.1012
+arch=x86_64          0.8076        nan   0.0980
+arch=arm64           0.5341     0.0058   0.0065
+
+per-class recall [locked]:
+  BENIGN                       0.9942
+  BRANCH_HISTORY_INJECTION     0.2090
+  INCEPTION                    0.9468
+  L1TF                         0.5676
+  MDS                          0.9556
+  RETBLEED                     0.9067
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9545
+  SPECTRE_V4                   0.9919
+
+per-class recall [trigger_masked]:
+  BENIGN                       0.9942
+  BRANCH_HISTORY_INJECTION     0.0896
+  INCEPTION                    0.9362
+  L1TF                         0.0000
+  MDS                          0.2222
+  RETBLEED                     0.7067
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9481
+  SPECTRE_V4                   0.3226
+
+per-class recall [arch=x86_64]:
+  BRANCH_HISTORY_INJECTION     0.2090
+  INCEPTION                    0.9286
+  L1TF                         0.5676
+  MDS                          0.9556
+  RETBLEED                     0.9189
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9565
+  SPECTRE_V4                   0.9919
+
+per-class recall [arch=arm64]:
+  BENIGN                       0.9942
+  BRANCH_HISTORY_INJECTION     0.0000
+  INCEPTION                    1.0000
+  RETBLEED                     0.0000
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9375
+
+===== seed 1 =====
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 203/1670 [00:00<00:00, 2021.79it/s]Building PDGs:  25%|██▍       | 414/1670 [00:00<00:00, 2066.96it/s]Building PDGs:  37%|███▋      | 621/1670 [00:00<00:00, 2027.25it/s]Building PDGs:  51%|█████     | 852/1670 [00:00<00:00, 2135.65it/s]Building PDGs:  64%|██████▍   | 1074/1670 [00:00<00:00, 2164.99it/s]Building PDGs:  77%|███████▋  | 1291/1670 [00:00<00:00, 2126.11it/s]Building PDGs:  90%|█████████ | 1504/1670 [00:00<00:00, 2052.75it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 2117.01it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (34.0%)
+    CONTROL_FLOW        :    48834 (47.2%)
+    SPEC_CONDITIONAL    :     7961 (7.7%)
+    SPEC_INDIRECT       :     2152 (2.1%)
+    SPEC_RETURN         :     2483 (2.4%)
+    MEMORY_ORDER        :     4814 (4.7%)
+    CACHE_TEMPORAL      :      414 (0.4%)
+    FENCE_BOUNDARY      :     1023 (1.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 194/1670 [00:00<00:00, 1930.96it/s]Building PDGs:  24%|██▍       | 400/1670 [00:00<00:00, 2003.31it/s]Building PDGs:  36%|███▌      | 601/1670 [00:00<00:00, 1966.92it/s]Building PDGs:  49%|████▉     | 825/1670 [00:00<00:00, 2070.01it/s]Building PDGs:  62%|██████▏   | 1036/1670 [00:00<00:00, 2081.07it/s]Building PDGs:  75%|███████▍  | 1245/1670 [00:00<00:00, 2081.39it/s]Building PDGs:  87%|████████▋ | 1454/1670 [00:00<00:00, 1976.84it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 2051.23it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (33.6%)
+    CONTROL_FLOW        :    48834 (46.6%)
+    SPEC_CONDITIONAL    :     8319 (7.9%)
+    SPEC_INDIRECT       :     3982 (3.8%)
+    SPEC_RETURN         :     3012 (2.9%)
+    MEMORY_ORDER        :     4814 (4.6%)
+    FENCE_BOUNDARY      :       46 (0.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/595 [00:00<?, ?it/s]Building PDGs:  21%|██        | 123/595 [00:00<00:00, 1225.61it/s]Building PDGs:  56%|█████▌    | 332/595 [00:00<00:00, 1732.75it/s]Building PDGs:  85%|████████▌ | 506/595 [00:00<00:00, 1682.91it/s]Building PDGs: 100%|██████████| 595/595 [00:00<00:00, 1796.32it/s]
+  Valid samples: 595/595
+  Boilerplate stripped: 44 (7.4%) samples
+  Instructions: 22520 -> 22451 (0.3% reduction)
+  Edge type distribution:
+    DATA_DEP            :    11173 (29.4%)
+    CONTROL_FLOW        :    19724 (51.9%)
+    SPEC_CONDITIONAL    :      924 (2.4%)
+    SPEC_INDIRECT       :     1971 (5.2%)
+    SPEC_RETURN         :     1546 (4.1%)
+    MEMORY_ORDER        :      816 (2.1%)
+    CACHE_TEMPORAL      :      414 (1.1%)
+    FENCE_BOUNDARY      :     1013 (2.7%)
+    RSB_CHAIN           :      433 (1.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1063 [00:00<?, ?it/s]Building PDGs:  20%|█▉        | 212/1063 [00:00<00:00, 2116.13it/s]Building PDGs:  40%|████      | 429/1063 [00:00<00:00, 2143.34it/s]Building PDGs:  61%|██████    | 645/1063 [00:00<00:00, 2149.38it/s]Building PDGs:  81%|████████  | 863/1063 [00:00<00:00, 2161.20it/s]Building PDGs: 100%|██████████| 1063/1063 [00:00<00:00, 2156.93it/s]
+  Valid samples: 1063/1063
+  Boilerplate stripped: 11 (1.0%) samples
+  Instructions: 29983 -> 29970 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23778 (36.7%)
+    CONTROL_FLOW        :    28907 (44.6%)
+    SPEC_CONDITIONAL    :     7001 (10.8%)
+    SPEC_INDIRECT       :      181 (0.3%)
+    SPEC_RETURN         :      937 (1.4%)
+    MEMORY_ORDER        :     3914 (6.0%)
+    FENCE_BOUNDARY      :       10 (0.0%)
+    RSB_CHAIN           :      111 (0.2%)
+ckpt: eval/full_tost/viz_hand_s1/gine_best.pt
+test: v54/data/v54_test.jsonl
+
+condition          macro_f1  benign_fp      ece
+-----------------------------------------------
+locked               0.8542     0.0000   0.0345
+trigger_masked       0.5161     0.0000   0.0980
+arch=x86_64          0.8138        nan   0.0976
+arch=arm64           0.8525     0.0000   0.0036
+
+per-class recall [locked]:
+  BENIGN                       1.0000
+  BRANCH_HISTORY_INJECTION     0.2388
+  INCEPTION                    0.9362
+  L1TF                         0.5946
+  MDS                          0.8889
+  RETBLEED                     0.9467
+  SPECTRE_RSB                  1.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9610
+  SPECTRE_V4                   0.9839
+
+per-class recall [trigger_masked]:
+  BENIGN                       1.0000
+  BRANCH_HISTORY_INJECTION     0.1343
+  INCEPTION                    0.8936
+  L1TF                         0.0000
+  MDS                          0.0667
+  RETBLEED                     0.8133
+  SPECTRE_RSB                  1.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9351
+  SPECTRE_V4                   0.5887
+
+per-class recall [arch=x86_64]:
+  BRANCH_HISTORY_INJECTION     0.2388
+  INCEPTION                    0.9143
+  L1TF                         0.5946
+  MDS                          0.8889
+  RETBLEED                     0.9459
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9638
+  SPECTRE_V4                   0.9839
+
+per-class recall [arch=arm64]:
+  BENIGN                       1.0000
+  BRANCH_HISTORY_INJECTION     0.0000
+  INCEPTION                    1.0000
+  RETBLEED                     1.0000
+  SPECTRE_RSB                  1.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9375
+
+===== seed 7 =====
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 202/1670 [00:00<00:00, 2012.79it/s]Building PDGs:  25%|██▍       | 414/1670 [00:00<00:00, 2069.38it/s]Building PDGs:  37%|███▋      | 621/1670 [00:00<00:00, 2030.07it/s]Building PDGs:  51%|█████     | 851/1670 [00:00<00:00, 2133.03it/s]Building PDGs:  64%|██████▍   | 1070/1670 [00:00<00:00, 2150.61it/s]Building PDGs:  77%|███████▋  | 1286/1670 [00:00<00:00, 2110.14it/s]Building PDGs:  90%|████████▉ | 1498/1670 [00:00<00:00, 2039.71it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 2110.52it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (34.0%)
+    CONTROL_FLOW        :    48834 (47.2%)
+    SPEC_CONDITIONAL    :     7961 (7.7%)
+    SPEC_INDIRECT       :     2152 (2.1%)
+    SPEC_RETURN         :     2483 (2.4%)
+    MEMORY_ORDER        :     4814 (4.7%)
+    CACHE_TEMPORAL      :      414 (0.4%)
+    FENCE_BOUNDARY      :     1023 (1.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 194/1670 [00:00<00:00, 1938.04it/s]Building PDGs:  23%|██▎       | 392/1670 [00:00<00:00, 1957.06it/s]Building PDGs:  35%|███▌      | 588/1670 [00:00<00:00, 1908.92it/s]Building PDGs:  47%|████▋     | 787/1670 [00:00<00:00, 1939.65it/s]Building PDGs:  59%|█████▉    | 982/1670 [00:00<00:00, 1866.62it/s]Building PDGs:  72%|███████▏  | 1200/1670 [00:00<00:00, 1967.53it/s]Building PDGs:  84%|████████▎ | 1398/1670 [00:00<00:00, 1923.20it/s]Building PDGs:  95%|█████████▌| 1591/1670 [00:00<00:00, 1917.08it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 1967.59it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (33.6%)
+    CONTROL_FLOW        :    48834 (46.6%)
+    SPEC_CONDITIONAL    :     8319 (7.9%)
+    SPEC_INDIRECT       :     3982 (3.8%)
+    SPEC_RETURN         :     3012 (2.9%)
+    MEMORY_ORDER        :     4814 (4.6%)
+    FENCE_BOUNDARY      :       46 (0.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/595 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 74/595 [00:00<00:00, 725.19it/s]Building PDGs:  47%|████▋     | 279/595 [00:00<00:00, 1496.09it/s]Building PDGs:  75%|███████▍  | 445/595 [00:00<00:00, 1569.04it/s]Building PDGs: 100%|██████████| 595/595 [00:00<00:00, 1616.53it/s]
+  Valid samples: 595/595
+  Boilerplate stripped: 44 (7.4%) samples
+  Instructions: 22520 -> 22451 (0.3% reduction)
+  Edge type distribution:
+    DATA_DEP            :    11173 (29.4%)
+    CONTROL_FLOW        :    19724 (51.9%)
+    SPEC_CONDITIONAL    :      924 (2.4%)
+    SPEC_INDIRECT       :     1971 (5.2%)
+    SPEC_RETURN         :     1546 (4.1%)
+    MEMORY_ORDER        :      816 (2.1%)
+    CACHE_TEMPORAL      :      414 (1.1%)
+    FENCE_BOUNDARY      :     1013 (2.7%)
+    RSB_CHAIN           :      433 (1.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1063 [00:00<?, ?it/s]Building PDGs:  20%|█▉        | 211/1063 [00:00<00:00, 2104.99it/s]Building PDGs:  40%|████      | 430/1063 [00:00<00:00, 2149.69it/s]Building PDGs:  61%|██████    | 648/1063 [00:00<00:00, 2160.44it/s]Building PDGs:  82%|████████▏ | 868/1063 [00:00<00:00, 2173.01it/s]Building PDGs: 100%|██████████| 1063/1063 [00:00<00:00, 2169.94it/s]
+  Valid samples: 1063/1063
+  Boilerplate stripped: 11 (1.0%) samples
+  Instructions: 29983 -> 29970 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23778 (36.7%)
+    CONTROL_FLOW        :    28907 (44.6%)
+    SPEC_CONDITIONAL    :     7001 (10.8%)
+    SPEC_INDIRECT       :      181 (0.3%)
+    SPEC_RETURN         :      937 (1.4%)
+    MEMORY_ORDER        :     3914 (6.0%)
+    FENCE_BOUNDARY      :       10 (0.0%)
+    RSB_CHAIN           :      111 (0.2%)
+ckpt: eval/full_tost/viz_hand_s7/gine_best.pt
+test: v54/data/v54_test.jsonl
+
+condition          macro_f1  benign_fp      ece
+-----------------------------------------------
+locked               0.7535     0.0058   0.0359
+trigger_masked       0.5251     0.0058   0.1049
+arch=x86_64          0.8298        nan   0.0896
+arch=arm64           0.6033     0.0058   0.0066
+
+per-class recall [locked]:
+  BENIGN                       0.9942
+  BRANCH_HISTORY_INJECTION     0.6866
+  INCEPTION                    0.8085
+  L1TF                         0.3784
+  MDS                          0.9556
+  RETBLEED                     0.9200
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.8701
+  SPECTRE_V4                   0.9839
+
+per-class recall [trigger_masked]:
+  BENIGN                       0.9942
+  BRANCH_HISTORY_INJECTION     0.5821
+  INCEPTION                    0.7553
+  L1TF                         0.0541
+  MDS                          0.0000
+  RETBLEED                     0.7067
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.8831
+  SPECTRE_V4                   0.5161
+
+per-class recall [arch=x86_64]:
+  BRANCH_HISTORY_INJECTION     0.6866
+  INCEPTION                    0.9286
+  L1TF                         0.3784
+  MDS                          0.9556
+  RETBLEED                     0.9189
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.8623
+  SPECTRE_V4                   0.9839
+
+per-class recall [arch=arm64]:
+  BENIGN                       0.9942
+  BRANCH_HISTORY_INJECTION     0.0000
+  INCEPTION                    0.9167
+  RETBLEED                     1.0000
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9375
+
+===== seed 13 =====
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 203/1670 [00:00<00:00, 2028.97it/s]Building PDGs:  25%|██▍       | 415/1670 [00:00<00:00, 2077.03it/s]Building PDGs:  37%|███▋      | 623/1670 [00:00<00:00, 2011.99it/s]Building PDGs:  51%|█████     | 850/1670 [00:00<00:00, 2107.81it/s]Building PDGs:  64%|██████▍   | 1072/1670 [00:00<00:00, 2144.58it/s]Building PDGs:  77%|███████▋  | 1287/1670 [00:00<00:00, 2112.39it/s]Building PDGs:  90%|████████▉ | 1499/1670 [00:00<00:00, 2041.53it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 2102.60it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (34.0%)
+    CONTROL_FLOW        :    48834 (47.2%)
+    SPEC_CONDITIONAL    :     7961 (7.7%)
+    SPEC_INDIRECT       :     2152 (2.1%)
+    SPEC_RETURN         :     2483 (2.4%)
+    MEMORY_ORDER        :     4814 (4.7%)
+    CACHE_TEMPORAL      :      414 (0.4%)
+    FENCE_BOUNDARY      :     1023 (1.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 195/1670 [00:00<00:00, 1945.37it/s]Building PDGs:  23%|██▎       | 390/1670 [00:00<00:00, 1780.59it/s]Building PDGs:  34%|███▍      | 569/1670 [00:00<00:00, 1763.12it/s]Building PDGs:  47%|████▋     | 784/1670 [00:00<00:00, 1909.30it/s]Building PDGs:  58%|█████▊    | 976/1670 [00:00<00:00, 1904.30it/s]Building PDGs:  71%|███████   | 1183/1670 [00:00<00:00, 1957.57it/s]Building PDGs:  83%|████████▎ | 1380/1670 [00:00<00:00, 1927.39it/s]Building PDGs:  94%|█████████▍| 1574/1670 [00:00<00:00, 1871.71it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 1933.40it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (33.6%)
+    CONTROL_FLOW        :    48834 (46.6%)
+    SPEC_CONDITIONAL    :     8319 (7.9%)
+    SPEC_INDIRECT       :     3982 (3.8%)
+    SPEC_RETURN         :     3012 (2.9%)
+    MEMORY_ORDER        :     4814 (4.6%)
+    FENCE_BOUNDARY      :       46 (0.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/595 [00:00<?, ?it/s]Building PDGs:  18%|█▊        | 110/595 [00:00<00:00, 1096.72it/s]Building PDGs:  54%|█████▍    | 323/595 [00:00<00:00, 1702.18it/s]Building PDGs:  83%|████████▎ | 494/595 [00:00<00:00, 1678.26it/s]Building PDGs: 100%|██████████| 595/595 [00:00<00:00, 1777.64it/s]
+  Valid samples: 595/595
+  Boilerplate stripped: 44 (7.4%) samples
+  Instructions: 22520 -> 22451 (0.3% reduction)
+  Edge type distribution:
+    DATA_DEP            :    11173 (29.4%)
+    CONTROL_FLOW        :    19724 (51.9%)
+    SPEC_CONDITIONAL    :      924 (2.4%)
+    SPEC_INDIRECT       :     1971 (5.2%)
+    SPEC_RETURN         :     1546 (4.1%)
+    MEMORY_ORDER        :      816 (2.1%)
+    CACHE_TEMPORAL      :      414 (1.1%)
+    FENCE_BOUNDARY      :     1013 (2.7%)
+    RSB_CHAIN           :      433 (1.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1063 [00:00<?, ?it/s]Building PDGs:  20%|██        | 215/1063 [00:00<00:00, 2144.27it/s]Building PDGs:  41%|████      | 431/1063 [00:00<00:00, 2151.38it/s]Building PDGs:  61%|██████    | 648/1063 [00:00<00:00, 2158.86it/s]Building PDGs:  82%|████████▏ | 868/1063 [00:00<00:00, 2174.57it/s]Building PDGs: 100%|██████████| 1063/1063 [00:00<00:00, 2175.15it/s]
+  Valid samples: 1063/1063
+  Boilerplate stripped: 11 (1.0%) samples
+  Instructions: 29983 -> 29970 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23778 (36.7%)
+    CONTROL_FLOW        :    28907 (44.6%)
+    SPEC_CONDITIONAL    :     7001 (10.8%)
+    SPEC_INDIRECT       :      181 (0.3%)
+    SPEC_RETURN         :      937 (1.4%)
+    MEMORY_ORDER        :     3914 (6.0%)
+    FENCE_BOUNDARY      :       10 (0.0%)
+    RSB_CHAIN           :      111 (0.2%)
+ckpt: eval/full_tost/viz_hand_s13/gine_best.pt
+test: v54/data/v54_test.jsonl
+
+condition          macro_f1  benign_fp      ece
+-----------------------------------------------
+locked               0.7960     0.0010   0.0561
+trigger_masked       0.4901     0.0010   0.1077
+arch=x86_64          0.7838        nan   0.1579
+arch=arm64           0.6501     0.0010   0.0074
+
+per-class recall [locked]:
+  BENIGN                       0.9990
+  BRANCH_HISTORY_INJECTION     0.2985
+  INCEPTION                    0.8617
+  L1TF                         0.5676
+  MDS                          0.9333
+  RETBLEED                     0.9200
+  SPECTRE_RSB                  1.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.7468
+  SPECTRE_V4                   0.9919
+
+per-class recall [trigger_masked]:
+  BENIGN                       0.9990
+  BRANCH_HISTORY_INJECTION     0.1940
+  INCEPTION                    0.8617
+  L1TF                         0.0000
+  MDS                          0.0444
+  RETBLEED                     0.6133
+  SPECTRE_RSB                  1.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.7597
+  SPECTRE_V4                   0.6371
+
+per-class recall [arch=x86_64]:
+  BRANCH_HISTORY_INJECTION     0.2985
+  INCEPTION                    0.9143
+  L1TF                         0.5676
+  MDS                          0.9333
+  RETBLEED                     0.9324
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.7246
+  SPECTRE_V4                   0.9919
+
+per-class recall [arch=arm64]:
+  BENIGN                       0.9990
+  BRANCH_HISTORY_INJECTION     0.0000
+  INCEPTION                    0.9167
+  RETBLEED                     0.0000
+  SPECTRE_RSB                  1.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   0.9375
+
+===== seed 21 =====
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  10%|█         | 175/1670 [00:00<00:00, 1742.73it/s]Building PDGs:  23%|██▎       | 384/1670 [00:00<00:00, 1944.25it/s]Building PDGs:  35%|███▌      | 585/1670 [00:00<00:00, 1969.82it/s]Building PDGs:  49%|████▊     | 810/1670 [00:00<00:00, 2078.45it/s]Building PDGs:  61%|██████▏   | 1026/1670 [00:00<00:00, 2106.57it/s]Building PDGs:  74%|███████▍  | 1237/1670 [00:00<00:00, 1509.98it/s]Building PDGs:  84%|████████▍ | 1410/1670 [00:00<00:00, 1267.27it/s]Building PDGs:  96%|█████████▌| 1603/1670 [00:01<00:00, 1419.07it/s]Building PDGs: 100%|██████████| 1670/1670 [00:01<00:00, 1624.18it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (34.0%)
+    CONTROL_FLOW        :    48834 (47.2%)
+    SPEC_CONDITIONAL    :     7961 (7.7%)
+    SPEC_INDIRECT       :     2152 (2.1%)
+    SPEC_RETURN         :     2483 (2.4%)
+    MEMORY_ORDER        :     4814 (4.7%)
+    CACHE_TEMPORAL      :      414 (0.4%)
+    FENCE_BOUNDARY      :     1023 (1.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  12%|█▏        | 200/1670 [00:00<00:00, 1997.33it/s]Building PDGs:  24%|██▍       | 408/1670 [00:00<00:00, 2039.63it/s]Building PDGs:  37%|███▋      | 612/1670 [00:00<00:00, 1990.18it/s]Building PDGs:  50%|█████     | 840/1670 [00:00<00:00, 2102.27it/s]Building PDGs:  63%|██████▎   | 1058/1670 [00:00<00:00, 2129.49it/s]Building PDGs:  76%|███████▌  | 1272/1670 [00:00<00:00, 2093.75it/s]Building PDGs:  89%|████████▊ | 1482/1670 [00:00<00:00, 2002.52it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 2076.38it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (33.6%)
+    CONTROL_FLOW        :    48834 (46.6%)
+    SPEC_CONDITIONAL    :     8319 (7.9%)
+    SPEC_INDIRECT       :     3982 (3.8%)
+    SPEC_RETURN         :     3012 (2.9%)
+    MEMORY_ORDER        :     4814 (4.6%)
+    FENCE_BOUNDARY      :       46 (0.0%)
+    RSB_CHAIN           :      544 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/595 [00:00<?, ?it/s]Building PDGs:  20%|█▉        | 117/595 [00:00<00:00, 1169.88it/s]Building PDGs:  55%|█████▌    | 330/595 [00:00<00:00, 1732.88it/s]Building PDGs:  85%|████████▍ | 504/595 [00:00<00:00, 1688.20it/s]Building PDGs: 100%|██████████| 595/595 [00:00<00:00, 1789.69it/s]
+  Valid samples: 595/595
+  Boilerplate stripped: 44 (7.4%) samples
+  Instructions: 22520 -> 22451 (0.3% reduction)
+  Edge type distribution:
+    DATA_DEP            :    11173 (29.4%)
+    CONTROL_FLOW        :    19724 (51.9%)
+    SPEC_CONDITIONAL    :      924 (2.4%)
+    SPEC_INDIRECT       :     1971 (5.2%)
+    SPEC_RETURN         :     1546 (4.1%)
+    MEMORY_ORDER        :      816 (2.1%)
+    CACHE_TEMPORAL      :      414 (1.1%)
+    FENCE_BOUNDARY      :     1013 (2.7%)
+    RSB_CHAIN           :      433 (1.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1063 [00:00<?, ?it/s]Building PDGs:  20%|██        | 215/1063 [00:00<00:00, 2145.18it/s]Building PDGs:  41%|████      | 433/1063 [00:00<00:00, 2162.11it/s]Building PDGs:  61%|██████    | 651/1063 [00:00<00:00, 2166.61it/s]Building PDGs:  82%|████████▏ | 871/1063 [00:00<00:00, 2178.43it/s]Building PDGs: 100%|██████████| 1063/1063 [00:00<00:00, 2179.86it/s]
+  Valid samples: 1063/1063
+  Boilerplate stripped: 11 (1.0%) samples
+  Instructions: 29983 -> 29970 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23778 (36.7%)
+    CONTROL_FLOW        :    28907 (44.6%)
+    SPEC_CONDITIONAL    :     7001 (10.8%)
+    SPEC_INDIRECT       :      181 (0.3%)
+    SPEC_RETURN         :      937 (1.4%)
+    MEMORY_ORDER        :     3914 (6.0%)
+    FENCE_BOUNDARY      :       10 (0.0%)
+    RSB_CHAIN           :      111 (0.2%)
+ckpt: eval/full_tost/viz_hand_s21/gine_best.pt
+test: v54/data/v54_test.jsonl
+
+condition          macro_f1  benign_fp      ece
+-----------------------------------------------
+locked               0.7362     0.0078   0.0454
+trigger_masked       0.4926     0.0078   0.0979
+arch=x86_64          0.8028        nan   0.1096
+arch=arm64           0.6284     0.0078   0.0084
+
+per-class recall [locked]:
+  BENIGN                       0.9922
+  BRANCH_HISTORY_INJECTION     0.4030
+  INCEPTION                    0.7979
+  L1TF                         0.6216
+  MDS                          0.7556
+  RETBLEED                     0.9200
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   0.9762
+  SPECTRE_V2                   0.8766
+  SPECTRE_V4                   0.9919
+
+per-class recall [trigger_masked]:
+  BENIGN                       0.9922
+  BRANCH_HISTORY_INJECTION     0.3134
+  INCEPTION                    0.7979
+  L1TF                         0.0270
+  MDS                          0.0667
+  RETBLEED                     0.7333
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   0.8810
+  SPECTRE_V2                   0.8377
+  SPECTRE_V4                   0.4194
+
+per-class recall [arch=x86_64]:
+  BRANCH_HISTORY_INJECTION     0.4030
+  INCEPTION                    0.9000
+  L1TF                         0.6216
+  MDS                          0.7556
+  RETBLEED                     0.9324
+  SPECTRE_V1                   0.9750
+  SPECTRE_V2                   0.8623
+  SPECTRE_V4                   0.9919
+
+per-class recall [arch=arm64]:
+  BENIGN                       0.9922
+  INCEPTION                    1.0000
+  RETBLEED                     0.0000
+  SPECTRE_RSB                  0.0000
+  SPECTRE_V1                   1.0000
+  SPECTRE_V2                   1.0000
+
+BASELINE_DONE
