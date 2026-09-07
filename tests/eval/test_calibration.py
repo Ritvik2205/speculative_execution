@@ -6,9 +6,12 @@ def test_ece_zero_when_perfectly_calibrated():
     assert expected_calibration_error(probs, labels) < 1e-6
 
 def test_temperature_reduces_overconfidence():
-    # logits over-scaled by 5x -> fitted T should be > 1
+    # Over-scaled logits AND label noise => an interior NLL minimum at T>1.
     rng = np.random.default_rng(0)
-    logits = rng.normal(size=(200,3)) * 5.0
-    labels = logits.argmax(1)
+    base = rng.normal(size=(400,3))
+    labels = base.argmax(1)
+    flip = rng.random(400) < 0.25
+    labels[flip] = rng.integers(0,3,size=int(flip.sum()))
+    logits = base * 5.0
     T = fit_temperature(logits, labels)
     assert T > 1.0

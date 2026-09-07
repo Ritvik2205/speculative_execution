@@ -10,22 +10,14 @@ def expected_calibration_error(probs, labels, n_bins=15):
     return float(ece)
 
 def fit_temperature(val_logits, val_labels):
+    # Fit T>0 via log-parametrization (T = exp(logT)); return T directly.
+    # Minimizing CE(logits / T) IS temperature scaling — no reciprocal on the way out.
     logits = torch.tensor(val_logits, dtype=torch.float32)
     labels = torch.tensor(val_labels, dtype=torch.long)
-    # Parametrize scale parameter S, return T = 1/S
-    log_S = torch.nn.Parameter(torch.zeros(1))
-    opt = torch.optim.LBFGS([log_S], lr=0.05, max_iter=100)
+    logT = torch.nn.Parameter(torch.zeros(1))  # T starts at 1.0
+    opt = torch.optim.LBFGS([logT], lr=0.05, max_iter=100)
     lossf = torch.nn.CrossEntropyLoss()
-
     def closure():
-        opt.zero_grad()
-        S = torch.exp(log_S)
-        # Use logits / S, which is equivalent to logits * (1/S) = logits * T
-        l = lossf(logits / S, labels)
-        l.backward()
-        return l
-
+        opt.zero_grad(); l = lossf(logits / logT.exp(), labels); l.backward(); return l
     opt.step(closure)
-    # Return T = 1/S (inverse of optimized scale)
-    S = torch.exp(log_S.detach()).item()
-    return float(1.0 / S) if S > 0 else 1e-3
+    return float(logT.exp().detach())
