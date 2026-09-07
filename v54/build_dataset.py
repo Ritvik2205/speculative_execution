@@ -558,7 +558,7 @@ def main():
         if h in seen:
             n_dup += 1
             continue
-        if not has_train_attack_signal(rec['label'], seq, split='train'):
+        if not passes_quality_filter(seq):
             n_no_signal += 1
             continue
         # Cap FastSpec so it doesn't dominate the class
