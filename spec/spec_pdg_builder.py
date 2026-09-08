@@ -38,7 +38,7 @@ import pdg_builder as pb  # noqa: E402
 from isa_spec import SpecEngine  # noqa: E402
 from dataflow_taint import apply_dataflow_taint  # noqa: E402
 from ir_defuse import defuse_for_sequence  # noqa: E402
-from taint_slice import mark_secret_transmitter, default_attacker_inputs  # noqa: E402
+from taint_slice import mark_secret_transmitter  # noqa: E402
 
 
 def _is_instruction_line(line: str) -> bool:
@@ -105,10 +105,7 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
             defuse_raw = defuse_for_sequence(sequence, self.engine.arch)
             defuse = [du for line, du in zip(sequence, defuse_raw)
                       if _is_instruction_line(line)]
-            mark_secret_transmitter(
-                pdg, defuse, default_attacker_inputs(self.engine.arch),
-                arch=self.engine.arch,
-            )
+            mark_secret_transmitter(pdg, defuse, arch=self.engine.arch)
         else:
             apply_dataflow_taint(pdg, max_hops=self.dataflow_taint_max_hops)
         return pdg
