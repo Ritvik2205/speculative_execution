@@ -113,7 +113,8 @@ def _may_alias(s_base: Optional[str], s_off: Optional[int], s_const: bool,
 class SpecBackedPDGBuilder(pb.PDGBuilder):
     def __init__(self, engine: SpecEngine, speculative_window: int | None = None,
                  dataflow_taint: bool = True, dataflow_taint_max_hops: int = 4,
-                 taint_mode: str = "shift", mem_order_edges: bool = False):
+                 taint_mode: str = "shift", mem_order_edges: bool = False,
+                 cfg_spec_edges: bool = False):
         pipe = engine.pipeline
         spec_win = speculative_window if speculative_window is not None \
             else int(pipe.get("speculative_window", 10))
@@ -150,6 +151,21 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         # with the default is byte-identical to before this task, since the
         # recorded oracle baseline and per-class lift gate depend on it.
         self.mem_order_edges = mem_order_edges
+        # Task 4.4 (W4, closes G4): opt-in CFG-path-bounded SPEC_CONDITIONAL
+        # edges. The base PDGBuilder draws SPEC_CONDITIONAL edges from a
+        # conditional branch to security-relevant nodes within
+        # ``speculative_window`` INSTRUCTION-INDEX positions, regardless of
+        # control flow -- an unconditional jump to an unresolved external
+        # target does not stop that scan, so a load placed after such a jump
+        # (which can never execute on the branch's speculative path) still
+        # gets an edge. When True, build() removes the base builder's
+        # index-window SPEC_CONDITIONAL edges and replaces them with edges
+        # bounded by a lightweight intra-sequence CFG (see
+        # ``_cfg_conditional_spec_edges`` below). DEFAULT OFF: every graph
+        # produced with the default is byte-identical to before this task,
+        # since the recorded oracle baseline and per-class lift gate depend
+        # on it.
+        self.cfg_spec_edges = cfg_spec_edges
 
     # ---- delegate the four node decisions to the spec engine ------------
     def _classify_opcode(self, instr: str) -> int:
@@ -166,6 +182,11 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
 
     def build(self, sequence):
         pdg = super().build(sequence)
+        if self.cfg_spec_edges:
+            pdg.edges = [e for e in pdg.edges
+                         if e.edge_type != pb.EDGE_TYPES['SPEC_CONDITIONAL']]
+            pdg.edges.extend(self._cfg_conditional_spec_edges(pdg, sequence))
+            pdg.__post_init__()  # rebuild the (edge_type -> [(src,dst)]) index
         if self.mem_order_edges:
             defuse_raw = defuse_for_sequence(sequence, self.engine.arch)
             defuse = [du for line, du in zip(sequence, defuse_raw)
@@ -232,3 +253,123 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
                     # Genuine redefinition of the store's base register per
                     # ir_defuse — the address is now provably different.
                     break
+
+    # ---- Task 4.4: CFG-path-bounded SPEC_CONDITIONAL edges ----------------
+
+    @staticmethod
+    def _build_label_targets(sequence) -> dict:
+        """Map each local label name (without the trailing ``:``) to the
+        node index of the instruction that immediately follows it — the same
+        node-id counting the base ``PDGBuilder.build()`` uses (blank/label/
+        directive lines never get a node; see ``_is_instruction_line``
+        above). A label with no following instruction (e.g. at end-of-
+        sequence) is simply never looked up successfully."""
+        targets: dict = {}
+        counter = 0
+        for line in sequence:
+            s = line.strip()
+            if not s:
+                continue
+            if s.endswith(':'):
+                targets.setdefault(s[:-1], counter)
+            elif s.startswith('.'):
+                continue  # directive, not a node
+            else:
+                counter += 1
+        return targets
+
+    @staticmethod
+    def _resolve_branch_target(instr: str, label_targets: dict) -> Optional[int]:
+        """Resolve a branch/jump instruction's operand to a node index via
+        ``label_targets``, or ``None`` if it isn't a local label this
+        sequence defines (an external symbol, a neutralized ``<fn>``, or an
+        indirect ``*``-register target) — i.e. unresolvable, per the plan."""
+        parts = instr.split()
+        if len(parts) < 2:
+            return None
+        operand = parts[-1].strip().rstrip(',').lstrip('*')
+        return label_targets.get(operand)
+
+    def _cfg_successors(self, pdg, i: int, n: int, label_targets: dict) -> list:
+        """CFG successor node-indices of instruction node ``i``:
+          - BRANCH_COND: fall-through (i+1) AND the resolved branch target,
+            if the target label resolves to a node in this sequence.
+          - BRANCH_UNCOND: only the resolved target; unresolved (external /
+            ``<fn>``) => sequence-exit, no successor.
+          - JUMP_INDIRECT / RET: unknown / function-exit => no successor.
+          - everything else (including CALL/CALL_INDIRECT, which return control
+            to the next instruction): fall-through (i+1).
+        """
+        node = pdg.nodes[i]
+        cat = node.opcode_category
+        if cat == pb.OPCODE_CATEGORIES['BRANCH_COND']:
+            succs = [i + 1] if i + 1 < n else []
+            tgt = self._resolve_branch_target(node.raw_instruction, label_targets)
+            if tgt is not None and tgt not in succs:
+                succs.append(tgt)
+            return succs
+        if cat == pb.OPCODE_CATEGORIES['BRANCH_UNCOND']:
+            tgt = self._resolve_branch_target(node.raw_instruction, label_targets)
+            return [tgt] if tgt is not None else []
+        if cat in (pb.OPCODE_CATEGORIES['JUMP_INDIRECT'], pb.OPCODE_CATEGORIES['RET']):
+            return []
+        return [i + 1] if i + 1 < n else []
+
+    def _cfg_conditional_spec_edges(self, pdg, sequence) -> list:
+        """Replacement for the base builder's index-window SPEC_CONDITIONAL
+        edges: for each conditional-branch node, a bounded BFS over the
+        intra-sequence CFG (depth <= ``self.speculative_window`` CFG STEPS,
+        not token positions) to security-relevant nodes (the same
+        ``_is_security_relevant`` gate the base builder uses for this edge
+        type), adding branch->reachable-node. A path that leaves through an
+        unconditional jump to an unresolved external target is a CFG dead
+        end (``_cfg_successors`` gives it no successor), so nothing past it
+        is reachable — the discriminating fix over the old token window,
+        which kept counting through such a jump regardless of where control
+        actually goes.
+
+        Weighting mirrors the base builder's decay/boost scheme
+        (``1/depth``, boosted for memory-access / secret-source /
+        transmitter / timing-source / cache-probe targets, capped at 3.0)
+        using CFG depth in place of token distance.
+        """
+        n = len(pdg.nodes)
+        label_targets = self._build_label_targets(sequence)
+        successors = [self._cfg_successors(pdg, i, n, label_targets) for i in range(n)]
+        new_edges = []
+        for i, node in enumerate(pdg.nodes):
+            if node.opcode_category != pb.OPCODE_CATEGORIES['BRANCH_COND']:
+                continue
+            visited = {i}
+            frontier = [i]
+            depth = 0
+            while frontier and depth < self.speculative_window:
+                depth += 1
+                next_frontier = []
+                for u in frontier:
+                    for v in successors[u]:
+                        if v in visited:
+                            continue
+                        visited.add(v)
+                        next_frontier.append(v)
+                        target = pdg.nodes[v]
+                        if pb._is_security_relevant(target):
+                            decay = 1.0 / depth
+                            weight = decay
+                            sf = target.spec_flags
+                            if sf[pb.SPEC_FLAGS['is_memory_access']]:
+                                weight = decay * 2.0
+                            if sf[pb.SPEC_FLAGS['is_secret_source']]:
+                                weight = decay * 3.0
+                            if sf[pb.SPEC_FLAGS['is_transmitter']]:
+                                weight = decay * 3.0
+                            if sf[pb.SPEC_FLAGS['is_timing_source']]:
+                                weight = decay * 2.5
+                            if sf[pb.SPEC_FLAGS['is_cache_probe']]:
+                                weight = decay * 2.5
+                            new_edges.append(pb.PDGEdge(
+                                src=i, dst=v,
+                                edge_type=pb.EDGE_TYPES['SPEC_CONDITIONAL'],
+                                weight=min(weight, 3.0)))
+                frontier = next_frontier
+        return new_edges
