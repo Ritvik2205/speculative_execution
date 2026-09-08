@@ -59,7 +59,17 @@ def assert_arch_keys():
     dict inside GINEDatasetV47.__init__ and is not importable at module level.
     Its keys match ARCH_VOCAB and SPEC_FOR_ARCH; if it drifts, the guard
     AssertionError below will catch ARCH_VOCAB vs SPEC_FOR_ARCH mismatch.
+
+    Self-sufficient: adds the repo's spec/ dir to sys.path itself (rather than
+    relying on the caller having already done so), so the guard is live
+    regardless of caller sys.path state (e.g. at train_gine_v38.py import
+    time, before GINEDatasetV47.__init__ adds spec/ to sys.path).
     """
+    import sys
+    from pathlib import Path
+    _spec_dir = str(Path(__file__).resolve().parent.parent / "spec")
+    if _spec_dir not in sys.path:
+        sys.path.insert(0, _spec_dir)
     from asm_tokenizer import SPEC_FOR_ARCH as spec_for_arch_imported
 
     if not _keys_agree(ARCH_VOCAB, spec_for_arch_imported):

@@ -33,6 +33,29 @@ def test_assert_arch_keys_passes():
     assert_arch_keys()
 
 
+def test_assert_arch_keys_live_with_only_v54_on_syspath():
+    """Simulate the train_gine_v38.py import-time entrypoint: only v54/ is on
+    sys.path (spec/ has not yet been added by GINEDatasetV47.__init__).
+
+    assert_arch_keys() must be self-sufficient — it adds spec/ to sys.path
+    itself — so it must NOT raise ImportError here. Regression test for the
+    dead-no-op bug where a bare `except ImportError: pass` at the
+    train_gine_v38.py call site silently swallowed this failure and the
+    guard never actually ran during training.
+    """
+    removed = [p for p in sys.path if p.endswith("/spec") or p == "spec"]
+    for p in removed:
+        sys.path.remove(p)
+    # Drop any cached spec-dir modules so the import is re-attempted for real.
+    sys.modules.pop("asm_tokenizer", None)
+    try:
+        assert_arch_keys()  # must not raise ImportError
+    finally:
+        for p in removed:
+            if p not in sys.path:
+                sys.path.insert(0, p)
+
+
 def test_assert_arch_keys_detects_mismatch():
     """assert_arch_keys() must detect and raise on key mismatch."""
     # Import the internal helper to test both branches
