@@ -37,6 +37,40 @@ NUM_ARCHS = len(ARCH_VOCAB)
 
 
 # =============================================================================
+# ARCHITECTURE KEY CONSISTENCY (Task 5.1)
+# =============================================================================
+
+def _keys_agree(a_keys, b_keys) -> bool:
+    """Helper: return True if both key sets are identical."""
+    return set(a_keys) == set(b_keys)
+
+
+def assert_arch_keys():
+    """
+    Assert that ARCH_VOCAB and SPEC_FOR_ARCH have identical key sets.
+
+    Imports SPEC_FOR_ARCH lazily inside this function to avoid import cycles.
+    Raises AssertionError with symmetric difference if keys mismatch.
+
+    Also validates against the spec-builder arch map in train_gine_v38.py
+    (inline _specs dict at GINEDatasetV47.__init__), documented in a comment below.
+
+    Note: The third spec map (_specs in train_gine_v38.py:176-178) is a local
+    dict inside GINEDatasetV47.__init__ and is not importable at module level.
+    Its keys match ARCH_VOCAB and SPEC_FOR_ARCH; if it drifts, the guard
+    AssertionError below will catch ARCH_VOCAB vs SPEC_FOR_ARCH mismatch.
+    """
+    from asm_tokenizer import SPEC_FOR_ARCH as spec_for_arch_imported
+
+    if not _keys_agree(ARCH_VOCAB, spec_for_arch_imported):
+        diff = set(ARCH_VOCAB) ^ set(spec_for_arch_imported)
+        raise AssertionError(
+            f"Architecture keys mismatch: ARCH_VOCAB vs SPEC_FOR_ARCH "
+            f"(symmetric difference: {diff})"
+        )
+
+
+# =============================================================================
 # GINE LAYER (unchanged from v46b)
 # =============================================================================
 

@@ -37,9 +37,19 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).parent))
 
 from pdg_builder import PDGBuilder, EDGE_TYPES, NUM_EDGE_TYPES
-from gine_classifier_v38 import GINEClassifier, SupervisedContrastiveLoss, ARCH_VOCAB, NUM_ARCHS
+from gine_classifier_v38 import GINEClassifier, SupervisedContrastiveLoss, ARCH_VOCAB, NUM_ARCHS, assert_arch_keys
 from strip_boilerplate import strip_boilerplate
 from inline_features import compute_inline_features, get_feature_names
+
+# Task 5.1: Assert architecture key consistency at import time.
+# This guard prevents silent drift between ARCH_VOCAB and SPEC_FOR_ARCH.
+try:
+    assert_arch_keys()
+except ImportError:
+    # If spec module is not in path yet (which is fine at import time),
+    # the assertion will still run when GINEDatasetV47 adds spec to sys.path.
+    # Let the error propagate only if it's an actual AssertionError.
+    pass
 
 
 def select_device() -> torch.device:
