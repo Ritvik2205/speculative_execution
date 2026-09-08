@@ -107,3 +107,25 @@ def test_default_off_matches_base_index_window_behavior():
     # False changes nothing about SPEC_CONDITIONAL edge construction.
     on_pdg = _build(seq, cfg_spec_edges=True)
     assert _spec_conditional_edges(default_pdg) != _spec_conditional_edges(on_pdg)
+
+
+def test_fence_blocks_speculative_walk_to_load_past_it():
+    """Fix round 1: a FENCE (lfence) is a speculation barrier -- it
+    terminates transient execution, so the CFG-bounded BFS must not walk
+    past it, mirroring the base builder's ``pending_spec.clear()`` on
+    FENCE. A load reachable only by walking through the fence must NOT get
+    a SPEC_CONDITIONAL edge from the branch."""
+    seq = ["cmp %rax,%rcx", "jne .L1", "lfence", "mov (%rbx,%rax,8),%rdx"]
+    pdg = _build(seq, cfg_spec_edges=True)
+    edges = {(e.src, e.dst) for e in _spec_conditional_edges(pdg)}
+    assert (1, 3) not in edges, edges
+
+
+def test_no_fence_control_load_gets_edge():
+    """Control for the fence test above: with the lfence removed, the same
+    load (now one CFG step closer) DOES get the edge -- proving the fence
+    itself is what blocks the walk, not distance."""
+    seq = ["cmp %rax,%rcx", "jne .L1", "mov (%rbx,%rax,8),%rdx"]
+    pdg = _build(seq, cfg_spec_edges=True)
+    edges = {(e.src, e.dst) for e in _spec_conditional_edges(pdg)}
+    assert (1, 2) in edges, edges

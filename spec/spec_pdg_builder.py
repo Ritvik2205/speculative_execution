@@ -326,7 +326,13 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         end (``_cfg_successors`` gives it no successor), so nothing past it
         is reachable — the discriminating fix over the old token window,
         which kept counting through such a jump regardless of where control
-        actually goes.
+        actually goes. A FENCE node is a speculation barrier: it terminates
+        the speculative walk (no edge to the fence, and its successors are
+        never enqueued), mirroring the base builder's
+        ``pending_spec.clear()`` on FENCE (Fix round 1 — the initial version
+        let the BFS walk straight through ``lfence`` via the generic
+        fall-through case in ``_cfg_successors``, wrongly drawing edges past
+        the exact mitigation this edge type should respect).
 
         Weighting mirrors the base builder's decay/boost scheme
         (``1/depth``, boosted for memory-access / secret-source /
@@ -351,8 +357,16 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
                         if v in visited:
                             continue
                         visited.add(v)
-                        next_frontier.append(v)
                         target = pdg.nodes[v]
+                        if target.opcode_category == pb.OPCODE_CATEGORIES['FENCE']:
+                            # Speculation barrier: mirrors the base builder's
+                            # `pending_spec.clear()` on FENCE. No edge to the
+                            # fence itself, and it is NOT enqueued -- the
+                            # speculative walk must not propagate past it,
+                            # even though the plain (non-speculative) CFG
+                            # fall-through through a fence is fine.
+                            continue
+                        next_frontier.append(v)
                         if pb._is_security_relevant(target):
                             decay = 1.0 / depth
                             weight = decay
