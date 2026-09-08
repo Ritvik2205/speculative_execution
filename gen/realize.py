@@ -14,9 +14,21 @@ from __future__ import annotations
 
 import random
 import re
-from typing import List
+import shutil
+import subprocess
+from typing import Dict, List, Optional
 
 CRITICAL_IMMS = ["0", "1", "64", "256", "4096", "0xff", "8", "16", "32"]
+
+# Assembler-in-the-loop validity gate (W6 Task 6.1). We use clang, not
+# llvm-mc: llvm-mc is not on PATH in this environment, and
+# `clang -target x86_64-linux-gnu -x assembler -c - -o /dev/null` gives the
+# same accept/reject signal (returncode 0/nonzero) for a single instruction
+# fed on stdin. If clang isn't installed at all, the gate degrades to a
+# no-op (see Realizer._assembles) rather than hard-failing the pipeline in a
+# clang-less environment.
+_CLANG = shutil.which("clang")
+_CLANG_TARGET_ARCH = "x86_64"  # the only arch the gate checks (see class docstring)
 
 
 class Realizer:
@@ -64,6 +76,11 @@ class Realizer:
         self.wreg_map = dict(r.get("wreg_map", {}))     # x-reg -> 32-bit w-reg
         self.wreg_ops = set(r.get("wreg_ops", []))       # byte/half ld/st: W data reg
         self.rng = random.Random(seed)
+        self.arch = spec.get("arch")
+        # concrete-instruction-text -> bool ("does clang assemble it"), so a
+        # repeated concrete form (very common -- the register/immediate pools
+        # are small) is served from cache instead of re-shelling clang.
+        self._validity_cache: Dict[str, bool] = {}
 
     def _suffix_widths(self, opcode):
         """-> (src_idx, dst_idx) width indices for a size-suffixed x86 opcode, or
@@ -108,7 +125,33 @@ class Realizer:
             return self.sym
         return kind
 
-    def realize_instruction(self, norm: str) -> str:
+    def _assembles(self, instr: str) -> bool:
+        """Test-assemble one concrete instruction with clang. Cached by the
+        exact instruction text. Only meaningful for x86_64 (the oracle this
+        gate targets -- arm64/riscv64 realization is out of scope for W6
+        Task 6.1); other archs and a clang-less environment both fail OPEN
+        (treated as valid) rather than blocking the pipeline."""
+        if _CLANG is None or self.arch != _CLANG_TARGET_ARCH:
+            return True
+        cached = self._validity_cache.get(instr)
+        if cached is not None:
+            return cached
+        try:
+            proc = subprocess.run(
+                ["clang", "-target", "x86_64-linux-gnu", "-x", "assembler",
+                 "-c", "-", "-o", "/dev/null"],
+                input=instr, capture_output=True, text=True, timeout=10,
+            )
+            ok = proc.returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            # clang present but failed to run for some other reason (e.g.
+            # transient sandbox/exec issue) -- fail open rather than reject
+            # every instruction because of an infrastructure hiccup.
+            ok = True
+        self._validity_cache[instr] = ok
+        return ok
+
+    def realize_instruction(self, norm: str, reject_invalid: bool = True) -> Optional[str]:
         parts = norm.split()
         if not parts:
             return ""
@@ -125,7 +168,10 @@ class Realizer:
                         val, dst_i if j == last else src_i)
         # barrier ops take an option (sy), never a symbol/register
         if opcode in self.barrier_ops:
-            return f"{opcode}\t{self.barrier_ops[opcode]}"
+            out = f"{opcode}\t{self.barrier_ops[opcode]}"
+            if reject_invalid and not self._assembles(out):
+                return None
+            return out
         # a <sym> outside a branch-target slot is a mislabel: a label cannot be an
         # arithmetic/logical/data operand. Replace with a valid immediate.
         is_branch = (opcode in self.branch_ops
@@ -174,7 +220,24 @@ class Realizer:
                 else:
                     starred.append(val)
             concrete = starred
-        return f"{opcode}\t{', '.join(concrete)}" if concrete else opcode
+        out = f"{opcode}\t{', '.join(concrete)}" if concrete else opcode
+        if reject_invalid and not self._assembles(out):
+            return None
+        return out
 
-    def realize_sequence(self, norm_seq: List[str]) -> List[str]:
-        return [self.realize_instruction(n) for n in norm_seq if n.strip()]
+    def realize_sequence(self, norm_seq: List[str], reject_invalid: bool = True) -> List[str]:
+        """Realize every normalized instruction. Policy for a rejected form
+        (realize_instruction returns None under reject_invalid=True): DROP
+        the line rather than resampling in place -- the realizer has no
+        access to the generator to draw a replacement token, and the caller
+        (decode.py et al.) already treats the realized sequence as
+        best-effort PDG-parseable asm, not a fixed-length lockstep mapping
+        of norm_seq. Resampling, if wanted, is the generator caller's job."""
+        out = []
+        for n in norm_seq:
+            if not n.strip():
+                continue
+            instr = self.realize_instruction(n, reject_invalid=reject_invalid)
+            if instr is not None:
+                out.append(instr)
+        return out
