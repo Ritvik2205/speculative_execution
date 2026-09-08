@@ -47,7 +47,15 @@ DIFFERENT, still shift-magnitude-independent discriminator:
    `transformed`, so it can never trigger a mark.
 3. **Mark `is_transmitter`** on a real memory-access node (LOAD or STORE,
    `mem_access_type != NONE`, excluding `lea`) when one of its ADDRESS
-   registers is tainted AND `transformed`. At that point, also mark
+   registers is tainted AND (`transformed`, OR the access node's OWN
+   `mem_access_type == INDEXED`). The second disjunct (fix round 2) covers
+   a single-instruction indexed store/load whose index register IS the raw
+   secret with no separate prior lea/shift — e.g.
+   `movzbl (%rdi),%rsi; mov %rdx,(%rbx,%rsi,8)` — because using a tainted
+   register as the INDEX of an indexed access is itself the
+   secret-used-as-index combination, happening at the access rather than
+   before it (this is the RISC-V BHI store-transmitter shape called out in
+   `dataflow_taint.py`'s own docstring). At that point, also mark
    `is_secret_source` on the ORIGIN load — the specific earlier LOAD whose
    destination register the taint traces back to (tracked alongside the
    `transformed` bit, not re-derived).
@@ -212,7 +220,18 @@ def mark_secret_transmitter(
             fired = False
             for r in addr_regs:
                 info = taint.get(r)
-                if info is not None and info[1]:  # tainted AND transformed
+                if info is None:
+                    continue
+                # Fires when the address register's taint was transformed
+                # upstream (fix round 1), OR when THIS access itself is
+                # INDEXED (address = base+index) — the tainted register
+                # being used as the index IS the secret-used-as-index
+                # combination happening at the access, with no separate
+                # prior lea/shift needed (fix round 2, closes the
+                # single-instruction indexed-store/load false negative —
+                # the RISC-V BHI store-transmitter shape from
+                # dataflow_taint.py's own docstring).
+                if info[1] or node.mem_access_type == MEM_INDEXED:
                     fired = True
                     pdg.nodes[info[0]].spec_flags[IS_SECRET_SOURCE] = 1.0
             if fired:

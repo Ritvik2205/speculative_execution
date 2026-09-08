@@ -133,6 +133,27 @@ def test_leak_via_lea_scaled_index_without_shift_is_marked():
     assert new_transmit[1] is False  # lea: nothing NEW from this function
 
 
+def test_leak_via_single_instruction_indexed_store_is_marked():
+    """Fix round 2: the secret is used directly as the INDEX of an indexed
+    store, with no separate prior lea/shift combining it — the combination
+    happens AT the access itself (this is the RISC-V BHI store-transmitter
+    shape from dataflow_taint.py's own docstring). Must mark the store
+    `is_transmitter` and the movzbl `is_secret_source`."""
+    sequence = [
+        "movzbl (%rdi), %rsi",         # secret load
+        "mov %rdx, (%rbx,%rsi,8)",     # store to base+index, index=rsi=secret
+    ]
+    pdg, defuse = _build(sequence)
+    new_secret, new_transmit = _mark_and_diff(pdg, defuse)
+
+    secret_load, store_node = pdg.nodes
+    assert secret_load.raw_instruction == "movzbl (%rdi), %rsi"
+    assert store_node.raw_instruction == "mov %rdx, (%rbx,%rsi,8)"
+
+    assert new_secret[0] is True
+    assert new_transmit[1] is True
+
+
 def test_leak_via_shift_still_marked():
     """The original shift-gated idiom must still work under the redesign:
     the secret is scaled with a `shl` (a COMBINATION node) before being used
