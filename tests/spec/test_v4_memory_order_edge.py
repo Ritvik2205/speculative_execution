@@ -72,3 +72,15 @@ def test_intervening_base_redefinition_no_edge():
     seq = ["mov %rax, (%rbx)", "mov $0, %rbx", "mov (%rbx), %rcx"]
     pdg = _build(seq, mem_order_edges=True)
     assert _memory_order_edges(pdg) == []
+
+
+def test_multiple_aliasing_loads_all_get_edges_fix_round_1():
+    """Fix round 1: neither load redefines %rbx (ir_defuse correctly keeps a
+    load's base register out of its defs, unlike the base PDGBuilder's
+    dest_regs), so the scan must not hard-stop after the first aliasing
+    load — both loads get a MEMORY_ORDER edge from the one store."""
+    seq = ["mov %rax,(%rbx)", "mov (%rbx),%rcx", "mov (%rbx),%rdx"]
+    pdg = _build(seq, mem_order_edges=True)
+    edges = _memory_order_edges(pdg)
+    assert len(edges) == 2, edges
+    assert {(e.src, e.dst) for e in edges} == {(0, 1), (0, 2)}

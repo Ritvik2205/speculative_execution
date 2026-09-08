@@ -167,7 +167,10 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
     def build(self, sequence):
         pdg = super().build(sequence)
         if self.mem_order_edges:
-            self._add_v4_memory_order_edges(pdg)
+            defuse_raw = defuse_for_sequence(sequence, self.engine.arch)
+            defuse = [du for line, du in zip(sequence, defuse_raw)
+                      if _is_instruction_line(line)]
+            self._add_v4_memory_order_edges(pdg, defuse)
         if not self.dataflow_taint:
             return pdg
         if self.taint_mode == "slice":
@@ -179,12 +182,13 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
             apply_dataflow_taint(pdg, max_hops=self.dataflow_taint_max_hops)
         return pdg
 
-    def _add_v4_memory_order_edges(self, pdg) -> None:
+    def _add_v4_memory_order_edges(self, pdg, defuse) -> None:
         """Task 4.3 (W4, closes G1): for every STORE, add a MEMORY_ORDER edge
         to every LOAD within ``self.speculative_window`` node-positions that
         MAY-alias it (``_may_alias`` above), stopping the scan for a given
-        store once an intervening instruction redefines the store's own
-        base register (the address is then provably a different location).
+        store only once an intervening instruction genuinely REDEFINES the
+        store's own base register (the address is then provably a different
+        location) — never on a load that merely reads through it.
 
         This is a separate, opt-in, text-parsed base-register analysis — it
         does not touch or replace the base ``PDGBuilder.build()``'s own
@@ -193,16 +197,20 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         register and do not fire for the store/load pairs this task targets
         (see the AT&T dest/src-labeling note in the task report).
 
-        Node-order note: a candidate LOAD at position ``j`` is checked
-        *before* checking whether position ``j`` redefines the base
-        register, and a redefinition found there only stops the scan for
-        positions *after* ``j``. This matters because the base
-        ``PDGBuilder``'s AT&T dest/src convention treats the FIRST register
-        token in a load like ``mov (%rbx), %rcx`` as ``dest_regs`` (it's
-        really the base register being read, not written) — checking
-        redefinition before the load-target check would make a load falsely
-        veto its own edge. Only a genuinely-earlier instruction (e.g. ``mov
-        $0, %rbx``) can suppress an edge this way.
+        Fix round 1: redefinition is checked against ``defuse`` (Task 4.1's
+        ``ir_defuse.defuse_for_sequence``, index-aligned to ``pdg.nodes`` by
+        the same ``_is_instruction_line`` filter used for the taint slice
+        path), NOT the base ``PDGBuilder``'s ``dest_regs``. The base
+        builder's AT&T convention puts a LOAD's base register (e.g. ``rbx``
+        in ``mov (%rbx), %rcx``) into ``dest_regs`` even though the load
+        only *reads* it — using that would make the FIRST aliasing load in
+        a window falsely "redefine" the base and hard-stop the scan, silently
+        dropping every later aliasing load (undercounting exactly the
+        MEMORY_ORDER edges this task exists to create). ``ir_defuse``
+        correctly excludes a load's own address registers from its defs, so
+        only a real redefinition (e.g. ``mov $0, %rbx``) stops the scan; a
+        chain of ``store; load; load`` all sharing one base now gets an edge
+        to *every* load in the window, not just the first.
         """
         nodes = pdg.nodes
         n = len(nodes)
@@ -211,10 +219,7 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
                 continue
             s_base, s_off, s_const = _parse_mem_operand(store.raw_instruction)
             window_end = min(n, i + self.speculative_window + 1)
-            base_redefined = False
             for j in range(i + 1, window_end):
-                if base_redefined:
-                    break
                 node = nodes[j]
                 if node.opcode_category == pb.OPCODE_CATEGORIES['LOAD']:
                     l_base, l_off, l_const = _parse_mem_operand(node.raw_instruction)
@@ -222,5 +227,8 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
                         pdg.edges.append(pb.PDGEdge(
                             src=store.id, dst=node.id,
                             edge_type=pb.EDGE_TYPES['MEMORY_ORDER'], weight=1.0))
-                if s_base is not None and s_base in node.dest_regs:
-                    base_redefined = True
+                defs_j = defuse[j][0] if j < len(defuse) else set()
+                if s_base is not None and s_base in defs_j:
+                    # Genuine redefinition of the store's base register per
+                    # ir_defuse — the address is now provably different.
+                    break
