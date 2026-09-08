@@ -29,6 +29,8 @@ import torch.nn.functional as F
 from typing import Optional, List, Tuple
 import numpy as np
 
+from adversarial_arch import grad_reverse, ArchDiscriminator
+
 # Architecture vocabulary — must match build in train_gine_v38.py
 ARCH_VOCAB = {'x86_64': 0, 'arm64': 1, 'arm32': 2, 'riscv64': 3, 'unknown': 4}
 NUM_ARCHS = len(ARCH_VOCAB)
@@ -141,8 +143,14 @@ class GINEClassifier(nn.Module):
         dropout: float = 0.5,
         use_virtual_node: bool = True,
         jk_mode: str = "cat",
+        arch_mode: str = "embed",
     ):
         super().__init__()
+
+        if arch_mode not in ("embed", "drop", "adversarial"):
+            raise ValueError(
+                f"arch_mode must be one of 'embed', 'drop', 'adversarial', got {arch_mode!r}"
+            )
 
         self.num_layers = num_layers
         self.hidden_dim = hidden_dim
@@ -150,6 +158,7 @@ class GINEClassifier(nn.Module):
         self.jk_mode = jk_mode
         self.global_feat_dim = global_feat_dim
         self.arch_emb_dim = arch_emb_dim
+        self.arch_mode = arch_mode
 
         # Node encoder
         self.node_encoder = nn.Sequential(
@@ -225,11 +234,19 @@ class GINEClassifier(nn.Module):
             nn.ReLU(),
         )
 
-        # Fix 3: Architecture embedding (5 archs → 8-dim)
+        # Fix 3: Architecture embedding (5 archs → 8-dim).
+        # Only concatenated into `combined` when arch_mode == "embed" (default,
+        # unchanged behavior). "drop" and "adversarial" both exclude it from the
+        # classifier's input so the graph/feature/global reps can't ride on an
+        # explicit ISA signal.
         self.arch_embedding = nn.Embedding(NUM_ARCHS, arch_emb_dim)
 
-        # Combined dimension: graph(256) + handcrafted(256) + global(32) + arch(8)
-        combined_dim = fusion_dim * 2 + global_repr_dim + arch_emb_dim
+        # Combined dimension: graph(256) + handcrafted(256) + global(32) [+ arch(8) iff "embed"]
+        if arch_mode == "embed":
+            combined_dim = fusion_dim * 2 + global_repr_dim + arch_emb_dim
+        else:  # "drop" or "adversarial"
+            combined_dim = fusion_dim * 2 + global_repr_dim
+        self.combined_dim = combined_dim
 
         self.classifier = nn.Sequential(
             nn.Linear(combined_dim, hidden_dim),
@@ -246,6 +263,14 @@ class GINEClassifier(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_dim, 128),
         )
+
+        # DANN head: only built in "adversarial" mode. Fed the SAME post-fusion
+        # `combined` vector that feeds the classifier (via grad_reverse), so the
+        # whole encoder (graph + handcrafted + global branches) is pushed toward
+        # an arch-invariant representation, not just one sub-branch.
+        self._arch_lambda = 1.0
+        if arch_mode == "adversarial":
+            self.arch_disc = ArchDiscriminator(combined_dim, NUM_ARCHS)
 
     def encode_graph(self, node_features, edge_index, edge_type, node_mask,
                      edge_mask=None, edge_weight=None):
@@ -307,10 +332,13 @@ class GINEClassifier(nn.Module):
         # Fix 2: Global instruction-count stats
         global_repr = self.global_projector(global_features)
 
-        # Fix 3: Architecture embedding
-        arch_repr = self.arch_embedding(arch_id)
-
-        combined = torch.cat([graph_repr, feat_repr, global_repr, arch_repr], dim=-1)
+        if self.arch_mode == "embed":
+            # Fix 3: Architecture embedding, concatenated (original v47 behavior).
+            arch_repr = self.arch_embedding(arch_id)
+            combined = torch.cat([graph_repr, feat_repr, global_repr, arch_repr], dim=-1)
+        else:
+            # "drop" / "adversarial": no explicit arch signal fed to the classifier.
+            combined = torch.cat([graph_repr, feat_repr, global_repr], dim=-1)
 
         logits = self.classifier(combined)
 
@@ -318,6 +346,11 @@ class GINEClassifier(nn.Module):
             proj = self.projection_head(combined)
             proj = F.normalize(proj, p=2, dim=-1)
             feat_aux_logits = self.feature_aux_head(feat_repr)
+
+            if self.arch_mode == "adversarial":
+                arch_logits = self.arch_disc(grad_reverse(combined, self._arch_lambda))
+                return logits, proj, feat_aux_logits, arch_logits
+
             return logits, proj, feat_aux_logits
 
         return logits

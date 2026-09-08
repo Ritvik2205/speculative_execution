@@ -370,7 +370,8 @@ def collate_fn(batch):
 # =============================================================================
 
 def train_epoch(model, loader, optimizer, ce_criterion, con_criterion, device,
-                lambda_con, grad_accum, desc="Train"):
+                lambda_con, grad_accum, desc="Train",
+                arch_mode="embed", arch_lambda=0.0, arch_ce_criterion=None):
     model.train()
     total_ce_loss = 0
     total_con_loss = 0
@@ -390,16 +391,32 @@ def train_epoch(model, loader, optimizer, ce_criterion, con_criterion, device,
         arch_id         = batch['arch_id'].to(device)
         labels          = batch['label'].to(device)
 
-        logits, proj, feat_aux_logits = model(
+        outputs = model(
             node_features, edge_index, edge_type, node_mask,
             handcrafted, global_features, arch_id,
             return_projection=True, edge_mask=edge_mask, edge_weight=edge_weight,
         )
+        if arch_mode == "adversarial":
+            logits, proj, feat_aux_logits, arch_logits = outputs
+        else:
+            logits, proj, feat_aux_logits = outputs
 
         ce_loss = ce_criterion(logits, labels)
         con_loss = con_criterion(proj, labels) if lambda_con > 0 else torch.tensor(0.0, device=device)
         feat_aux_loss = ce_criterion(feat_aux_logits, labels)
         loss = (ce_loss + lambda_con * con_loss + 0.3 * feat_aux_loss) / grad_accum
+
+        if arch_mode == "adversarial":
+            # Discriminator loss on the un-weighted arch label (5 archs, not
+            # 11 vuln classes) — reuses the shared arch_ce_criterion, warmed
+            # up like lambda_con via arch_lambda. grad_reverse (inside the
+            # model's forward) already flips the sign back into the encoder,
+            # so this term is added with a POSITIVE sign here: the
+            # discriminator itself is trained normally, while gradient
+            # reversal is what makes the encoder adversarial.
+            arch_loss = arch_ce_criterion(arch_logits, arch_id)
+            loss = loss + (arch_lambda * arch_loss) / grad_accum
+
         loss.backward()
 
         if (i + 1) % grad_accum == 0:
@@ -641,6 +658,15 @@ def main():
     parser.add_argument('--no-strip', action='store_true')
     parser.add_argument('--speculative-window', type=int, default=20)
     parser.add_argument('--arch-emb-dim', type=int, default=8)
+    parser.add_argument('--arch-mode', type=str, default='embed',
+                        choices=['embed', 'drop', 'adversarial'],
+                        help="embed: concat arch embedding (default, original behavior); "
+                             "drop: exclude arch signal entirely; "
+                             "adversarial: gradient-reversal arch discriminator (DANN)")
+    parser.add_argument('--arch-lambda', type=float, default=1.0,
+                        help="Weight on the adversarial arch-discriminator loss "
+                             "(and gradient-reversal strength), warmed up over 10 epochs "
+                             "like --lambda-con. Only used when --arch-mode adversarial.")
     # SpecDiscover Phase 1: learned node features (default 'hand' = original behavior)
     parser.add_argument('--node-feature-mode', choices=['hand', 'learned', 'both'],
                         default='hand',
@@ -844,6 +870,7 @@ def main():
         dropout=args.dropout,
         use_virtual_node=not args.no_virtual_node,
         jk_mode=args.jk_mode,
+        arch_mode=args.arch_mode,
     ).to(DEVICE)
 
     total_params = sum(p.numel() for p in model.parameters())
@@ -867,6 +894,10 @@ def main():
         hard_negative_weight=args.hard_neg_weight,
         confused_pairs=confused_pairs,
     )
+    # Unweighted — arch labels (5) are a different label space than the
+    # class-weighted vuln-class ce_criterion (11), whose weight tensor would
+    # not broadcast against arch_logits.
+    arch_ce_criterion = nn.CrossEntropyLoss() if args.arch_mode == "adversarial" else None
 
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
@@ -886,11 +917,16 @@ def main():
         start_time = time.time()
         warmup_epochs = 10
         lambda_con = args.lambda_con * (epoch / warmup_epochs) if epoch <= warmup_epochs else args.lambda_con
+        arch_lambda = args.arch_lambda * (epoch / warmup_epochs) if epoch <= warmup_epochs else args.arch_lambda
+        if args.arch_mode == "adversarial":
+            model._arch_lambda = arch_lambda
 
         ce_loss, con_loss, train_acc = train_epoch(
             model, train_loader, optimizer, ce_criterion, con_criterion,
             DEVICE, lambda_con, args.grad_accum,
             desc=f"Epoch {epoch}/{args.epochs} train",
+            arch_mode=args.arch_mode, arch_lambda=arch_lambda,
+            arch_ce_criterion=arch_ce_criterion,
         )
         # Early stopping uses VAL set (held-out from train). Test never seen during training.
         val_acc, _, _ = evaluate(
