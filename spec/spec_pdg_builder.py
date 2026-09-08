@@ -37,11 +37,23 @@ sys.path.insert(0, str(ROOT / "spec"))
 import pdg_builder as pb  # noqa: E402
 from isa_spec import SpecEngine  # noqa: E402
 from dataflow_taint import apply_dataflow_taint  # noqa: E402
+from ir_defuse import defuse_for_sequence  # noqa: E402
+from taint_slice import mark_secret_transmitter, default_attacker_inputs  # noqa: E402
+
+
+def _is_instruction_line(line: str) -> bool:
+    """Same skip predicate as pb.PDGBuilder.build()'s loop (blank/label/
+    directive lines never get a node) and ir_defuse's `_is_instruction` —
+    used to filter `defuse_for_sequence`'s per-line output down to exactly
+    the lines that produced a pdg node, so it lines up 1:1 with pdg.nodes."""
+    s = line.strip()
+    return bool(s) and not s.endswith(':') and not s.startswith('.')
 
 
 class SpecBackedPDGBuilder(pb.PDGBuilder):
     def __init__(self, engine: SpecEngine, speculative_window: int | None = None,
-                 dataflow_taint: bool = True, dataflow_taint_max_hops: int = 4):
+                 dataflow_taint: bool = True, dataflow_taint_max_hops: int = 4,
+                 taint_mode: str = "shift"):
         pipe = engine.pipeline
         spec_win = speculative_window if speculative_window is not None \
             else int(pipe.get("speculative_window", 10))
@@ -60,6 +72,17 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         # pre-fix baseline for comparison).
         self.dataflow_taint = dataflow_taint
         self.dataflow_taint_max_hops = dataflow_taint_max_hops
+        # Task 4.2 (W4, closes G2): "shift" (default, UNCHANGED) keeps the
+        # PROBE_SHIFT_AMOUNTS-gated apply_dataflow_taint above — every graph
+        # produced with the default stays byte-identical to before this task,
+        # since the recorded oracle baseline and per-class lift gate depend
+        # on it. "slice" is the opt-in shift-magnitude-independent path:
+        # attacker-input reachability to a memory-op ADDRESS operand via
+        # Task 4.1's def-use (spec/taint_slice.py), independent of whatever
+        # instruction did the address-scaling (shift, LEA, IMUL, ...).
+        if taint_mode not in ("shift", "slice"):
+            raise ValueError(f"taint_mode must be 'shift' or 'slice', got {taint_mode!r}")
+        self.taint_mode = taint_mode
 
     # ---- delegate the four node decisions to the spec engine ------------
     def _classify_opcode(self, instr: str) -> int:
@@ -76,6 +99,16 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
 
     def build(self, sequence):
         pdg = super().build(sequence)
-        if self.dataflow_taint:
+        if not self.dataflow_taint:
+            return pdg
+        if self.taint_mode == "slice":
+            defuse_raw = defuse_for_sequence(sequence, self.engine.arch)
+            defuse = [du for line, du in zip(sequence, defuse_raw)
+                      if _is_instruction_line(line)]
+            mark_secret_transmitter(
+                pdg, defuse, default_attacker_inputs(self.engine.arch),
+                arch=self.engine.arch,
+            )
+        else:
             apply_dataflow_taint(pdg, max_hops=self.dataflow_taint_max_hops)
         return pdg
