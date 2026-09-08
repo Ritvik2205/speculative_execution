@@ -43,15 +43,28 @@ _COMPILER_CANDIDATES: dict[str, list[str]] = {
     "riscv64": ["riscv64-elf-gcc", "riscv64-unknown-elf-gcc"],
 }
 
+# -fno-optimize-sibling-calls is applied to every arch: at -O2 both clang and
+# gcc turn a tail-position call (the last thing a function does before
+# returning) into a sibling-call / tail-call jump, which erases the real
+# call/ret instructions the RETBLEED/INCEPTION templates below depend on for
+# their call/ret-chain structural signature. The flag only suppresses that
+# one optimization -- it does not change codegen for any of the other
+# (non-tail-call) templates, verified below.
 _COMPILER_FLAGS: dict[str, list[str]] = {
     # clang cross-compiling to a Linux x86_64 target -- no host toolchain
     # needed since we only ask for -S (compile-to-asm, no link).
-    "x86_64": ["-target", "x86_64-linux-gnu", "-S", "-O2", "-ffreestanding"],
+    "x86_64": [
+        "-target", "x86_64-linux-gnu", "-S", "-O2", "-ffreestanding",
+        "-fno-optimize-sibling-calls",
+    ],
     # Native arm64 clang (avoids darwin-gcc quirks per environment notes).
-    "arm64": ["-target", "arm64-apple-macos", "-S", "-O2", "-ffreestanding"],
+    "arm64": [
+        "-target", "arm64-apple-macos", "-S", "-O2", "-ffreestanding",
+        "-fno-optimize-sibling-calls",
+    ],
     # Bare-metal riscv64 ELF gcc -- freestanding is mandatory here, there is
     # no libc to link against even if we wanted one.
-    "riscv64": ["-S", "-O2", "-ffreestanding"],
+    "riscv64": ["-S", "-O2", "-ffreestanding", "-fno-optimize-sibling-calls"],
 }
 
 
@@ -306,6 +319,15 @@ def _tpl_retbleed(rid: str, rng: random.Random) -> str:
     # terminating in a probe-array leak. A genuine ret-misprediction can't
     # be forced from portable C -- this is a best-effort structural proxy
     # (deep call/ret depth) documented as approximate in the task report.
+    #
+    # Every call below is deliberately placed in NON-tail position (its
+    # result is stashed into a `volatile` sink before the enclosing function
+    # returns) and compiled with -fno-optimize-sibling-calls (see
+    # _COMPILER_FLAGS). Both are needed: at -O2 a call in tail position is
+    # turned into a sibling-call `jmp` by clang/gcc, which erases the real
+    # `call`/`ret` pairs this template exists to produce (caught in fix
+    # round 1 -- verified empirically that the naive tail-call version
+    # compiled to a flat jmp chain with zero `call` instructions).
     probe_size = _probe_size(rng)
     depth = rng.choice([2, 3, 4])
     levels = []
@@ -318,7 +340,7 @@ def _tpl_retbleed(rid: str, rng: random.Random) -> str:
         cur = f"mid{i}_{rid}"
         levels.append(
             f"__attribute__((noinline))\nstatic u8_{rid} {cur}(u8_{rid} v) {{"
-            f" return {prev}(v); }}\n"
+            f" u8_{rid} r = {prev}(v); sink_{rid} = r; return r; }}\n"
         )
         prev = cur
     body = "".join(levels)
@@ -326,10 +348,13 @@ def _tpl_retbleed(rid: str, rng: random.Random) -> str:
 typedef unsigned char u8_{rid};
 
 static volatile u8_{rid} probe_{rid}[{probe_size}];
+static volatile u8_{rid} sink_{rid};
 
 {body}
 u8_{rid} gadget_{rid}(u8_{rid} v) {{
-    return {prev}(v);
+    u8_{rid} r = {prev}(v);
+    sink_{rid} = r;
+    return r;
 }}
 """
 
@@ -338,23 +363,32 @@ def _tpl_inception(rid: str, rng: random.Random) -> str:
     # INCEPTION (phantom speculation / RSB poisoning via self-referential
     # returns): recursion bounded by a runtime depth parameter, so the
     # compiler cannot unroll/inline it away, terminating in a probe leak.
-    # Best-effort structural proxy, same caveat as RETBLEED above.
+    # Best-effort structural proxy, same caveat as RETBLEED above -- and the
+    # same non-tail-call + -fno-optimize-sibling-calls fix applies here: the
+    # recursive call's result is stashed into a `volatile` sink before
+    # returning, so the recursion compiles to real `call`/`ret` pairs
+    # instead of a tail-recursive loop.
     probe_size = _probe_size(rng)
     return f"""\
 typedef unsigned char u8_{rid};
 
 static volatile u8_{rid} probe_{rid}[{probe_size}];
+static volatile u8_{rid} sink_{rid};
 
 __attribute__((noinline))
 static u8_{rid} recurse_{rid}(u8_{rid} v, int depth) {{
     if (depth <= 0) {{
         return probe_{rid}[v % {probe_size}];
     }}
-    return recurse_{rid}(v, depth - 1);
+    u8_{rid} r = recurse_{rid}(v, depth - 1);
+    sink_{rid} = r;
+    return r;
 }}
 
 u8_{rid} gadget_{rid}(u8_{rid} v, int depth) {{
-    return recurse_{rid}(v, depth);
+    u8_{rid} r = recurse_{rid}(v, depth);
+    sink_{rid} = r;
+    return r;
 }}
 """
 

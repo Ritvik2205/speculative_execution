@@ -41,6 +41,18 @@ _ARCH_PATTERNS = {
     ),
 }
 
+# Per-arch "real call instruction" pattern, used to verify the RETBLEED /
+# INCEPTION call/ret-chain templates survive -O2 as actual calls rather than
+# being sibling/tail-call-optimized into a flat jmp chain (fix round 1
+# regression: clang's default -O2 turns a tail-position call into `jmp ...
+# # TAILCALL`, which is NOT a call instruction and erases the very
+# call/ret-nesting structure these two templates exist to produce).
+_CALL_PATTERNS = {
+    "x86_64": re.compile(r"\bcallq?\b"),
+    "arm64": re.compile(r"\bbl\b"),
+    "riscv64": re.compile(r"\b(call|jal)\b"),
+}
+
 
 def test_generate_c_returns_n_distinct_sources():
     sources = generate_c("SPECTRE_V1", 5, seed=7)
@@ -108,3 +120,27 @@ def test_compile_multi_isa_skips_absent_and_records_status():
     for arch in record:
         if arch not in asm_by_arch:
             assert record[arch], f"{arch} skipped without a recorded reason"
+
+
+@pytest.mark.skipif(not (HAS_CLANG or HAS_RISCV), reason="no cross-compiler available")
+@pytest.mark.parametrize("target_class", ["RETBLEED", "INCEPTION"])
+def test_retbleed_inception_preserve_real_call_chain(target_class):
+    # Regression test for fix round 1: the naive noinline-only version of
+    # these templates tail-call-optimized into a flat `jmp` chain at -O2
+    # (0 `call` instructions, 1 `ret`), erasing the call/ret-nesting
+    # structure the templates claim to produce. The fixed templates route
+    # every recursive/chained call's result through a `volatile` sink
+    # before returning (non-tail position) and compile_multi_isa now passes
+    # -fno-optimize-sibling-calls -- this asserts at least 2 real call
+    # instructions survive per available arch.
+    src = generate_c(target_class, 1, seed=2026)[0]
+    asm_by_arch = compile_multi_isa(src)
+    assert asm_by_arch, "expected at least one arch to compile"
+
+    for arch, asm_text in asm_by_arch.items():
+        call_re = _CALL_PATTERNS[arch]
+        call_count = len(call_re.findall(asm_text))
+        assert call_count >= 2, (
+            f"{target_class} on {arch}: expected >=2 real call instructions, "
+            f"got {call_count} (tail-call elimination regression?):\n{asm_text}"
+        )
