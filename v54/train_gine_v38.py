@@ -168,6 +168,9 @@ class GINEDatasetV47(Dataset):
         mlm=None,
         tokenizer=None,
         use_spec_builder: bool = False,
+        taint_mode: str = "shift",
+        mem_order_edges: bool = False,
+        cfg_spec_edges: bool = False,
     ):
         self.label_to_id = label_to_id
         self.handcrafted_feature_names = handcrafted_feature_names
@@ -178,6 +181,19 @@ class GINEDatasetV47(Dataset):
         # (contamination-free, mnemonic-fixed) instead of the hardcoded builder.
         # Arch-aware: pick the ISA spec per record.
         self.use_spec_builder = use_spec_builder
+        # W4 edge-ablation: opt-in SpecBackedPDGBuilder knobs. Default values
+        # (taint_mode="shift", mem_order_edges=False, cfg_spec_edges=False)
+        # reproduce the original SpecBackedPDGBuilder construction exactly —
+        # purely additive, no behavior change when callers don't pass them.
+        if not use_spec_builder and (
+            taint_mode != "shift" or mem_order_edges or cfg_spec_edges
+        ):
+            print(
+                "WARNING: taint_mode/mem_order_edges/cfg_spec_edges were set "
+                "but --use-spec-builder is off; these flags only affect "
+                "SpecBackedPDGBuilder and will be ignored (legacy PDGBuilder "
+                "path is used instead)."
+            )
         if use_spec_builder:
             spec_dir = Path(__file__).resolve().parent.parent / "spec"
             sys.path.insert(0, str(spec_dir))
@@ -187,7 +203,10 @@ class GINEDatasetV47(Dataset):
                       "arm32": "arm64.json", "riscv64": "riscv.json",
                       "unknown": "base.json"}
             self.spec_builders = {
-                a: SpecBackedPDGBuilder(load_engine(f), speculative_window=speculative_window)
+                a: SpecBackedPDGBuilder(
+                    load_engine(f), speculative_window=speculative_window,
+                    taint_mode=taint_mode, mem_order_edges=mem_order_edges,
+                    cfg_spec_edges=cfg_spec_edges)
                 for a, f in _specs.items()}
         self.pdg_builder = PDGBuilder(speculative_window=speculative_window)
 
@@ -697,6 +716,21 @@ def main():
                         help="B1: build graphs from the decomposed per-ISA spec "
                              "engine (contamination-free + mnemonic fixes) instead "
                              "of the hardcoded PDGBuilder")
+    # W4 edge-ablation: opt-in SpecBackedPDGBuilder knobs, only meaningful
+    # with --use-spec-builder. Defaults reproduce current behavior exactly.
+    parser.add_argument('--taint-mode', type=str, default='shift',
+                        choices=['shift', 'slice'],
+                        help="SpecBackedPDGBuilder taint propagation mode "
+                             "(default 'shift' = current behavior; only used "
+                             "with --use-spec-builder)")
+    parser.add_argument('--mem-order-edges', action='store_true',
+                        help="SpecBackedPDGBuilder: add memory-ordering edges "
+                             "(default off = current behavior; only used with "
+                             "--use-spec-builder)")
+    parser.add_argument('--cfg-spec-edges', action='store_true',
+                        help="SpecBackedPDGBuilder: add CFG speculative edges "
+                             "(default off = current behavior; only used with "
+                             "--use-spec-builder)")
     parser.add_argument(
         '--val-split',
         type=str,
@@ -862,7 +896,10 @@ def main():
                   strip_bp=not args.no_strip,
                   node_feature_mode=args.node_feature_mode,
                   mlm=mlm_enc, tokenizer=asm_tok,
-                  use_spec_builder=args.use_spec_builder)
+                  use_spec_builder=args.use_spec_builder,
+                  taint_mode=args.taint_mode,
+                  mem_order_edges=args.mem_order_edges,
+                  cfg_spec_edges=args.cfg_spec_edges)
     train_dataset = GINEDatasetV47(train_records, label_to_id, feature_names, **_ds_kw)
     val_dataset = GINEDatasetV47(val_records, label_to_id, feature_names, **_ds_kw)
     test_dataset = GINEDatasetV47(test_records, label_to_id, feature_names, **_ds_kw)
