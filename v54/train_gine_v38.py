@@ -403,7 +403,12 @@ def train_epoch(model, loader, optimizer, ce_criterion, con_criterion, device,
 
         ce_loss = ce_criterion(logits, labels)
         con_loss = con_criterion(proj, labels) if lambda_con > 0 else torch.tensor(0.0, device=device)
-        feat_aux_loss = ce_criterion(feat_aux_logits, labels)
+        # feat_aux_logits is a zero-scalar sentinel (not real per-class logits)
+        # when the model was built with use_handcrafted=False — skip the term.
+        if getattr(model, "use_handcrafted", True):
+            feat_aux_loss = ce_criterion(feat_aux_logits, labels)
+        else:
+            feat_aux_loss = torch.tensor(0.0, device=device)
         loss = (ce_loss + lambda_con * con_loss + 0.3 * feat_aux_loss) / grad_accum
 
         if arch_mode == "adversarial":
@@ -667,6 +672,11 @@ def main():
                         help="Weight on the adversarial arch-discriminator loss "
                              "(and gradient-reversal strength), warmed up over 10 epochs "
                              "like --lambda-con. Only used when --arch-mode adversarial.")
+    parser.add_argument('--no-handcrafted', action='store_true',
+                        help="Ablate the 58-dim hand-feature branch entirely "
+                             "(feature_encoder + feature_aux_head not built; "
+                             "combined vector drops fusion_dim). Tests whether "
+                             "the graph — not the hand features — carries the result.")
     # SpecDiscover Phase 1: learned node features (default 'hand' = original behavior)
     parser.add_argument('--node-feature-mode', choices=['hand', 'learned', 'both'],
                         default='hand',
@@ -871,6 +881,7 @@ def main():
         use_virtual_node=not args.no_virtual_node,
         jk_mode=args.jk_mode,
         arch_mode=args.arch_mode,
+        use_handcrafted=not args.no_handcrafted,
     ).to(DEVICE)
 
     total_params = sum(p.numel() for p in model.parameters())

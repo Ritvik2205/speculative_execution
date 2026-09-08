@@ -144,6 +144,7 @@ class GINEClassifier(nn.Module):
         use_virtual_node: bool = True,
         jk_mode: str = "cat",
         arch_mode: str = "embed",
+        use_handcrafted: bool = True,
     ):
         super().__init__()
 
@@ -159,6 +160,7 @@ class GINEClassifier(nn.Module):
         self.global_feat_dim = global_feat_dim
         self.arch_emb_dim = arch_emb_dim
         self.arch_mode = arch_mode
+        self.use_handcrafted = use_handcrafted
 
         # Node encoder
         self.node_encoder = nn.Sequential(
@@ -214,16 +216,22 @@ class GINEClassifier(nn.Module):
             nn.Dropout(dropout),
         )
 
-        self.feature_encoder = nn.Sequential(
-            nn.Linear(max(handcrafted_dim, 1), fusion_dim),
-            nn.BatchNorm1d(fusion_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(fusion_dim, fusion_dim),
-            nn.BatchNorm1d(fusion_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-        )
+        # Hand-feature branch (58-dim PDG-derived features -> fusion_dim). Ablatable
+        # via use_handcrafted=False (Task 3.2) so an experiment can test whether the
+        # graph — not this branch — carries the classification result. When ablated,
+        # neither this encoder nor feature_aux_head is constructed at all (not just
+        # skipped in forward), and `combined` drops fusion_dim of width accordingly.
+        if self.use_handcrafted:
+            self.feature_encoder = nn.Sequential(
+                nn.Linear(max(handcrafted_dim, 1), fusion_dim),
+                nn.BatchNorm1d(fusion_dim),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(fusion_dim, fusion_dim),
+                nn.BatchNorm1d(fusion_dim),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+            )
 
         # Fix 2: Global features branch (5-dim instruction stats → 32-dim)
         global_repr_dim = 32
@@ -241,11 +249,14 @@ class GINEClassifier(nn.Module):
         # explicit ISA signal.
         self.arch_embedding = nn.Embedding(NUM_ARCHS, arch_emb_dim)
 
-        # Combined dimension: graph(256) + handcrafted(256) + global(32) [+ arch(8) iff "embed"]
+        # Combined dimension: graph(256) [+ handcrafted(256) iff use_handcrafted]
+        # + global(32) [+ arch(8) iff "embed"]
+        combined_dim = fusion_dim  # graph_repr always present
+        if self.use_handcrafted:
+            combined_dim += fusion_dim
+        combined_dim += global_repr_dim
         if arch_mode == "embed":
-            combined_dim = fusion_dim * 2 + global_repr_dim + arch_emb_dim
-        else:  # "drop" or "adversarial"
-            combined_dim = fusion_dim * 2 + global_repr_dim
+            combined_dim += arch_emb_dim
         self.combined_dim = combined_dim
 
         self.classifier = nn.Sequential(
@@ -256,7 +267,8 @@ class GINEClassifier(nn.Module):
             nn.Linear(hidden_dim, num_classes),
         )
 
-        self.feature_aux_head = nn.Linear(fusion_dim, num_classes)
+        if self.use_handcrafted:
+            self.feature_aux_head = nn.Linear(fusion_dim, num_classes)
 
         self.projection_head = nn.Sequential(
             nn.Linear(combined_dim, hidden_dim),
@@ -327,25 +339,43 @@ class GINEClassifier(nn.Module):
         )
 
         graph_repr = self.graph_projector(graph_repr_raw)
-        feat_repr = self.feature_encoder(handcrafted_features)
+
+        # Hand-feature branch is ablatable (Task 3.2): `handcrafted_features` is
+        # simply ignored when use_handcrafted=False, no encoder is invoked, and
+        # feat_repr is excluded from `combined` entirely (combined_dim already
+        # accounts for this at __init__ time).
+        if self.use_handcrafted:
+            feat_repr = self.feature_encoder(handcrafted_features)
+        else:
+            feat_repr = None
 
         # Fix 2: Global instruction-count stats
         global_repr = self.global_projector(global_features)
 
+        parts = [graph_repr]
+        if self.use_handcrafted:
+            parts.append(feat_repr)
+        parts.append(global_repr)
         if self.arch_mode == "embed":
             # Fix 3: Architecture embedding, concatenated (original v47 behavior).
             arch_repr = self.arch_embedding(arch_id)
-            combined = torch.cat([graph_repr, feat_repr, global_repr, arch_repr], dim=-1)
-        else:
-            # "drop" / "adversarial": no explicit arch signal fed to the classifier.
-            combined = torch.cat([graph_repr, feat_repr, global_repr], dim=-1)
+            parts.append(arch_repr)
+        combined = torch.cat(parts, dim=-1)
 
         logits = self.classifier(combined)
 
         if return_projection:
             proj = self.projection_head(combined)
             proj = F.normalize(proj, p=2, dim=-1)
-            feat_aux_logits = self.feature_aux_head(feat_repr)
+            if self.use_handcrafted:
+                feat_aux_logits = self.feature_aux_head(feat_repr)
+            else:
+                # No hand-feature branch to supervise. Return a zero scalar
+                # tensor as a sentinel so the training loop's tuple arity stays
+                # identical; callers must skip the 0.3*feat_aux_loss term when
+                # `model.use_handcrafted` is False rather than treat this as a
+                # real per-class logit vector.
+                feat_aux_logits = torch.zeros((), device=combined.device)
 
             if self.arch_mode == "adversarial":
                 arch_logits = self.arch_disc(grad_reverse(combined, self._arch_lambda))
