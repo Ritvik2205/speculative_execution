@@ -113,6 +113,8 @@ def _build_model(ckpt: Dict, device: torch.device):
         dropout=a["dropout"],
         use_virtual_node=not a["no_virtual_node"],
         jk_mode=a["jk_mode"],
+        arch_mode=a.get("arch_mode", "embed"),
+        use_handcrafted=not a.get("no_handcrafted", False),
     ).to(device)
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
