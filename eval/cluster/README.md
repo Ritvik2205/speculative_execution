@@ -77,7 +77,21 @@ Pick a real partition from that output and set it in `eval/cluster/train.sbatch`
 
 ## 5. Submit the trainings
 
-The two scripts are in `eval/cluster/`:
+### One command runs everything
+```bash
+bash eval/cluster/run_everything.sh
+```
+Submits, at 5 seeds each: the W3 arch×handcrafted grid, the W4 edge-ablations (the V4 mem-order edge now uses the P3b RMW fix — fires on real gadgets), **P3** (`p3_hwv4`: v55h + 11 real hardware V4 gadgets), plus W5 leave-one-ISA-out and W6 pretrain. It captures the W3/W4/P3 job ids and chains a final aggregation job (`--dependency=afterok`) that scores every checkpoint and writes, under `eval/cluster_out/`:
+- `W3_grid.md` — arch-mode × handcrafted (locked / arm64 / x86 / trigger-masked macro-F1)
+- `W4_ablation.md` — each edge ON vs OFF baseline, target-class recall
+- `real_v4.md` — the fixed structural edge ALONE on the 16 real V4 gadgets (does the edge, no real V4 in training, detect real V4?)
+- `real_v4_p3.md` — held-out real-V4 recall, baseline vs trained-with-real-V4 (the P3 data fix; local 2-seed already shows 0%→100%)
+
+W5/W6 run independently (not in the aggregation dependency, so their failure can't block the tables); their outputs are their own `.out` logs / `pretrained.pt`.
+
+### The individual scripts
+
+The scripts in `eval/cluster/`:
 - `train.sbatch` — one GPU run: stages code+data to node-local `/disk/scratch`, trains, copies results back to `eval/cluster_out/<tag>_s<seed>/`, cleans scratch. Runs the default `train_gine_v38` command, or a `CMD=...` override (used for W5/W6).
 - `submit_all.sh` — fires one sbatch per config for **everything runnable on the cluster**: W3 grid (12), W4 edge-ablations (9), W5 leave-one-ISA-out (1 sweep, `--time=08:00:00`), W6 generator pretrain (1, `--time=06:00:00`). 23 jobs total.
 
