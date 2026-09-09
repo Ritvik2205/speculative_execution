@@ -1,0 +1,59 @@
+# SPECTRE_V4 / Speculative Store Bypass (SSB, CVE-2018-3639) detection.
+#
+# Approach: the CT-SEQ contract (contract_execution_clause: seq) models NO
+# speculation, so it forbids any store->load bypass; x86_executor_enable_ssbp_
+# patch:false leaves SSB UN-mitigated on the silicon. Any store bypass the CPU
+# actually performs then diverges from the contract => a real violation.
+#
+# 2026-09-06 REVISION. The prior config found 0/200 violations on the i5-8300H
+# (oracle/revizor/HARDWARE_VALIDATION_RESULTS.md). Root cause: it enabled only
+# BASE-BITBYTE/CMOV/LOGICAL with program_size 20 / avg_mem_accesses 10 / entropy
+# 10, so generated programs almost never contained the store -> dependent-load
+# pair that SSB requires. Grounded fixes:
+#   - add BASE-DATAXFER (the mov stores+loads) and BASE-BINARY (address/value
+#     arithmetic) so real store->load pairs appear.
+#   - straight-line code only (min/max_bb=1): with NO conditional branches, any
+#     violation must be store-bypass (V4), not branch misprediction (V1). This
+#     isolates SSB — a violation here is unambiguously speculative store bypass.
+#   - larger window + more memory accesses so a store and a dependent load land
+#     in the same speculation window.
+#   - higher entropy (24) to explore more store/load address relationships.
+# CLI still supplies the ISA spec via `-s base_x86.json`.
+
+# contract: sequential (no speculation) => forbids store bypass
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+
+# leave Speculative Store Bypass UN-mitigated on the CPU (the whole point of V4)
+x86_executor_enable_ssbp_patch: false
+
+# straight-line code: isolates store-bypass from branch speculation
+max_bb_per_function: 1
+min_bb_per_function: 1
+min_successors_per_bb: 1
+max_successors_per_bb: 1
+
+# tested instructions — DATAXFER+BINARY are the fix (store->load pairs + arith)
+instruction_categories:
+  - BASE-DATAXFER
+  - BASE-BINARY
+  - BASE-BITBYTE
+  - BASE-CMOV
+  - BASE-LOGICAL
+
+# fuzzing configuration — wider window + more mem accesses + higher entropy
+program_size: 48
+avg_mem_accesses: 20
+data_generator_entropy_bits: 24
+inputs_per_class: 2
+
+enable_speculation_filter: true
+enable_observation_filter: true
+
+# vary this across campaigns to explore different program spaces
+program_generator_seed: 3333333
+
+# Overwrite some of the configuration options to reproduce the violation
+data_generator_seed: 50010
+inputs_per_class: 1

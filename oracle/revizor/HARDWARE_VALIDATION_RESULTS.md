@@ -114,3 +114,73 @@ independently-reseeded random test-case generation each time. Artifacts:
 - No violations have yet been fed back into the generator/gadget pipeline as
   validated attack sequences (the original ask behind this whole pass) — that
   synthesis step is still open.
+
+---
+
+# V4 / SSB campaign — resolved (2026-09-07)
+
+Closes the last open item above ("SPECTRE_V4 showed 0 violations this pass ...
+not yet investigated why"). It was the config, not the hardware: the old
+`detect-v4.yaml` enabled only BITBYTE/CMOV/LOGICAL at `program_size` 20, so
+generated programs almost never contained the store -> dependent-load pair SSB
+requires. The revised config (`demo_configs/detect-v4.yaml`, 2026-09-06) adds
+BASE-DATAXFER + BASE-BINARY, forces straight-line code (`bb=1`), and widens the
+window (`program_size` 48, `avg_mem_accesses` 20, entropy 24).
+
+Run via `scripts/run_v4_ssb_campaign.sh` (steps 2-4 of `V4_SSB_RUNBOOK.md`) on
+the i5-8300H, kernel 7.0.0-30-generic, `spec_store_bypass: disabled via prctl`
+(i.e. un-mitigated by default for these processes). `-n 1000 -i 100`, 900s cap
+per seed.
+
+## Results
+
+| arm | config | violations |
+|---|---|---|
+| **SSBP off** (un-mitigated) | seeds 1000000 / 2222222 / 3333333 / 4444444 / 5555555 | **15** (4, 2, 2, 4, 3) |
+| **SSBP on** (mitigated control) | same program space | **0** |
+| **SMT off** (un-mitigated) | same 5 seeds | **16** (5, 2, 2, 4, 3) |
+
+Every seed produced violations; the two controls behave exactly as a real SSB
+effect requires:
+
+- **The mitigation closes it.** Flipping `x86_executor_enable_ssbp_patch` to
+  true takes 15 violations -> 0. The leak is specifically speculative store
+  bypass, not generic measurement noise or a harness artifact.
+- **It survives SMT off.** 16 violations with hyperthreading fully disabled
+  (vs 15 with it on) rules out sibling-thread leakage — this is single-thread
+  SSB. SMT was restored to `on` afterwards.
+
+## Why these are V4 and not V1
+
+Checked mechanically over all 15 un-mitigated violating programs:
+- **0/15 contain any conditional branch**, and each has exactly **1 basic
+  block** — so no branch misprediction is available to explain the leak.
+- **15/15 contain store->load pairs** on the `r14` sandbox.
+
+With the CT-SEQ contract (models no speculation, hence forbids store bypass),
+a divergence in straight-line code is unambiguously store bypass.
+
+## Significance
+
+This replaces the retracted simulator grounding. Per
+`eval/v4_corrected_metric_2026-09-06.txt`, the earlier InvisiSpec/gem5 "V4 leaks
+40/40" was a confident-hit-on-noise artifact (byte-verified: 0/40 correct),
+because that gem5 config returns ~uniform load latencies and self-timed
+Flush+Reload cannot separate hit from miss. V4/SSB is now grounded on **real
+silicon with a mitigated control**, which the simulator never provided.
+
+## Artifacts
+
+`results/v4_ssb_260907/` — `ssbp_off/` (15), `smt_off/` (16),
+`ssbp_on_control/` (config + the 0 result), and `campaign.log`. Each violation
+dir keeps `program.asm`, `report.txt`, `org-config.yaml`, `reproduce.yaml`,
+`minimize.yaml` and the 200 `input_*.bin` counterexamples for exact
+`rvzr reproduce`. Total 76M — same retention as the 2026-08-11 dirs, but note
+the size before committing.
+
+## Next (not done here)
+
+Step 6 of `V4_SSB_RUNBOOK.md`: convert the violating `program.asm` from Intel
+syntax with the `r14`-relative sandbox to the AT&T form v54 records use, build
+records (violating -> `SPECTRE_V4`, SSBP-on twin -> `BENIGN`, carrying
+`oracle=revizor_hw`), and wire through `gen/v4_family/build_experiment.py`.
