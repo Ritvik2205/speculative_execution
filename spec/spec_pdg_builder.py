@@ -89,6 +89,53 @@ def _parse_mem_operand(instr: str) -> Tuple[Optional[str], Optional[int], bool]:
     return None, None, False
 
 
+# ---- Task P3b: RMW-to-memory write/read classification for the V4 edge ----
+#
+# `_writes_mem`/`_reads_mem` below decide MEMORY_ORDER edge endpoints by
+# inspecting the raw instruction + its memory operand directly, INDEPENDENT
+# of the coarse opcode CATEGORY the spec engine assigns. This matters because
+# real Revizor V4 (speculative store bypass) gadgets leak through
+# read-modify-write arithmetic/logic ops with a memory destination --
+# `addl %ebx,(%r14,%rdi)`, `subb $8,(%r14,%rdi)`, `xorl (%r14,%rdx),%ebx` --
+# and `classify_opcode` puts every one of these in OTHER (18), not
+# STORE/LOAD/ARITHMETIC/LOGIC (x86 memory-destination arithmetic has no
+# register-only ARITHMETIC/LOGIC path in the spec's classify rules). The
+# pre-P3b edge builder only ever matched STORE/LOAD category nodes, so it
+# saw almost none of these pairs (3 MEMORY_ORDER edges total across 16 real
+# hardware V4 gadgets).
+_X86_RMW_WRITE_ROOTS = {
+    "add", "sub", "adc", "sbb", "and", "or", "xor",
+    "inc", "dec", "neg", "not", "shl", "shr", "sar", "sal", "rol", "ror",
+    "xchg",
+}
+_X86_SIZE_SUFFIXES = "qlwb"
+
+
+def _strip_lock_prefix(instr: str) -> Tuple[str, bool]:
+    """Split a leading AT&T `lock` prefix token off ``instr``. A `lock`
+    prefix always means an atomic read-modify-write of the memory operand,
+    whatever the mnemonic (`lock add`, `lock inc`, `lock bts`, `lock
+    cmpxchg`, ...) -- so callers that see ``has_lock=True`` don't need to
+    recognize the mnemonic at all."""
+    m = re.match(r'^\s*lock\s+(.*)$', instr, re.IGNORECASE)
+    if m:
+        return m.group(1), True
+    return instr, False
+
+
+def _mnemonic_root(instr: str) -> str:
+    """First token of ``instr`` (lowercased), with an x86 size suffix
+    (q/l/w/b) stripped when the un-suffixed form is a recognized RMW-write
+    mnemonic root -- e.g. ``addl`` -> ``add``, ``subb`` -> ``sub``."""
+    parts = instr.strip().split(None, 1)
+    m = parts[0].lower() if parts else ""
+    if m in _X86_RMW_WRITE_ROOTS:
+        return m
+    if len(m) > 1 and m[-1] in _X86_SIZE_SUFFIXES and m[:-1] in _X86_RMW_WRITE_ROOTS:
+        return m[:-1]
+    return m
+
+
 def _may_alias(s_base: Optional[str], s_off: Optional[int], s_const: bool,
                 l_base: Optional[str], l_off: Optional[int], l_const: bool) -> bool:
     """Conservative may-alias rule for Task 4.3, given the pre-parsed
@@ -203,13 +250,72 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
             apply_dataflow_taint(pdg, max_hops=self.dataflow_taint_max_hops)
         return pdg
 
+    def _writes_mem(self, node) -> bool:
+        """True if ``node``'s raw instruction WRITES a memory operand: a
+        plain STORE (category), or a read-modify-write arithmetic / logic /
+        shift / xchg op whose memory operand is the destination, or any
+        `lock`-prefixed instruction with a memory operand (a lock prefix
+        always means an atomic RMW of memory, whatever the mnemonic).
+
+        Independent of the coarse opcode CATEGORY: the RMW-into-memory forms
+        this exists for (``addl %ebx,(%r14,%rdi)``, ...) classify as OTHER,
+        not STORE/ARITHMETIC (see the module docstring note on
+        ``_X86_RMW_WRITE_ROOTS`` above) — that CATEGORY blindness is exactly
+        the P3b bug being fixed.
+        """
+        instr = node.raw_instruction
+        body, has_lock = _strip_lock_prefix(instr)
+        if _parse_mem_operand(body)[0] is None:
+            return False
+        if node.opcode_category == pb.OPCODE_CATEGORIES['STORE']:
+            return True
+        if node.opcode_category == pb.OPCODE_CATEGORIES['COMPARE']:
+            return False  # cmp/test never write, whatever operand position
+        if has_lock:
+            return True
+        root = _mnemonic_root(body)
+        if root not in _X86_RMW_WRITE_ROOTS:
+            return False
+        direction = self.engine._mem_direction(body)
+        # direction == "LOAD" means the memory operand is the SOURCE and a
+        # register is the destination (e.g. `xorl (%r14,%rdx),%ebx`) — reads
+        # memory into a register, does not write memory. "STORE" (mem is the
+        # destination) or None (single-operand in-place RMW, e.g.
+        # `incl (%rax)`, where there's nothing to disambiguate against)
+        # both mean the memory operand is written.
+        return direction != "LOAD"
+
+    def _reads_mem(self, node) -> bool:
+        """True if ``node``'s raw instruction READS a memory operand: a
+        LOAD, a compare (``cmp``/``test``) with a memory operand, or a
+        read-modify-write op (which reads the memory operand before it
+        writes it back)."""
+        instr = node.raw_instruction
+        body, has_lock = _strip_lock_prefix(instr)
+        if _parse_mem_operand(body)[0] is None:
+            return False
+        if node.opcode_category == pb.OPCODE_CATEGORIES['LOAD']:
+            return True
+        if node.opcode_category == pb.OPCODE_CATEGORIES['STORE']:
+            return False  # plain store: writes the location, doesn't read it
+        if node.opcode_category == pb.OPCODE_CATEGORIES['COMPARE']:
+            return True
+        if has_lock:
+            return True
+        return _mnemonic_root(body) in _X86_RMW_WRITE_ROOTS
+
     def _add_v4_memory_order_edges(self, pdg, defuse) -> None:
-        """Task 4.3 (W4, closes G1): for every STORE, add a MEMORY_ORDER edge
-        to every LOAD within ``self.speculative_window`` node-positions that
-        MAY-alias it (``_may_alias`` above), stopping the scan for a given
-        store only once an intervening instruction genuinely REDEFINES the
-        store's own base register (the address is then provably a different
-        location) — never on a load that merely reads through it.
+        """Task 4.3 (W4, closes G1), extended by P3b: for every memory WRITE
+        (``_writes_mem`` above — a plain STORE, or a read-modify-write op
+        with a memory destination), add a MEMORY_ORDER edge to every later
+        memory READ (``_reads_mem`` — a LOAD, a compare, or an RMW op, which
+        reads before it writes) within ``self.speculative_window``
+        node-positions that MAY-alias it (``_may_alias`` above), stopping
+        the scan for a given writer only once an intervening instruction
+        genuinely REDEFINES the writer's own base register (the address is
+        then provably a different location) — never on a node that merely
+        reads through it. A node can be both a writer and a reader (RMW):
+        a store->load forwarding pair can be RMW->RMW.
 
         This is a separate, opt-in, text-parsed base-register analysis — it
         does not touch or replace the base ``PDGBuilder.build()``'s own
@@ -235,22 +341,22 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         """
         nodes = pdg.nodes
         n = len(nodes)
-        for i, store in enumerate(nodes):
-            if store.opcode_category != pb.OPCODE_CATEGORIES['STORE']:
+        for i, writer in enumerate(nodes):
+            if not self._writes_mem(writer):
                 continue
-            s_base, s_off, s_const = _parse_mem_operand(store.raw_instruction)
+            s_base, s_off, s_const = _parse_mem_operand(writer.raw_instruction)
             window_end = min(n, i + self.speculative_window + 1)
             for j in range(i + 1, window_end):
                 node = nodes[j]
-                if node.opcode_category == pb.OPCODE_CATEGORIES['LOAD']:
+                if self._reads_mem(node):
                     l_base, l_off, l_const = _parse_mem_operand(node.raw_instruction)
                     if _may_alias(s_base, s_off, s_const, l_base, l_off, l_const):
                         pdg.edges.append(pb.PDGEdge(
-                            src=store.id, dst=node.id,
+                            src=writer.id, dst=node.id,
                             edge_type=pb.EDGE_TYPES['MEMORY_ORDER'], weight=1.0))
                 defs_j = defuse[j][0] if j < len(defuse) else set()
                 if s_base is not None and s_base in defs_j:
-                    # Genuine redefinition of the store's base register per
+                    # Genuine redefinition of the writer's base register per
                     # ir_defuse — the address is now provably different.
                     break
 

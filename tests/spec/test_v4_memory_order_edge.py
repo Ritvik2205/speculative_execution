@@ -84,3 +84,43 @@ def test_multiple_aliasing_loads_all_get_edges_fix_round_1():
     edges = _memory_order_edges(pdg)
     assert len(edges) == 2, edges
     assert {(e.src, e.dst) for e in edges} == {(0, 1), (0, 2)}
+
+
+# ---------------------------------------------------------------------------
+# P3b: RMW-to-memory ops (`classify_opcode` puts these in OTHER, not
+# STORE/LOAD) must still be recognized as writers/readers of memory — real
+# Revizor V4 gadgets leak through exactly this shape.
+# ---------------------------------------------------------------------------
+
+def test_rmw_store_then_load_produces_edge():
+    """`addl %ebx, (%r14,%rdi)` writes memory via a read-modify-write op
+    (classifies as OTHER, not STORE) — a later load of the same base must
+    still get a MEMORY_ORDER edge from it."""
+    seq = ["addl %ebx, (%r14,%rdi)", "movl (%r14,%rdi), %ecx"]
+    pdg = _build(seq, mem_order_edges=True)
+    edges = _memory_order_edges(pdg)
+    assert len(edges) == 1, edges
+    assert edges[0].src == 0 and edges[0].dst == 1
+
+
+def test_rmw_to_rmw_produces_edge():
+    """Both nodes are RMW ops touching the same base (`%r14`) — the second
+    RMW reads before it writes, so it's both a writer and a reader; the
+    writer->reader edge must still fire."""
+    seq = ["addl %ebx,(%r14,%rdi)", "subl $8,(%r14,%rdi)"]
+    pdg = _build(seq, mem_order_edges=True)
+    edges = _memory_order_edges(pdg)
+    assert len(edges) == 1, edges
+    assert edges[0].src == 0 and edges[0].dst == 1
+
+
+def test_rmw_different_base_no_edge():
+    seq = ["addl %ebx,(%r14,%rdi)", "movl (%r15,%rdx),%ecx"]
+    pdg = _build(seq, mem_order_edges=True)
+    assert _memory_order_edges(pdg) == []
+
+
+def test_rmw_default_off_no_edge():
+    seq = ["addl %ebx, (%r14,%rdi)", "movl (%r14,%rdi), %ecx"]
+    pdg = _build(seq, mem_order_edges=False)
+    assert _memory_order_edges(pdg) == []
