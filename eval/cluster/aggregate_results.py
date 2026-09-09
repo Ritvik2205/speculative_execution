@@ -21,6 +21,7 @@ from robustness_suite import evaluate_checkpoint  # noqa: E402
 OUT = ROOT / "eval" / "cluster_out"
 TEST = str(ROOT / "v54" / "data" / "v54_test.jsonl")
 REAL_V4 = str(ROOT / "eval" / "data" / "revizor_v4_real.jsonl")
+REAL_V4_HELDOUT = str(ROOT / "eval" / "data" / "revizor_v4_heldout.jsonl")
 
 def ci(xs):
     xs = [x for x in xs if x is not None and x == x]
@@ -39,11 +40,11 @@ def seeds_for(tag):
 
 def metric(tag, key, cond=None, cls=None, perturb=None, arch=None):
     """mean±CI of a metric across a tag's seeds. key in {macro_f1,ece,benign_fp_rate,recall}."""
+    test_path = {"realv4": REAL_V4, "realv4_heldout": REAL_V4_HELDOUT}.get(cond, TEST)
     vals = []
     for ck in seeds_for(tag):
         try:
-            d = evaluate_checkpoint(ck, (REAL_V4 if cond == "realv4" else TEST),
-                                    perturb=perturb, arch_filter=arch)
+            d = evaluate_checkpoint(ck, test_path, perturb=perturb, arch_filter=arch)
         except Exception as e:
             print(f"[warn] {ck}: {e}"); continue
         if cls:
@@ -95,7 +96,21 @@ def main():
         (OUT / "real_v4.md").write_text(
             "# Real-V4 recall on 16 hardware-confirmed gadgets (mean±95%CI)\n\n"
             f"- edge ON (mem-order): {f(on)}\n- edge OFF (baseline): {f(base)}\n\n**Verdict:** {verdict}\n")
-    print("wrote W3_grid.md, W4_ablation.md, real_v4.md under eval/cluster_out/")
+    # ---- P3: does folding real V4 into training fix real-V4 recall? ----
+    # Both scored on the SEED-DISJOINT held-out gadgets (revizor_v4_heldout.jsonl).
+    if Path(REAL_V4_HELDOUT).exists() and seeds_for("p3_hwv4"):
+        after = metric("p3_hwv4","recall",cond="realv4_heldout",cls="SPECTRE_V4")
+        before= metric(off,     "recall",cond="realv4_heldout",cls="SPECTRE_V4")
+        verdict = ("folding real V4 into training LIFTS held-out real-V4 recall"
+                   if after[0] > before[0] + 1e-9 else
+                   "no lift — real V4 still not detected even after training on some")
+        (OUT / "real_v4_p3.md").write_text(
+            "# P3 — held-out real-V4 recall: baseline vs trained-with-real-V4 (mean±95%CI)\n\n"
+            "Both scored on the seed-disjoint held-out gadgets (eval/data/revizor_v4_heldout.jsonl).\n\n"
+            f"- BEFORE (v55h, no real V4 in train): {f(before)}\n"
+            f"- AFTER  (v55h + 11 real V4 in train): {f(after)}\n\n**Verdict:** {verdict}\n"
+            "\n_Caveat: held-out is 5 gadgets from a single generator seed — coarse, exploratory._\n")
+    print("wrote W3_grid.md, W4_ablation.md, real_v4.md, real_v4_p3.md under eval/cluster_out/")
 
 if __name__ == "__main__":
     main()

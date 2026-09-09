@@ -38,6 +38,15 @@ submit "w4_memedge"    "--mem-order-edges"
 submit "w4_taintslice" "--taint-mode slice"
 submit "w4_cfgspec"    "--cfg-spec-edges"
 
+# ---- P3: fold hardware V4 gadgets into training (data-only delta) -----------
+# Same recipe as w3_embed_on but trained on v55h_hwv4_train (v55h + 11 real V4
+# gadgets, seeds 2222222/3333333/4444444/5555555; seed 1000000 held out).
+# Aggregator scores its SPECTRE_V4 recall on eval/data/revizor_v4_heldout.jsonl.
+for s in "${SEEDS[@]}"; do
+  jid=$(sbatch --parsable --export=ALL,TAG="p3_hwv4",SEED="$s",EXTRA="",TRAIN="v54/data/v55h_hwv4_train.jsonl" "$SB")
+  AGG_IDS+=("$jid"); echo "submitted p3_hwv4 s$s -> job $jid"
+done
+
 # ---- W5 leave-one-ISA-out (one sweep) + W6 pretrain (CMD override) -----------
 # These are INDEPENDENT of the result tables, so they are NOT in the aggregation
 # dependency — a w5/w6 failure must not block the W3/W4/real-V4 tables.
