@@ -11,8 +11,10 @@
 # (Teaching / Standard / Short / LongJobs / Teach-LongJobs); use a real one.
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=gine
-#SBATCH --partition=Teaching          # CHANGE to a real partition (run `sinfo`)
-#SBATCH --gres=gpu:1                   # one GPU
+#SBATCH --partition=Teaching          # confirmed real (default*); 2080 Ti fits GINE.
+                                       # For the generator pretrain use a big-mem node:
+                                       #   --partition=ICF-Free --gres=gpu:a40:1  (or l40s / h200)
+#SBATCH --gres=gpu:1                   # one GPU (any type on Teaching)
 #SBATCH --mem=16000                    # 16 GB RAM
 #SBATCH --time=02:00:00                # 2h wall limit (a run is ~10-20 min on GPU)
 #SBATCH --cpus-per-task=4
