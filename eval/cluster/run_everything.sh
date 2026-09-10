@@ -48,15 +48,20 @@ for s in "${SEEDS[@]}"; do
 done
 
 # ---- W5 leave-one-ISA-out (one sweep) + W6 pretrain (CMD override) -----------
-# These are INDEPENDENT of the result tables, so they are NOT in the aggregation
-# dependency — a w5/w6 failure must not block the W3/W4/real-V4 tables.
+# INDEPENDENT of the result tables: NOT in the aggregation dependency, AND their
+# submission is non-fatal (|| true) so a partition/account error here can NEVER
+# abort the script before the aggregation job is submitted.
 jid=$(sbatch --parsable --time=08:00:00 --export=ALL,TAG=w5_loio,SEED=0,\
-CMD="python3 -u eval/leave_one_isa_out.py --seeds ${SEEDS[*]}" "$SB")
-echo "submitted w5_loio -> job $jid (result in its .out log)"
+CMD="python3 -u eval/leave_one_isa_out.py --seeds ${SEEDS[*]}" "$SB") \
+  && echo "submitted w5_loio -> job $jid (result in its .out log)" \
+  || echo "[warn] w5_loio submit failed (non-fatal) — aggregation still proceeds"
 
-jid=$(sbatch --parsable --time=06:00:00 --partition=ICF-Free --gres=gpu:a40:1 --export=ALL,TAG=w6_pretrain,SEED=0,\
-CMD='python3 -u gen/pretrain_encoder.py --corpus v54/data/v55h_train.jsonl --epochs 30 --save "$OUT/pretrained.pt"' "$SB")
-echo "submitted w6_pretrain -> job $jid (ICF-Free a40)"
+# W6 pretrain on Teaching (student accounts cannot use ICF-Free; the d=128
+# generator fits an 11 GB 2080 Ti). Non-fatal.
+jid=$(sbatch --parsable --time=06:00:00 --export=ALL,TAG=w6_pretrain,SEED=0,\
+CMD='python3 -u gen/pretrain_encoder.py --corpus v54/data/v55h_train.jsonl --epochs 30 --save "$OUT/pretrained.pt"' "$SB") \
+  && echo "submitted w6_pretrain -> job $jid (Teaching)" \
+  || echo "[warn] w6_pretrain submit failed (non-fatal) — aggregation still proceeds"
 
 # ---- final aggregation: waits for the W3/W4 jobs only (afterok) --------------
 DEP=$(IFS=:; echo "${AGG_IDS[*]}")
