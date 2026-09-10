@@ -62,3 +62,11 @@ i5-8300H: 15 violations un-mitigated → 0 with SSBP on → 16 SMT-off; mechanic
 
 ## One-line status
 The **detector** is in publishable shape: shortcut removed, an ISA-independent config that beats the hand-engineered model on every axis, and a clean real-silicon V4 result (0%→100% via hardware data). The open work is **scaling the V4 evidence**, **finalizing cross-ISA transfer**, and **closing the generation loop** — none blocking the detector paper.
+
+---
+## Step 1 CLOSED (2026-09-10)
+- **real_v4.md**: fixed structural edge ALONE = 0.000 real-V4 recall (ON and OFF). Even firing (P3b: 163 edges), a model without real V4 data detects NONE. **The edge cannot rescue real-V4; hardware training data is required.**
+- **real_v4_p3.md**: 0.000 → 1.000 (5-seed, data fix confirmed on cluster).
+- **W5 leave-one-ISA-out**: this run was the OLD corpus (riscv64 n=0 on the cluster; RISC-V transfer untested — Step 3 `--idiomatic` fixes it). x86<->arm64 only: hand-58 acc 37.9%/F1 36.1 vs spec-42 60.7%/46.4 vs cand-impurity 64.2%/45.6 — hand features transfer WORST cross-ISA (+26pp for learned/spec). Consistent with W3 (hand features are an x86-biased crutch).
+- 40 .pt checkpoints now pulled locally.
+## STEP 4 agent code starting (rl_from_oracle CLI + external-corpus staging).
