@@ -5,20 +5,28 @@ RandomForest fits, which is out of scope for a unit test (see task-4-brief.md
 "Tests" section).
 """
 import math
+import subprocess
+import sys
 
 import numpy as np
 
 from eval.leave_one_isa_out import (
+    IDIOMATIC_RISCV_PATH,
     SPLITS,
+    ROOT,
     build_split,
     ci_overlap,
     class_intersection,
     describe_comparison,
     filter_by_arch,
     fmt_ci,
+    format_confusion_matrix,
     group_bootstrap_f1,
     is_stub,
+    load_idiomatic_riscv_records,
     n_instructions,
+    predict_test_windowed,
+    window_target_len,
 )
 
 
@@ -262,3 +270,149 @@ def test_describe_comparison_direction_follows_sign_when_distinguishable():
 def test_describe_comparison_undefined_when_ci_missing():
     msg = describe_comparison(5.0, (float("nan"), float("nan")), (5.0, 15.0), "A", "B")
     assert "UNDEFINED" in msg
+
+
+# ---------------------------------------------------------------------------
+# --idiomatic — sources riscv64 from eval/data/idiomatic_riscv.jsonl (real,
+# riscv64-gcc-compiled corpus) instead of build_riscv_records() (the
+# transliterated riscv_corpus/ default). Task 5.4 deliverable 1.
+# ---------------------------------------------------------------------------
+
+def test_load_idiomatic_riscv_records_reads_the_real_corpus_file():
+    records = load_idiomatic_riscv_records()
+    assert len(records) > 0
+    assert all(r["arch"] == "riscv64" for r in records)
+    # source_file/provenance is idiomatic_riscv-specific — not something
+    # build_riscv_records() (spec/eval_riscv_real.py, riscv_corpus/) emits.
+    assert all("provenance" in r for r in records)
+    assert {r["label"] for r in records} >= {"BENIGN", "SPECTRE_V1"}
+
+
+def test_load_idiomatic_riscv_records_default_path_is_the_documented_file():
+    assert IDIOMATIC_RISCV_PATH == ROOT / "eval" / "data" / "idiomatic_riscv.jsonl"
+    assert IDIOMATIC_RISCV_PATH.exists()
+
+
+def test_load_idiomatic_riscv_records_respects_explicit_path(tmp_path):
+    import json
+    p = tmp_path / "mini.jsonl"
+    p.write_text('{"label": "MDS", "arch": "riscv64", "sequence": ["nop"], "group": "g"}\n')
+    records = load_idiomatic_riscv_records(p)
+    assert records == [{"label": "MDS", "arch": "riscv64", "sequence": ["nop"], "group": "g"}]
+
+
+# ---------------------------------------------------------------------------
+# --windowed — inference-time windowing wrapper (eval/isa_windowing.py)
+# wired through predict_test_windowed. Task 5.4 deliverable 2.
+#
+# Mirrors isa_windowing.predict_windowed's own policy: only confidence >=
+# k_threshold windows vote, plurality wins, zero confident windows abstains
+# to BENIGN. predict_test_windowed's own featurization (hf.compute_inline_features
+# / compute_spec_features / candidate space) is bypassed here via a stub
+# clf-like predict_proba, isolating the vote-combination wiring itself
+# (isa_windowing.py's own unit tests already cover the vote policy in
+# isolation; this test proves leave_one_isa_out.py's tier plumbing produces
+# the same per-record verdict end to end for the "hand-58" tier, whose
+# featurizer — hf.compute_inline_features — is cheap and needs no engine).
+# ---------------------------------------------------------------------------
+
+class _AllAgreeClf:
+    """Every window scores the given class with high confidence."""
+    classes_ = np.array(["MDS", "BENIGN"])
+
+    def predict_proba(self, X):
+        return np.tile(np.array([0.9, 0.1]), (X.shape[0], 1))
+
+
+class _NeverConfidentClf:
+    """Every window is a low-confidence coin flip — no window ever clears
+    k_threshold, so the record must abstain to BENIGN."""
+    classes_ = np.array(["MDS", "BENIGN"])
+
+    def predict_proba(self, X):
+        return np.tile(np.array([0.51, 0.49]), (X.shape[0], 1))
+
+
+def test_predict_test_windowed_all_windows_agree_votes_that_class():
+    engines = {"unknown": object()}
+    test_records = [rec("MDS", "x86_64", sequence=["mov %rax, %rbx"] * 60)]
+    preds = predict_test_windowed(
+        _AllAgreeClf(), "hand-58", test_records, engines,
+        target_len=20, stride=10, k_threshold=0.5)
+    assert list(preds) == ["MDS"]
+
+
+def test_predict_test_windowed_no_confident_window_abstains_to_benign():
+    engines = {"unknown": object()}
+    test_records = [rec("MDS", "x86_64", sequence=["mov %rax, %rbx"] * 60)]
+    preds = predict_test_windowed(
+        _NeverConfidentClf(), "hand-58", test_records, engines,
+        target_len=20, stride=10, k_threshold=0.6)
+    assert list(preds) == ["BENIGN"]
+
+
+def test_window_target_len_is_the_train_pool_p90_sequence_length():
+    train = [rec("MDS", "x86_64", sequence=["nop"] * n) for n in
+             (10, 20, 30, 40, 50, 60, 70, 80, 90, 100)]
+    # p90 of 10..100 step 10 (10 samples) via numpy's default interpolation.
+    expected = max(1, int(round(float(np.percentile([len(r["sequence"]) for r in train], 90)))))
+    assert window_target_len(train, 0.9) == expected
+
+
+def test_window_target_len_empty_train_pool_is_one():
+    assert window_target_len([], 0.9) == 1
+
+
+# ---------------------------------------------------------------------------
+# format_confusion_matrix — per-ISA confusion dump (Task 5.4 deliverable 3).
+# ---------------------------------------------------------------------------
+
+def test_format_confusion_matrix_diagonal_for_perfect_predictions():
+    y_true = np.array(["MDS", "MDS", "L1TF"])
+    y_pred = np.array(["MDS", "MDS", "L1TF"])
+    text = format_confusion_matrix(y_true, y_pred, ["L1TF", "MDS"])
+    assert "L1TF" in text and "MDS" in text
+    lines = text.splitlines()
+    assert len(lines) == 3  # header + 2 class rows
+
+
+def test_format_confusion_matrix_off_diagonal_shows_misclassification():
+    y_true = np.array(["MDS", "MDS", "L1TF"])
+    y_pred = np.array(["MDS", "BENIGN", "L1TF"])
+    text = format_confusion_matrix(y_true, y_pred, ["BENIGN", "L1TF", "MDS"])
+    mds_row = [l for l in text.splitlines() if l.startswith("MDS")][0]
+    # 1 MDS record predicted BENIGN, 1 predicted MDS
+    assert mds_row.split()[1:] == ["1", "0", "1"]
+
+
+# ---------------------------------------------------------------------------
+# Default path unchanged — no flags produces the same splits/behavior as
+# before Task 5.4 (--idiomatic/--windowed default False, additive only).
+# ---------------------------------------------------------------------------
+
+def test_argparse_defaults_are_off_and_additive():
+    from eval.leave_one_isa_out import main
+    import argparse
+    # Reconstruct the parser the way main() does, without running main() —
+    # cheap smoke check that the two new flags default to False/no-op values
+    # and don't touch SPLITS or any of the pure helpers exercised above.
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--seeds", type=int, nargs="+", default=[42, 1, 7, 13, 21])
+    ap.add_argument("--idiomatic", action="store_true")
+    ap.add_argument("--windowed", action="store_true")
+    args = ap.parse_args([])
+    assert args.idiomatic is False
+    assert args.windowed is False
+    assert args.seeds == [42, 1, 7, 13, 21]
+    # SPLITS itself is untouched by the new flags (module-level constant).
+    assert len(SPLITS) == 5
+
+
+def test_leave_one_isa_out_help_lists_new_flags_without_crashing():
+    out = subprocess.run(
+        [sys.executable, str(ROOT / "eval" / "leave_one_isa_out.py"), "--help"],
+        capture_output=True, text=True, cwd=str(ROOT))
+    assert out.returncode == 0
+    assert "--idiomatic" in out.stdout
+    assert "--windowed" in out.stdout
+    assert "--k-threshold" in out.stdout

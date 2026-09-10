@@ -43,10 +43,32 @@ Correctness requirements (see task-4-brief.md):
     comparable with every other number measured this week.
 
 Run:  python3 eval/leave_one_isa_out.py [--seeds 42 1 7 13 21]
+
+Task 5.4 additions (both OFF by default — the no-flag run is unchanged):
+  --idiomatic   source riscv64 records from eval/data/idiomatic_riscv.jsonl
+                (real riscv64-gcc-compiled corpus, NOT the transliterated
+                riscv_corpus/ build_riscv_records() reads by default — see
+                MEMORY "RISC-V independence gate") instead of the default
+                build_riscv_records().
+  --windowed    at eval time, apply the inference-time windowing wrapper
+                (eval/isa_windowing.py, the audit's R3 fix) to the held-out
+                ISA's test records instead of feeding whole sequences
+                straight through: rewindow each held-out sequence to the
+                TRAIN set's p90 sequence-length (documented at the print
+                site below), featurize + RF-predict_proba every window, and
+                combine via isa_windowing.predict_windowed's confidence-
+                thresholded plurality vote (abstain to BENIGN).
+Both flags are additive; a per-ISA (per held-out-ISA, per feature tier)
+confusion matrix is now always printed and written to
+eval/leave_one_isa_out_confusion.txt (or --confusion-out), independent of
+either flag — this is new output, not a change to the existing accuracy/F1/
+verdict computation, which is byte-identical to the pre-Task-5.4 script when
+neither flag is passed.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import sys
 from collections import Counter
@@ -55,7 +77,7 @@ from pathlib import Path
 import numpy as np
 from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "spec"))
@@ -68,12 +90,16 @@ from candidate_features import build_space, load_engines  # noqa: E402
 from select_features import select, KEEP                # noqa: E402
 import train_mlm as T                                    # noqa: E402
 from eval_riscv_real import build_riscv_records          # noqa: E402
+from isa_windowing import predict_windowed                # noqa: E402
 
 from group_stats import (                                # noqa: E402
     cluster_bootstrap_ci,
     effective_n,
     group_of,
 )
+
+IDIOMATIC_RISCV_PATH = ROOT / "eval" / "data" / "idiomatic_riscv.jsonl"
+DEFAULT_CONFUSION_OUT = ROOT / "eval" / "leave_one_isa_out_confusion.txt"
 
 # ---------------------------------------------------------------------------
 # Pure helpers (covered by tests/eval/test_leave_one_isa_out.py — no sklearn,
@@ -246,6 +272,89 @@ def group_bootstrap_f1(y_true, y_pred, groups, labels, n_boot=2000, seed=0, alph
     return point, float(lo), float(hi)
 
 
+def load_idiomatic_riscv_records(path=IDIOMATIC_RISCV_PATH):
+    """Load the real, riscv64-gcc-compiled corpus (eval/data/idiomatic_riscv.jsonl)
+    — NOT a transliteration of the x86/arm corpus, unlike the default
+    build_riscv_records() source (riscv_corpus/, see
+    scripts/translate_riscv_inline_asm.py). Records already carry the
+    {label, arch, sequence, group} shape build_split()/class_intersection()
+    expect (plus source_file/gadget_function/opt/provenance/external_source,
+    which this pipeline ignores)."""
+    with open(path) as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def window_target_len(train_records, quantile: float = 0.9) -> int:
+    """Training-size window length for --windowed: the `quantile` percentile
+    of TRAIN records' raw sequence length (len(r["sequence"]), the same unit
+    isa_windowing.rewindow slices on). p90 is the documented default — it
+    mirrors the "v54: p90 <= 47 instructions" window-size reasoning in
+    eval/isa_windowing.py's module docstring, generalised to whichever
+    train pool a given split actually has (not hardcoded to v54's number,
+    since the train pool varies per split direction)."""
+    lens = [len(r["sequence"]) for r in train_records]
+    if not lens:
+        return 1
+    return max(1, int(round(float(np.percentile(lens, quantile * 100)))))
+
+
+def make_window_predict_fn(clf, tier: str, engines: dict, space=None, imp=None):
+    """Build the predict_fn isa_windowing.predict_windowed calls per window:
+    (window, arch) -> (predicted_class, confidence). Featurizes the window
+    with the SAME feature function as the tier's whole-sequence path
+    (hf.compute_inline_features / compute_spec_features / space.transform_one
+    restricted to the `imp`-selected columns) and reads confidence off the
+    already-fit RF's predict_proba, mirroring predict_windowed's own
+    _model_predict_fn shape (label, softmax/proba confidence)."""
+    if tier == "cand-impurity" and (space is None or imp is None):
+        raise ValueError("cand-impurity tier needs `space` and `imp`")
+
+    def _predict(window, arch):
+        if tier == "hand-58":
+            vec = hf.compute_inline_features(window)
+        elif tier == "spec-42":
+            eng = engines.get(arch, engines["unknown"])
+            vec = compute_spec_features(window, eng)
+        elif tier == "cand-impurity":
+            vec = space.transform_one(window, arch)[imp]
+        else:
+            raise ValueError(f"unknown tier {tier!r}")
+        vec = np.asarray(vec, dtype=float).reshape(1, -1)
+        proba = clf.predict_proba(vec)[0]
+        idx = int(np.argmax(proba))
+        return clf.classes_[idx], float(proba[idx])
+
+    return _predict
+
+
+def predict_test_windowed(clf, tier, test_records, engines, target_len, stride,
+                          k_threshold, space=None, imp=None):
+    """Whole-test-set prediction under --windowed: one isa_windowing.rewindow +
+    predict_windowed call per held-out record, using an already-fit `clf`.
+    -> np.ndarray of predicted labels, same shape/order as clf.predict(B)
+    would give for the whole-sequence path."""
+    fn = make_window_predict_fn(clf, tier, engines, space, imp)
+    preds = [
+        predict_windowed(None, r["sequence"], r.get("arch", "unknown"),
+                         target_len, k_threshold, stride=stride, predict_fn=fn)
+        for r in test_records
+    ]
+    return np.array(preds)
+
+
+def format_confusion_matrix(y_true, y_pred, labels) -> str:
+    """Render a true-class x predicted-class confusion matrix (rows=true,
+    cols=predicted) as fixed-width text, for the per-ISA confusion dump."""
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    col_w = max(6, max((len(l) for l in labels), default=6) + 1)
+    header = " " * 28 + "".join(f"{l[:col_w-1]:>{col_w}s}" for l in labels)
+    lines = [header]
+    for i, lbl in enumerate(labels):
+        row = f"{lbl:28s}" + "".join(f"{cm[i, j]:{col_w}d}" for j in range(len(labels)))
+        lines.append(row)
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # Main sweep
 # ---------------------------------------------------------------------------
@@ -257,6 +366,24 @@ def main():
     ap.add_argument("--n-boot", type=int, default=2000)
     ap.add_argument("--low-support", type=int, default=10,
                     help="flag a class's test support below this as not evidence")
+    ap.add_argument("--idiomatic", action="store_true",
+                    help="source riscv64 from eval/data/idiomatic_riscv.jsonl "
+                         "(real riscv64-gcc corpus) instead of build_riscv_records() "
+                         "(default: OFF, unchanged behavior)")
+    ap.add_argument("--windowed", action="store_true",
+                    help="apply the inference-time windowing wrapper "
+                         "(eval/isa_windowing.py) to the held-out ISA's test "
+                         "records instead of whole-sequence prediction "
+                         "(default: OFF, unchanged behavior)")
+    ap.add_argument("--window-quantile", type=float, default=0.9,
+                    help="percentile of the TRAIN pool's sequence-length "
+                         "distribution used as --windowed's target_len (default p90)")
+    ap.add_argument("--k-threshold", type=float, default=0.5,
+                    help="--windowed: minimum RF predict_proba confidence for a "
+                         "window to vote; below this the window abstains "
+                         "(isa_windowing.predict_windowed policy)")
+    ap.add_argument("--confusion-out", type=Path, default=DEFAULT_CONFUSION_OUT,
+                    help="where to write the per-ISA, per-tier confusion matrices")
     args = ap.parse_args()
 
     print("leave_one_isa_out.py — every ordered (train-ISAs -> held-out ISA) "
@@ -265,7 +392,13 @@ def main():
     all_v54 = T.load(T.TRAIN)
     x86 = filter_by_arch(all_v54, ["x86_64"])
     arm = filter_by_arch(all_v54, ["arm64"])
-    riscv_full = build_riscv_records()
+    if args.idiomatic:
+        riscv_full = load_idiomatic_riscv_records()
+        print(f"riscv64: sourced from {IDIOMATIC_RISCV_PATH} (--idiomatic: real "
+              f"riscv64-gcc-compiled corpus, NOT a transliteration) — "
+              f"{len(riscv_full)} labeled records")
+    else:
+        riscv_full = build_riscv_records()
     stubs = [r for r in riscv_full if is_stub(r, args.stub_max)]
     riscv = [r for r in riscv_full if not is_stub(r, args.stub_max)]
     print(f"riscv64: {len(riscv_full)} labeled corpus records; excluded "
@@ -286,6 +419,7 @@ def main():
         return engines.get(r.get("arch", "unknown"), engines["unknown"])
 
     all_results = {}
+    confusion_report = []  # per-ISA, per-tier confusion matrices (Task 5.4 deliverable 3)
 
     for train_archs, held_out in SPLITS:
         split_name = f"{'+'.join(train_archs)} -> {held_out}"
@@ -352,6 +486,17 @@ def main():
         print(f"  candidate pool: {Xtr_cand.shape[1]} dims (fitted on train ISAs "
               f"only) -> cand-impurity keeps {len(imp)}")
 
+        window_target_len_val = window_stride_val = None
+        if args.windowed:
+            window_target_len_val = window_target_len(train, args.window_quantile)
+            window_stride_val = max(1, window_target_len_val // 2)
+            print(f"  --windowed: target_len={window_target_len_val} "
+                  f"(p{args.window_quantile*100:.0f} of the {len(train)}-record TRAIN "
+                  f"pool's sequence-length distribution), stride={window_stride_val} "
+                  f"(50% overlap), k_threshold={args.k_threshold} — held-out {held_out} "
+                  f"records are rewindowed and confidence-thresholded-voted "
+                  f"(eval/isa_windowing.py) instead of predicted whole-sequence.")
+
         configs = {
             "hand-58": (Xtr_hand, Xte_hand),
             "spec-42": (Xtr_spec, Xte_spec),
@@ -379,7 +524,14 @@ def main():
                 clf = RandomForestClassifier(n_estimators=300, n_jobs=-1,
                                              random_state=sd, class_weight="balanced")
                 clf.fit(A, ytr)
-                p = clf.predict(B)
+                if args.windowed:
+                    p = predict_test_windowed(
+                        clf, name, test, engines, window_target_len_val,
+                        window_stride_val, args.k_threshold,
+                        space=space if name == "cand-impurity" else None,
+                        imp=imp if name == "cand-impurity" else None)
+                else:
+                    p = clf.predict(B)
                 preds_by_seed[sd] = p
                 accs.append(accuracy_score(yte, p) * 100)
                 f1s.append(f1_score(yte, p, labels=keep_sorted, average="macro",
@@ -393,6 +545,14 @@ def main():
             # captures held-out-ISA source-family clustering, which is the
             # thing eval/group_stats.py exists to fix).
             base_pred = preds_by_seed[args.seeds[0]]
+
+            cm_text = format_confusion_matrix(yte, base_pred, keep_sorted)
+            confusion_report.append(
+                f"{split_name} | tier={name} | seed={args.seeds[0]}"
+                f"{' | windowed' if args.windowed else ''}\n"
+                f"(rows=true, cols=predicted, restricted to the {len(keep_sorted)} "
+                f"classes both train and {held_out} share)\n{cm_text}\n")
+
             correct = (yte == base_pred).astype(float)
             gp, glo, ghi = cluster_bootstrap_ci(correct, test_groups,
                                                 n_boot=args.n_boot, seed=args.seeds[0])
@@ -583,6 +743,17 @@ def main():
               "transfer.")
 
     print()
+
+    # -----------------------------------------------------------------
+    # Per-ISA confusion dump (Task 5.4 deliverable 3) — always written,
+    # independent of --idiomatic/--windowed, so the arm64 gap (and any
+    # other split's gap) can be attributed to specific class confusions
+    # rather than read off a single accuracy number.
+    # -----------------------------------------------------------------
+    args.confusion_out.parent.mkdir(parents=True, exist_ok=True)
+    with open(args.confusion_out, "w") as f:
+        f.write("\n".join(confusion_report))
+    print(f"per-ISA, per-tier confusion matrices written to {args.confusion_out}")
 
 
 if __name__ == "__main__":
