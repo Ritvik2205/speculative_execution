@@ -24,10 +24,25 @@ Also decided from the same 5-seed grid: the **DANN arch adversary is retired**
 (it worsened arm64: 0.618→0.574 with hand, 0.752→0.456 without). Default
 `--arch-mode embed`.
 
-## Local reference checkpoint
-`eval/baseline_nohand/s{42,1}/gine_best.pt` (retrained locally with RECIPE.sh) is
-the reference the honest suite scores future changes against. Local single-seed
-numbers confirm the cluster mean (filled in once the local retrain lands).
+## Local reference checkpoint (confirmation)
+`eval/baseline_nohand/s{42,1}/gine_best.pt` (retrained locally with RECIPE.sh):
+
+| seed | locked | arm64 | x86 | masked |
+|---|---|---|---|---|
+| s42 | 0.861 | 0.747 | 0.872 | 0.838 |
+| s1  | 0.831 | 0.408 | 0.888 | 0.841 |
+
+s42 reproduces the cluster mean (locked ~0.86, arm64 ~0.75). s1 is a low-arm64
+outlier (0.41) — arm64 macro-F1 is high-variance seed-to-seed (cluster CI ±0.11),
+so **trust the 5-seed mean (arm64 0.752), not any single seed.** For a
+deployment checkpoint, select the best-val seed; for reporting, always the
+multi-seed mean±CI.
+
+## Running it on the cluster
+This baseline is exactly the W3 grid's `w3_embed_off` cell, so the 5-seed cluster
+numbers above already come from the cluster. To run it standalone (and keep the
+checkpoints), submit `eval/cluster/submit_baseline.sh` (5 seeds of RECIPE.sh under
+Slurm) and pull `eval/cluster_out/baseline_nohand_s*/`.
 
 ## What this baseline is NOT
 - Not the V4 fix: real-V4 recall needs the hardware gadgets folded into training
