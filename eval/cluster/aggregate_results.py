@@ -97,19 +97,37 @@ def main():
             "# Real-V4 recall on 16 hardware-confirmed gadgets (mean±95%CI)\n\n"
             f"- edge ON (mem-order): {f(on)}\n- edge OFF (baseline): {f(base)}\n\n**Verdict:** {verdict}\n")
     # ---- P3: does folding real V4 into training fix real-V4 recall? ----
-    # Both scored on the SEED-DISJOINT held-out gadgets (revizor_v4_heldout.jsonl).
+    # Both scored on the SEED-DISJOINT held-out gadgets (revizor_v4_heldout.jsonl),
+    # which (Step 2, docs/NEXT_STEPS_PLAN_2026-09-10.md) now carries BOTH the
+    # real SPECTRE_V4 positives AND fenced (SSBP-mitigated) V4-shaped BENIGN
+    # negatives (source=revizor_hw_mitigated) — still seed-disjoint from
+    # training, including the fenced twins. That lets us report not just
+    # held-out recall but a V4 false-positive rate: the fraction of the
+    # held-out V4-shaped BENIGN the model predicts as something other than
+    # BENIGN (evaluate_checkpoint's `benign_fp_rate`, restricted to this
+    # condition where every BENIGN record in the file IS a V4-shaped fenced
+    # twin — so "not predicted BENIGN" on this set means "predicted as a V4
+    # look-alike", overwhelmingly SPECTRE_V4 given how close the fenced twin
+    # is to its unfenced original).
     if Path(REAL_V4_HELDOUT).exists() and seeds_for("p3_hwv4"):
         after = metric("p3_hwv4","recall",cond="realv4_heldout",cls="SPECTRE_V4")
         before= metric(off,     "recall",cond="realv4_heldout",cls="SPECTRE_V4")
+        fp_after = metric("p3_hwv4","benign_fp_rate",cond="realv4_heldout")
+        fp_before= metric(off,     "benign_fp_rate",cond="realv4_heldout")
         verdict = ("folding real V4 into training LIFTS held-out real-V4 recall"
                    if after[0] > before[0] + 1e-9 else
                    "no lift — real V4 still not detected even after training on some")
         (OUT / "real_v4_p3.md").write_text(
-            "# P3 — held-out real-V4 recall: baseline vs trained-with-real-V4 (mean±95%CI)\n\n"
-            "Both scored on the seed-disjoint held-out gadgets (eval/data/revizor_v4_heldout.jsonl).\n\n"
-            f"- BEFORE (v55h, no real V4 in train): {f(before)}\n"
-            f"- AFTER  (v55h + 11 real V4 in train): {f(after)}\n\n**Verdict:** {verdict}\n"
-            "\n_Caveat: held-out is 5 gadgets from a single generator seed — coarse, exploratory._\n")
+            "# P3 — held-out real-V4 recall + V4 false-positive rate: baseline vs trained-with-real-V4 (mean±95%CI)\n\n"
+            "Both scored on the seed-disjoint held-out set (eval/data/revizor_v4_heldout.jsonl), "
+            "which contains BOTH real SPECTRE_V4 positives and fenced (SSBP-mitigated) "
+            "V4-shaped BENIGN negatives, seed-disjoint from training for both classes.\n\n"
+            "| metric | BEFORE (v55h, no real V4 in train) | AFTER (v55h + 11 real V4 + 11 fenced BENIGN in train) |\n"
+            "|---|---|---|\n"
+            f"| held-out SPECTRE_V4 recall | {f(before)} | {f(after)} |\n"
+            f"| V4 false-positive rate (held-out V4-shaped BENIGN predicted non-BENIGN) | {f(fp_before)} | {f(fp_after)} |\n\n"
+            f"**Verdict:** {verdict}\n"
+            "\n_Caveat: held-out is 5 positives + 5 fenced-BENIGN twins from a single generator seed — coarse, exploratory._\n")
     print("wrote W3_grid.md, W4_ablation.md, real_v4.md, real_v4_p3.md under eval/cluster_out/")
 
 if __name__ == "__main__":

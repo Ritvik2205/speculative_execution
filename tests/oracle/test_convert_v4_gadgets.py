@@ -100,3 +100,40 @@ def test_fallback_translator_basic_lines():
     assert f("mov edi, -1544998000") == "mov $-1544998000, %edi"
     assert f("add dword ptr [r14 + rdi], ebx") == "addl %ebx, (%r14,%rdi)"
     assert f("test al, cl") == "test %cl, %al"
+
+
+# ---------------------------------------------------------------------------
+# build_globs / --extra-dirs (Step 2, deliverable 4)
+# ---------------------------------------------------------------------------
+
+def test_build_globs_no_extra_dirs_matches_default_globs():
+    assert cvg.build_globs(None) == cvg.DEFAULT_GLOBS
+    assert cvg.build_globs([]) == cvg.DEFAULT_GLOBS
+
+
+def test_build_globs_extra_campaign_dir_expands_to_both_subpatterns():
+    globs = cvg.build_globs(["oracle/revizor/results/v4_ssb_260915"])
+    assert globs[: len(cvg.DEFAULT_GLOBS)] == cvg.DEFAULT_GLOBS
+    assert "oracle/revizor/results/v4_ssb_260915/ssbp_off/*/program.asm" in globs
+    assert "oracle/revizor/results/v4_ssb_260915/smt_off/*/program.asm" in globs
+
+
+def test_build_globs_extra_dir_trailing_slash_normalized():
+    globs = cvg.build_globs(["oracle/revizor/results/v4_ssb_260915/"])
+    assert "oracle/revizor/results/v4_ssb_260915/ssbp_off/*/program.asm" in globs
+
+
+def test_build_globs_full_glob_pattern_used_as_is():
+    globs = cvg.build_globs(["oracle/revizor/results/v4_ssb_260915/*/*/program.asm"])
+    assert globs[len(cvg.DEFAULT_GLOBS):] == [
+        "oracle/revizor/results/v4_ssb_260915/*/*/program.asm"
+    ]
+
+
+def test_build_globs_multiple_extra_dirs():
+    globs = cvg.build_globs(["dir_a", "dir_b"])
+    tail = globs[len(cvg.DEFAULT_GLOBS):]
+    assert tail == [
+        "dir_a/ssbp_off/*/program.asm", "dir_a/smt_off/*/program.asm",
+        "dir_b/ssbp_off/*/program.asm", "dir_b/smt_off/*/program.asm",
+    ]

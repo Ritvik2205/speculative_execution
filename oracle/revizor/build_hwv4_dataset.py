@@ -14,16 +14,28 @@ one seed's gadgets across train and test would leak template structure
 across the split, so the split here is done **by whole generator seed**,
 never by individual gadget.
 
-This is P3 step 1 only: it produces a positives-only training add and a
-leakage-disjoint held-out test set. It does NOT retrain anything.
+Step 2 (docs/NEXT_STEPS_PLAN_2026-09-10.md): besides the SPECTRE_V4
+positives, this now also folds in V4-shaped BENIGN negatives — fenced
+(SSBP-mitigation) twins of the same 16 gadgets, synthesized by
+`oracle/revizor/synth_v4_benign.py`'s `fence_gadget()`. Each fenced twin's
+`group` keeps its original `revizor_v4_<GENSEED>_<hash>` prefix (only a
+`_fenced` suffix is appended), so `extract_gen_seed()` below still resolves
+it to the SAME generator seed as its unfenced original — a gadget and its
+fenced twin are always assigned to the same side of the split, preserving
+the leakage-disjoint-by-generator-seed guarantee for BOTH classes:
 
-IMPORTANT — no clean V4-shaped negatives here: the SSBP-mitigated control
-run (SSBP on) produced **0** violations, so there are no clean V4-shaped
-gadget files on disk to add as BENIGN negatives. This step therefore adds
-V4 POSITIVES only; the BENIGN/negative class continues to come from the
-existing v55h training pool. (A future step could synthesize
-mitigated/fenced versions of these same templates as V4-shaped BENIGN
-negatives, which the SSBP-on run did not capture as gadget files.)
+  - train-add BENIGN = fenced twins of the TRAIN-seed gadgets (teaches the
+    mitigated/unmitigated boundary alongside the positives);
+  - held-out BENIGN = fenced twins of the HELD-OUT-seed gadgets (measures a
+    real V4 false-positive rate on V4-shaped code, seed-disjoint from
+    train).
+
+`eval/data/revizor_v4_heldout.jsonl` therefore now contains BOTH labels
+(SPECTRE_V4 and BENIGN); `v54/data/v55h_hwv4_train.jsonl` gains both the
+train-add positives and their fenced BENIGN twins.
+
+This is P3 step 1: it produces a leakage-disjoint train-add / held-out
+split with both classes. It does NOT retrain anything.
 
 Usage:
     python3 oracle/revizor/build_hwv4_dataset.py [--seed 0]
@@ -38,6 +50,9 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from synth_v4_benign import make_benign_variant  # noqa: E402
 
 DEFAULT_REAL_V4_PATH = REPO_ROOT / "eval" / "data" / "revizor_v4_real.jsonl"
 DEFAULT_V55H_TRAIN_PATH = REPO_ROOT / "v54" / "data" / "v55h_train.jsonl"
@@ -152,6 +167,15 @@ def split_by_gen_seed(
     return train_add, heldout, sorted(train_seeds), sorted(heldout_seeds)
 
 
+def make_benign_variants(records: list[dict]) -> list[dict]:
+    """Fenced (SSBP-mitigated) BENIGN twin of every record in `records`,
+    via `synth_v4_benign.make_benign_variant` — same generator-seed prefix
+    (plus `_fenced`), so callers that seed-split `records` and then fence
+    each side separately get a split that stays generator-seed-disjoint
+    for the twins too."""
+    return [make_benign_variant(r) for r in records]
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
@@ -184,8 +208,25 @@ def main(argv: list[str] | None = None) -> None:
         "train-add + heldout must account for every real V4 gadget exactly once"
     )
 
-    merged_train = v55h_train + train_add
-    assert len(merged_train) == len(v55h_train) + len(train_add)
+    # Step 2: fenced (SSBP-mitigated) V4-shaped BENIGN twins, derived
+    # side-by-side from the SAME already-split positive lists — so each
+    # twin inherits its original's generator seed and therefore lands on
+    # the same side of the split as its unfenced original.
+    train_add_benign = make_benign_variants(train_add)
+    heldout_benign = make_benign_variants(heldout)
+
+    # Sanity: generator-seed-disjoint for BOTH classes (positives + twins).
+    train_all_seeds = {extract_gen_seed(r) for r in train_add + train_add_benign}
+    heldout_all_seeds = {extract_gen_seed(r) for r in heldout + heldout_benign}
+    assert train_all_seeds.isdisjoint(heldout_all_seeds), (
+        "generator seed leaked across train-add/heldout split (positives or fenced twins)"
+    )
+    assert len(train_add_benign) == len(train_add)
+    assert len(heldout_benign) == len(heldout)
+
+    merged_train = v55h_train + train_add + train_add_benign
+    heldout_all = heldout + heldout_benign
+    assert len(merged_train) == len(v55h_train) + len(train_add) + len(train_add_benign)
 
     print("=== Revizor real-V4 generator-seed split ===")
     print(f"Total real V4 gadgets: {len(real_v4)}")
@@ -193,21 +234,26 @@ def main(argv: list[str] | None = None) -> None:
     for s in train_seeds:
         n = sum(1 for r in real_v4 if extract_gen_seed(r) == s)
         print(f"  seed {s}: {n} gadgets")
-    print(f"Train-add total: {len(train_add)} gadgets")
+    print(f"Train-add positives: {len(train_add)} gadgets")
+    print(f"Train-add BENIGN (fenced twins): {len(train_add_benign)} gadgets")
     print(f"Heldout seeds ({len(heldout_seeds)}): {heldout_seeds}")
     for s in heldout_seeds:
         n = sum(1 for r in real_v4 if extract_gen_seed(r) == s)
         print(f"  seed {s}: {n} gadgets")
-    print(f"Heldout total: {len(heldout)} gadgets")
+    print(f"Heldout positives: {len(heldout)} gadgets")
+    print(f"Heldout BENIGN (fenced twins): {len(heldout_benign)} gadgets")
     print()
     print(f"v55h_train.jsonl: {len(v55h_train)} records")
-    print(f"v55h_hwv4_train.jsonl (merged): {len(merged_train)} records")
+    print(f"v55h_hwv4_train.jsonl (merged): {len(merged_train)} records "
+          f"(+{len(train_add)} SPECTRE_V4, +{len(train_add_benign)} BENIGN)")
+    print(f"revizor_v4_heldout.jsonl: {len(heldout_all)} records "
+          f"({len(heldout)} SPECTRE_V4, {len(heldout_benign)} BENIGN)")
 
-    write_jsonl(args.out_heldout, heldout)
+    write_jsonl(args.out_heldout, heldout_all)
     write_jsonl(args.out_train, merged_train)
 
     print()
-    print(f"Wrote {args.out_heldout} ({len(heldout)} records)")
+    print(f"Wrote {args.out_heldout} ({len(heldout_all)} records)")
     print(f"Wrote {args.out_train} ({len(merged_train)} records)")
 
 

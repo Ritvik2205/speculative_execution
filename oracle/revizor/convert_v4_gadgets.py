@@ -422,14 +422,48 @@ def convert_all(globs: List[str] = None, repo_root: Path = REPO_ROOT) -> List[di
     return records
 
 
+def build_globs(extra_dirs: Optional[List[str]] = None) -> List[str]:
+    """DEFAULT_GLOBS plus one or two globs per `--extra-dirs` entry, so a
+    future Revizor campaign directory (e.g.
+    `oracle/revizor/results/v4_ssb_<newdate>/`) folds in without editing
+    this file. Default behavior (no `--extra-dirs`) is unchanged: returns
+    exactly DEFAULT_GLOBS.
+
+    Each `extra_dirs` entry is either:
+      - a full glob pattern (contains "*" or ends in ".asm") — used as-is, or
+      - a campaign directory — expanded to that directory's
+        `ssbp_off/*/program.asm` and `smt_off/*/program.asm` (the same
+        campaign layout DEFAULT_GLOBS covers for v4_ssb_260907).
+    """
+    globs = list(DEFAULT_GLOBS)
+    for d in extra_dirs or []:
+        d = d.strip()
+        if not d:
+            continue
+        if "*" in d or d.endswith(".asm"):
+            globs.append(d)
+        else:
+            d = d.rstrip("/")
+            globs.append(f"{d}/ssbp_off/*/program.asm")
+            globs.append(f"{d}/smt_off/*/program.asm")
+    return globs
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default=str(DEFAULT_OUT))
     ap.add_argument("--glob", action="append", dest="globs", default=None,
-                     help="override default globs (repeatable)")
+                     help="override default globs entirely (repeatable)")
+    ap.add_argument("--extra-dirs", action="append", dest="extra_dirs", default=None,
+                     help="additional Revizor campaign result dir(s) to fold in "
+                          "ON TOP OF the default v4_ssb_260907 globs (repeatable). "
+                          "Each value is either a campaign dir (searched for "
+                          "ssbp_off/*/program.asm and smt_off/*/program.asm) or a "
+                          "full glob pattern. Ignored if --glob is also given.")
     args = ap.parse_args()
 
-    records = convert_all(globs=args.globs)
+    globs = args.globs if args.globs is not None else build_globs(args.extra_dirs)
+    records = convert_all(globs=globs)
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
