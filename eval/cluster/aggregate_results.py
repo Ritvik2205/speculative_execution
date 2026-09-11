@@ -23,6 +23,18 @@ TEST = str(ROOT / "v54" / "data" / "v54_test.jsonl")
 REAL_V4 = str(ROOT / "eval" / "data" / "revizor_v4_real.jsonl")
 REAL_V4_HELDOUT = str(ROOT / "eval" / "data" / "revizor_v4_heldout.jsonl")
 
+# Real-transfer (Step 2b, docs/NEXT_STEPS_2026-09-11.md): generalizes P3's
+# V4-only real-hardware transfer result to MDS, L1TF, and SPECTRE_V1. Each
+# class's held-out set is produced by oracle/revizor/build_hw_transfer.py
+# and is POSITIVES ONLY (no fenced-BENIGN twins the way V4's is -- see that
+# script's docstring for why), so there is no benign_fp_rate column for
+# these classes.
+REAL_HW_CLASSES = ["MDS", "L1TF", "SPECTRE_V1"]
+REAL_HW_HELDOUT = {
+    c: str(ROOT / "eval" / "data" / f"revizor_{c.lower()}_heldout.jsonl")
+    for c in REAL_HW_CLASSES
+}
+
 def ci(xs):
     xs = [x for x in xs if x is not None and x == x]
     if not xs: return (float("nan"), float("nan"))
@@ -40,7 +52,8 @@ def seeds_for(tag):
 
 def metric(tag, key, cond=None, cls=None, perturb=None, arch=None):
     """mean±CI of a metric across a tag's seeds. key in {macro_f1,ece,benign_fp_rate,recall}."""
-    test_path = {"realv4": REAL_V4, "realv4_heldout": REAL_V4_HELDOUT}.get(cond, TEST)
+    test_path = {"realv4": REAL_V4, "realv4_heldout": REAL_V4_HELDOUT,
+                 **REAL_HW_HELDOUT}.get(cond, TEST)
     vals = []
     for ck in seeds_for(tag):
         try:
@@ -128,6 +141,34 @@ def main():
             f"| V4 false-positive rate (held-out V4-shaped BENIGN predicted non-BENIGN) | {f(fp_before)} | {f(fp_after)} |\n\n"
             f"**Verdict:** {verdict}\n"
             "\n_Caveat: held-out is 5 positives + 5 fenced-BENIGN twins from a single generator seed — coarse, exploratory._\n")
+
+    # ---- Real-transfer: generalizes P3 (V4) to MDS/L1TF/SPECTRE_V1 -----
+    # For each class C with a trained "<class>_hw" tag AND a
+    # revizor_<class>_heldout.jsonl, report held-out C recall BEFORE
+    # (w3_embed_on scored on the held-out) vs AFTER (<class>_hw scored on
+    # the held-out). Positives-only sets (see build_hw_transfer.py) — no
+    # false-positive-rate column here, unlike real_v4_p3.md.
+    transfer_rows = []
+    for cls in REAL_HW_CLASSES:
+        hp = REAL_HW_HELDOUT[cls]
+        tag = f"{cls.lower()}_hw"
+        if not Path(hp).exists() or not seeds_for(tag):
+            continue
+        before = metric(off, "recall", cond=cls, cls=cls)
+        after = metric(tag, "recall", cond=cls, cls=cls)
+        transfer_rows.append((cls, before, after))
+    if transfer_rows:
+        L = ["# Real-transfer — held-out real-hardware recall: baseline vs trained-with-real (mean±95%CI)\n",
+             "Generalizes P3 (SPECTRE_V4) to MDS/L1TF/SPECTRE_V1. Held-out sets are "
+             "POSITIVES ONLY (oracle/revizor/build_hw_transfer.py) — no fenced-BENIGN "
+             "twins the way real_v4_p3.md has, so no false-positive-rate column.\n",
+             "| class | BEFORE (w3_embed_on) | AFTER (<class>_hw) |",
+             "|---|---|---|"]
+        for cls, before, after in transfer_rows:
+            L.append(f"| {cls} | {f(before)} | {f(after)} |")
+        (OUT / "real_transfer.md").write_text("\n".join(L) + "\n")
+        print("wrote real_transfer.md")
+
     print("wrote W3_grid.md, W4_ablation.md, real_v4.md, real_v4_p3.md under eval/cluster_out/")
 
 if __name__ == "__main__":

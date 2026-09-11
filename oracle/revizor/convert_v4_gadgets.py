@@ -67,9 +67,29 @@ DEFAULT_OUT = REPO_ROOT / "eval" / "data" / "revizor_v4_real.jsonl"
 # Path A: assemble (clang, Intel syntax) + disassemble (objdump, AT&T)
 # ---------------------------------------------------------------------------
 
-_INSTR_RE = re.compile(
-    r"^\s*[0-9a-fA-F]+:\s+(?:[0-9a-fA-F]{2}\s*)+\t(.*)$"
-)
+# BUG (found 2026-09-11): the original `_INSTR_RE = re.compile(r"^\s*[0-9a-fA-F]+:\s+(?:[0-9a-fA-F]{2}\s*)+\t(.*)$")`'s greedy `(?:[0-9a-fA-F]{2}\s*)+` can
+# swallow the mnemonic itself when the mnemonic text happens to tokenize
+# evenly into hex-looking byte pairs with no separating whitespace -- e.g.
+# "addb" is literally the four hex digits a/d/d/b, so the greedy group
+# matches "ad"+"db" as two more "hex bytes" straight through the mnemonic,
+# then the required literal `\t` after it matches the tab that actually
+# separates the mnemonic from its operand, capturing only the operand
+# ("$0x40, %al" with no mnemonic at all -- confirmed on real objdump output
+# for `addb $0x40, %al`, `decb`/`adcb` are equally vulnerable). Since a
+# `\s*` gap of zero characters is legal, this isn't a rare edge case: ANY
+# mnemonic composed entirely of hex-digit letters (a-f) whose length is a
+# multiple of 2 can trigger it.
+#
+# Fix: don't try to greedily delimit the hex-byte column with a regex that
+# can misfire on adjacent mnemonic text. objdump always separates the
+# "addr: bytes" column from the mnemonic/operand text with exactly one
+# literal tab (never emitted *within* the hex-byte column, which uses only
+# spaces) -- so split each line on its FIRST tab, and validate the prefix
+# against _ADDR_BYTES_RE (anchored to end-of-string, i.e. exactly an
+# address + hex-byte-pairs and nothing else). This can't be confused with
+# mnemonic text because the split point comes from the literal tab
+# character's position, not from a greedy character-class match.
+_ADDR_BYTES_RE = re.compile(r"^\s*[0-9a-fA-F]+:\s+(?:[0-9a-fA-F]{2}\s*)*$")
 _LABEL_RE = re.compile(r"^[0-9a-fA-F]+ <.*>:\s*$")
 _SECTION_HDR_RE = re.compile(r"^Disassembly of section (\S+):\s*$")
 
@@ -143,10 +163,11 @@ def _parse_instructions(section_lines: List[str]) -> List[str]:
             continue
         if _LABEL_RE.match(line):
             continue  # symbol/label header, not an instruction
-        m = _INSTR_RE.match(line)
-        if not m:
-            continue  # "..." elision lines, stray text
-        rest = m.group(1)
+        if "\t" not in line:
+            continue  # "..." elision lines, stray text -- no mnemonic column
+        addr_bytes, rest = line.split("\t", 1)
+        if not _ADDR_BYTES_RE.match(addr_bytes):
+            continue  # not a well-formed "addr: bytes" prefix
         if "\t" in rest:
             mnemonic, operand = rest.split("\t", 1)
         else:
@@ -170,19 +191,41 @@ def _parse_instructions(section_lines: List[str]) -> List[str]:
     return out
 
 
+_MNEMONIC_START_RE = re.compile(r"^[a-z][a-z0-9.]*")
+
+
+def assert_well_formed_sequence(seq: List[str], path: str = "<unknown>") -> None:
+    """Raise ValueError if any converted instruction string doesn't start
+    with a real mnemonic (`^[a-z][a-z0-9.]*`). Guards against the
+    hex-byte/mnemonic-swallowing regex bug found 2026-09-11 (see
+    `_ADDR_BYTES_RE`'s comment) ever silently shipping malformed AT&T
+    lines like `$0x40, %al` again -- every emitted line must start with an
+    opcode, not a bare operand."""
+    bad = [line for line in seq if not _MNEMONIC_START_RE.match(line)]
+    if bad:
+        raise ValueError(
+            f"{path}: {len(bad)} converted instruction(s) missing a leading "
+            f"mnemonic (malformed AT&T): {bad!r}"
+        )
+
+
 def convert_program_asm(path: str) -> List[str]:
     """Convert one Revizor Intel `program.asm` into a list of AT&T
     instruction strings (the pipeline's `sequence` format).
 
     Tries the assemble+objdump round-trip first; falls back to
     `translate_intel_line_fallback` per-line if the toolchain is
-    unavailable.
+    unavailable. Every returned line is guaranteed to start with a real
+    mnemonic (see `assert_well_formed_sequence`).
     """
     if toolchain_available():
         objdump_text = _assemble_and_disassemble(path)
         section = _extract_section(objdump_text)
-        return _parse_instructions(section)
-    return _convert_via_fallback(path)
+        seq = _parse_instructions(section)
+    else:
+        seq = _convert_via_fallback(path)
+    assert_well_formed_sequence(seq, path)
+    return seq
 
 
 # ---------------------------------------------------------------------------
