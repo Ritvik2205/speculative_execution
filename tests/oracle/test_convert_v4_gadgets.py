@@ -3,6 +3,7 @@
 Converts real hardware-confirmed Revizor V4/SSB `program.asm` files (Intel
 syntax) into the pipeline's AT&T `sequence` format.
 """
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -92,6 +93,65 @@ def test_convert_all_dedups(tmp_path):
     seqs = [["mov %rax, %rbx"], ["mov %rax, %rbx"], ["add %rcx, %rdx"]]
     unique = cvg.dedup_sequences(seqs)
     assert len(unique) == 2
+
+
+# ---------------------------------------------------------------------------
+# Mnemonic-swallowing bug regression (found 2026-09-11): _INSTR_RE's old
+# greedy hex-byte-column regex could eat mnemonics composed entirely of
+# hex-digit letters (addb/decb/adcb), emitting operand-only lines like
+# "$0x40, %al" with no leading opcode. Fixed by splitting on the first
+# literal tab instead of greedily matching hex-byte pairs.
+# ---------------------------------------------------------------------------
+
+RVZR_RUNS = REPO_ROOT / "rvzr_runs"
+ADDB_SAMPLE = RVZR_RUNS / "baseline" / "L1TF" / "violation-260811-075907" / "program.asm"
+
+
+def test_assert_well_formed_sequence_accepts_good_sequence():
+    cvg.assert_well_formed_sequence(["addb $0x40, %al", "lock btsw $0x0, (%r14,%rax)"])
+
+
+def test_assert_well_formed_sequence_rejects_mnemonic_less_line():
+    with pytest.raises(ValueError, match="missing a leading mnemonic"):
+        cvg.assert_well_formed_sequence(["$0x40, %al"])
+
+
+@pytest.mark.skipif(
+    not (TOOLCHAIN_AVAILABLE or HAS_FALLBACK) or not ADDB_SAMPLE.exists(),
+    reason="toolchain/fallback unavailable or rvzr_runs/ fixture missing",
+)
+def test_convert_program_asm_addb_mnemonic_not_swallowed():
+    """Regression test for the specific addb/hex-digit-mnemonic bug: this
+    file's first real instruction is `add al, 64` (AT&T `addb $0x40, %al`),
+    which the old buggy regex converted to a mnemonic-less `$0x40, %al`."""
+    seq = cvg.convert_program_asm(str(ADDB_SAMPLE))
+    assert "addb $0x40, %al" in seq
+    assert "$0x40, %al" not in seq
+    for line in seq:
+        assert re.match(r"^[a-z]", line), f"mnemonic-less line survived: {line!r}"
+
+
+@pytest.mark.skipif(not (TOOLCHAIN_AVAILABLE or HAS_FALLBACK), reason="no converter available")
+def test_real_corpus_has_zero_mnemonic_less_lines():
+    """Scan every real program.asm under rvzr_runs/ and the older
+    oracle/revizor/results/ V4/SSB campaign: every converted line must
+    start with a real mnemonic. This is the corpus-wide guard the
+    2026-09-11 bug report asked for."""
+    paths = []
+    if RVZR_RUNS.is_dir():
+        paths.extend(sorted(RVZR_RUNS.rglob("program.asm")))
+    results_dir = REPO_ROOT / "oracle" / "revizor" / "results"
+    if results_dir.is_dir():
+        paths.extend(sorted(results_dir.rglob("program.asm")))
+    assert paths, "no program.asm fixtures found to scan"
+
+    total_bad = 0
+    for p in paths:
+        seq = cvg.convert_program_asm(str(p))
+        bad = [line for line in seq if not re.match(r"^[a-z][a-z0-9.]*", line)]
+        total_bad += len(bad)
+        assert not bad, f"{p}: mnemonic-less line(s): {bad}"
+    assert total_bad == 0
 
 
 @pytest.mark.skipif(not HAS_FALLBACK, reason="fallback translator not implemented")
