@@ -16,6 +16,24 @@ Steps:
 Prereq:  python3 spec/train_mlm.py --epochs 10 --save spec/mlm.pt
 Run:     python3 gen/train_generator.py            # train + verify + save
          python3 gen/train_generator.py --smoke     # 1-epoch smoke
+
+Pretrain -> fine-tune (Task 6.3 Step 5):
+  --init-from <pretrained.pt> initializes the class-conditioned generator from
+  a checkpoint saved by gen/pretrain_encoder.py instead of training from
+  scratch. The fine-tune vocabulary is still built from the v54 TRAIN corpus
+  as always (that's the vocab the fine-tuned generator ships with); weights
+  are then transferred from the pretrained checkpoint BY TOKEN STRING: for
+  every token the fine-tune vocab shares with the pretrained vocab, the token
+  embedding row (tok.weight) and output-head row (head.weight/head.bias) are
+  copied from the pretrained tensor — tokens only in the fine-tune vocab keep
+  their fresh random init. Vocab-independent weights (positional embedding,
+  transformer encoder layers) are copied directly when shapes match (same
+  dim/max_len/layer count); a shape mismatch skips just that tensor with a
+  warning instead of crashing.
+
+      python3 gen/train_generator.py --init-from gen/pretrained.pt
+
+  Omitting --init-from is byte-identical to the original from-scratch path.
 """
 
 from __future__ import annotations
@@ -54,6 +72,103 @@ def load(path):
     return [json.loads(l) for l in open(path) if l.strip()]
 
 
+def init_from_pretrained(pretrained_path, finetune_vocab, dim=128, layers=3,
+                          heads=4, max_len=MAX_LEN, dropout=0.1):
+    """Build a fresh CondTransformerLM sized for `finetune_vocab` and initialize
+    it from a pretrained checkpoint (gen/pretrain_encoder.py's `pretrain()` /
+    CondTransformerLM.save()).
+
+    Vocab-independent weights (positional embedding, transformer encoder
+    layers) are copied directly from the pretrained checkpoint's state_dict
+    whenever the tensor exists in both models with matching shape (i.e. same
+    dim/max_len/layer count); a shape mismatch — or a layer that doesn't
+    exist in one of the two models (e.g. differing layer counts) — skips just
+    that tensor with a printed warning and leaves the fresh init in place,
+    rather than crashing.
+
+    The token embedding (`tok.weight`) and output head (`head.weight` /
+    `head.bias`) are vocab-dependent, so they are transferred BY TOKEN STRING
+    instead of by index: for every token in `finetune_vocab` that also exists
+    in the pretrained checkpoint's vocab, the pretrained embedding row / head
+    row+bias for that token is copied into the same token's row in the new
+    model. Tokens that exist only in `finetune_vocab` (not seen in the
+    pretrain corpus) keep their fresh random init. If the two checkpoints'
+    embedding dim differs, the row-copy is impossible (rows are a different
+    width) so it's skipped entirely with a warning, and the new model keeps
+    fresh random tok/head weights throughout.
+
+    Returns (model, report); report includes "overlap" (how many of the
+    fine-tune vocab's tokens were initialized from pretrained weights).
+    """
+    pretrained = CondTransformerLM.load(pretrained_path)
+    pv = pretrained.vocab
+
+    model = CondTransformerLM(len(finetune_vocab), dim=dim, layers=layers,
+                              heads=heads, max_len=max_len, dropout=dropout)
+    model.vocab = finetune_vocab
+
+    # ---- vocab-independent weights: copy directly when shapes match -------
+    pretrained_state = pretrained.state_dict()
+    model_state = model.state_dict()
+    copied, skipped = [], []
+    for name, p_tensor in pretrained_state.items():
+        if name in ("tok.weight", "head.weight", "head.bias"):
+            continue  # vocab-dependent — handled below by token-string transfer
+        if name not in model_state or model_state[name].shape != p_tensor.shape:
+            print(f"[init-from] WARNING: skipping '{name}' "
+                  f"(shape {tuple(p_tensor.shape)} incompatible with fine-tune model)")
+            skipped.append(name)
+            continue
+        model_state[name].copy_(p_tensor)
+        copied.append(name)
+    model.load_state_dict(model_state)
+
+    # ---- vocab-dependent weights: transfer by token string -----------------
+    overlap = 0
+    dim_match = pretrained.tok.weight.shape[1] == model.tok.weight.shape[1]
+    if not dim_match:
+        print(f"[init-from] WARNING: embedding dim mismatch "
+              f"(pretrained={pretrained.tok.weight.shape[1]} vs "
+              f"fine-tune={model.tok.weight.shape[1]}) — skipping token "
+              f"embedding / head transfer, keeping fresh init")
+    else:
+        with torch.no_grad():
+            for tok, idx in finetune_vocab.stoi.items():
+                pidx = pv.stoi.get(tok)
+                if pidx is None:
+                    continue
+                model.tok.weight[idx] = pretrained.tok.weight[pidx]
+                model.head.weight[idx] = pretrained.head.weight[pidx]
+                model.head.bias[idx] = pretrained.head.bias[pidx]
+                overlap += 1
+
+    report = {
+        "overlap": overlap,
+        "finetune_vocab_size": len(finetune_vocab),
+        "pretrained_vocab_size": len(pv),
+        "dim_match": dim_match,
+        "copied_layers": copied,
+        "skipped_layers": skipped,
+    }
+    print(f"[init-from] {pretrained_path}: token overlap "
+          f"{overlap}/{len(finetune_vocab)} fine-tune vocab tokens initialized "
+          f"from pretrained (pretrained vocab={len(pv)}); "
+          f"{len(copied)} transformer tensors copied, {len(skipped)} skipped")
+    return model, report
+
+
+def _build_model(vocab, init_from, max_len=MAX_LEN):
+    """Construct the CondTransformerLM used for fine-tuning: from scratch
+    (current/default behavior) or initialized from a pretrained checkpoint
+    via --init-from."""
+    if init_from:
+        model, _report = init_from_pretrained(init_from, vocab, max_len=max_len)
+        return model
+    model = CondTransformerLM(len(vocab), max_len=max_len)
+    model.vocab = vocab
+    return model
+
+
 def norm_arch(a: str) -> str:
     return "arm64" if str(a).startswith("arm") else "x86_64"
 
@@ -79,6 +194,11 @@ def main():
     ap.add_argument("--epochs", type=int, default=15)
     ap.add_argument("--k", type=int, default=40, help="samples/class for verification")
     ap.add_argument("--save", type=str, default=str(ROOT / "gen" / "generator.pt"))
+    ap.add_argument("--init-from", type=str, default=None,
+                     help="path to a pretrained CondTransformerLM checkpoint "
+                          "(gen/pretrain_encoder.py --save ...); vocab-transfer "
+                          "initializes the fine-tune generator from it instead "
+                          "of training from scratch")
     args = ap.parse_args()
     torch.manual_seed(SEED); np.random.seed(SEED)
 
@@ -94,8 +214,7 @@ def main():
     encoded = [encode_record(t, r["label"], norm_arch(r.get("arch", "x86_64")),
                              vocab, MAX_LEN)
                for t, r in zip(tr_tok, train_rows) if len(t) >= 2]
-    model = CondTransformerLM(len(vocab), max_len=MAX_LEN)
-    model.vocab = vocab
+    model = _build_model(vocab, args.init_from, max_len=MAX_LEN)
     train(model, encoded, 1 if args.smoke else args.epochs, vocab.pad_id)
 
     if not args.smoke:
