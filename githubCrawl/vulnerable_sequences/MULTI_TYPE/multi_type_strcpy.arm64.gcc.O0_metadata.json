@@ -1,0 +1,522 @@
+{
+  "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/strcpy.arm64.gcc.O0.s",
+  "vulnerability_types": [
+    "INCEPTION",
+    "MELTDOWN",
+    "SPECTRE_V1",
+    "SPECTRE_V2",
+    "L1TF",
+    "BHI",
+    "MDS",
+    "RETBLEED"
+  ],
+  "validation_score": 1.0,
+  "risk_level": "HIGH",
+  "confidence_score": 0.36041922421771344,
+  "instruction_count": 10,
+  "matched_gadgets_count": 10,
+  "risk_factors": [
+    "Low similarity confidence",
+    "ARM64 architecture (common target)",
+    "System/library function (common attack vector)",
+    "Matches multiple vulnerability types",
+    "Spectre V1 pattern detected",
+    "Meltdown pattern detected",
+    "Spectre V2 pattern detected"
+  ],
+  "mitigation_factors": [
+    "No optimization (reduces speculation)"
+  ],
+  "line_analysis": {
+    "total_lines": 32,
+    "vulnerable_line_ranges": [
+      {
+        "start": 1,
+        "end": 1
+      },
+      {
+        "start": 3,
+        "end": 4
+      },
+      {
+        "start": 6,
+        "end": 6
+      },
+      {
+        "start": 8,
+        "end": 8
+      },
+      {
+        "start": 10,
+        "end": 10
+      },
+      {
+        "start": 15,
+        "end": 22
+      },
+      {
+        "start": 24,
+        "end": 26
+      },
+      {
+        "start": 28,
+        "end": 28
+      },
+      {
+        "start": 31,
+        "end": 31
+      }
+    ],
+    "vulnerable_instructions_count": 72,
+    "vulnerability_indicators": {
+      "INCEPTION": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 3,
+          "line_content": ".private_extern\t__libkernel_strcpy      ; -- Begin function _libkernel_strcpy",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 4,
+          "line_content": ".globl\t__libkernel_strcpy",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 6,
+          "line_content": "__libkernel_strcpy:                     ; @_libkernel_strcpy",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 8,
+          "line_content": "; %bb.0:",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 16,
+          "line_content": "str\tx1, [sp, #16]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 17,
+          "line_content": "ldr\tx0, [sp, #16]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 18,
+          "line_content": "bl\t__libkernel_strlen",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 19,
+          "line_content": "str\tx0, [sp, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tx1, [sp, #16]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 22,
+          "line_content": "ldr\tx8, [sp, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        }
+      ],
+      "MELTDOWN": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 3,
+          "line_content": ".private_extern\t__libkernel_strcpy      ; -- Begin function _libkernel_strcpy",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 4,
+          "line_content": ".globl\t__libkernel_strcpy",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 6,
+          "line_content": "__libkernel_strcpy:                     ; @_libkernel_strcpy",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 10,
+          "line_content": "stp\tx29, x30, [sp, #32]             ; 16-byte Folded Spill",
+          "pattern_type": "memory_access",
+          "instruction": "stp"
+        },
+        {
+          "line_number": 15,
+          "line_content": "stur\tx0, [x29, #-8]",
+          "pattern_type": "memory_access",
+          "instruction": "stur"
+        },
+        {
+          "line_number": 16,
+          "line_content": "str\tx1, [sp, #16]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 17,
+          "line_content": "ldr\tx0, [sp, #16]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 18,
+          "line_content": "bl\t__libkernel_strlen",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 19,
+          "line_content": "str\tx0, [sp, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 20,
+          "line_content": "ldur\tx0, [x29, #-8]",
+          "pattern_type": "memory_access",
+          "instruction": "ldur"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tx1, [sp, #16]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 22,
+          "line_content": "ldr\tx8, [sp, #8]",
+          "pattern_type": "memory_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 25,
+          "line_content": "ldur\tx0, [x29, #-8]",
+          "pattern_type": "memory_access",
+          "instruction": "ldur"
+        },
+        {
+          "line_number": 26,
+          "line_content": "ldp\tx29, x30, [sp, #32]             ; 16-byte Folded Reload",
+          "pattern_type": "memory_access",
+          "instruction": "ldp"
+        }
+      ],
+      "SPECTRE_V1": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 3,
+          "line_content": ".private_extern\t__libkernel_strcpy      ; -- Begin function _libkernel_strcpy",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 4,
+          "line_content": ".globl\t__libkernel_strcpy",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 6,
+          "line_content": "__libkernel_strcpy:                     ; @_libkernel_strcpy",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 8,
+          "line_content": "; %bb.0:",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 10,
+          "line_content": "stp\tx29, x30, [sp, #32]             ; 16-byte Folded Spill",
+          "pattern_type": "memory_instructions",
+          "instruction": "stp"
+        },
+        {
+          "line_number": 15,
+          "line_content": "stur\tx0, [x29, #-8]",
+          "pattern_type": "memory_instructions",
+          "instruction": "stur"
+        },
+        {
+          "line_number": 16,
+          "line_content": "str\tx1, [sp, #16]",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 17,
+          "line_content": "ldr\tx0, [sp, #16]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 18,
+          "line_content": "bl\t__libkernel_strlen",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 19,
+          "line_content": "str\tx0, [sp, #8]",
+          "pattern_type": "memory_instructions",
+          "instruction": "str"
+        },
+        {
+          "line_number": 20,
+          "line_content": "ldur\tx0, [x29, #-8]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldur"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tx1, [sp, #16]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 22,
+          "line_content": "ldr\tx8, [sp, #8]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 25,
+          "line_content": "ldur\tx0, [x29, #-8]",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldur"
+        },
+        {
+          "line_number": 26,
+          "line_content": "ldp\tx29, x30, [sp, #32]             ; 16-byte Folded Reload",
+          "pattern_type": "memory_instructions",
+          "instruction": "ldp"
+        },
+        {
+          "line_number": 31,
+          "line_content": ".subsections_via_symbols",
+          "pattern_type": "compare_instructions",
+          "instruction": "subs"
+        }
+      ],
+      "SPECTRE_V2": [
+        {
+          "line_number": 4,
+          "line_content": ".globl\t__libkernel_strcpy",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 18,
+          "line_content": "bl\t__libkernel_strlen",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 24,
+          "line_content": "bl\t__libkernel_memmove",
+          "pattern_type": "indirect_branch",
+          "instruction": "bl"
+        },
+        {
+          "line_number": 28,
+          "line_content": "ret",
+          "pattern_type": "indirect_branch",
+          "instruction": "ret"
+        }
+      ],
+      "L1TF": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 3,
+          "line_content": ".private_extern\t__libkernel_strcpy      ; -- Begin function _libkernel_strcpy",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 4,
+          "line_content": ".globl\t__libkernel_strcpy",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 6,
+          "line_content": "__libkernel_strcpy:                     ; @_libkernel_strcpy",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 16,
+          "line_content": "str\tx1, [sp, #16]",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 17,
+          "line_content": "ldr\tx0, [sp, #16]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 18,
+          "line_content": "bl\t__libkernel_strlen",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 19,
+          "line_content": "str\tx0, [sp, #8]",
+          "pattern_type": "page_table_access",
+          "instruction": "str"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tx1, [sp, #16]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 22,
+          "line_content": "ldr\tx8, [sp, #8]",
+          "pattern_type": "page_table_access",
+          "instruction": "ldr"
+        }
+      ],
+      "BHI": [
+        {
+          "line_number": 8,
+          "line_content": "; %bb.0:",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        }
+      ],
+      "MDS": [
+        {
+          "line_number": 1,
+          "line_content": ".section\t__TEXT,__text,regular,pure_instructions",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 3,
+          "line_content": ".private_extern\t__libkernel_strcpy      ; -- Begin function _libkernel_strcpy",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 4,
+          "line_content": ".globl\t__libkernel_strcpy",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 6,
+          "line_content": "__libkernel_strcpy:                     ; @_libkernel_strcpy",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 10,
+          "line_content": "stp\tx29, x30, [sp, #32]             ; 16-byte Folded Spill",
+          "pattern_type": "memory_operations",
+          "instruction": "stp"
+        },
+        {
+          "line_number": 16,
+          "line_content": "str\tx1, [sp, #16]",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 17,
+          "line_content": "ldr\tx0, [sp, #16]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 18,
+          "line_content": "bl\t__libkernel_strlen",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 19,
+          "line_content": "str\tx0, [sp, #8]",
+          "pattern_type": "memory_operations",
+          "instruction": "str"
+        },
+        {
+          "line_number": 21,
+          "line_content": "ldr\tx1, [sp, #16]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 22,
+          "line_content": "ldr\tx8, [sp, #8]",
+          "pattern_type": "memory_operations",
+          "instruction": "ldr"
+        },
+        {
+          "line_number": 26,
+          "line_content": "ldp\tx29, x30, [sp, #32]             ; 16-byte Folded Reload",
+          "pattern_type": "memory_operations",
+          "instruction": "ldp"
+        }
+      ],
+      "RETBLEED": [
+        {
+          "line_number": 8,
+          "line_content": "; %bb.0:",
+          "pattern_type": "branch_instructions",
+          "instruction": "b."
+        },
+        {
+          "line_number": 28,
+          "line_content": "ret",
+          "pattern_type": "return_instructions",
+          "instruction": "ret"
+        }
+      ]
+    }
+  }
+}

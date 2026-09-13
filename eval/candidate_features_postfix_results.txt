@@ -1,0 +1,26 @@
+train=5514 test=1689  split=group_holdout_train.jsonl
+
+candidate pool: 366 features
+  impurity     null cutoff=0.00986581  keeps 31/366
+  permutation  null cutoff=0  keeps 96/366
+  mutual_info  null cutoff=0.0129853  keeps 293/366
+  stability    keeps 31/366, abstains 0
+
+ensemble keeps 295  |  impurity-alone keeps 31
+
+config             dim           test-acc           macro-F1
+--------------------------------------------------------------
+hand-58             58    94.07% +/- 0.42pp    88.18% +/- 0.77pp
+spec-42             42    92.52% +/- 0.96pp    85.03% +/- 1.56pp
+cand-all           366    94.71% +/- 0.15pp    88.14% +/- 0.22pp
+cand-ensemble      295    94.56% +/- 0.73pp    88.19% +/- 0.98pp
+cand-impurity       31    95.15% +/- 0.26pp    88.62% +/- 0.58pp
+
+--- paired vs hand-58 (5 seeds) ---
+  spec-42            -1.55pp  95%CI=[-2.67,-0.43]  p=0.018  significant
+  cand-all           +0.64pp  95%CI=[+0.12,+1.16]  p=0.027  significant
+  cand-ensemble      +0.50pp  95%CI=[-0.31,+1.30]  p=0.162  ns
+  cand-impurity      +1.08pp  95%CI=[+0.64,+1.52]  p=0.002  significant
+
+--- the question Paul's rule answers: ensemble vs single-arm ---
+  cand-ensemble - cand-impurity: -0.58pp  95%CI=[-1.43,+0.27]  p=0.130

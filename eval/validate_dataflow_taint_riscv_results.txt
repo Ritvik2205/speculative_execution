@@ -1,0 +1,23 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+records: 496
+
+is_secret_source: before=0 (0.000%)  after=20 (0.103%)
+is_transmitter:   before=0 (0.000%)  after=30 (0.155%)
+
+class                          total    records w/ new signal
+BENIGN                             2                        1
+BRANCH_HISTORY_INJECTION         116                        1
+INCEPTION                         48                        0
+L1TF                             162                        0
+MDS                               36                        0
+RETBLEED                         102                        1
+SPECTRE_RSB                        4                        4
+SPECTRE_V2                        14                        1
+SPECTRE_V4                        12                        0
+
+======================================================================
+SPOT CHECK — named L1TF/MDS files, showing exactly what fired
+======================================================================
+
+(no L1TF/MDS records got any new tag — mechanism did not fire on real RISC-V gadgets)

@@ -1,0 +1,3 @@
+n_correct=171  mean_instr=21.9  median=19
+n_wrong  =325  mean_instr=50.2  median=43
+Welch t-test: t=-11.760 p=3.72e-28

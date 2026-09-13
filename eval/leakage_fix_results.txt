@@ -1,0 +1,14 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+riscv_corpus files=498  labeled records built=496  excluded (downfall, no ground truth)=2  skipped (unrecognized keyword)=0
+train    features        in-dist (x86/ARM)      RISC-V transfer
+------------------------------------------------------------------
+dirty    hand-58             95.15+/-0.19          7.65+/-1.12
+dirty    spec-42             96.90+/-0.30         69.70+/-1.56
+clean    hand-58             94.60+/-0.55          7.74+/-0.40
+clean    spec-42             96.85+/-0.48         69.89+/-1.08
+
+--- clean - dirty, paired by seed ---
+  hand-58    in-dist    -0.55pp  95%CI=[-0.96,-0.14]  p=0.021  significant
+  hand-58    RISC-V     +0.09pp  95%CI=[-0.92,+1.10]  p=0.815  ns
+  spec-42    in-dist    -0.05pp  95%CI=[-0.57,+0.47]  p=0.811  ns
+  spec-42    RISC-V     +0.18pp  95%CI=[-0.74,+1.11]  p=0.614  ns

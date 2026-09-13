@@ -1,0 +1,36 @@
+{
+  "total_records": 69395,
+  "train_count": 55516,
+  "test_count": 13879,
+  "exact_sequence_overlap_count": 9983,
+  "exact_same_label": 9983,
+  "exact_cross_label": 0,
+  "fraction_exact_contaminated_test": 0.7193,
+  "unique_groups_in_train": 1100,
+  "unique_groups_in_test": 1085,
+  "shared_groups_count": 1085,
+  "group_contaminated_test_count": 13879,
+  "fraction_group_contaminated_test": 1.0,
+  "per_class_exact": {
+    "SPECTRE_V2": 1600,
+    "SPECTRE_V4": 1600,
+    "BRANCH_HISTORY_INJECTION": 1331,
+    "MDS": 1259,
+    "INCEPTION": 880,
+    "L1TF": 1350,
+    "SPECTRE_V1": 1408,
+    "RETBLEED": 537,
+    "BENIGN": 18
+  },
+  "per_class_group": {
+    "BENIGN": 1600,
+    "SPECTRE_V2": 1600,
+    "SPECTRE_V4": 1600,
+    "BRANCH_HISTORY_INJECTION": 1484,
+    "MDS": 1504,
+    "INCEPTION": 1508,
+    "L1TF": 1505,
+    "RETBLEED": 1545,
+    "SPECTRE_V1": 1533
+  }
+}

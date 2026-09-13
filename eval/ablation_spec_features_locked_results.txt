@@ -1,0 +1,12 @@
+train=/Users/ritvikgupta/SpecExec/v54/data/v54_train.jsonl  test=/Users/ritvikgupta/SpecExec/v54/data/v54_test.jsonl
+
+spec-generic dim=42 (zero ISA literals in code)  hand=58  mlm=128
+
+feature set             dim  test-acc  macro-F1
+--------------------------------------------------
+spec-generic             42    97.19%    93.09%
+hand-58                  58    95.21%    80.33%
+spec+hand               100    96.05%    91.36%
+spec+MLM (two-tier)     170    94.97%    82.66%
+hand+MLM                186    95.87%    91.03%
+spec+hand+MLM           228    95.57%    90.64%

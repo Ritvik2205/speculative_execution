@@ -1,0 +1,17 @@
+train=/Users/ritvikgupta/SpecExec/.claude/worktrees/agent-a54d566acae2ccecc/v54/data/v54_train.jsonl  test=/Users/ritvikgupta/SpecExec/.claude/worktrees/agent-a54d566acae2ccecc/v54/data/v54_test.jsonl
+
+spec-generic dim=42 (zero ISA literals in code)  hand=58  mlm=128
+
+seeds=[42, 1, 7, 13, 21, 100, 7654, 8, 88, 999]  (n=10)
+
+feature set             dim    test-acc (mean +/- 95%CI)    macro-F1 (mean +/- 95%CI)
+------------------------------------------------------------------------------------------
+spec-generic             42  96.80% +/- 0.21pp            91.48% +/- 1.41pp
+hand-58                  58  94.92% +/- 0.31pp            79.97% +/- 0.38pp
+spec+hand               100  96.16% +/- 0.33pp            91.41% +/- 0.51pp
+spec+MLM (two-tier)     170  95.61% +/- 0.20pp            83.24% +/- 2.00pp
+hand+MLM                186  95.37% +/- 0.28pp            82.84% +/- 3.35pp
+spec+hand+MLM           228  95.96% +/- 0.28pp            89.79% +/- 2.23pp
+
+--- paired-by-seed comparison: spec-generic vs hand-58 (same seed => same train/test split, only RF randomness differs) ---
+diff (spec - hand): mean=+1.88pp  95%CI=[+1.51, +2.25]pp  -> spec-generic wins (CI excludes zero, spec > hand)

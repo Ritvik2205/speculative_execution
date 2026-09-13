@@ -1,0 +1,271 @@
+{
+  "total_candidates": 31,
+  "high_confidence_count": 0,
+  "medium_confidence_count": 2,
+  "vulnerability_type_distribution": {
+    "SPECTRE_V1": 49,
+    "MDS": 20,
+    "INCEPTION": 20,
+    "RETBLEED": 20,
+    "MELTDOWN": 13,
+    "L1TF": 20,
+    "SPECTRE_V2": 13,
+    "BHI": 20
+  },
+  "top_matches": [
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/bsd/dev/arm64/disassembler.arm64.gcc.O0.s",
+      "confidence_score": 0.536404060552571,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_v1_arm64_int",
+        "SPECTRE_V1_arm64_spectre_1_arm_stack",
+        "MDS_arm64_mds_arm",
+        "INCEPTION_arm64_inception_arm",
+        "RETBLEED_arm64_retbleed_arm",
+        "MELTDOWN_arm64_meltdown_arm64",
+        "L1TF_arm64_l1tf_arm",
+        "SPECTRE_V2_arm64_spectre_2_arm64",
+        "BHI_arm64_bhi_arm",
+        "SPECTRE_V1_arm64_spectre_1_arm64"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "str",
+        "str",
+        "",
+        "ldr",
+        "subs",
+        "",
+        "",
+        "ldr",
+        "ldr"
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/mach/mig_strncpy.arm64.gcc.O0.s",
+      "confidence_score": 0.4558131770552851,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_1_arm_stack",
+        "MDS_arm64_mds_arm",
+        "INCEPTION_arm64_inception_arm",
+        "RETBLEED_arm64_retbleed_arm",
+        "L1TF_arm64_l1tf_arm",
+        "BHI_arm64_bhi_arm"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "str",
+        "str",
+        "str",
+        "ldr",
+        "subs",
+        "",
+        "",
+        "str",
+        ""
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/index.arm64.gcc.O0.s",
+      "confidence_score": 0.3628592155260409,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_1_arm_stack",
+        "MDS_arm64_mds_arm",
+        "INCEPTION_arm64_inception_arm",
+        "RETBLEED_arm64_retbleed_arm",
+        "L1TF_arm64_l1tf_arm",
+        "BHI_arm64_bhi_arm"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "str",
+        "str",
+        "ldr",
+        "str",
+        "",
+        "ldr",
+        "ldrs",
+        "ldrs",
+        "subs"
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/strcpy.arm64.gcc.O0.s",
+      "confidence_score": 0.36041922421771344,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_v1_arm64_int",
+        "SPECTRE_V1_arm64_spectre_1_arm_stack",
+        "MDS_arm64_mds_arm",
+        "INCEPTION_arm64_inception_arm",
+        "RETBLEED_arm64_retbleed_arm",
+        "MELTDOWN_arm64_meltdown_arm64",
+        "L1TF_arm64_l1tf_arm",
+        "SPECTRE_V2_arm64_spectre_2_arm64",
+        "BHI_arm64_bhi_arm",
+        "SPECTRE_V1_arm64_spectre_1_arm64"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "stp",
+        "add",
+        "stur",
+        "str",
+        "ldr",
+        "",
+        "str",
+        "ldur",
+        "ldr"
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/Os/repos/apple/darwin-xnu/libsyscall/mach/mach_error_string.arm64.gcc.Os.s",
+      "confidence_score": 0.3593903641857911,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_v1_arm64_int",
+        "MELTDOWN_arm64_meltdown_arm64",
+        "SPECTRE_V2_arm64_spectre_2_arm64",
+        "SPECTRE_V1_arm64_spectre_1_arm64"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "stp",
+        "add",
+        "stur",
+        "su",
+        "",
+        "ldur",
+        "lsr",
+        "mov",
+        "adrp"
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/strlen.arm64.gcc.O0.s",
+      "confidence_score": 0.3569500761054387,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_1_arm_stack",
+        "MDS_arm64_mds_arm",
+        "INCEPTION_arm64_inception_arm",
+        "RETBLEED_arm64_retbleed_arm",
+        "L1TF_arm64_l1tf_arm",
+        "BHI_arm64_bhi_arm"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "str",
+        "ldr",
+        "str",
+        "",
+        "ldr",
+        "and",
+        "cbz",
+        "",
+        "ldr"
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/carbon_delete.arm64.gcc.O0.s",
+      "confidence_score": 0.3458946860380861,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_1_arm_stack",
+        "MDS_arm64_mds_arm",
+        "INCEPTION_arm64_inception_arm",
+        "RETBLEED_arm64_retbleed_arm",
+        "L1TF_arm64_l1tf_arm",
+        "BHI_arm64_bhi_arm"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "stp",
+        "add",
+        "str",
+        "ldr",
+        "",
+        "str",
+        "ldr",
+        "cbnz",
+        ""
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/rmdir.arm64.gcc.O0.s",
+      "confidence_score": 0.3458946860380861,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_1_arm_stack",
+        "MDS_arm64_mds_arm",
+        "INCEPTION_arm64_inception_arm",
+        "RETBLEED_arm64_retbleed_arm",
+        "L1TF_arm64_l1tf_arm",
+        "BHI_arm64_bhi_arm"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "stp",
+        "add",
+        "str",
+        "ldr",
+        "",
+        "str",
+        "ldr",
+        "cbnz",
+        ""
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/unlink.arm64.gcc.O0.s",
+      "confidence_score": 0.3458946860380861,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_1_arm_stack",
+        "MDS_arm64_mds_arm",
+        "INCEPTION_arm64_inception_arm",
+        "RETBLEED_arm64_retbleed_arm",
+        "L1TF_arm64_l1tf_arm",
+        "BHI_arm64_bhi_arm"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "stp",
+        "add",
+        "str",
+        "ldr",
+        "",
+        "str",
+        "ldr",
+        "cbnz",
+        ""
+      ]
+    },
+    {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/select-base.arm64.gcc.O0.s",
+      "confidence_score": 0.34549079396846105,
+      "matched_gadgets": [
+        "SPECTRE_V1_arm64_spectre_v1_arm64_int",
+        "MELTDOWN_arm64_meltdown_arm64",
+        "SPECTRE_V2_arm64_spectre_2_arm64",
+        "SPECTRE_V1_arm64_spectre_1_arm64"
+      ],
+      "instruction_count": 10,
+      "opcode_sequence": [
+        "su",
+        "stp",
+        "add",
+        "stur",
+        "stur",
+        "str",
+        "str",
+        "str",
+        "ldur",
+        "subs"
+      ]
+    }
+  ]
+}

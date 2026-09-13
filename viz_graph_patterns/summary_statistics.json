@@ -1,0 +1,133 @@
+{
+  "connectivity": {
+    "BENIGN": {
+      "avg_nodes": 19.13,
+      "avg_edges": 43.835,
+      "avg_density": 0.13642718962095896,
+      "fully_connected_pct": 49.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "avg_nodes": 15.2,
+      "avg_edges": 20.475,
+      "avg_density": 0.09431654237195528,
+      "fully_connected_pct": 21.5
+    },
+    "INCEPTION": {
+      "avg_nodes": 22.48,
+      "avg_edges": 26.37,
+      "avg_density": 0.11057198526930598,
+      "fully_connected_pct": 28.499999999999996
+    },
+    "L1TF": {
+      "avg_nodes": 11.79,
+      "avg_edges": 29.13,
+      "avg_density": 0.2466705334996811,
+      "fully_connected_pct": 83.0
+    },
+    "MDS": {
+      "avg_nodes": 14.015,
+      "avg_edges": 24.94,
+      "avg_density": 0.1477082834275517,
+      "fully_connected_pct": 44.5
+    },
+    "RETBLEED": {
+      "avg_nodes": 13.465,
+      "avg_edges": 22.76,
+      "avg_density": 0.17103742917728987,
+      "fully_connected_pct": 45.0
+    },
+    "SPECTRE_V1": {
+      "avg_nodes": 12.065,
+      "avg_edges": 28.125,
+      "avg_density": 0.23906984670386372,
+      "fully_connected_pct": 77.5
+    },
+    "SPECTRE_V2": {
+      "avg_nodes": 15.31,
+      "avg_edges": 18.795,
+      "avg_density": 0.0908126274256322,
+      "fully_connected_pct": 20.0
+    },
+    "SPECTRE_V4": {
+      "avg_nodes": 11.26,
+      "avg_edges": 17.83,
+      "avg_density": 0.18258290349646017,
+      "fully_connected_pct": 56.99999999999999
+    }
+  },
+  "validation": {
+    "kruskal_wallis": [
+      {
+        "feature": "cfg_num_edges",
+        "h_statistic": 1402.2758931414203,
+        "p_value": 1.8229614330205655e-297,
+        "significant": "True"
+      },
+      {
+        "feature": "cfg_num_back_edges",
+        "h_statistic": 0.0,
+        "p_value": 1.0,
+        "significant": false
+      },
+      {
+        "feature": "cfg_max_out_degree",
+        "h_statistic": 0.0,
+        "p_value": 1.0,
+        "significant": false
+      },
+      {
+        "feature": "cfg_has_branch",
+        "h_statistic": 0.0,
+        "p_value": 1.0,
+        "significant": false
+      },
+      {
+        "feature": "cfg_branch_ratio",
+        "h_statistic": 0.0,
+        "p_value": 1.0,
+        "significant": false
+      },
+      {
+        "feature": "cfg_cyclomatic_complexity",
+        "h_statistic": 0.0,
+        "p_value": 1.0,
+        "significant": false
+      },
+      {
+        "feature": "dfg_num_edges",
+        "h_statistic": 1637.991407922991,
+        "p_value": 0.0,
+        "significant": "True"
+      },
+      {
+        "feature": "dfg_max_chain_length",
+        "h_statistic": 1181.417839425614,
+        "p_value": 9.920934470049388e-250,
+        "significant": "True"
+      },
+      {
+        "feature": "dfg_avg_out_degree",
+        "h_statistic": 1791.914515320166,
+        "p_value": 0.0,
+        "significant": "True"
+      },
+      {
+        "feature": "dfg_has_long_chain",
+        "h_statistic": 1091.8212826105942,
+        "p_value": 2.23677912162476e-230,
+        "significant": "True"
+      },
+      {
+        "feature": "graph_density",
+        "h_statistic": 1094.9359697113794,
+        "p_value": 4.753156245076163e-231,
+        "significant": "True"
+      }
+    ],
+    "pca_explained_variance": [
+      0.5283499293361351,
+      0.2338718319501692
+    ],
+    "n_significant_features": 6
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "test_accuracy": 0.9341666666666667,
+  "test_coarse_accuracy": 0.9511111111111111,
+  "best_epoch": 99,
+  "total_params": 2287010,
+  "num_classes": 9,
+  "num_coarse_classes": 5,
+  "classification_report": {
+    "BENIGN": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1600.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.9230769230769231,
+      "recall": 0.87,
+      "f1-score": 0.8957528957528957,
+      "support": 1600.0
+    },
+    "INCEPTION": {
+      "precision": 0.9464516129032258,
+      "recall": 0.916875,
+      "f1-score": 0.9314285714285714,
+      "support": 1600.0
+    },
+    "L1TF": {
+      "precision": 0.8160220994475138,
+      "recall": 0.923125,
+      "f1-score": 0.866275659824047,
+      "support": 1600.0
+    },
+    "MDS": {
+      "precision": 0.9690794096978215,
+      "recall": 0.861875,
+      "f1-score": 0.9123387363546146,
+      "support": 1600.0
+    },
+    "RETBLEED": {
+      "precision": 0.9951557093425606,
+      "recall": 0.89875,
+      "f1-score": 0.9444991789819376,
+      "support": 1600.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.8041845493562232,
+      "recall": 0.936875,
+      "f1-score": 0.8654734411085451,
+      "support": 1600.0
+    },
+    "SPECTRE_V2": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1600.0
+    },
+    "SPECTRE_V4": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1600.0
+    },
+    "accuracy": 0.9341666666666667,
+    "macro avg": {
+      "precision": 0.9393300337582519,
+      "recall": 0.9341666666666667,
+      "f1-score": 0.9350853870500679,
+      "support": 14400.0
+    },
+    "weighted avg": {
+      "precision": 0.939330033758252,
+      "recall": 0.9341666666666667,
+      "f1-score": 0.9350853870500678,
+      "support": 14400.0
+    }
+  },
+  "args": {
+    "data": "data/features/combined_v25_real_benign.jsonl",
+    "output_dir": "viz_v37_hierarchical_gine",
+    "viz_dir": "viz_v37_hierarchical_gine",
+    "epochs": 120,
+    "patience": 25,
+    "hidden_dim": 256,
+    "num_layers": 4,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "dropout": 0.3,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "coarse_weight": 0.3,
+    "drop_edge_rate": 0.15,
+    "no_virtual_node": false,
+    "speculative_window": 10
+  },
+  "techniques": [
+    "hierarchical_coarse_fine",
+    "drop_edge",
+    "curriculum_learning"
+  ]
+}

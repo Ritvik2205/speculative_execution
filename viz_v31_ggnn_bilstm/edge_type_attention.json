@@ -1,0 +1,40 @@
+{
+  "classes": {
+    "BENIGN": {
+      "data_dependency": 0.5632810238748789,
+      "control_dependency": 0.4367189767770469
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "data_dependency": 0.564574249908328,
+      "control_dependency": 0.43542575649917126
+    },
+    "INCEPTION": {
+      "data_dependency": 0.5694761036336422,
+      "control_dependency": 0.4305238997191191
+    },
+    "L1TF": {
+      "data_dependency": 0.5550241702049971,
+      "control_dependency": 0.44497583124786616
+    },
+    "MDS": {
+      "data_dependency": 0.5649619721621275,
+      "control_dependency": 0.4350380317866802
+    },
+    "RETBLEED": {
+      "data_dependency": 0.5627428898215294,
+      "control_dependency": 0.4372571113705635
+    },
+    "SPECTRE_V1": {
+      "data_dependency": 0.5570695476233959,
+      "control_dependency": 0.4429304539598525
+    },
+    "SPECTRE_V2": {
+      "data_dependency": 0.5695728529532996,
+      "control_dependency": 0.4304271480155065
+    },
+    "SPECTRE_V4": {
+      "data_dependency": 0.5655215733581119,
+      "control_dependency": 0.4344784281320042
+    }
+  }
+}

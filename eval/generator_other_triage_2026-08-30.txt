@@ -1,0 +1,207 @@
+classes=['BENIGN', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4', 'L1TF', 'MDS', 'RETBLEED', 'INCEPTION']  archs=['x86_64', 'arm64']  n=100/class/arch
+
+'other'-bucket instructions triaged: 6468
+
+==============================================================================
+llvm-mc DIAGNOSTIC CLUSTERS (what the assembler actually complains about)
+==============================================================================
+
+   4553 (70.4%)  invalid operand for instruction
+          [x86_64:3468, arm64:1085]
+          e.g. x86_64: movl	(%r10), %rcx
+          e.g. x86_64: subl	$4096, %rcx
+          e.g. x86_64: callq	%r9
+
+    585 ( 9.0%)  unrecognized instruction mnemonic
+          [arm64:585]
+          e.g. arm64: main_func
+          e.g. arm64: main_func
+          e.g. arm64: pushq	x7
+
+    528 ( 8.2%)  index must be an integer in range [N, N].
+          [arm64:528]
+          e.g. arm64: ldur	x3, [x2, x1]
+          e.g. arm64: ldr	x9, [x1], #4096
+          e.g. arm64: ldur	x1, [x8, x7]
+
+    393 ( 6.1%)  invalid instruction mnemonic 'X'
+          [x86_64:393]
+          e.g. x86_64: b	.L0
+          e.g. x86_64: umaddl	%rsi, %r11, %r13, %rcx
+          e.g. x86_64: bl	fn_target
+
+    109 ( 1.7%)  unknown use of instruction mnemonic without a size suffix
+          [x86_64:109]
+          e.g. x86_64: str	%r13, (%r12,%rax)
+          e.g. x86_64: str	%rax, (%rsi,%rbx)
+          e.g. x86_64: str	%r13, (%rax,%r11)
+
+     61 ( 0.9%)  expected compatible register, symbol or integer in range [N, N]
+          [arm64:61]
+          e.g. arm64: add	x7, x6, fn_target
+          e.g. arm64: add	x4, x6, fn_target
+          e.g. arm64: add	x7, x0, fn_target
+
+     53 ( 0.8%)  unrecognized instruction mnemonic, did you mean: fmov, mov, movi, movk, movn, movz, smov, 
+          [arm64:53]
+          e.g. arm64: movq	x4, x7
+          e.g. arm64: movq	x2, x11
+          e.g. arm64: movq	x1, x9
+
+     43 ( 0.7%)  index must be a multiple of N in range [N, N].
+          [arm64:43]
+          e.g. arm64: ldp	x5, x3, [x9], #0xff
+          e.g. arm64: ldp	x3, x5, [x6], #4096
+          e.g. arm64: ldp	x9, x0, [x5], #1
+
+     30 ( 0.5%)  unrecognized instruction mnemonic, did you mean: eret, ret?
+          [arm64:30]
+          e.g. arm64: retq
+          e.g. arm64: retq
+          e.g. arm64: retq
+
+     16 ( 0.2%)  expected 'X' 'X' or 'X' with optional integer in range [N, N]
+          [arm64:16]
+          e.g. arm64: add	x0, x5, x3, #64
+          e.g. arm64: add	x3, x0, x7, #0xff
+          e.g. arm64: add	x8, x3, x4, #64
+
+     13 ( 0.2%)  expected 'X' with optional integer N, N, N or N
+          [arm64:13]
+          e.g. arm64: movk	x11, #8, #0
+          e.g. arm64: movk	x6, #64, #8
+          e.g. arm64: movk	x6, #64, #256
+
+     10 ( 0.2%)  unrecognized instruction mnemonic, did you mean: ushl, ushr?
+          [arm64:10]
+          e.g. arm64: push	x11
+          e.g. arm64: push	x4
+          e.g. arm64: push	x5
+
+      9 ( 0.1%)  unrecognized instruction mnemonic, did you mean: movz?
+          [arm64:9]
+          e.g. arm64: movzbl	[x1], x9
+          e.g. arm64: movzbl	[x10], x3
+          e.g. arm64: movzbl	[x4], x2
+
+      6 ( 0.1%)  expected compatible register or logical immediate
+          [arm64:6]
+          e.g. arm64: and	x2, x10, #0
+          e.g. arm64: and	x10, x4, #0
+          e.g. arm64: orr	x11, x4, #0
+
+      6 ( 0.1%)  immediate must be an integer in range [N, N].
+          [arm64:6]
+          e.g. arm64: lsl	x3, x9, #0xff
+          e.g. arm64: lsl	x6, x10, #64
+          e.g. arm64: lsl	x5, x11, #256
+
+      6 ( 0.1%)  unrecognized instruction mnemonic, did you mean: ccmp, cmeq, cmp, fcmp?
+          [arm64:6]
+          e.g. arm64: cmpq	x7, [x8]
+          e.g. arm64: cmpq	x11, [x9]
+          e.g. arm64: cmpq	x11, [x9]
+
+      6 ( 0.1%)  unrecognized instruction mnemonic, did you mean: add, addp, adds, addv, fadd, madd?
+          [arm64:6]
+          e.g. arm64: addq	x2, x11
+          e.g. arm64: addq	x8, x11
+          e.g. arm64: addq	x4, x6
+
+      6 ( 0.1%)  unrecognized instruction mnemonic, did you mean: shl, shll, sshl, ushl?
+          [arm64:6]
+          e.g. arm64: shlq	#256, x3
+          e.g. arm64: shlq	#16, x2
+          e.g. arm64: shlq	#64, x6
+
+      6 ( 0.1%)  expected integer in range [N, N]
+          [arm64:6]
+          e.g. arm64: ubfiz	x5, x1, #1, #0
+          e.g. arm64: ubfiz	x5, x8, #16, #256
+          e.g. arm64: ubfiz	x7, x1, #1, #0
+
+      6 ( 0.1%)  unrecognized instruction mnemonic, did you mean: fsub, msub, sub, subs?
+          [arm64:6]
+          e.g. arm64: subq	x10, x0
+          e.g. arm64: subq	x7, x8
+          e.g. arm64: subq	#32, x8
+
+      5 ( 0.1%)  only 'X' valid after immediate
+          [arm64:5]
+          e.g. arm64: cmp	x7, #256, #0
+          e.g. arm64: cmp	x8, #1, #1
+          e.g. arm64: cmp	x6, #0, #256
+
+      3 ( 0.0%)  unrecognized instruction mnemonic, did you mean: eor, orn, orr, ror?
+          [arm64:3]
+          e.g. arm64: xor	x10, x1
+          e.g. arm64: orq	x8, x4
+          e.g. arm64: orq	x5, x11
+
+      2 ( 0.0%)  unrecognized instruction mnemonic, did you mean: adr, asr, lsr, msr, sri, str?
+          [arm64:2]
+          e.g. arm64: sar	#1, x9
+          e.g. arm64: sar	#256, x2
+
+      2 ( 0.0%)  unrecognized instruction mnemonic, did you mean: ccmp, cmle, cmlo, cmls, cmlt, cmp, fcmp?
+          [arm64:2]
+          e.g. arm64: cmpl	x7, [x4]
+          e.g. arm64: cmpl	#64, [x2]
+
+      2 ( 0.0%)  unrecognized instruction mnemonic, did you mean: neg?
+          [arm64:2]
+          e.g. arm64: jne	.L0
+          e.g. arm64: jne	.L0
+
+      2 ( 0.0%)  unrecognized instruction mnemonic, did you mean: cmlt?
+          [arm64:2]
+          e.g. arm64: cltq
+          e.g. arm64: cltq
+
+      1 ( 0.0%)  unrecognized instruction mnemonic, did you mean: cmp?
+          [arm64:1]
+          e.g. arm64: jmp	.L0
+
+      1 ( 0.0%)  unrecognized instruction mnemonic, did you mean: tst?
+          [arm64:1]
+          e.g. arm64: testb	x5, x1
+
+      1 ( 0.0%)  unrecognized instruction mnemonic, did you mean: b?
+          [arm64:1]
+          e.g. arm64: jbe	.L0
+
+      1 ( 0.0%)  unrecognized instruction mnemonic, did you mean: bsl, lsl, sabal, sabdl, saddl, shl, sli, 
+          [arm64:1]
+          e.g. arm64: sal	#8, x6
+
+      1 ( 0.0%)  unrecognized instruction mnemonic, did you mean: and, ands?
+          [arm64:1]
+          e.g. arm64: andq	x1, x5
+
+      1 ( 0.0%)  unrecognized instruction mnemonic, did you mean: cneg, fneg, mneg, neg, negs, smnegl, umne
+          [arm64:1]
+          e.g. arm64: negl	x8
+
+      1 ( 0.0%)  too few operands for instruction
+          [arm64:1]
+          e.g. arm64: add	x6, x1
+
+==============================================================================
+ROOT-CAUSE SPLIT (is the mnemonic even a real instruction?)
+==============================================================================
+   5299 (81.9%)  known_mnemonic_wrong_operands
+   1169 (18.1%)  unknown_or_uncategorized_mnemonic
+
+  top tokens that are not canonical mnemonics:
+     310  'main_func'
+      95  'ldr'
+      70  'str'
+      65  'b'
+      57  'adrp'
+      44  'movq'
+      40  'deep_call_arm'
+      34  'inception_train_arm'
+      32  'pushq'
+      30  'retq'
+      30  'leave'
+      27  'popq'

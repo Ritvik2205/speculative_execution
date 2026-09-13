@@ -1,0 +1,28 @@
+pre_corpus_fix files scanned: 488
+
+class                         files  files_w_alias_bug  blocks_total  blocks_w_alias
+BRANCH_HISTORY_INJECTION        116                  0           629               0
+INCEPTION                        48                  0           124               0
+L1TF                            162                 32           340              32
+MDS                              36                 36           114              36
+RETBLEED                        100                  0           287               0
+SPECTRE_V2                       14                  0            44               0
+SPECTRE_V4                       12                  0            26               0
+
+Examples:
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_0.O0.riscv64.s  aliased_reg_nums=['0']
+    '# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_0.c" 1\n\tdc civac, a5\n\tdsb sy\n\t\n\tldrb w0, [a5]\n\tlsl x0, x0, #6\n\tldr x1, [a4, x0]\n\t\n# 0 "" 2'
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_0.O2.riscv64.s  aliased_reg_nums=['0']
+    '# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_0.c" 1\n\tdc civac, a0\n\tdsb sy\n\t\n\tldrb w0, [a0]\n\tlsl x0, x0, #6\n\tldr x1, [a5, x0]\n\t\n# 0 "" 2'
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_1.O0.riscv64.s  aliased_reg_nums=['0']
+    '# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_1.c" 1\n\tdc civac, a5\n\tdsb sy\n\t\n\tnop\n\tnop\n\tldrb w0, [a5]\n\tlsl x0, x0, #6\n\tldr x1, [a4, x0]\n\t\n# '
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_1.O2.riscv64.s  aliased_reg_nums=['0']
+    '# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_1.c" 1\n\tdc civac, a0\n\tdsb sy\n\t\n\tnop\n\tnop\n\tldrb w0, [a0]\n\tlsl x0, x0, #6\n\tldr x1, [a5, x0]\n\t\n# '
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_2.O0.riscv64.s  aliased_reg_nums=['0']
+    '# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_2.c" 1\n\tdc civac, a5\n\tdsb sy\n\t\n\tnop\n\tnop\n\tnop\n\tnop\n\tldrb w0, [a5]\n\tlsl x0, x0, #6\n\tldr x1, [a4'
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_2.O2.riscv64.s  aliased_reg_nums=['0']
+    '# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_2.c" 1\n\tdc civac, a0\n\tdsb sy\n\t\n\tnop\n\tnop\n\tnop\n\tnop\n\tldrb w0, [a0]\n\tlsl x0, x0, #6\n\tldr x1, [a5'
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_3.O0.riscv64.s  aliased_reg_nums=['0']
+    '# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_3.c" 1\n\tdc civac, a5\n\tdsb sy\n\t\n\tldrb w0, [a5]\n\tlsl x0, x0, #6\n\tldr x1, [a4, x0]\n\t\n# 0 "" 2'
+  [L1TF] c_vulns_c_code_enhanced_variants_l1tf_pf_arm64_gen_3.O2.riscv64.s  aliased_reg_nums=['0']
+    '# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_3.c" 1\n\tdc civac, a0\n\tdsb sy\n\t\n\tldrb w0, [a0]\n\tlsl x0, x0, #6\n\tldr x1, [a5, x0]\n\t\n# 0 "" 2'

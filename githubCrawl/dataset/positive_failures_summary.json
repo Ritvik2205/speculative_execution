@@ -1,0 +1,9 @@
+{
+  "SPECTRE_V1::sequence_constraints_failed": 6383,
+  "SPECTRE_V1::anti_pattern_triggered": 1130,
+  "MDS::property_constraints_failed::min_memory_ops": 2663,
+  "MDS::anti_pattern_triggered": 153,
+  "RETBLEED::unknown_vuln_type": 2986,
+  "MELTDOWN::property_constraints_failed::privileged_access": 1663,
+  "BHI::property_constraints_failed::min_branch_count": 186
+}

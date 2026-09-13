@@ -1,0 +1,928 @@
+{
+  "total_extracted": 6,
+  "vulnerability_type_distribution": {
+    "INCEPTION": 4,
+    "MELTDOWN": 4,
+    "SPECTRE_V1": 6,
+    "SPECTRE_V2": 4,
+    "L1TF": 4,
+    "BHI": 4,
+    "MDS": 4,
+    "RETBLEED": 4
+  },
+  "risk_level_distribution": {
+    "HIGH": 6
+  },
+  "validation_score_distribution": {
+    "Very High (0.8-1.0)": 2,
+    "High (0.6-0.8)": 4
+  },
+  "line_analysis_summary": {
+    "total_vulnerable_ranges": 197,
+    "total_vulnerable_instructions": 971,
+    "average_ranges_per_file": 32.833333333333336,
+    "average_instructions_per_file": 161.83333333333334
+  },
+  "extracted_files": [
+    {
+      "assembly_file": "vulnerable_sequences/MULTI_TYPE/multi_type_disassembler.arm64.gcc.O0.s",
+      "metadata_file": "vulnerable_sequences/MULTI_TYPE/multi_type_disassembler.arm64.gcc.O0_metadata.json",
+      "sequence_file": "vulnerable_sequences/MULTI_TYPE/multi_type_disassembler.arm64.gcc.O0_vulnerable_sequence.s",
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/bsd/dev/arm64/disassembler.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "INCEPTION",
+        "MELTDOWN",
+        "SPECTRE_V1",
+        "SPECTRE_V2",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "validation_score": 0.8999999999999999,
+      "risk_level": "HIGH",
+      "vulnerable_line_ranges": [
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 3,
+          "end": 3
+        },
+        {
+          "start": 7,
+          "end": 7
+        },
+        {
+          "start": 10,
+          "end": 11
+        },
+        {
+          "start": 14,
+          "end": 14
+        },
+        {
+          "start": 16,
+          "end": 17
+        },
+        {
+          "start": 20,
+          "end": 21
+        },
+        {
+          "start": 25,
+          "end": 27
+        },
+        {
+          "start": 29,
+          "end": 29
+        },
+        {
+          "start": 33,
+          "end": 35
+        },
+        {
+          "start": 38,
+          "end": 38
+        },
+        {
+          "start": 42,
+          "end": 43
+        },
+        {
+          "start": 45,
+          "end": 46
+        },
+        {
+          "start": 51,
+          "end": 51
+        },
+        {
+          "start": 53,
+          "end": 53
+        },
+        {
+          "start": 57,
+          "end": 57
+        },
+        {
+          "start": 60,
+          "end": 60
+        },
+        {
+          "start": 62,
+          "end": 62
+        },
+        {
+          "start": 66,
+          "end": 66
+        },
+        {
+          "start": 68,
+          "end": 68
+        },
+        {
+          "start": 166,
+          "end": 166
+        }
+      ],
+      "vulnerable_instructions_count": 104
+    },
+    {
+      "assembly_file": "vulnerable_sequences/MULTI_TYPE/multi_type_mig_strncpy.arm64.gcc.O0.s",
+      "metadata_file": "vulnerable_sequences/MULTI_TYPE/multi_type_mig_strncpy.arm64.gcc.O0_metadata.json",
+      "sequence_file": "vulnerable_sequences/MULTI_TYPE/multi_type_mig_strncpy.arm64.gcc.O0_vulnerable_sequence.s",
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/mach/mig_strncpy.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "INCEPTION",
+        "SPECTRE_V1",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "validation_score": 0.6000000000000001,
+      "risk_level": "HIGH",
+      "vulnerable_line_ranges": [
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 3,
+          "end": 3
+        },
+        {
+          "start": 5,
+          "end": 5
+        },
+        {
+          "start": 7,
+          "end": 7
+        },
+        {
+          "start": 10,
+          "end": 15
+        },
+        {
+          "start": 18,
+          "end": 18
+        },
+        {
+          "start": 22,
+          "end": 22
+        },
+        {
+          "start": 25,
+          "end": 28
+        },
+        {
+          "start": 31,
+          "end": 31
+        },
+        {
+          "start": 33,
+          "end": 35
+        },
+        {
+          "start": 37,
+          "end": 39
+        },
+        {
+          "start": 42,
+          "end": 43
+        },
+        {
+          "start": 48,
+          "end": 48
+        },
+        {
+          "start": 50,
+          "end": 50
+        },
+        {
+          "start": 53,
+          "end": 56
+        },
+        {
+          "start": 59,
+          "end": 59
+        },
+        {
+          "start": 61,
+          "end": 61
+        },
+        {
+          "start": 64,
+          "end": 64
+        },
+        {
+          "start": 66,
+          "end": 66
+        },
+        {
+          "start": 68,
+          "end": 68
+        },
+        {
+          "start": 71,
+          "end": 78
+        },
+        {
+          "start": 81,
+          "end": 82
+        },
+        {
+          "start": 85,
+          "end": 85
+        },
+        {
+          "start": 88,
+          "end": 89
+        },
+        {
+          "start": 93,
+          "end": 93
+        },
+        {
+          "start": 97,
+          "end": 97
+        },
+        {
+          "start": 100,
+          "end": 103
+        },
+        {
+          "start": 106,
+          "end": 107
+        },
+        {
+          "start": 110,
+          "end": 110
+        },
+        {
+          "start": 112,
+          "end": 114
+        },
+        {
+          "start": 116,
+          "end": 118
+        },
+        {
+          "start": 121,
+          "end": 122
+        },
+        {
+          "start": 124,
+          "end": 124
+        },
+        {
+          "start": 129,
+          "end": 129
+        },
+        {
+          "start": 131,
+          "end": 132
+        },
+        {
+          "start": 137,
+          "end": 137
+        },
+        {
+          "start": 139,
+          "end": 139
+        },
+        {
+          "start": 142,
+          "end": 145
+        },
+        {
+          "start": 148,
+          "end": 149
+        },
+        {
+          "start": 152,
+          "end": 153
+        },
+        {
+          "start": 156,
+          "end": 156
+        },
+        {
+          "start": 158,
+          "end": 158
+        },
+        {
+          "start": 161,
+          "end": 161
+        }
+      ],
+      "vulnerable_instructions_count": 311
+    },
+    {
+      "assembly_file": "vulnerable_sequences/MULTI_TYPE/multi_type_index.arm64.gcc.O0.s",
+      "metadata_file": "vulnerable_sequences/MULTI_TYPE/multi_type_index.arm64.gcc.O0_metadata.json",
+      "sequence_file": "vulnerable_sequences/MULTI_TYPE/multi_type_index.arm64.gcc.O0_vulnerable_sequence.s",
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/index.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "INCEPTION",
+        "SPECTRE_V1",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "validation_score": 0.6000000000000001,
+      "risk_level": "HIGH",
+      "vulnerable_line_ranges": [
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 3,
+          "end": 4
+        },
+        {
+          "start": 6,
+          "end": 6
+        },
+        {
+          "start": 8,
+          "end": 8
+        },
+        {
+          "start": 11,
+          "end": 14
+        },
+        {
+          "start": 17,
+          "end": 21
+        },
+        {
+          "start": 24,
+          "end": 25
+        },
+        {
+          "start": 28,
+          "end": 30
+        },
+        {
+          "start": 34,
+          "end": 34
+        },
+        {
+          "start": 39,
+          "end": 39
+        },
+        {
+          "start": 41,
+          "end": 41
+        },
+        {
+          "start": 44,
+          "end": 44
+        },
+        {
+          "start": 46,
+          "end": 46
+        },
+        {
+          "start": 49,
+          "end": 49
+        }
+      ],
+      "vulnerable_instructions_count": 91
+    },
+    {
+      "assembly_file": "vulnerable_sequences/MULTI_TYPE/multi_type_strcpy.arm64.gcc.O0.s",
+      "metadata_file": "vulnerable_sequences/MULTI_TYPE/multi_type_strcpy.arm64.gcc.O0_metadata.json",
+      "sequence_file": "vulnerable_sequences/MULTI_TYPE/multi_type_strcpy.arm64.gcc.O0_vulnerable_sequence.s",
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/strcpy.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "INCEPTION",
+        "MELTDOWN",
+        "SPECTRE_V1",
+        "SPECTRE_V2",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "validation_score": 1.0,
+      "risk_level": "HIGH",
+      "vulnerable_line_ranges": [
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 3,
+          "end": 4
+        },
+        {
+          "start": 6,
+          "end": 6
+        },
+        {
+          "start": 8,
+          "end": 8
+        },
+        {
+          "start": 10,
+          "end": 10
+        },
+        {
+          "start": 15,
+          "end": 22
+        },
+        {
+          "start": 24,
+          "end": 26
+        },
+        {
+          "start": 28,
+          "end": 28
+        },
+        {
+          "start": 31,
+          "end": 31
+        }
+      ],
+      "vulnerable_instructions_count": 72
+    },
+    {
+      "assembly_file": "vulnerable_sequences/MULTI_TYPE/multi_type_mach_error_string.arm64.gcc.Os.s",
+      "metadata_file": "vulnerable_sequences/MULTI_TYPE/multi_type_mach_error_string.arm64.gcc.Os_metadata.json",
+      "sequence_file": "vulnerable_sequences/MULTI_TYPE/multi_type_mach_error_string.arm64.gcc.Os_vulnerable_sequence.s",
+      "source_file": "./assembly_outputs/arm64/gcc/Os/repos/apple/darwin-xnu/libsyscall/mach/mach_error_string.arm64.gcc.Os.s",
+      "vulnerability_types": [
+        "MELTDOWN",
+        "SPECTRE_V2",
+        "SPECTRE_V1"
+      ],
+      "validation_score": 0.7,
+      "risk_level": "HIGH",
+      "vulnerable_line_ranges": [
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 3,
+          "end": 3
+        },
+        {
+          "start": 7,
+          "end": 7
+        },
+        {
+          "start": 9,
+          "end": 9
+        },
+        {
+          "start": 14,
+          "end": 14
+        },
+        {
+          "start": 16,
+          "end": 17
+        },
+        {
+          "start": 23,
+          "end": 23
+        },
+        {
+          "start": 26,
+          "end": 32
+        },
+        {
+          "start": 36,
+          "end": 36
+        },
+        {
+          "start": 38,
+          "end": 38
+        },
+        {
+          "start": 40,
+          "end": 42
+        },
+        {
+          "start": 45,
+          "end": 45
+        },
+        {
+          "start": 48,
+          "end": 49
+        },
+        {
+          "start": 51,
+          "end": 52
+        },
+        {
+          "start": 57,
+          "end": 61
+        },
+        {
+          "start": 64,
+          "end": 64
+        },
+        {
+          "start": 68,
+          "end": 68
+        },
+        {
+          "start": 70,
+          "end": 70
+        },
+        {
+          "start": 72,
+          "end": 72
+        },
+        {
+          "start": 74,
+          "end": 75
+        },
+        {
+          "start": 83,
+          "end": 84
+        },
+        {
+          "start": 86,
+          "end": 88
+        },
+        {
+          "start": 104,
+          "end": 104
+        },
+        {
+          "start": 107,
+          "end": 107
+        },
+        {
+          "start": 110,
+          "end": 110
+        },
+        {
+          "start": 115,
+          "end": 115
+        },
+        {
+          "start": 120,
+          "end": 120
+        },
+        {
+          "start": 123,
+          "end": 124
+        },
+        {
+          "start": 127,
+          "end": 128
+        },
+        {
+          "start": 130,
+          "end": 130
+        },
+        {
+          "start": 132,
+          "end": 132
+        },
+        {
+          "start": 134,
+          "end": 135
+        },
+        {
+          "start": 143,
+          "end": 143
+        },
+        {
+          "start": 145,
+          "end": 146
+        },
+        {
+          "start": 151,
+          "end": 151
+        },
+        {
+          "start": 156,
+          "end": 163
+        },
+        {
+          "start": 167,
+          "end": 169
+        },
+        {
+          "start": 172,
+          "end": 172
+        },
+        {
+          "start": 175,
+          "end": 176
+        },
+        {
+          "start": 178,
+          "end": 179
+        },
+        {
+          "start": 184,
+          "end": 187
+        },
+        {
+          "start": 189,
+          "end": 189
+        },
+        {
+          "start": 192,
+          "end": 198
+        },
+        {
+          "start": 202,
+          "end": 202
+        },
+        {
+          "start": 204,
+          "end": 204
+        },
+        {
+          "start": 206,
+          "end": 208
+        },
+        {
+          "start": 211,
+          "end": 211
+        },
+        {
+          "start": 214,
+          "end": 215
+        },
+        {
+          "start": 217,
+          "end": 218
+        },
+        {
+          "start": 223,
+          "end": 223
+        },
+        {
+          "start": 225,
+          "end": 226
+        },
+        {
+          "start": 228,
+          "end": 228
+        },
+        {
+          "start": 232,
+          "end": 235
+        },
+        {
+          "start": 239,
+          "end": 241
+        },
+        {
+          "start": 246,
+          "end": 246
+        },
+        {
+          "start": 248,
+          "end": 248
+        },
+        {
+          "start": 250,
+          "end": 250
+        },
+        {
+          "start": 252,
+          "end": 252
+        },
+        {
+          "start": 256,
+          "end": 256
+        },
+        {
+          "start": 258,
+          "end": 258
+        },
+        {
+          "start": 260,
+          "end": 260
+        },
+        {
+          "start": 262,
+          "end": 262
+        },
+        {
+          "start": 268,
+          "end": 269
+        },
+        {
+          "start": 271,
+          "end": 271
+        },
+        {
+          "start": 274,
+          "end": 275
+        },
+        {
+          "start": 278,
+          "end": 278
+        },
+        {
+          "start": 280,
+          "end": 280
+        },
+        {
+          "start": 283,
+          "end": 283
+        }
+      ],
+      "vulnerable_instructions_count": 187
+    },
+    {
+      "assembly_file": "vulnerable_sequences/MULTI_TYPE/multi_type_select-base.arm64.gcc.O0.s",
+      "metadata_file": "vulnerable_sequences/MULTI_TYPE/multi_type_select-base.arm64.gcc.O0_metadata.json",
+      "sequence_file": "vulnerable_sequences/MULTI_TYPE/multi_type_select-base.arm64.gcc.O0_vulnerable_sequence.s",
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/select-base.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "MELTDOWN",
+        "SPECTRE_V2",
+        "SPECTRE_V1"
+      ],
+      "validation_score": 0.7,
+      "risk_level": "HIGH",
+      "vulnerable_line_ranges": [
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 3,
+          "end": 3
+        },
+        {
+          "start": 7,
+          "end": 7
+        },
+        {
+          "start": 9,
+          "end": 9
+        },
+        {
+          "start": 14,
+          "end": 21
+        },
+        {
+          "start": 24,
+          "end": 24
+        },
+        {
+          "start": 26,
+          "end": 26
+        },
+        {
+          "start": 28,
+          "end": 28
+        },
+        {
+          "start": 31,
+          "end": 37
+        },
+        {
+          "start": 40,
+          "end": 41
+        },
+        {
+          "start": 43,
+          "end": 43
+        },
+        {
+          "start": 46,
+          "end": 46
+        },
+        {
+          "start": 50,
+          "end": 50
+        },
+        {
+          "start": 52,
+          "end": 52
+        },
+        {
+          "start": 57,
+          "end": 65
+        },
+        {
+          "start": 68,
+          "end": 68
+        },
+        {
+          "start": 70,
+          "end": 70
+        },
+        {
+          "start": 72,
+          "end": 72
+        },
+        {
+          "start": 75,
+          "end": 85
+        },
+        {
+          "start": 88,
+          "end": 91
+        },
+        {
+          "start": 94,
+          "end": 101
+        },
+        {
+          "start": 104,
+          "end": 105
+        },
+        {
+          "start": 108,
+          "end": 109
+        },
+        {
+          "start": 111,
+          "end": 111
+        },
+        {
+          "start": 117,
+          "end": 117
+        },
+        {
+          "start": 119,
+          "end": 119
+        },
+        {
+          "start": 124,
+          "end": 131
+        },
+        {
+          "start": 134,
+          "end": 135
+        },
+        {
+          "start": 137,
+          "end": 139
+        },
+        {
+          "start": 143,
+          "end": 144
+        },
+        {
+          "start": 148,
+          "end": 148
+        },
+        {
+          "start": 151,
+          "end": 152
+        },
+        {
+          "start": 155,
+          "end": 155
+        },
+        {
+          "start": 158,
+          "end": 161
+        },
+        {
+          "start": 164,
+          "end": 165
+        },
+        {
+          "start": 170,
+          "end": 178
+        },
+        {
+          "start": 181,
+          "end": 183
+        },
+        {
+          "start": 187,
+          "end": 192
+        },
+        {
+          "start": 195,
+          "end": 196
+        },
+        {
+          "start": 199,
+          "end": 200
+        },
+        {
+          "start": 202,
+          "end": 202
+        },
+        {
+          "start": 205,
+          "end": 205
+        }
+      ],
+      "vulnerable_instructions_count": 206
+    }
+  ]
+}

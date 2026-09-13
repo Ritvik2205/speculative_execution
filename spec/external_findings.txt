@@ -1,0 +1,52 @@
+instructions checked (assemblable archs): 25942
+oracle coverage (assembled+decoded):      22807 (87.9%)
+agreement on covered set: 22533/22807 (98.80%)
+
+confusion matrix (rows=spec, cols=oracle):
+            CALL     RET    JUMP   OTHER
+    CALL      60       0       0      42
+     RET       0      18       0       3
+    JUMP       0       0     749      19
+   OTHER      31       0     179   21706
+
+control-flow disagreements (spec != oracle), up to 40:
+   ('arm64', 'ret', 'RET', 'OTHER')
+   ('arm64', 'b\t.L33', 'OTHER', 'JUMP')
+   ('arm64', 'b .+4', 'OTHER', 'JUMP')
+   ('arm64', 'blr x1', 'OTHER', 'CALL')
+   ('x86_64', 'jge\t.Ltmp0', 'OTHER', 'JUMP')
+   ('x86_64', 'jae\t.LBB5_2', 'OTHER', 'JUMP')
+   ('arm64', 'blr\tx8', 'OTHER', 'CALL')
+   ('arm64', '\tblr\tx8', 'OTHER', 'CALL')
+   ('arm64', '\tret', 'RET', 'OTHER')
+   ('arm64', 'b\t.L26', 'OTHER', 'JUMP')
+   ('arm64', 'blr x0', 'OTHER', 'CALL')
+   ('arm64', 'blr\tx1', 'OTHER', 'CALL')
+   ('x86_64', 'movzbl\t%bpl, %ebp', 'JUMP', 'OTHER')
+   ('x86_64', 'jae\t.LBB3_2', 'OTHER', 'JUMP')
+   ('x86_64', 'jle\t.L3', 'OTHER', 'JUMP')
+   ('x86_64', 'jle\t.L38', 'OTHER', 'JUMP')
+   ('arm64', 'b\t.L4', 'OTHER', 'JUMP')
+   ('arm64', 'b\t.L6', 'OTHER', 'JUMP')
+   ('x86_64', 'movb\t%bl, 74(%rsp)', 'CALL', 'OTHER')
+   ('x86_64', 'jle\t.L27', 'OTHER', 'JUMP')
+   ('x86_64', 'jbe\t.LBB0_2', 'OTHER', 'JUMP')
+   ('arm64', 'bcs\t.L7', 'OTHER', 'JUMP')
+   ('arm64', 'blr\tx18', 'OTHER', 'CALL')
+   ('x86_64', 'jge\t.Ltmp1', 'OTHER', 'JUMP')
+   ('arm64', 'blr\tx9', 'OTHER', 'CALL')
+   ('x86_64', 'jge\t.LBB0_4', 'OTHER', 'JUMP')
+   ('x86_64', 'jbe\t.L109', 'OTHER', 'JUMP')
+   ('x86_64', 'jle\t.L28', 'OTHER', 'JUMP')
+   ('arm64', 'blr\tx20', 'OTHER', 'CALL')
+   ('x86_64', 'jle\t.LBB0_2', 'OTHER', 'JUMP')
+   ('arm64', 'blr x3', 'OTHER', 'CALL')
+   ('arm64', 'blr\tx22', 'OTHER', 'CALL')
+   ('arm64', 'blr\tx3', 'OTHER', 'CALL')
+   ('arm64', 'blr\tx10', 'OTHER', 'CALL')
+   ('x86_64', 'jae\t.LBB6_2', 'OTHER', 'JUMP')
+   ('x86_64', 'jle\t.L4', 'OTHER', 'JUMP')
+   ('arm64', 'b\t.L8', 'OTHER', 'JUMP')
+   ('x86_64', 'jle\t.L35', 'OTHER', 'JUMP')
+   ('x86_64', 'jle\t.L47', 'OTHER', 'JUMP')
+   ('x86_64', 'jle\t.L48', 'OTHER', 'JUMP')

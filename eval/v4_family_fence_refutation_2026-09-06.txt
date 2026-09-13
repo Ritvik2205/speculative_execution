@@ -1,0 +1,56 @@
+*** RETRACTED 2026-09-06 — the verdicts below used a BUGGY leak metric. ***
+The harness printed "Success: 0xNN" on any CONFIDENT cache hit
+(score[0]>=2*score[1]), NOT on recovering the ACTUAL secret byte, and the
+InvisiSpec parser just counts "Success:" lines. So n_success=40 meant "40
+confident hits" (possibly on noise/wrong lines), NOT "40 correct secret bytes".
+Proof it was spurious: the STRUCTURAL SAFE gadget (v=*public_ptr, zero
+secret-dependent memory access — cannot possibly touch array2[secret*512]) also
+reported leak 40/40. Impossible under a correct metric. Therefore EVERY verdict
+below is unreliable, INCLUDING "fenced leaks 40/40" — the fence-refutation is
+NOT established. Harness fixed to emit "Success" only when recovered==secret
+(prints "RECOVERED k/40"); re-running vuln/fenced/safe -> eval/v4_trio_2026-09-06.log.
+Do not cite anything below.
+=========================================================================
+V4 family oracle labelling — the fence-discriminator hypothesis is REFUTED
+=========================================================================
+2026-09-06. Goal: oracle-label a store-bypass (SSB) family so leak/safe becomes
+oracle-truth, using the fence as a statically-visible discriminator (unfenced->
+leak / lfence->safe). Oracle = InvisiSpec (gem5 DerivO3 store-forwarding).
+
+VERDICTS (all 40/40 byte recovery, verdict=leak):
+  v4fam_s0_st9_ind0_d0_none     unfenced        -> leak
+  v4fam_s1_st9_ind1_d1_none     unfenced        -> leak
+  v4fam_s2_st10_ind0_d2_none    unfenced        -> leak
+  v4fam_s0_st9_ind0_d0_lfence   fenced (inline) -> leak   <-- refutes hypothesis
+  v4fam_s1_st9_ind1_d1_lfence   fenced (inline) -> leak   <-- refutes hypothesis
+  (s0 fenced also leaked earlier via the call-lfence build)
+
+FINDING: an `lfence` placed between the store (slot=public) and the reload
+(v=*slot) does NOT stop speculative store bypass in InvisiSpec's gem5 model —
+the fenced gadgets leak all 40 bytes, identical to unfenced. Verified the binary
+contains a real, reachable lfence (inline SPEC_FENCE, fresh recompile). So there
+is NO fence-based static discriminator for V4/SSB under this oracle.
+
+CAVEAT / interpretation: this contradicts the ISA intent (lfence is a
+serializing speculation barrier and SHOULD block the bypass). Two readings:
+  (1) Trust the oracle: SSB leakage is not controlled by any statically-visible
+      victim feature (fence included) -> V4 has no graph-learnable discriminator
+      -> it is genuinely ORACLE-DEPENDENT at inference. Consistent with the
+      earlier static finding (eval/ssb_edge_investigation_2026-09-04.txt) and the
+      cross-ISA study (V4 gets 3 labels, zero speculative edges).
+  (2) InvisiSpec's memory-dependence (StoreSet) speculation may not honour lfence
+      for the store->load-forward path -> the oracle cannot validate SSB
+      *mitigations*, only SSB *presence*. Then lfence-fenced != a valid "safe"
+      sample and a different safe-arm (or oracle) is needed for the mitigation
+      axis.
+
+Either way the fence-as-label plan is dead. The family, as designed, yields
+ALL-LEAK -> no leak/safe contrast -> unusable for a discriminator. Batch stopped
+(was ~3.5h/sim under contention; producing only more "leak").
+
+Candidate salvage (not yet run): a STRUCTURAL safe arm — victim that loads the
+value directly from the public arg (v=*public_ptr) instead of reloading the
+just-stored global (v=*slot). No store->load-same-address => no bypass => oracle
+should label SAFE, and the difference (self-reload of a stored location vs not)
+is statically visible. This is the true SSB structural signature, though it
+collides with -O0 V1's index-spill pattern (the known confound).

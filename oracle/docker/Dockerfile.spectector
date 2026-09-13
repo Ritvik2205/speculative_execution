@@ -1,0 +1,32 @@
+# oracle/docker/Dockerfile.spectector
+# Spectector (IMDEA) speculative-non-interference oracle for x86 gadgets.
+# Ubuntu + Ciao Prolog + Z3 4.8.4 (from source) + Spectector + x86 cross-gcc.
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    git build-essential gcc g++ curl python3 python3-setuptools \
+    libgmp-dev ca-certificates unzip cmake gcc-x86-64-linux-gnu z3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ciao Prolog (local-install; empty stdin accepts defaults)
+RUN cd /opt && git clone --depth 1 https://github.com/ciao-lang/ciao \
+    && cd ciao && printf '\n\n\n\n' | ./ciao-boot.sh local-install
+ENV CIAOPATH=/root/ciao
+
+# Spectector (+ concolic + muasm_translator; auto-fetches z3 store), then build.
+# unzip is required to extract the fetched z3.
+RUN eval "$(/opt/ciao/build/bin/ciao-env --sh)" \
+    && export PATH=/opt/ciao/build/bin:$PATH \
+    && ciao get github.com/spectector/spectector \
+    && ciao build github.com/spectector/spectector
+
+# Z3 4.8.4 from source: apt's z3 4.8.12 emits a model format concolic can't
+# parse; the bundled z3 is x64 (won't run on arm64). 4.8.4 matches the README.
+RUN cd /opt && git clone --depth 1 --branch z3-4.8.4 https://github.com/Z3Prover/z3.git \
+    && cd z3 && mkdir build && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4 \
+    && cp z3 /usr/local/bin/z3
+
+COPY run-spectector /usr/local/bin/run-spectector
+RUN chmod +x /usr/local/bin/run-spectector
+WORKDIR /work

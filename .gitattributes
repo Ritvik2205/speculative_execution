@@ -1,0 +1,2 @@
+*.sh text eol=lf
+oracle/docker/run-spectector text eol=lf

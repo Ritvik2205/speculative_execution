@@ -1,0 +1,10 @@
+{
+  "strategy": "weighted_voting",
+  "rf_weight": 0.6,
+  "ggnn_weight": 0.4,
+  "test_size": 9189,
+  "accuracies": {
+    "RF v18": 0.9229513548808358,
+    "Ensemble": 0.9229513548808358
+  }
+}

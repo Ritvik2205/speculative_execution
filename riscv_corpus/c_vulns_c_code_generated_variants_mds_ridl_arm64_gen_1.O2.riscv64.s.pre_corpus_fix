@@ -1,0 +1,62 @@
+	.file	"mds_ridl_arm64_gen_1.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	ridl_gadget
+	.type	ridl_gadget, @function
+ridl_gadget:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+ #APP
+# 3 "c_vulns/c_code/generated_variants/mds_ridl_arm64_gen_1.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	lui	a5,%hi(.LANCHOR0)
+	addi	a5,a5,%lo(.LANCHOR0)
+	li	a4,65
+	sd	a4,0(a5)
+ #APP
+# 4 "c_vulns/c_code/generated_variants/mds_ridl_arm64_gen_1.c" 1
+	dc civac, a5; dsb ish
+# 0 "" 2
+# 3 "c_vulns/c_code/generated_variants/mds_ridl_arm64_gen_1.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	lui	a4,%hi(probe)
+	addi	a4,a4,%lo(probe)
+ #APP
+# 12 "c_vulns/c_code/generated_variants/mds_ridl_arm64_gen_1.c" 1
+	str xzr, [a5]
+	
+	nop
+	nop
+	ldrb w0, [a5]
+	lsl x0, x0, #6
+	ldr x1, [a4, x0]
+	
+# 0 "" 2
+ #NO_APP
+	ld	ra,8(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	ridl_gadget, .-ridl_gadget
+	.globl	probe
+	.globl	store_buf
+	.bss
+	.align	6
+	.set	.LANCHOR0,. + 0
+	.type	store_buf, @object
+	.size	store_buf, 64
+store_buf:
+	.zero	64
+	.type	probe, @object
+	.size	probe, 16384
+probe:
+	.zero	16384
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

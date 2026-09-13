@@ -1,0 +1,63 @@
+	.file	"mds_zombie_arm64_gen_0.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	zombieload_gadget
+	.type	zombieload_gadget, @function
+zombieload_gadget:
+	addi	sp,sp,-16
+	sd	s0,0(sp)
+	sd	ra,8(sp)
+	addi	s0,sp,16
+ #APP
+# 3 "c_vulns/c_code/generated_variants/mds_zombie_arm64_gen_0.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	lui	a5,%hi(.LANCHOR0)
+	addi	a5,a5,%lo(.LANCHOR0)
+ #APP
+# 4 "c_vulns/c_code/generated_variants/mds_zombie_arm64_gen_0.c" 1
+	dc civac, a5
+# 0 "" 2
+# 3 "c_vulns/c_code/generated_variants/mds_zombie_arm64_gen_0.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	lui	a4,%hi(probe)
+	addi	a4,a4,%lo(probe)
+ #APP
+# 11 "c_vulns/c_code/generated_variants/mds_zombie_arm64_gen_0.c" 1
+	ldrb w0, [a5]
+	
+	ldrb w1, [a5]
+	ldrb w2, [a5]
+	add x3, x0, x1
+	lsl x3, x3, #6
+	ldr x4, [a4, x3]
+	
+# 0 "" 2
+ #NO_APP
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	zombieload_gadget, .-zombieload_gadget
+	.globl	probe
+	.globl	target_buf
+	.bss
+	.align	6
+	.set	.LANCHOR0,. + 0
+	.type	target_buf, @object
+	.size	target_buf, 64
+target_buf:
+	.zero	64
+	.type	probe, @object
+	.size	probe, 16384
+probe:
+	.zero	16384
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

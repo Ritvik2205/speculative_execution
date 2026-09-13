@@ -1,0 +1,27 @@
+test records altered by neutralisation: 442/1670
+
+=== hand-58:  intact 95.15%   trigger-neutralised 78.44%   drop +16.71pp
+  class                        recall intact  neutralised     drop
+  BENIGN                               99.5%        99.5%    +0.0pp
+  BRANCH_HISTORY_INJECTION             95.5%        83.6%   -11.9pp
+  INCEPTION                            79.8%        78.7%    -1.1pp
+  L1TF                                 67.6%         0.0%   -67.6pp  <-- rule-defined
+  MDS                                  97.8%         0.0%   -97.8pp  <-- rule-defined
+  RETBLEED                             96.0%        70.7%   -25.3pp
+  SPECTRE_RSB                           0.0%         0.0%    +0.0pp
+  SPECTRE_V1                           97.6%        97.6%    +0.0pp  <-- rule-defined
+  SPECTRE_V2                           77.3%        39.0%   -38.3pp
+  SPECTRE_V4                           99.2%         0.0%   -99.2pp  <-- rule-defined
+
+=== spec-42:  intact 97.19%   trigger-neutralised 85.27%   drop +11.92pp
+  class                        recall intact  neutralised     drop
+  BENIGN                              100.0%       100.0%    +0.0pp
+  BRANCH_HISTORY_INJECTION             89.6%        77.6%   -11.9pp
+  INCEPTION                            88.3%        88.3%    +0.0pp
+  L1TF                                 64.9%         2.7%   -62.2pp  <-- rule-defined
+  MDS                                 100.0%         8.9%   -91.1pp  <-- rule-defined
+  RETBLEED                             94.7%        85.3%    -9.3pp
+  SPECTRE_RSB                         100.0%       100.0%    +0.0pp
+  SPECTRE_V1                          100.0%       100.0%    +0.0pp  <-- rule-defined
+  SPECTRE_V2                           92.9%        93.5%    +0.6pp
+  SPECTRE_V4                           99.2%         1.6%   -97.6pp  <-- rule-defined

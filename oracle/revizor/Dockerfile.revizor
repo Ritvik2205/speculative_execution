@@ -1,0 +1,22 @@
+# oracle/revizor/Dockerfile.revizor
+# Build + run ON A REAL x86 INTEL/AMD LINUX HOST (bare-metal or *.metal cloud).
+# Provides Revizor + x86-64 ISA spec + Unicorn 1.0.3 (the version its model
+# backend requires) + kernel-module build tools. The executor kernel module is
+# built/loaded at run time against the host kernel (needs --privileged).
+FROM --platform=linux/amd64 ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    git python3 python3-pip python3-venv build-essential \
+    linux-headers-generic kmod curl \
+    && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 https://github.com/microsoft/sca-fuzzer.git /opt/revizor
+WORKDIR /opt/revizor
+# Unicorn 1.0.3 is required by Revizor's model backend (x86 wheel exists).
+RUN python3 -m pip install --break-system-packages "unicorn==1.0.3" && \
+    python3 -m pip install --break-system-packages -e .
+# Download the x86-64 instruction spec used by the fuzzer/model.
+RUN rvzr download_spec -a x86-64 -o /opt/revizor/base_x86.json
+WORKDIR /work
+# Run: docker run --privileged -v /lib/modules:/lib/modules -v "$PWD":/work revizor:pinned bash
+#   then: cd /opt/revizor/rvzr/executor_km/x86 && make && insmod x86-executor.ko
+#   then: rvzr reproduce -s /opt/revizor/base_x86.json -c /work/oracle/revizor/config.yaml -t <testcase.asm> -i 100

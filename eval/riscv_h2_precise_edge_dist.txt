@@ -1,0 +1,18 @@
+======================================================================
+Exact per-record comparison: BHI records misclassified as MDS vs BHI
+records correctly classified, RISC-V, same checkpoint
+======================================================================
+
+BHI->MDS (misclassified, n=56 incl. dup opt-levels) (n=56):
+  instr/record: mean=71.5 median=79
+  pdg nodes/record: mean=71.5
+  edge-type fractions: {'DATA_DEP': 0.511, 'CONTROL_FLOW': 0.277, 'MEMORY_ORDER': 0.09, 'SPEC_RETURN': 0.05, 'SPEC_INDIRECT': 0.048, 'FENCE_BOUNDARY': 0.012, 'CACHE_TEMPORAL': 0.009, 'SPEC_CONDITIONAL': 0.003, 'RSB_CHAIN': 0.0}
+
+BHI->BHI (correct, n=40) (n=40):
+  instr/record: mean=27.9 median=27
+  pdg nodes/record: mean=27.9
+  edge-type fractions: {'CONTROL_FLOW': 0.432, 'DATA_DEP': 0.308, 'SPEC_INDIRECT': 0.113, 'FENCE_BOUNDARY': 0.048, 'MEMORY_ORDER': 0.043, 'SPEC_RETURN': 0.039, 'CACHE_TEMPORAL': 0.017}
+
+L1 distance between misclassified-BHI and correct-BHI edge distributions: 0.529
+Mean instr/record: misclassified=71.5 vs correct=27.9
+Mean nodes/record: misclassified=71.5 vs correct=27.9

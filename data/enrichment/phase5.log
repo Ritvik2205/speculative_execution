@@ -1,0 +1,3 @@
+[phase5] ANTHROPIC_API_KEY not set — writing empty placeholder
+[common] Wrote 0 records to /Users/ritvikgupta/SpecExec/data/enrichment/phase5_synthetic.jsonl
+[phase5] Set ANTHROPIC_API_KEY and re-run to generate synthetic data

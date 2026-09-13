@@ -1,0 +1,11 @@
+building graphs for all 7203 records...
+graphs=7203 classes=10 seeds=5
+
+split              sizes(tr/val/te)           test-acc         macro-F1
+------------------------------------------------------------------------
+random             (4971, 575, 1657)   97.01 ± 0.42    94.23 ± 0.89
+group              (5189, 372, 1642)   92.11 ± 1.89    86.33 ± 3.60  (Δ-4.90pp)
+opt(O3 held out)   (5413, 286, 992)    93.08 ± 2.68    38.94 ± 5.09  (Δ-3.92pp)
+
+Interpretation: a large random->group/opt drop = the locked random
+test overstated generalization (augmentation + optimization leakage).

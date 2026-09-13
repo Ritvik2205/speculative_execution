@@ -1,0 +1,23 @@
+Freestanding libc declarations for harvesting the real RISC-V PoCs.
+
+`riscv64-elf-gcc` (Homebrew) is a bare-metal toolchain with no newlib headers,
+and Apple clang has no riscv64 backend, so the upstream PoCs cannot be compiled
+as-is on macOS. spec/harvest_real_riscv.py only ever runs the compiler with -S
+and never links, so declarations suffice.
+
+This does not perturb the code we harvest. The gadget functions call no libc at
+all -- they are array indexing, a bounds check, inline asm and a probe load. The
+libc references live in the harness (printf/memset/random), which affects only
+whether a call target resolves at link time, never the instructions GCC emits
+for the gadget. The one place it could matter -- glibc's headers sometimes
+provide builtins that change codegen -- does not arise, because no gadget
+function calls any of the stubbed functions.
+
+stdint.h forwards to gcc's self-contained <stdint-gcc.h>: gcc's own <stdint.h>
+does `#include_next <stdint.h>` expecting a libc one that is not present.
+
+Security-RISC/spectre.c additionally needs -std=gnu17. It calls rdcycle(&junk2)
+against a 0-argument declaration -- legal before C23, where `()` meant
+"unspecified arguments". GCC 16 defaults to C23, where `()` means `(void)`, so
+it errors. Compiling as gnu17 matches the toolchain the authors used rather
+than editing their source.

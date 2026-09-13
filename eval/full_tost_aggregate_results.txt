@@ -1,0 +1,16 @@
+
+mode      n     test-acc (mean±CI)      macroF1 (mean±CI)
+hand      5    96.14 ± 1.59             84.60 ± 7.22
+learned   5    93.57 ± 0.60             79.40 ± 1.88
+both      5    93.72 ± 0.82             79.40 ± 1.11
+
+TOST vs hand (margin 0.5pp acc):
+  learned  diff=-2.58pp 90%CI[-3.81,-1.35] -> NOT equivalent (complementary at best)
+  both     diff=-2.42pp 90%CI[-3.68,-1.17] -> NOT equivalent (complementary at best)
+
+TOST vs hand on macro-F1 (EXPLORATORY margin 3.0pp — not pre-registered like the 0.5pp accuracy margin; see
+SPECDISCOVER_VERIFICATION_GAPS.md G2):
+  learned  diff=-5.20pp 90%CI[-10.74,+0.34] -> NOT equivalent
+  both     diff=-5.20pp 90%CI[-10.74,+0.34] -> NOT equivalent
+
+Sign check: accuracy says 'hand > learned'; macro-F1 says 'hand > learned'.

@@ -1,0 +1,30 @@
+classes=['SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4', 'L1TF', 'MDS', 'RETBLEED', 'INCEPTION', 'BRANCH_HISTORY_INJECTION', 'SPECTRE_RSB', 'BENIGN']
+
+============================================================
+per-instruction syntactic validity (llvm-mc assembles cleanly):
+  6072/7687 (79.0%) valid
+  x86_64  : 3541/4457 (79.4%) valid
+  arm64   : 2531/3230 (78.4%) valid
+
+per-sequence (ALL instructions in the gadget must assemble):
+  12/300 (4.0%) fully valid
+
+Note: this only checks syntax (does llvm-mc accept it), not whether 
+the gadget is the RIGHT vulnerability class (still classifier-judged, 
+unresolved without a real execution oracle — see G10).
+
+============================================================
+failure categorization (of 1615 malformed instructions):
+  unresolved_placeholder      290 (18.0%)
+  operand_type_violation       58 (3.6%)
+  other                      1267 (78.5%)
+
+  x86_64: (916 malformed)
+    unresolved_placeholder     89 (9.7%)
+    operand_type_violation     58 (6.3%)
+    other                     769 (84.0%)
+
+  arm64: (699 malformed)
+    unresolved_placeholder    201 (28.8%)
+    operand_type_violation      0 (0.0%)
+    other                     498 (71.2%)

@@ -1,0 +1,57 @@
+# oracle/docker/Dockerfile.invisispec
+# InvisiSpec (2019-era gem5 fork, mjyan0720/InvisiSpec-1.0) real-execution leak
+# oracle. Ubuntu 18.04 base matches the fork's era (python2 SCons, gcc<=7 era
+# -Werror behavior) per SPECDISCOVER_UPDATE.md's Phase 4 build notes.
+#
+# This builds the PREP image (toolchain + patched source, no compiled gem5).
+# Tag it specdiscover-invisispec-prep:pinned; see
+# oracle/docker/build_invisispec_incremental.sh for the actual (resumable)
+# compile step and the final specdiscover-invisispec:pinned image.
+FROM ubuntu:18.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential git m4 scons \
+    python2.7 python2.7-dev \
+    zlib1g-dev libprotobuf-dev protobuf-compiler \
+    libgoogle-perftools-dev libboost-all-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# SCons on bionic invokes `python`; bionic's python2.7 package doesn't
+# register that alias by default.
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python2.7 10
+
+RUN git clone --depth 1 https://github.com/mjyan0720/InvisiSpec-1.0.git /opt/InvisiSpec
+WORKDIR /opt/InvisiSpec
+
+# Root cause (found by patching SCons to reveal the real traceback, since it
+# swallows exceptions from site_init loading): SCons 3.0.1 (bionic's apt
+# version) has `from __future__ import print_function` in its own module
+# chain, and Python 2's compile() inherits __future__ flags from the CALLING
+# frame by default (dont_inherit=False) -- so every old-style `print "..."`
+# statement in this 2018-era tree becomes a SyntaxError the moment SCons
+# compiles it, even though the same file compiles fine in isolation. Fix at
+# the source: 2to3's print/except fixers rewrite `print X` -> `print(X)` and
+# `except E, e:` -> `except E as e:`, which parse correctly either way.
+# 2to3 only walks *.py by default; SConstruct/SConscript are extensionless
+# Python, so they're named explicitly.
+RUN find . -type f \( -name "*.py" -o -name "SConstruct" -o -name "SConscript*" \) \
+    -print0 | xargs -0 2to3-2.7 -f print -f except -w -n 2>&1 | tail -5
+
+# 2to3 alone isn't enough: some files (e.g. SConstruct) already use
+# function-call print(..., end=' ') assuming print_function is active, but
+# that file's loading path doesn't inherit it the way site_init.py's does.
+# Make it explicit everywhere instead of depending on inheritance.
+COPY add_future_import.py /tmp/add_future_import.py
+RUN python2.7 /tmp/add_future_import.py
+
+# The actual gem5 compile is deliberately NOT a RUN step in this image: on
+# this host, something restarts the WSL2 VM every ~15-20 min regardless of
+# build parallelism (-j8, -j2, and -j1 have all been killed mid-compile), and
+# a Docker RUN layer is all-or-nothing -- a kill mid-layer discards all
+# compile progress made so far, losing the race permanently. Instead this
+# image is just the prepped toolchain + source; the actual `scons` build runs
+# via `docker run` against a host-bind-mounted copy of /opt/InvisiSpec
+# (see oracle/docker/build_invisispec_incremental.sh), so SCons's own
+# dependency tracking makes each retry resume from where the last one died.
+WORKDIR /work

@@ -1,0 +1,95 @@
+{
+  "test_accuracy": 0.9376388888888889,
+  "best_epoch": 94,
+  "total_params": 2152859,
+  "num_classes": 9,
+  "classification_report": {
+    "BENIGN": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1600.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.8095499451152579,
+      "recall": 0.921875,
+      "f1-score": 0.8620689655172413,
+      "support": 1600.0
+    },
+    "INCEPTION": {
+      "precision": 0.9432258064516129,
+      "recall": 0.91375,
+      "f1-score": 0.9282539682539682,
+      "support": 1600.0
+    },
+    "L1TF": {
+      "precision": 0.8982521847690387,
+      "recall": 0.899375,
+      "f1-score": 0.8988132417239225,
+      "support": 1600.0
+    },
+    "MDS": {
+      "precision": 0.9775280898876404,
+      "recall": 0.87,
+      "f1-score": 0.9206349206349206,
+      "support": 1600.0
+    },
+    "RETBLEED": {
+      "precision": 0.9972279972279973,
+      "recall": 0.899375,
+      "f1-score": 0.9457771935589878,
+      "support": 1600.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.8499147242751564,
+      "recall": 0.934375,
+      "f1-score": 0.8901458767490324,
+      "support": 1600.0
+    },
+    "SPECTRE_V2": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1600.0
+    },
+    "SPECTRE_V4": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 1600.0
+    },
+    "accuracy": 0.9376388888888889,
+    "macro avg": {
+      "precision": 0.941744305302967,
+      "recall": 0.9376388888888889,
+      "f1-score": 0.9384104629375637,
+      "support": 14400.0
+    },
+    "weighted avg": {
+      "precision": 0.941744305302967,
+      "recall": 0.9376388888888889,
+      "f1-score": 0.9384104629375636,
+      "support": 14400.0
+    }
+  },
+  "args": {
+    "data": "data/combined_v25_real_benign.jsonl",
+    "output_dir": "viz_v35d_gine_attn_readout",
+    "viz_dir": "viz_v35d_gine_attn_readout",
+    "epochs": 100,
+    "patience": 20,
+    "hidden_dim": 256,
+    "num_layers": 4,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "dropout": 0.3,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "speculative_window": 10
+  }
+}

@@ -1,0 +1,19 @@
+                          pre-fix (leaky)     post-fix (clean)      delta
+--------------------------------------------------------------------------
+test-acc                95.34 ±  1.52       95.71 ±  0.55       +0.37pp
+macro-F1                82.72 ±  5.47       85.34 ±  5.81       +2.62pp
+
+paired t-test (same seed pre vs post, n=5):
+  acc:  mean paired delta +0.37pp, p=0.361 (NOT significant at .05)
+  F1:   mean paired delta +2.62pp, p=0.504 (NOT significant at .05)
+
+class                                pre recall        post recall      delta  had leaked recs?
+INCEPTION                       88.94 ±  6.84       87.87 ±  8.23       -1.06pp  yes (87/460, 18.9%)
+L1TF                            64.86 ±  9.78       70.81 ±  9.90       +5.95pp  yes (55/198, 27.8%)
+BRANCH_HISTORY_INJECTION        92.24 ±  4.61       91.64 ±  6.23       -0.60pp  yes (5/261, 1.9%)
+SPECTRE_V2                      78.57 ± 12.19       84.55 ±  8.52       +5.97pp  NO (0 leaked records)
+MDS                             94.67 ±  1.51       91.11 ± 10.86       -3.56pp  yes (4, <1%)
+
+Interpretation: a class with 'NO (0 leaked records)' showing a large,
+seemingly-significant delta anyway is confirmed noise, not a G11 effect —
+exactly the check the original single-run comparison couldn't make.

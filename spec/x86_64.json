@@ -1,0 +1,387 @@
+{
+  "extends": "base.json",
+  "name": "x86_64",
+  "arch": "x86_64",
+  "realize": {
+    "register_pool": [
+      "%rax",
+      "%rbx",
+      "%rcx",
+      "%rdx",
+      "%rsi",
+      "%rdi",
+      "%r8",
+      "%r9",
+      "%r10",
+      "%r11",
+      "%r12",
+      "%r13"
+    ],
+    "mem": "(%BASE)",
+    "mem_idx": "(%BASE,%IDX)",
+    "imm_prefix": "$",
+    "sym": ".L0",
+    "fn_sym": "fn_target",
+    "register_widths": {
+      "%rax": [
+        "%al",
+        "%ax",
+        "%eax",
+        "%rax"
+      ],
+      "%rbx": [
+        "%bl",
+        "%bx",
+        "%ebx",
+        "%rbx"
+      ],
+      "%rcx": [
+        "%cl",
+        "%cx",
+        "%ecx",
+        "%rcx"
+      ],
+      "%rdx": [
+        "%dl",
+        "%dx",
+        "%edx",
+        "%rdx"
+      ],
+      "%rsi": [
+        "%sil",
+        "%si",
+        "%esi",
+        "%rsi"
+      ],
+      "%rdi": [
+        "%dil",
+        "%di",
+        "%edi",
+        "%rdi"
+      ],
+      "%r8": [
+        "%r8b",
+        "%r8w",
+        "%r8d",
+        "%r8"
+      ],
+      "%r9": [
+        "%r9b",
+        "%r9w",
+        "%r9d",
+        "%r9"
+      ],
+      "%r10": [
+        "%r10b",
+        "%r10w",
+        "%r10d",
+        "%r10"
+      ],
+      "%r11": [
+        "%r11b",
+        "%r11w",
+        "%r11d",
+        "%r11"
+      ],
+      "%r12": [
+        "%r12b",
+        "%r12w",
+        "%r12d",
+        "%r12"
+      ],
+      "%r13": [
+        "%r13b",
+        "%r13w",
+        "%r13d",
+        "%r13"
+      ]
+    },
+    "suffix_width_index": {
+      "b": 0,
+      "w": 1,
+      "l": 2,
+      "q": 3
+    },
+    "mixed_width_prefixes": [
+      "movz",
+      "movs"
+    ],
+    "width_suffix_stems": [
+      "mov",
+      "add",
+      "sub",
+      "and",
+      "or",
+      "xor",
+      "cmp",
+      "test",
+      "adc",
+      "sbb",
+      "shl",
+      "shr",
+      "sar",
+      "sal",
+      "rol",
+      "ror",
+      "inc",
+      "dec",
+      "neg",
+      "not",
+      "imul",
+      "xchg",
+      "movz",
+      "movs",
+      "movzb",
+      "movzw",
+      "movsb",
+      "movsw"
+    ],
+    "indirect_star_ops": [
+      "call",
+      "callq",
+      "jmp",
+      "jmpq"
+    ],
+    "branch_ops": [
+      "jmp",
+      "jmpq",
+      "je",
+      "jne",
+      "jg",
+      "jl",
+      "jge",
+      "jle",
+      "ja",
+      "jb",
+      "jae",
+      "jbe",
+      "jz",
+      "jnz",
+      "call",
+      "callq",
+      "loop"
+    ],
+    "safe_imm": "1",
+    "branch_prefixes": [
+      "j"
+    ],
+    "branch_self_rel": ".+2"
+  },
+  "pipeline": {
+    "model": "out_of_order",
+    "speculative_window": 10,
+    "cache_window": 20,
+    "rsb_pair_window": 15,
+    "speculation_sources": [
+      "BRANCH_COND",
+      "CALL_INDIRECT",
+      "JUMP_INDIRECT",
+      "RET"
+    ],
+    "serializing_ops": [
+      "lfence",
+      "mfence",
+      "cpuid"
+    ],
+    "notes": "Phase 0: inherits base patterns verbatim; per-ISA pattern pruning deferred to Phase 1."
+  },
+  "patterns": {
+    "load": "\\b(mov[qldwb]?|movzx|movsx|movz[bw][blwq]|movs[bwl][blwq]|movabs|lods[bwdq]?|pop[qldw]?|lea)\\b",
+    "store": "\\b(mov[qldwb]?|movnti|stos[bwdq]?|push[qldw]?)\\b",
+    "branch_cond": "\\b(j(e|ne|z|nz|g|ge|l|le|a|ae|b|be|o|no|c|nc|s|ns|p|np|cxz|ecxz|rcxz))\\b",
+    "branch_uncond": "\\b(jmp|jmpq)\\b",
+    "call": "\\b(call|callq)\\b",
+    "ret": "\\b(ret|retq|retl)\\b",
+    "indirect": "\\b(jmpq?|callq?)\\s*\\*",
+    "indirect_jump_op": "\\b(jmpq?)\\b",
+    "compare": "\\b(cmp|test)\\b",
+    "arithmetic": "\\b(add|sub|mul|div|inc|dec|imul|idiv|adc|sbc|neg)\\b",
+    "logic": "\\b(and|or|xor|not)\\b",
+    "shift": "\\b(shl|shr|sar|sal|rol|ror)\\b",
+    "fence": "\\b(lfence|mfence|sfence|cpuid)\\b",
+    "cache": "\\b(clflush|clflushopt|clwb|cldemote|prefetcht[012]|prefetchnta|prefetchw|invlpg|wbinvd)\\b",
+    "timing": "\\b(rdtsc|rdtscp|rdpmc)\\b",
+    "move": "\\b(mov[zskn]?)\\b",
+    "stack_op": "\\b(push|pop)\\b",
+    "stack_access": "%[re]?sp|%[re]?bp|\\[%[re]?[sb]p\\]",
+    "indexed_access": "\\([^)]*,[^)]*\\)",
+    "memory_operand": "\\(.*%|\\(%",
+    "reg": "%([re]?[abcd]x|[re]?[sd]i|[re]?[sb]p|r[0-9]+[dwb]?)"
+  },
+  "provenance": "B1: ISA-only grammar overriding base UNION; contamination-free + mnemonic fixes (blr/jcc/bare-b).",
+  "canonical_ops": [
+    {
+      "op": "NOP",
+      "mnemonic": "nop|endbr64|hint"
+    },
+    {
+      "op": "TIMER",
+      "mnemonic": "rdtscp?|rdpmc|rdtscp?64"
+    },
+    {
+      "op": "SERIALIZE",
+      "mnemonic": "cpuid"
+    },
+    {
+      "op": "FENCE_LOAD",
+      "mnemonic": "lfence"
+    },
+    {
+      "op": "FENCE_STORE",
+      "mnemonic": "sfence"
+    },
+    {
+      "op": "FENCE_FULL",
+      "mnemonic": "mfence|dsb|dmb"
+    },
+    {
+      "op": "FENCE_INSN",
+      "mnemonic": "isb"
+    },
+    {
+      "op": "CLEAR_BUF",
+      "mnemonic": "verw"
+    },
+    {
+      "op": "NONTEMP_LOAD",
+      "mnemonic": "movntdqa|movnti"
+    },
+    {
+      "op": "CACHE_FLUSH",
+      "mnemonic": "clflushopt(_x86)?|clflush(_x86)?|dc|wbinvd"
+    },
+    {
+      "op": "PREFETCH",
+      "mnemonic": "prefetch(t0|t1|t2|nta|w)?"
+    },
+    {
+      "op": "SYSCALL",
+      "mnemonic": "syscall|sysenter|int"
+    },
+    {
+      "op": "ATOMIC",
+      "mnemonic": "lock|xbegin|xend|xacquire|xrelease|cmpxchg[qlwb]?"
+    },
+    {
+      "op": "XCHG",
+      "mnemonic": "xchg[qlwb]?"
+    },
+    {
+      "op": "PUSH",
+      "mnemonic": "push[qlwb]?"
+    },
+    {
+      "op": "POP",
+      "mnemonic": "pop[qlwb]?|leave"
+    },
+    {
+      "op": "FLOAT",
+      "mnemonic": "(add|sub|mul|div|comi|ucomi|sqrt|max|min|mov|cvt\\w*)(sd|ss|pd|ps)|cvtsi2\\w+|fld\\w*|fst\\w*"
+    },
+    {
+      "op": "VECTOR",
+      "mnemonic": "mov(dqa|dqu|aps|apd|ups|upd|d|q?_?)|p(xor|shufd|unpck\\w+|add[bwdq]|sub[bwdq]|cmp\\w+)|xorps|xorpd|[lu]dmxcsr|stmxcsr"
+    },
+    {
+      "op": "COND_MOV",
+      "mnemonic": "cmov[a-z]+|set[a-z]+"
+    },
+    {
+      "op": "MOV_ZX",
+      "mnemonic": "movz[bwl][wlq]"
+    },
+    {
+      "op": "MOV_SX",
+      "mnemonic": "movs[bwl][wlq]|movslq|cltq|cltd|cqto|cwtl"
+    },
+    {
+      "op": "ADDR_GEN",
+      "mnemonic": "lea[qlwb]?"
+    },
+    {
+      "op": "MOV",
+      "mnemonic": "mov[qlwb]?|movabsq?"
+    },
+    {
+      "op": "ADD",
+      "mnemonic": "add[qlwb]?|adc[qlwb]?|inc[qlwb]?"
+    },
+    {
+      "op": "SUB",
+      "mnemonic": "sub[qlwb]?|sbb[qlwb]?|dec[qlwb]?"
+    },
+    {
+      "op": "MUL",
+      "mnemonic": "i?mul[qlwb]?"
+    },
+    {
+      "op": "DIV",
+      "mnemonic": "i?div[qlwb]?"
+    },
+    {
+      "op": "NEG",
+      "mnemonic": "neg[qlwb]?"
+    },
+    {
+      "op": "NOT",
+      "mnemonic": "not[qlwb]?"
+    },
+    {
+      "op": "AND",
+      "mnemonic": "and[qlwb]?"
+    },
+    {
+      "op": "OR",
+      "mnemonic": "or[qlwb]?"
+    },
+    {
+      "op": "XOR",
+      "mnemonic": "xor[qlwb]?"
+    },
+    {
+      "op": "TEST",
+      "mnemonic": "test[qlwb]?"
+    },
+    {
+      "op": "BIT_FIELD",
+      "mnemonic": "bt[srcqlwb]?|bs[fr][qlwb]?|shld|shrd"
+    },
+    {
+      "op": "SHL",
+      "mnemonic": "sh[l][qlwb]?|sal[qlwb]?"
+    },
+    {
+      "op": "SHR",
+      "mnemonic": "shr[qlwb]?"
+    },
+    {
+      "op": "SAR",
+      "mnemonic": "sar[qlwb]?"
+    },
+    {
+      "op": "ROTATE",
+      "mnemonic": "ro[lr][qlwb]?|rc[lr][qlwb]?"
+    },
+    {
+      "op": "CMP",
+      "mnemonic": "cmp[qlwb]?"
+    },
+    {
+      "op": "BRANCH_COND",
+      "mnemonic": "j(e|ne|z|nz|g|ge|l|le|a|ae|b|be|o|no|c|nc|s|ns|p|np|na|nae|nb|nbe|ng|nge|nl|nle|pe|po|cxz|ecxz|rcxz)"
+    },
+    {
+      "op": "BRANCH_UNCOND",
+      "mnemonic": "jmp[ql]?"
+    },
+    {
+      "op": "CALL",
+      "mnemonic": "call[ql]?"
+    },
+    {
+      "op": "RET",
+      "mnemonic": "ret[ql]?|iret[ql]?"
+    }
+  ],
+  "operand_order": "src_first"
+}

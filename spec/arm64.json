@@ -1,0 +1,330 @@
+{
+  "extends": "base.json",
+  "name": "arm64",
+  "arch": "arm64",
+  "realize": {
+    "register_pool": [
+      "x0",
+      "x1",
+      "x2",
+      "x3",
+      "x4",
+      "x5",
+      "x6",
+      "x7",
+      "x8",
+      "x9",
+      "x10",
+      "x11"
+    ],
+    "mem": "[BASE]",
+    "mem_idx": "[BASE, IDX]",
+    "imm_prefix": "#",
+    "sym": ".L0",
+    "fn_sym": "fn_target",
+    "branch_ops": [
+      "b",
+      "bl",
+      "br",
+      "blr",
+      "cbz",
+      "cbnz",
+      "tbz",
+      "tbnz",
+      "ret"
+    ],
+    "barrier_ops": {
+      "dsb": "sy",
+      "dmb": "sy",
+      "isb": "sy"
+    },
+    "no_reg_offset_ops": [
+      "ldnp",
+      "ldp",
+      "ldur",
+      "ldurb",
+      "ldurh",
+      "ldursb",
+      "ldursh",
+      "ldursw",
+      "stnp",
+      "stp",
+      "stur",
+      "sturb",
+      "sturh"
+    ],
+    "safe_imm": "1",
+    "branch_prefixes": [
+      "b."
+    ],
+    "repair_sym_operands": true,
+    "branch_self_rel": ".+4",
+    "pc_ref_ops": [
+      "adrp",
+      "adr"
+    ],
+    "shift_imm_ops": [
+      "lsl",
+      "lsr",
+      "asr",
+      "ror",
+      "lslv",
+      "lsrv",
+      "asrv",
+      "rorv"
+    ],
+    "cond_ops": [
+      "csel",
+      "csinc",
+      "csinv",
+      "csneg",
+      "cset",
+      "csetm",
+      "cinc",
+      "cinv",
+      "cneg",
+      "ccmp",
+      "ccmn"
+    ],
+    "cond_default": "eq",
+    "wreg_map": {
+      "x0": "w0",
+      "x1": "w1",
+      "x2": "w2",
+      "x3": "w3",
+      "x4": "w4",
+      "x5": "w5",
+      "x6": "w6",
+      "x7": "w7",
+      "x8": "w8",
+      "x9": "w9",
+      "x10": "w10",
+      "x11": "w11"
+    },
+    "wreg_ops": [
+      "ldrb",
+      "ldrh",
+      "strb",
+      "strh",
+      "ldrsb",
+      "ldrsh",
+      "ldurb",
+      "ldurh",
+      "sturb",
+      "sturh",
+      "ldarb",
+      "ldarh",
+      "stlrb",
+      "stlrh"
+    ]
+  },
+  "pipeline": {
+    "model": "out_of_order",
+    "speculative_window": 10,
+    "cache_window": 20,
+    "rsb_pair_window": 15,
+    "speculation_sources": [
+      "BRANCH_COND",
+      "CALL_INDIRECT",
+      "JUMP_INDIRECT",
+      "RET"
+    ],
+    "serializing_ops": [
+      "dsb",
+      "dmb",
+      "isb",
+      "csdb"
+    ],
+    "notes": "Phase 0: inherits base patterns verbatim; ARM has no x86-style RSB, revisit RSB_CHAIN semantics in Phase 4."
+  },
+  "patterns": {
+    "load": "\\b(ldr[bhsdq]?|ldp|ldur[bhsdq]?|ldrs[bhw]|ldax?r?|ldnp|ldtr|ldx[pr]?)\\b",
+    "store": "\\b(str[bhsdq]?|stp|stur[bhsdq]?|stlr|stxr|stnp|sttr)\\b",
+    "branch_cond": "\\b(b\\.(eq|ne|lt|le|gt|ge|hs|lo|hi|ls|mi|pl|vs|vc|al|cs|cc)|beq|bne|blt|ble|bgt|bge|bhs|blo|bhi|bls|bmi|bpl|bcs|bcc|cbz|cbnz|tbz|tbnz)\\b",
+    "branch_uncond": "(^|\\s)b(\\s|$)",
+    "call": "\\b(bl|blr)\\b",
+    "ret": "\\b(ret)\\b",
+    "indirect": "\\b(br|blr)\\b|\\[x[0-9]+\\]",
+    "indirect_jump_op": "\\b(br)\\b",
+    "compare": "\\b(cmp|cmn|tst|ccmp|ccmn|fcmp)\\b",
+    "arithmetic": "\\b(add|sub|mul|udiv|sdiv|madd|msub|neg|adc|sbc)\\b",
+    "logic": "\\b(and|orr|eor|orn|bic|not)\\b",
+    "shift": "\\b(lsl|lsr|asr|ror)\\b",
+    "fence": "\\b(dsb|dmb|isb|csdb)\\b",
+    "cache": "\\b(prfm|dc\\s+(civac|cvac|cvau|zva|ivac))\\b",
+    "timing": "\\b(mrs\\s+.*cntvct|mrs\\s+.*pmccntr)\\b",
+    "move": "\\b(mov[zskn]?)\\b",
+    "stack_op": "(?!)",
+    "stack_access": "\\[sp|\\[x29|\\[fp",
+    "indexed_access": "\\[x[0-9]+,\\s*x[0-9]+|\\[.*,.*,.*\\]|,\\s*lsl\\s+#",
+    "memory_operand": "\\[",
+    "reg": "\\b([xwbhsdq][0-9]+|sp|lr|fp|pc|xzr|wzr)\\b"
+  },
+  "provenance": "B1: ISA-only grammar overriding base UNION; contamination-free + mnemonic fixes (blr/jcc/bare-b).",
+  "canonical_ops": [
+    {
+      "op": "NOP",
+      "mnemonic": "nop|hint"
+    },
+    {
+      "op": "TIMER",
+      "mnemonic": "mrs|mrc"
+    },
+    {
+      "op": "FENCE_SPEC",
+      "mnemonic": "csdb|ssbb|pssbb"
+    },
+    {
+      "op": "FENCE_INSN",
+      "mnemonic": "isb"
+    },
+    {
+      "op": "FENCE_FULL",
+      "mnemonic": "dsb|dmb"
+    },
+    {
+      "op": "FENCE_LOAD",
+      "mnemonic": "lfence"
+    },
+    {
+      "op": "CACHE_FLUSH",
+      "mnemonic": "dc|ic|clflush"
+    },
+    {
+      "op": "PREFETCH",
+      "mnemonic": "prfm|prfum"
+    },
+    {
+      "op": "VECTOR",
+      "mnemonic": ".+\\.\\d*[bhsdq]"
+    },
+    {
+      "op": "LOAD",
+      "mnemonic": "ldurs[bhw]|ldrs[bhw]|ldtrs[bhw]"
+    },
+    {
+      "op": "LOAD_PAIR",
+      "mnemonic": "ldp|ldpsw|ldnp"
+    },
+    {
+      "op": "STORE_PAIR",
+      "mnemonic": "stp|stnp"
+    },
+    {
+      "op": "ADDR_GEN",
+      "mnemonic": "adrp|adr"
+    },
+    {
+      "op": "COND_MOV",
+      "mnemonic": "cs(el|inc|inv|neg)|c(set|inc|inv|neg)m?|csetm"
+    },
+    {
+      "op": "MOV_SX",
+      "mnemonic": "sxt[bhwx]"
+    },
+    {
+      "op": "MOV_ZX",
+      "mnemonic": "uxt[bhwx]"
+    },
+    {
+      "op": "NOT",
+      "mnemonic": "mvn"
+    },
+    {
+      "op": "MOV",
+      "mnemonic": "mov[kzn]?|fmov"
+    },
+    {
+      "op": "TEST",
+      "mnemonic": "tst"
+    },
+    {
+      "op": "CMP",
+      "mnemonic": "cmp|cmn|ccmp|ccmn"
+    },
+    {
+      "op": "NEG",
+      "mnemonic": "negs?"
+    },
+    {
+      "op": "ADD",
+      "mnemonic": "adds?|adcs?|madd|umaddl|smaddl"
+    },
+    {
+      "op": "SUB",
+      "mnemonic": "subs?|sbcs?|msub|umsubl|smsubl"
+    },
+    {
+      "op": "MUL",
+      "mnemonic": "mul|[us]mull|[us]mulh|mneg"
+    },
+    {
+      "op": "DIV",
+      "mnemonic": "[us]div"
+    },
+    {
+      "op": "MIN_MAX",
+      "mnemonic": "[us](min|max)v?"
+    },
+    {
+      "op": "BIC",
+      "mnemonic": "bics?|eon|orn"
+    },
+    {
+      "op": "AND",
+      "mnemonic": "ands?"
+    },
+    {
+      "op": "OR",
+      "mnemonic": "orr"
+    },
+    {
+      "op": "XOR",
+      "mnemonic": "eor"
+    },
+    {
+      "op": "SHL",
+      "mnemonic": "lslv?"
+    },
+    {
+      "op": "SHR",
+      "mnemonic": "lsrv?"
+    },
+    {
+      "op": "SAR",
+      "mnemonic": "asrv?"
+    },
+    {
+      "op": "ROTATE",
+      "mnemonic": "rorv?|extr"
+    },
+    {
+      "op": "BIT_FIELD",
+      "mnemonic": "[us]bfiz|[us]bfx|bfi|bfxil|bfm|[us]bfm|rbit|rev\\d*|clz|cls"
+    },
+    {
+      "op": "BRANCH_COND",
+      "mnemonic": "b\\.\\w+|cbn?z|tbn?z|b(eq|ne|lt|le|gt|ge|hs|lo|hi|ls|mi|pl|cs|cc|vs|vc)"
+    },
+    {
+      "op": "BRANCH_UNCOND",
+      "mnemonic": "b"
+    },
+    {
+      "op": "CALL_IND",
+      "mnemonic": "blr"
+    },
+    {
+      "op": "CALL",
+      "mnemonic": "bl"
+    },
+    {
+      "op": "JMP_IND",
+      "mnemonic": "br"
+    },
+    {
+      "op": "RET",
+      "mnemonic": "ret"
+    }
+  ]
+}

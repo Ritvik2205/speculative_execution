@@ -1,0 +1,91 @@
+{
+  "version": "0.1",
+  "architectures": ["x86_64", "arm64"],
+  "vulnerabilities": {
+    "SPECTRE_V1": {
+      "description": "Bounds check bypass leading to speculative out-of-bounds memory access and cache probe",
+      "constraints": {
+        "sequence": [
+          {"semantic": "COMPARISON", "within": 8},
+          {"semantic": "BRANCH_CONDITIONAL", "within": 6},
+          {"semantic": "MEMORY_LOAD", "within": 10}
+        ],
+        "max_distance": 40,
+        "requires_dependent_load": false,
+        "requires_branch_then_memory": false
+      },
+      "anti_patterns": [
+        {"opcode": "lfence", "arch": "x86_64"},
+        {"opcode": "mfence", "arch": "x86_64"},
+        {"opcode": "cpuid", "arch": "x86_64"},
+        {"opcode": "dsb", "arch": "arm64"},
+        {"opcode": "dmb", "arch": "arm64"},
+        {"opcode": "isb", "arch": "arm64"},
+        {"opcode": "csdb", "arch": "arm64"},
+        {"token": "hint #0x14", "arch": "arm64"},
+        {"opcode": "sb", "arch": "arm64"}
+      ]
+    },
+    "SPECTRE_V2": {
+      "description": "Branch target injection with indirect branch and nearby gadget",
+      "constraints": {
+        "sequence": [],
+        "requires_indirect_branch": false,
+        "requires_branch_target_computed": false
+      },
+      "anti_patterns": [
+        {"token": "retpoline", "arch": "x86_64"}
+      ]
+    },
+    "MELTDOWN": {
+      "description": "Speculative access to privileged memory with side-channel",
+      "constraints": {
+        "requires_privileged_access": true,
+        "requires_memory_access": true
+      },
+      "anti_patterns": []
+    },
+    "BHI": {
+      "description": "Branch history injection via complex branch sequences",
+      "constraints": {
+        "min_branch_count": 1,
+        "requires_indirect_branch": false
+      },
+      "anti_patterns": []
+    },
+    "INCEPTION": {
+      "description": "Speculative return stack overflow / return misprediction",
+      "constraints": {
+        "requires_return_instruction": false,
+        "requires_call_or_indirect_call": false
+      },
+      "anti_patterns": []
+    },
+    "L1TF": {
+      "description": "L1 Terminal Fault style gadget",
+      "constraints": {
+        "requires_memory_access": false,
+        "requires_exception_or_fault_context": false
+      },
+      "anti_patterns": []
+    },
+    "MDS": {
+      "description": "Microarchitectural Data Sampling gadget with store/load patterns",
+      "constraints": {
+        "min_memory_ops": 1,
+        "requires_store_then_load": false
+      },
+      "anti_patterns": [
+        {"opcode": "lfence", "arch": "x86_64"},
+        {"opcode": "mfence", "arch": "x86_64"},
+        {"opcode": "dsb", "arch": "arm64"},
+        {"opcode": "dmb", "arch": "arm64"},
+        {"opcode": "isb", "arch": "arm64"},
+        {"opcode": "csdb", "arch": "arm64"},
+        {"token": "hint #0x14", "arch": "arm64"},
+        {"opcode": "sb", "arch": "arm64"}
+      ]
+    }
+  }
+}
+

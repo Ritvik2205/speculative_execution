@@ -1,0 +1,10 @@
+building graphs...
+train=4870 val=663 test=1670 seeds=10  (node features = hand, fixed)
+
+edges                          test-acc         macro-F1
+----------------------------------------------------------
+full (9 edge types)     94.20 ± 0.54    82.18 ± 2.43
+no-spec-edges           94.88 ± 0.80    82.69 ± 1.50  (Δ+0.68pp)
+no-SPEC_CONDITIONAL     93.57 ± 0.48    80.28 ± 1.36  (Δ-0.63pp)
+no-SPEC_INDIRECT        95.29 ± 0.95    84.89 ± 2.30  (Δ+1.08pp)
+no-SPEC_RETURN          94.93 ± 0.52    84.86 ± 2.87  (Δ+0.73pp)

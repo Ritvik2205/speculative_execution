@@ -1,0 +1,19 @@
+x86_64: generated 60 records
+
+wrote eval/b1_oracle_structure_records.jsonl (60 records)
+
+STRUCTURE (has defining primitive) x LINK-READY, per class/arch:
+class         arch     has-prim  link-ready
+L1TF          x86_64        70%         60%
+MDS           x86_64        90%          0%
+SPECTRE_RSB   x86_64        80%         50%
+SPECTRE_V1    x86_64        60%         30%
+SPECTRE_V2    x86_64        20%         40%
+SPECTRE_V4    x86_64       100%         80%
+
+VERDICT x STRUCTURE cross-tab (the L3->L4 question):
+  leak        has-prim=   3  no-prim=   3
+  safe        has-prim=  19  no-prim=   0
+  unrunnable  has-prim=  20  no-prim=  15
+
+Read: 'safe/unrunnable WITH has-prim' = right structure, no leak (dataflow/window/probe missing). 'leak' concentration by structure tells whether the primitive is necessary/sufficient.

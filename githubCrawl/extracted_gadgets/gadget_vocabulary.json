@@ -1,0 +1,37 @@
+{
+  "gadget_types": [
+    "SPECTRE_V1",
+    "SPECTRE_V2",
+    "INCEPTION",
+    "L1TF",
+    "RETBLEED"
+  ],
+  "architectures": [
+    "arm64"
+  ],
+  "total_gadgets": 4996,
+  "extraction_methods": [
+    "function",
+    "control_flow",
+    "memory_access",
+    "timing_sensitive"
+  ],
+  "confidence_thresholds": {
+    "high": 0.7,
+    "medium": 0.4,
+    "low": 0.2
+  },
+  "feature_names": [
+    "num_instructions",
+    "unique_opcodes",
+    "branch_count",
+    "memory_access_count",
+    "arithmetic_count",
+    "branch_density",
+    "memory_density",
+    "opcode_diversity",
+    "opcode_entropy",
+    "has_indirect_branch",
+    "has_timing_instr"
+  ]
+}

@@ -1,0 +1,63 @@
+	.file	"retbleed_rsb_x86_64_gen_5.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	deep_call
+	.type	deep_call, @function
+deep_call:
+	bgt	a0,zero,.L8
+ #APP
+# 8 "c_vulns/c_code/retbleed_variants/retbleed_rsb_x86_64_gen_5.c" 1
+	
+	nop
+	nop
+	nop
+	nop
+	leave
+	ret
+# 0 "" 2
+ #NO_APP
+	ret
+.L8:
+	addi	sp,sp,-16
+	addiw	a0,a0,-1
+	sd	ra,8(sp)
+	call	deep_call
+ #APP
+# 8 "c_vulns/c_code/retbleed_variants/retbleed_rsb_x86_64_gen_5.c" 1
+	
+	nop
+	nop
+	nop
+	nop
+	leave
+	ret
+# 0 "" 2
+ #NO_APP
+	ld	ra,8(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	deep_call, .-deep_call
+	.align	1
+	.globl	deplete_rsb
+	.type	deplete_rsb, @function
+deplete_rsb:
+	addi	sp,sp,-16
+	sd	s0,0(sp)
+	sd	ra,8(sp)
+	li	s0,3
+.L10:
+	li	a0,16
+	addiw	s0,s0,-1
+	call	deep_call
+	bne	s0,zero,.L10
+	ld	ra,8(sp)
+	ld	s0,0(sp)
+	addi	sp,sp,16
+	jr	ra
+	.size	deplete_rsb, .-deplete_rsb
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

@@ -1,0 +1,138 @@
+{
+  "test_accuracy": 0.9550898203592815,
+  "best_epoch": 17,
+  "total_params": 618059,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 5288,
+  "val_count": 245,
+  "test_count": 1670,
+  "best_val_acc": 0.9551020408163265,
+  "final_edge_type_scales": {
+    "DATA_DEP": 1.0205777883529663,
+    "CONTROL_FLOW": 0.8864877223968506,
+    "SPEC_CONDITIONAL": 1.1876918077468872,
+    "SPEC_INDIRECT": 1.0314414501190186,
+    "SPEC_RETURN": 1.1752818822860718,
+    "MEMORY_ORDER": 1.0922884941101074,
+    "CACHE_TEMPORAL": 1.0270473957061768,
+    "FENCE_BOUNDARY": 1.0044317245483398,
+    "RSB_CHAIN": 0.9186693429946899
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9884281581485053,
+      "recall": 0.9941804073714839,
+      "f1-score": 0.9912959381044487,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.7564102564102564,
+      "recall": 0.8805970149253731,
+      "f1-score": 0.8137931034482758,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.8539325842696629,
+      "recall": 0.8085106382978723,
+      "f1-score": 0.8306010928961749,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.9230769230769231,
+      "recall": 0.6486486486486487,
+      "f1-score": 0.7619047619047619,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.8958333333333334,
+      "recall": 0.9555555555555556,
+      "f1-score": 0.9247311827956989,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.9324324324324325,
+      "recall": 0.92,
+      "f1-score": 0.9261744966442953,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.8076923076923077,
+      "recall": 1.0,
+      "f1-score": 0.8936170212765957,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9436619718309859,
+      "recall": 0.8701298701298701,
+      "f1-score": 0.9054054054054054,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.9919354838709677,
+      "recall": 0.9919354838709677,
+      "f1-score": 0.9919354838709677,
+      "support": 124.0
+    },
+    "accuracy": 0.9550898203592815,
+    "macro avg": {
+      "precision": 0.8093403451065375,
+      "recall": 0.806955761879977,
+      "f1-score": 0.8039458486346623,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.9560864552833963,
+      "recall": 0.9550898203592815,
+      "f1-score": 0.9544057286464765,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7522692889561271,
+    "epoch1_val_acc": 0.8326530612244898
+  },
+  "args": {
+    "data": null,
+    "train_data": "data/v54_train.jsonl",
+    "test_data": "data/v54_test.jsonl",
+    "output_dir": "../eval/full_tost/viz_hand_s7",
+    "viz_dir": "../eval/full_tost/viz_hand_s7",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "node_feature_mode": "hand",
+    "mlm_path": null,
+    "use_spec_builder": true,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 7
+  }
+}

@@ -1,0 +1,487 @@
+[
+  {
+    "match_info": {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/bsd/dev/arm64/disassembler.arm64.gcc.O0.s",
+      "confidence_score": 0.536404060552571,
+      "validation_score": 0.8999999999999999,
+      "risk_level": "HIGH",
+      "is_vulnerable": true,
+      "vulnerability_types": [
+        "INCEPTION",
+        "MELTDOWN",
+        "SPECTRE_V1",
+        "SPECTRE_V2",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "instruction_count": 10,
+      "matched_gadgets_count": 10,
+      "risk_factors": [
+        "Medium similarity confidence",
+        "ARM64 architecture (common target)",
+        "Matches multiple vulnerability types",
+        "Spectre V1 pattern detected",
+        "Meltdown pattern detected",
+        "Spectre V2 pattern detected"
+      ],
+      "mitigation_factors": [
+        "No optimization (reduces speculation)"
+      ]
+    },
+    "patterns": {
+      "memory_access": 16,
+      "conditional_branch": 3,
+      "unconditional_branch": 0,
+      "function_call": 0,
+      "return": 1,
+      "compare": 3,
+      "arithmetic": 14,
+      "stack_operation": 38
+    },
+    "vulnerability_indicators": [
+      "Spectre V1: Compare followed by memory access",
+      "Spectre V1: Conditional branch with memory access",
+      "Meltdown: High memory access frequency",
+      "High conditional branch count (speculation opportunity)",
+      "High memory access count (cache side-channel opportunity)"
+    ],
+    "similarities": [
+      [
+        "spectre_v1_arm64_int.s",
+        0.19310344827586207
+      ],
+      [
+        "mds_arm.s",
+        0.18226600985221675
+      ],
+      [
+        "spectre_1_arm_stack.s",
+        0.1761904761904762
+      ],
+      [
+        "inception_x86.s",
+        0.0391566265060241
+      ],
+      [
+        "spectre_1_x86.s",
+        0.030864197530864196
+      ]
+    ],
+    "exploit_analysis": {
+      "file_path": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/bsd/dev/arm64/disassembler.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "INCEPTION",
+        "MELTDOWN",
+        "SPECTRE_V1",
+        "SPECTRE_V2",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "risk_level": "HIGH",
+      "exploit_difficulty": "HIGH",
+      "attack_vectors": [
+        "Bounds check bypass",
+        "Kernel memory read",
+        "Branch target injection"
+      ],
+      "mitigation_requirements": [
+        "Speculation barriers (lfence, mfence, sfence)",
+        "Compiler mitigations (retpoline, etc.)",
+        "Microcode updates"
+      ],
+      "exploit_requirements": [
+        "Control over array index",
+        "Ability to measure cache timing",
+        "Kernel execution context",
+        "Exception handling capability",
+        "Control over indirect branch target",
+        "Branch target buffer manipulation"
+      ]
+    }
+  },
+  {
+    "match_info": {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/mach/mig_strncpy.arm64.gcc.O0.s",
+      "confidence_score": 0.4558131770552851,
+      "validation_score": 0.6000000000000001,
+      "risk_level": "HIGH",
+      "is_vulnerable": true,
+      "vulnerability_types": [
+        "INCEPTION",
+        "SPECTRE_V1",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "instruction_count": 10,
+      "matched_gadgets_count": 6,
+      "risk_factors": [
+        "Low similarity confidence",
+        "ARM64 architecture (common target)",
+        "System/library function (common attack vector)",
+        "Matches multiple vulnerability types",
+        "Spectre V1 pattern detected"
+      ],
+      "mitigation_factors": [
+        "No optimization (reduces speculation)"
+      ]
+    },
+    "patterns": {
+      "memory_access": 64,
+      "conditional_branch": 12,
+      "unconditional_branch": 0,
+      "function_call": 0,
+      "return": 2,
+      "compare": 5,
+      "arithmetic": 16,
+      "stack_operation": 56
+    },
+    "vulnerability_indicators": [
+      "Spectre V1: Compare followed by memory access",
+      "Spectre V1: Conditional branch with memory access",
+      "Meltdown: High memory access frequency",
+      "High conditional branch count (speculation opportunity)",
+      "High memory access count (cache side-channel opportunity)"
+    ],
+    "similarities": [
+      [
+        "mds_arm.s",
+        0.17733990147783252
+      ],
+      [
+        "spectre_1_arm_stack.s",
+        0.1761904761904762
+      ],
+      [
+        "spectre_v1_arm64_int.s",
+        0.16551724137931034
+      ],
+      [
+        "inception_x86.s",
+        0.030120481927710843
+      ],
+      [
+        "spectre_1_x86.s",
+        0.021604938271604937
+      ]
+    ],
+    "exploit_analysis": {
+      "file_path": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/mach/mig_strncpy.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "INCEPTION",
+        "SPECTRE_V1",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "risk_level": "HIGH",
+      "exploit_difficulty": "MEDIUM",
+      "attack_vectors": [
+        "Bounds check bypass"
+      ],
+      "mitigation_requirements": [
+        "Speculation barriers (lfence, mfence, sfence)",
+        "Compiler mitigations (retpoline, etc.)",
+        "Microcode updates"
+      ],
+      "exploit_requirements": [
+        "Control over array index",
+        "Ability to measure cache timing"
+      ]
+    }
+  },
+  {
+    "match_info": {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/index.arm64.gcc.O0.s",
+      "confidence_score": 0.3628592155260409,
+      "validation_score": 0.6000000000000001,
+      "risk_level": "HIGH",
+      "is_vulnerable": true,
+      "vulnerability_types": [
+        "INCEPTION",
+        "SPECTRE_V1",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "instruction_count": 10,
+      "matched_gadgets_count": 6,
+      "risk_factors": [
+        "Low similarity confidence",
+        "ARM64 architecture (common target)",
+        "System/library function (common attack vector)",
+        "Matches multiple vulnerability types",
+        "Spectre V1 pattern detected"
+      ],
+      "mitigation_factors": [
+        "No optimization (reduces speculation)"
+      ]
+    },
+    "patterns": {
+      "memory_access": 19,
+      "conditional_branch": 3,
+      "unconditional_branch": 0,
+      "function_call": 0,
+      "return": 1,
+      "compare": 2,
+      "arithmetic": 5,
+      "stack_operation": 15
+    },
+    "vulnerability_indicators": [
+      "Spectre V1: Compare followed by memory access",
+      "Spectre V1: Conditional branch with memory access",
+      "Meltdown: High memory access frequency",
+      "High conditional branch count (speculation opportunity)",
+      "High memory access count (cache side-channel opportunity)"
+    ],
+    "similarities": [
+      [
+        "mds_arm.s",
+        0.15270935960591134
+      ],
+      [
+        "spectre_1_arm_stack.s",
+        0.14285714285714285
+      ],
+      [
+        "spectre_v1_arm64_int.s",
+        0.1425287356321839
+      ],
+      [
+        "inception_x86.s",
+        0.030120481927710843
+      ],
+      [
+        "spectre_1_x86.s",
+        0.021604938271604937
+      ]
+    ],
+    "exploit_analysis": {
+      "file_path": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/index.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "INCEPTION",
+        "SPECTRE_V1",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "risk_level": "HIGH",
+      "exploit_difficulty": "MEDIUM",
+      "attack_vectors": [
+        "Bounds check bypass"
+      ],
+      "mitigation_requirements": [
+        "Speculation barriers (lfence, mfence, sfence)",
+        "Compiler mitigations (retpoline, etc.)",
+        "Microcode updates"
+      ],
+      "exploit_requirements": [
+        "Control over array index",
+        "Ability to measure cache timing"
+      ]
+    }
+  },
+  {
+    "match_info": {
+      "source_file": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/strcpy.arm64.gcc.O0.s",
+      "confidence_score": 0.36041922421771344,
+      "validation_score": 1.0,
+      "risk_level": "HIGH",
+      "is_vulnerable": true,
+      "vulnerability_types": [
+        "INCEPTION",
+        "MELTDOWN",
+        "SPECTRE_V1",
+        "SPECTRE_V2",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "instruction_count": 10,
+      "matched_gadgets_count": 10,
+      "risk_factors": [
+        "Low similarity confidence",
+        "ARM64 architecture (common target)",
+        "System/library function (common attack vector)",
+        "Matches multiple vulnerability types",
+        "Spectre V1 pattern detected",
+        "Meltdown pattern detected",
+        "Spectre V2 pattern detected"
+      ],
+      "mitigation_factors": [
+        "No optimization (reduces speculation)"
+      ]
+    },
+    "patterns": {
+      "memory_access": 15,
+      "conditional_branch": 1,
+      "unconditional_branch": 0,
+      "function_call": 0,
+      "return": 1,
+      "compare": 1,
+      "arithmetic": 5,
+      "stack_operation": 10
+    },
+    "vulnerability_indicators": [
+      "Spectre V1: Compare followed by memory access",
+      "Spectre V1: Conditional branch with memory access",
+      "Meltdown: High memory access frequency",
+      "High memory access count (cache side-channel opportunity)"
+    ],
+    "similarities": [
+      [
+        "mds_arm.s",
+        0.13793103448275862
+      ],
+      [
+        "spectre_1_arm_stack.s",
+        0.1357142857142857
+      ],
+      [
+        "spectre_v1_arm64_int.s",
+        0.12873563218390804
+      ],
+      [
+        "inception_x86.s",
+        0.0391566265060241
+      ],
+      [
+        "spectre_1_x86.s",
+        0.030864197530864196
+      ]
+    ],
+    "exploit_analysis": {
+      "file_path": "./assembly_outputs/arm64/gcc/O0/repos/apple/darwin-xnu/libsyscall/wrappers/string/strcpy.arm64.gcc.O0.s",
+      "vulnerability_types": [
+        "INCEPTION",
+        "MELTDOWN",
+        "SPECTRE_V1",
+        "SPECTRE_V2",
+        "L1TF",
+        "BHI",
+        "MDS",
+        "RETBLEED"
+      ],
+      "risk_level": "HIGH",
+      "exploit_difficulty": "HIGH",
+      "attack_vectors": [
+        "Bounds check bypass",
+        "Kernel memory read",
+        "Branch target injection"
+      ],
+      "mitigation_requirements": [
+        "Speculation barriers (lfence, mfence, sfence)",
+        "Compiler mitigations (retpoline, etc.)",
+        "Microcode updates"
+      ],
+      "exploit_requirements": [
+        "Control over array index",
+        "Ability to measure cache timing",
+        "Kernel execution context",
+        "Exception handling capability",
+        "Control over indirect branch target",
+        "Branch target buffer manipulation"
+      ]
+    }
+  },
+  {
+    "match_info": {
+      "source_file": "./assembly_outputs/arm64/gcc/Os/repos/apple/darwin-xnu/libsyscall/mach/mach_error_string.arm64.gcc.Os.s",
+      "confidence_score": 0.3593903641857911,
+      "validation_score": 0.7,
+      "risk_level": "HIGH",
+      "is_vulnerable": true,
+      "vulnerability_types": [
+        "MELTDOWN",
+        "SPECTRE_V2",
+        "SPECTRE_V1"
+      ],
+      "instruction_count": 10,
+      "matched_gadgets_count": 4,
+      "risk_factors": [
+        "Low similarity confidence",
+        "ARM64 architecture (common target)",
+        "Spectre V1 pattern detected",
+        "Meltdown pattern detected",
+        "Spectre V2 pattern detected"
+      ],
+      "mitigation_factors": []
+    },
+    "patterns": {
+      "memory_access": 57,
+      "conditional_branch": 33,
+      "unconditional_branch": 0,
+      "function_call": 0,
+      "return": 4,
+      "compare": 25,
+      "arithmetic": 59,
+      "stack_operation": 23
+    },
+    "vulnerability_indicators": [
+      "Spectre V1: Compare followed by memory access",
+      "Spectre V1: Conditional branch with memory access",
+      "Meltdown: High memory access frequency",
+      "High conditional branch count (speculation opportunity)",
+      "High memory access count (cache side-channel opportunity)"
+    ],
+    "similarities": [
+      [
+        "spectre_1_arm_stack.s",
+        0.28809523809523807
+      ],
+      [
+        "mds_arm.s",
+        0.27586206896551724
+      ],
+      [
+        "spectre_v1_arm64_int.s",
+        0.2597701149425287
+      ],
+      [
+        "inception_x86.s",
+        0.0391566265060241
+      ],
+      [
+        "spectre_1_x86.s",
+        0.030864197530864196
+      ]
+    ],
+    "exploit_analysis": {
+      "file_path": "./assembly_outputs/arm64/gcc/Os/repos/apple/darwin-xnu/libsyscall/mach/mach_error_string.arm64.gcc.Os.s",
+      "vulnerability_types": [
+        "MELTDOWN",
+        "SPECTRE_V2",
+        "SPECTRE_V1"
+      ],
+      "risk_level": "HIGH",
+      "exploit_difficulty": "HIGH",
+      "attack_vectors": [
+        "Bounds check bypass",
+        "Kernel memory read",
+        "Branch target injection"
+      ],
+      "mitigation_requirements": [
+        "Speculation barriers (lfence, mfence, sfence)",
+        "Compiler mitigations (retpoline, etc.)",
+        "Microcode updates"
+      ],
+      "exploit_requirements": [
+        "Control over array index",
+        "Ability to measure cache timing",
+        "Kernel execution context",
+        "Exception handling capability",
+        "Control over indirect branch target",
+        "Branch target buffer manipulation"
+      ]
+    }
+  }
+]

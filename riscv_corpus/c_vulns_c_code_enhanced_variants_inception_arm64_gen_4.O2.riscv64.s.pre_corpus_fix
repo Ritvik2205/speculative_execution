@@ -1,0 +1,51 @@
+	.file	"inception_arm64_gen_4.c"
+	.option nopic
+	.attribute arch, "rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0"
+	.attribute unaligned_access, 0
+	.attribute stack_align, 16
+	.text
+	.align	1
+	.globl	target_fn
+	.type	target_fn, @function
+target_fn:
+ #APP
+# 4 "c_vulns/c_code/enhanced_variants/inception_arm64_gen_4.c" 1
+	
+	nop
+	nop
+	ret
+# 0 "" 2
+ #NO_APP
+	ret
+	.size	target_fn, .-target_fn
+	.align	1
+	.globl	inception_train_arm
+	.type	inception_train_arm, @function
+inception_train_arm:
+ #APP
+# 3 "c_vulns/c_code/enhanced_variants/inception_arm64_gen_4.c" 1
+	dsb sy; isb
+# 0 "" 2
+ #NO_APP
+	lui	a5,%hi(target_fn)
+	addi	a5,a5,%lo(target_fn)
+	li	a4,2
+	li	a3,1
+.L4:
+ #APP
+# 9 "c_vulns/c_code/enhanced_variants/inception_arm64_gen_4.c" 1
+	blr a5
+	
+	nop
+	nop
+	
+# 0 "" 2
+ #NO_APP
+	bne	a4,a3,.L5
+	ret
+.L5:
+	li	a4,1
+	j	.L4
+	.size	inception_train_arm, .-inception_train_arm
+	.ident	"GCC: (GNU) 16.1.0"
+	.section	.note.GNU-stack,"",@progbits

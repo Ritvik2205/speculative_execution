@@ -66,6 +66,8 @@ venv/
 ENV/
 .env/
 .venv/
+.venv312/
+.venv_fix/
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
@@ -149,3 +151,47 @@ docker-compose.override.yml.backup.10
 *.s
 *.c
 *.cpp
+
+*.tmp
+# *.jsonl
+*.pkl
+*.log
+*.db
+*.joblib
+*.npy
+*.pt
+
+*.png 
+*.dot
+
+data/viz/
+data/enrichment/
+
+githubCrawl/data/enrichment/poc_repos/
+githubCrawl/repos/
+
+# Large datasets (keep locally, don't push)
+*.hdf5
+data/vdisc/
+githubCrawl/parsed_assembly/vocabulary.json
+data/v42_train_enriched.jsonl
+v42/data/v42_train_enriched.jsonl
+gen/synth/out/
+gen/synth/spec_out/
+oracle/build/
+oracle/results/*.jsonl
+gen/synth/tuned_out/
+gen/synth/grid_out/
+
+
+core
+
+# Git worktrees (scratch, not tracked)
+.worktrees/
+# Third-party RISC-V PoC repos — fetched by spec/fetch_riscv_pocs.sh, not vendored
+vendor_riscv/
+spec/.harvest_tmp/
+gen/.synth_riscv_tmp/
+gen/.benign_tmp/
+v54/data/v54_train_multiscale.jsonl
+gen/.benign_xarch_tmp/
