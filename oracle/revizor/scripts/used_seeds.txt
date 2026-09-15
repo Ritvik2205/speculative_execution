@@ -1,0 +1,19 @@
+# used-seed ledger for the Revizor real-hardware campaigns.
+#
+# Every program_generator_seed ever run on the i5-8300H, across every class
+# and every campaign script, MUST be recorded here. Re-running a seed
+# regenerates byte-identical Revizor programs, which is exactly why the
+# original V4/SSB -> MDS/L1TF/SPECTRE_V1 follow-up campaign grew nothing:
+# it reused these same five seeds.
+#
+# Managed by oracle/revizor/scripts/seed_ledger.py and appended to by
+# oracle/revizor/scripts/run_multiclass_campaign.sh. Do not hand-edit
+# except to seed a fresh ledger -- use `seed_ledger.py append` instead so
+# the refuse-if-already-used check runs.
+
+# run_v4_ssb_campaign.sh (SPECTRE_V4/SSB, ssbp-off + smt-off re-test)
+1000000
+2222222
+3333333
+4444444
+5555555
