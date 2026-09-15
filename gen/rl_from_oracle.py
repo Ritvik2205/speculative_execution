@@ -52,6 +52,8 @@ plotted to `gen/w6/rl_yield.md` (plan step 5), is out of scope here.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import shutil
 import subprocess
 import sys
@@ -91,6 +93,18 @@ def oracle_reward(gadget: dict, validator: Optional[object] = None) -> float:
     return reward_for_result(result)
 
 
+def _append_sample_record(path, record: dict) -> None:
+    """Append one JSON line to `path`, creating parent dirs as needed and
+    flushing immediately so a crashed/interrupted run still leaves whatever
+    was recorded before the crash on disk (see rejection_sample_finetune's
+    `samples_out`)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps(record) + "\n")
+        f.flush()
+
+
 def _default_finetune(model, kept: list, epochs_per_round: int) -> None:
     """Real fine-tune step: re-encode each kept (leak-verdict) gadget's raw
     token sequence with the model's own vocab and run gen.generator.train on
@@ -117,6 +131,7 @@ def rejection_sample_finetune(
     epochs_per_round: int = 1,
     finetune_fn: Optional[Callable] = None,
     sample_kwargs: Optional[dict] = None,
+    samples_out: Optional[object] = None,
 ) -> dict:
     """Rejection-sampled fine-tuning loop.
 
@@ -134,6 +149,17 @@ def rejection_sample_finetune(
     `validator`, `realize_fn`, and `finetune_fn` are all injectable so this
     can run against a stub model with no Docker/Spectector/real-model
     dependency (see tests/gen/test_rl_reward.py).
+
+    If `samples_out` is given, every realized+validated sample is appended
+    (one JSON line each, flushed immediately -- see `_append_sample_record`)
+    with `{class, round, index, gadget_id, token_sequence, realized_asm,
+    verdict, reward}`, so a diversity audit (gen/analyze_rl_diversity.py) can
+    later tell genuine discovery from mode collapse. This is pure additive
+    instrumentation -- the returned yield history and finetune behaviour are
+    unchanged whether or not `samples_out` is set. `samples_out` is NOT
+    truncated here (that's run_oracle_rl's job, once per whole run) -- a
+    direct caller of this function is expected to manage the file's
+    lifecycle itself if it wants a fresh file per call.
 
     Returns `{round_idx: validated_leak_yield}` where yield is the fraction
     of successfully-realized samples that round whose oracle verdict was LEAK.
@@ -160,6 +186,17 @@ def rejection_sample_finetune(
             gadget["_tokens"] = tokens
             gadget["_class"] = target_class
             gadget["_arch"] = target_arch
+            if samples_out is not None:
+                _append_sample_record(samples_out, {
+                    "class": gadget.get("vuln_class", target_class),
+                    "round": round_idx,
+                    "index": sample_idx,
+                    "gadget_id": gadget.get("gadget_id"),
+                    "token_sequence": tokens,
+                    "realized_asm": gadget.get("_realized_asm"),
+                    "verdict": result.verdict,
+                    "reward": gadget["_reward"],
+                })
             if result.verdict == LEAK:
                 kept.append(gadget)
 
@@ -249,6 +286,7 @@ def run_oracle_rl(
     finetune_fn: Optional[Callable] = None,
     class_to_vocab: Optional[Callable[[str], str]] = None,
     meta: Optional[dict] = None,
+    samples_out: Optional[object] = None,
 ) -> dict:
     """Core oracle-RL loop, factored out of `main()` so it's directly unit-
     testable with a stub model/validator/realize_fn_factory (no Docker, no
@@ -266,11 +304,24 @@ def run_oracle_rl(
     closure, independent of what `class_to_vocab` renamed it to for
     `model.sample`).
 
+    If `samples_out` is given, it is truncated once up front (so this run's
+    samples aren't mixed in with a stale file from a previous run) and then
+    every class's `rejection_sample_finetune` call appends its
+    realized+validated samples to it incrementally -- see that function's
+    docstring for the record schema. This is additive instrumentation for
+    gen/analyze_rl_diversity.py; it does not change the yield history or
+    finetune behaviour.
+
     Writes `out_path` as a markdown yield table (see `_write_yield_md`) and
     returns `{class: {round_idx: validated_leak_yield}}`.
     """
     class_to_vocab = class_to_vocab or (lambda c: c)
     sample_kwargs = sample_kwargs or {}
+
+    if samples_out is not None:
+        samples_out = Path(samples_out)
+        samples_out.parent.mkdir(parents=True, exist_ok=True)
+        samples_out.write_text("")  # fresh file for this run
 
     all_history: dict = {}
     for cls in classes:
@@ -286,6 +337,7 @@ def run_oracle_rl(
             epochs_per_round=epochs_per_round,
             finetune_fn=finetune_fn,
             sample_kwargs=sample_kwargs,
+            samples_out=samples_out,
         )
         all_history[cls] = history
 
@@ -321,7 +373,17 @@ def _build_realize_fn(cls_short: str, arch: str, realizer, spec_gadgets,
     `cls_short`/`arch` are closed over rather than read from the
     target_class/target_arch args realize_fn receives, since those may be
     the checkpoint's aliased vocab spelling (e.g. BHI's
-    BRANCH_HISTORY_INJECTION) — see run_oracle_rl's class_to_vocab."""
+    BRANCH_HISTORY_INJECTION) — see run_oracle_rl's class_to_vocab.
+
+    gadget_id includes a short content hash of the sampled token sequence in
+    addition to round_idx/sample_idx: round_idx/sample_idx alone are unique
+    *within one script invocation*, but re-running the CLI resets both
+    counters to 0, so a second run would silently overwrite the first run's
+    .c files in `out_dir` (oracle/build/, gitignored) without the hash. The
+    hash does not replace round_idx in the id -- two samples with identical
+    content in different rounds must still get different ids (the round is
+    real information, not just a collision-avoider) -- so round_idx stays
+    explicit in the format string."""
     out_dir.mkdir(parents=True, exist_ok=True)
 
     def realize_fn(tokens, target_class, target_arch, round_idx, sample_idx):
@@ -333,7 +395,8 @@ def _build_realize_fn(cls_short: str, arch: str, realizer, spec_gadgets,
         except Exception:
             return None  # unrealizable sample -- dropped pre-oracle per the contract
         spec_c = spec_gadgets.render_spec(cls_short, fenced=False, gen_body=gen_body)
-        gadget_id = f"rl_{cls_short}_{arch}_r{round_idx}_s{sample_idx}"
+        content_hash = hashlib.sha1(repr(tokens).encode()).hexdigest()[:8]
+        gadget_id = f"rl_{cls_short}_{arch}_r{round_idx}_s{sample_idx}_{content_hash}"
         spec_path = out_dir / f"gen_spec_{gadget_id}.c"
         spec_path.write_text(spec_c)
         return {
@@ -341,6 +404,7 @@ def _build_realize_fn(cls_short: str, arch: str, realizer, spec_gadgets,
             "vuln_class": cls_short,
             "spectector_source": str(spec_path.relative_to(repo_root)),
             "adjudicable": "yes",
+            "_realized_asm": concrete,
         }
 
     return realize_fn
@@ -362,6 +426,11 @@ def main(argv=None) -> int:
                           "Spectector-adjudicable classes from gen/synth/params.py.")
     ap.add_argument("--arch", default="x86_64", choices=["x86_64", "arm64"])
     ap.add_argument("--out", default=str(ROOT / "gen" / "rl_yield.md"))
+    ap.add_argument("--samples-out", default=str(ROOT / "gen" / "rl_samples.jsonl"),
+                     help="per-sample JSONL sidecar (class/round/index/gadget_id/"
+                          "token_sequence/realized_asm/verdict/reward), one line per "
+                          "realized+validated sample -- feeds gen/analyze_rl_diversity.py. "
+                          "Pass an empty string to disable.")
     ap.add_argument("--repo-root", default=str(ROOT))
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--top-k", type=int, default=20)
@@ -400,10 +469,13 @@ def main(argv=None) -> int:
         sample_kwargs={"temperature": args.temperature, "top_k": args.top_k},
         class_to_vocab=lambda c: _GEN_VOCAB_ALIAS.get(c, c),
         meta={"gen": args.gen, "arch": args.arch, "rounds": args.rounds, "k": args.k},
+        samples_out=(args.samples_out or None),
     )
     for cls, h in history.items():
         print(f"[{cls}] yield per round: {h}")
     print(f"wrote {args.out}")
+    if args.samples_out:
+        print(f"wrote {args.samples_out}")
     return 0
 
 
