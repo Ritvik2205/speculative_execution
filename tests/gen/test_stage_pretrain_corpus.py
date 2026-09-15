@@ -8,6 +8,11 @@ skips unless both the `datasets` package is importable AND
 huggingface.co is actually reachable -- this dev environment has neither
 lined up (the real run happens on the cluster HEAD node), so it is expected
 to skip here.
+
+The fixture files are tiny (a handful of instructions each), well under
+`DEFAULT_MIN_INSTR` (10) -- most tests below pass `min_instr=2` explicitly
+to exercise arch/resume/limit behavior independent of the fragment filter;
+`test_default_min_instr_drops_all_tiny_fixtures` exercises the default.
 """
 import json
 import socket
@@ -36,7 +41,7 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "asm_corpus"
 
 def test_from_local_produces_expected_record_count_and_shape(tmp_path):
     out = tmp_path / "corpus.jsonl"
-    n = stage_from_local(out, FIXTURE_DIR)
+    n = stage_from_local(out, FIXTURE_DIR, min_instr=2)
 
     # 3 fixture files; too_short.s has < 2 real lines after filtering and is
     # dropped, so 2 records make it in.
@@ -50,7 +55,8 @@ def test_from_local_produces_expected_record_count_and_shape(tmp_path):
         assert isinstance(rec["sequence"], list)
         assert len(rec["sequence"]) >= 2
         assert all(isinstance(x, str) for x in rec["sequence"])
-        assert rec["arch"] in ("x86_64", "arm64", "riscv64", "unknown")
+        # a record must always carry a REAL arch -- "unknown" is never emitted.
+        assert rec["arch"] in ("x86_64", "arm64", "riscv64")
 
     by_source = {r["source"]: r for r in recs}
     assert "x86_sample.s" in by_source
@@ -68,6 +74,16 @@ def test_from_local_produces_expected_record_count_and_shape(tmp_path):
     assert by_source["arm_sample.s"]["arch"] == "arm64"
 
 
+def test_default_min_instr_drops_all_tiny_fixtures(tmp_path):
+    """Every fixture file is well under DEFAULT_MIN_INSTR (10) -- with the
+    default fragment filter applied, none of them should be staged."""
+    out = tmp_path / "corpus.jsonl"
+    n = stage_from_local(out, FIXTURE_DIR)  # default min_instr
+    assert n == 0
+    recs = [json.loads(l) for l in open(out) if l.strip()] if out.exists() else []
+    assert recs == []
+
+
 def test_from_local_missing_dir_raises():
     with pytest.raises(FileNotFoundError):
         stage_from_local("/tmp/does/not/exist.jsonl", "/tmp/nonexistent_asm_corpus_dir_xyz")
@@ -82,14 +98,15 @@ def test_from_local_empty_dir_raises(tmp_path):
 
 def test_from_local_forced_arch_overrides_heuristic(tmp_path):
     out = tmp_path / "corpus.jsonl"
-    stage_from_local(out, FIXTURE_DIR, arch="riscv64")
+    stage_from_local(out, FIXTURE_DIR, arch="riscv64", min_instr=2)
     recs = [json.loads(l) for l in open(out) if l.strip()]
+    assert len(recs) == 2  # sanity: the min_instr=2 override didn't drop everything
     assert all(r["arch"] == "riscv64" for r in recs)
 
 
 def test_from_local_respects_limit(tmp_path):
     out = tmp_path / "corpus.jsonl"
-    n = stage_from_local(out, FIXTURE_DIR, limit=1)
+    n = stage_from_local(out, FIXTURE_DIR, limit=1, min_instr=2)
     assert n == 1
     recs = [json.loads(l) for l in open(out) if l.strip()]
     assert len(recs) == 1
@@ -97,12 +114,12 @@ def test_from_local_respects_limit(tmp_path):
 
 def test_from_local_is_resumable(tmp_path):
     out = tmp_path / "corpus.jsonl"
-    n1 = stage_from_local(out, FIXTURE_DIR, limit=1)
+    n1 = stage_from_local(out, FIXTURE_DIR, limit=1, min_instr=2)
     assert n1 == 1
 
     # second call with a higher limit should pick up where it left off, not
     # duplicate the already-staged source.
-    n2 = stage_from_local(out, FIXTURE_DIR, limit=10)
+    n2 = stage_from_local(out, FIXTURE_DIR, limit=10, min_instr=2)
     assert n2 == 2
 
     recs = [json.loads(l) for l in open(out) if l.strip()]
@@ -113,8 +130,8 @@ def test_from_local_is_resumable(tmp_path):
 
 def test_from_local_no_resume_overwrites(tmp_path):
     out = tmp_path / "corpus.jsonl"
-    stage_from_local(out, FIXTURE_DIR, limit=1)
-    n = stage_from_local(out, FIXTURE_DIR, limit=1, resume=False)
+    stage_from_local(out, FIXTURE_DIR, limit=1, min_instr=2)
+    n = stage_from_local(out, FIXTURE_DIR, limit=1, resume=False, min_instr=2)
     assert n == 1
     recs = [json.loads(l) for l in open(out) if l.strip()]
     assert len(recs) == 1  # overwritten, not appended
@@ -122,18 +139,43 @@ def test_from_local_no_resume_overwrites(tmp_path):
 
 # ---------------------------------------------------------------------------
 # arch heuristic (unit-level, independent of the fixture files)
+#
+# Two tiers: register vocabulary (precise) then mnemonic vocabulary
+# (fallback for register-less lines). Genuinely ambiguous text returns
+# None -- never the string "unknown" -- so callers drop it instead of
+# staging a mislabeled record.
 # ---------------------------------------------------------------------------
 
-def test_guess_arch_x86():
+def test_guess_arch_x86_register_hint():
     assert _guess_arch("\tmovq\t%rax, %rbx\n\taddq\t$1, %rax\n") == "x86_64"
 
 
-def test_guess_arch_arm64():
+def test_guess_arch_arm64_register_hint():
     assert _guess_arch("\tadd\tw0, w0, #1\n\tret\n") == "arm64"
 
 
-def test_guess_arch_unknown_for_ambiguous_text():
-    assert _guess_arch("hello world\nthis is not assembly\n") == "unknown"
+def test_guess_arch_riscv64_register_hint():
+    assert _guess_arch("\taddi\ta0, a1, 4\n\tret\n") == "riscv64"
+
+
+def test_guess_arch_x86_mnemonic_fallback_no_registers():
+    # no %-prefixed register operand at all -- only the mnemonic vocabulary
+    # (movq/leaq/pushq/...) identifies this as x86_64.
+    assert _guess_arch("\tpushq\t$1\n\tretq\n") == "x86_64"
+
+
+def test_guess_arch_arm64_mnemonic_fallback_no_registers():
+    # "stp" (store-pair) is arm64-specific and has no register-comma operand
+    # form that the register-vocabulary tier recognizes here.
+    assert _guess_arch("\tstp\tfp, lr, [sp, #-16]!\n\tret\n") == "arm64"
+
+
+def test_guess_arch_riscv64_mnemonic_fallback_no_registers():
+    assert _guess_arch("\tjal\tra\n\tecall\n") == "riscv64"
+
+
+def test_guess_arch_none_for_ambiguous_text():
+    assert _guess_arch("hello world\nthis is not assembly\n") is None
 
 
 # ---------------------------------------------------------------------------

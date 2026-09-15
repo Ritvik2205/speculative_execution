@@ -52,6 +52,13 @@ ROOT = Path(__file__).resolve().parent.parent
 
 DEFAULT_SOURCE = "the-stack-assembly"
 
+# Fragment filter: median sequence length in the original the-stack-assembly
+# staging was 19 (mean 209, driven by a long tail of huge files) but most of
+# that median-19 mass was still fragments, not compilable function bodies --
+# this floor matches build_pretrain_corpus_from_c.py's --min-instr default so
+# both corpus-building paths apply the same quality bar.
+DEFAULT_MIN_INSTR = 10
+
 # Public external corpus sources this script knows how to stage. Each entry
 # maps to a `datasets.load_dataset(hf_dataset, data_dir=hf_data_dir, ...)`
 # call. Add more rows here (e.g. an ExeBench/AnghaBench split) rather than
@@ -74,24 +81,50 @@ class CorpusUnavailable(RuntimeError):
 
 # ---------------------------------------------------------------------------
 # arch heuristic (best-effort; unlabeled external code has no reliable arch
-# tag, and pretrain_encoder.py's MultiArchTokenizer falls back to base.json
-# for "unknown" anyway, so a missed guess only costs precision, not
-# correctness).
+# tag). Two tiers: register vocabulary first (most precise -- %rax/%eax,
+# x0-x30, a0-a7 are each unambiguous to one ISA), then mnemonic vocabulary as
+# a fallback for lines with no register operand at all (e.g. immediate-only
+# forms). A record that matches neither tier is genuinely ambiguous and
+# `_guess_arch` returns None for it -- callers MUST drop such records rather
+# than emitting an "unknown" arch tag (an unlabeled-arch record is worse than
+# no record: pretrain_encoder.py's MultiArchTokenizer would silently fall
+# back to base.json for it, teaching the encoder a fake token distribution).
+# This was the dominant failure mode of the original single-tier heuristic --
+# 84.5% (4223/5000) of the-stack-assembly staged as "unknown".
 # ---------------------------------------------------------------------------
 
-_X86_HINT = re.compile(r"%r(ax|bx|cx|dx|si|di|bp|sp|\d{1,2})\b|%e(ax|bx|cx|dx|si|di)\b")
-_ARM64_HINT = re.compile(r"\bx\d{1,2}\s*,|\bw\d{1,2}\s*,|\.arch\s+armv8|\badrp\b")
-_RISCV_HINT = re.compile(r"\ba[0-7]\s*,|\bra\s*,|\.attribute\s+arch|\briscv\b", re.IGNORECASE)
+_X86_REG_HINT = re.compile(r"%r(ax|bx|cx|dx|si|di|bp|sp|\d{1,2})\b|%e(ax|bx|cx|dx|si|di)\b")
+_ARM64_REG_HINT = re.compile(r"\bx\d{1,2}\s*,|\bw\d{1,2}\s*,|\.arch\s+armv8|\badrp\b")
+_RISCV_REG_HINT = re.compile(r"\ba[0-7]\s*,|\bra\s*,|\.attribute\s+arch|\briscv\b", re.IGNORECASE)
+
+# Mnemonic-vocabulary fallback: %rax/movq -> x86_64; x0-x30/ldr/bl -> arm64;
+# a0-a7/lw/jal -> riscv64 (per the task spec's examples).
+_X86_MNEMONIC_HINT = re.compile(
+    r"\b(movq|movl|movb|movw|leaq|leal|cmpq|cmpl|addq|subq|pushq|popq|retq|"
+    r"imulq|jmpq|callq)\b", re.IGNORECASE)
+_ARM64_MNEMONIC_HINT = re.compile(
+    r"\b(ldr|ldp|str|stp|adrp|cbz|cbnz|blr|movz|movk|stur|ldur)\b", re.IGNORECASE)
+_RISCV_MNEMONIC_HINT = re.compile(
+    r"\b(lw|sw|ld|sd|jal|jalr|addi|lui|auipc|ecall|beqz|bnez)\b", re.IGNORECASE)
 
 
-def _guess_arch(content: str) -> str:
-    if _X86_HINT.search(content):
+def _guess_arch(content: str) -> Optional[str]:
+    """Best-effort ISA guess from raw assembly text. Returns None -- not the
+    string "unknown" -- when neither the register-vocabulary nor the
+    mnemonic-vocabulary tier matches anything (genuine ambiguity)."""
+    if _X86_REG_HINT.search(content):
         return "x86_64"
-    if _RISCV_HINT.search(content):
+    if _RISCV_REG_HINT.search(content):
         return "riscv64"
-    if _ARM64_HINT.search(content):
+    if _ARM64_REG_HINT.search(content):
         return "arm64"
-    return "unknown"
+    if _X86_MNEMONIC_HINT.search(content):
+        return "x86_64"
+    if _RISCV_MNEMONIC_HINT.search(content):
+        return "riscv64"
+    if _ARM64_MNEMONIC_HINT.search(content):
+        return "arm64"
+    return None
 
 
 def _lines_to_sequence(content: str) -> list:
@@ -147,11 +180,16 @@ def _count_lines(path: Path) -> int:
 # ---------------------------------------------------------------------------
 
 def stage_from_local(out_jsonl, source_dir, limit: Optional[int] = None,
-                      arch: Optional[str] = None, resume: bool = True) -> int:
+                      arch: Optional[str] = None, resume: bool = True,
+                      min_instr: int = DEFAULT_MIN_INSTR) -> int:
     """Build the pretrain-corpus JSONL from local .s/.S files under
     `source_dir` (no network). Returns the total record count in `out_jsonl`
     after staging. `arch`, if given, forces every record's arch tag instead
-    of per-file heuristic guessing."""
+    of per-file heuristic guessing (in which case the arch-drop filter below
+    never applies -- a forced arch is never ambiguous). Files that stage
+    fewer than `min_instr` lines, or (when `arch` is not forced) whose arch
+    can't be inferred, are dropped -- never emitted as a fragment or with an
+    "unknown" arch tag."""
     out_path = Path(out_jsonl)
     src_dir = Path(source_dir)
     if not src_dir.is_dir():
@@ -164,6 +202,7 @@ def stage_from_local(out_jsonl, source_dir, limit: Optional[int] = None,
     done = _already_staged_sources(out_path) if resume else set()
     n_written = _count_lines(out_path) if (resume and out_path.exists()) else 0
 
+    scanned = dropped_short = dropped_unknown_arch = 0
     out_path.parent.mkdir(parents=True, exist_ok=True)
     mode = "a" if (resume and out_path.exists()) else "w"
     with open(out_path, mode) as f:
@@ -174,12 +213,21 @@ def stage_from_local(out_jsonl, source_dir, limit: Optional[int] = None,
                 continue
             content = fp.read_text()
             seq = _lines_to_sequence(content)
-            if len(seq) < 2:
+            scanned += 1
+            if len(seq) < min_instr:
+                dropped_short += 1
                 continue
-            rec = {"sequence": seq, "arch": arch or _guess_arch(content), "source": fp.name}
+            rec_arch = arch or _guess_arch(content)
+            if rec_arch is None:
+                dropped_unknown_arch += 1
+                continue
+            rec = {"sequence": seq, "arch": rec_arch, "source": fp.name}
             f.write(json.dumps(rec) + "\n")
             n_written += 1
 
+    rate = dropped_unknown_arch / scanned if scanned else 0.0
+    print(f"[stage_from_local] scanned={scanned} dropped_short(<{min_instr})={dropped_short} "
+          f"dropped_unknown_arch={dropped_unknown_arch} (rate={rate:.1%}) kept={n_written}")
     return n_written
 
 
@@ -203,13 +251,16 @@ def _fetch_fail_message(source: str, cfg: dict, err: Exception) -> str:
 
 
 def stage(out_jsonl, source: str = DEFAULT_SOURCE, limit: int = 50000,
-          resume: bool = True) -> int:
+          resume: bool = True, min_instr: int = DEFAULT_MIN_INSTR) -> int:
     """Stream `source` (see SOURCES) via the `datasets` library into
     `out_jsonl`, up to `limit` records, resuming past whatever `out_jsonl`
     already has (by `source` filename/id, not just line count -- a stream
     can skip a bad record). FAILS LOUDLY (`CorpusUnavailable`) on any
     problem: missing `datasets` package, no network, no HF auth, dataset
-    terms not accepted, etc. Never writes fabricated content."""
+    terms not accepted, etc. Never writes fabricated content. Items shorter
+    than `min_instr` lines, or whose arch can't be inferred (see
+    `_guess_arch`), are dropped rather than staged as a fragment or an
+    "unknown"-arch record."""
     out_path = Path(out_jsonl)
     cfg = SOURCES.get(source)
     if cfg is None:
@@ -231,6 +282,7 @@ def stage(out_jsonl, source: str = DEFAULT_SOURCE, limit: int = 50000,
             "(the cluster HEAD node, per docs/NEXT_STEPS_PLAN_2026-09-10.md Step 4)."
         ) from e
 
+    scanned = dropped_short = dropped_unknown_arch = 0
     try:
         ds = datasets.load_dataset(cfg["hf_dataset"], data_dir=cfg["hf_data_dir"],
                                     split="train", streaming=True)
@@ -247,9 +299,15 @@ def stage(out_jsonl, source: str = DEFAULT_SOURCE, limit: int = 50000,
                 if not content:
                     continue
                 seq = _lines_to_sequence(content)
-                if len(seq) < 2:
+                scanned += 1
+                if len(seq) < min_instr:
+                    dropped_short += 1
                     continue
-                rec = {"sequence": seq, "arch": _guess_arch(content),
+                rec_arch = _guess_arch(content)
+                if rec_arch is None:
+                    dropped_unknown_arch += 1
+                    continue
+                rec = {"sequence": seq, "arch": rec_arch,
                        "source": src_id or f"{source}:{n_written}"}
                 f.write(json.dumps(rec) + "\n")
                 n_written += 1
@@ -258,6 +316,9 @@ def stage(out_jsonl, source: str = DEFAULT_SOURCE, limit: int = 50000,
     except Exception as e:
         raise CorpusUnavailable(_fetch_fail_message(source, cfg, e)) from e
 
+    rate = dropped_unknown_arch / scanned if scanned else 0.0
+    print(f"[stage] scanned={scanned} dropped_short(<{min_instr})={dropped_short} "
+          f"dropped_unknown_arch={dropped_unknown_arch} (rate={rate:.1%}) kept={n_written}")
     return n_written
 
 
@@ -281,14 +342,19 @@ def main(argv=None) -> int:
                           "(default: per-file heuristic)")
     ap.add_argument("--no-resume", action="store_true",
                      help="overwrite --out instead of resuming past what's already there")
+    ap.add_argument("--min-instr", type=int, default=DEFAULT_MIN_INSTR,
+                     help="drop sequences shorter than this many lines -- kills the "
+                          "fragment problem (default: %(default)s)")
     args = ap.parse_args(argv)
 
     try:
         if args.from_local:
             n = stage_from_local(args.out, args.from_local, limit=args.limit,
-                                 arch=args.arch, resume=not args.no_resume)
+                                 arch=args.arch, resume=not args.no_resume,
+                                 min_instr=args.min_instr)
         else:
-            n = stage(args.out, args.source, args.limit, resume=not args.no_resume)
+            n = stage(args.out, args.source, args.limit, resume=not args.no_resume,
+                      min_instr=args.min_instr)
     except (CorpusUnavailable, FileNotFoundError, ValueError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
