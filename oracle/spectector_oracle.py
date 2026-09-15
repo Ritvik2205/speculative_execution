@@ -1,9 +1,45 @@
 """Spectector oracle driver for Phase 4 oracle."""
 import json
 import logging
+import os
 import subprocess
 from pathlib import Path
 from oracle.manifest import LeakRecord
+
+# Container runtime for the pinned Spectector image. Default is Docker (the
+# Mac / i5 dev boxes). On the Teaching/ICF cluster there is no Docker, only
+# Apptainer, so set SPECEXEC_CONTAINER_RUNTIME=apptainer and point
+# SPECEXEC_SPECTECTOR_SIF at the .sif pulled from ghcr.io (see
+# oracle/apptainer/pull_spectector.sh). Spectector is symbolic — no hardware
+# dependency — so it runs anywhere x86_64 Linux does.
+_DOCKER_IMAGE = "specdiscover-spectector:pinned"
+
+
+def _container_cmd(repo_root, work_dir, inner_script):
+    """Build the argv that runs `inner_script` inside the Spectector image,
+    with `repo_root` bound at `work_dir`. Docker (default) and Apptainer
+    produce identical in-container behaviour; the Docker path is byte-for-byte
+    what it was before this indirection was added."""
+    runtime = os.environ.get("SPECEXEC_CONTAINER_RUNTIME", "docker").lower()
+    if runtime in ("apptainer", "singularity"):
+        sif = os.environ.get("SPECEXEC_SPECTECTOR_SIF")
+        if not sif:
+            raise RuntimeError(
+                "SPECEXEC_CONTAINER_RUNTIME=%s requires SPECEXEC_SPECTECTOR_SIF "
+                "to point at the pulled .sif (oracle/apptainer/pull_spectector.sh)"
+                % runtime)
+        # --cleanenv: don't leak the host PATH/HOME into the container (matches
+        # Docker's clean env). export HOME=/tmp: Ciao/Z3 want a writable HOME,
+        # and the container FS is read-only under a non-root user; /tmp is
+        # always writable. The bind at work_dir is writable, so build artifacts
+        # still land under oracle/build/ in the repo exactly as with Docker.
+        return [runtime, "exec", "--cleanenv",
+                "--bind", "%s:%s" % (repo_root, work_dir),
+                sif, "bash", "-c", "export HOME=/tmp; " + inner_script]
+    # Default: Docker.
+    return ["docker", "run", "--rm",
+            "-v", "%s:%s" % (repo_root, work_dir),
+            _DOCKER_IMAGE, "bash", "-c", inner_script]
 
 # Statuses Spectector can adjudicate. Anything else (missing, unexpected,
 # or paths["0"] absent so unsupported_ins is None) means Spectector did not
@@ -133,25 +169,21 @@ def run_spec_gadget(row, repo_root):
     out_asm = f"{work_dir}/oracle/build/{gadget_id}.s"
     out_json = f"{work_dir}/oracle/build/{gadget_id}.json"
 
-    # Docker command: compile and run spectector
-    docker_cmd = [
-        "docker", "run", "--rm",
-        "-v", f"{repo_root}:{work_dir}",
-        "specdiscover-spectector:pinned",
-        "bash", "-c",
-        # Compile with GCC then run spectector. rm the stats file first —
-        # Spectector's --stats appends, so a stale file would accumulate objects.
+    # Compile with GCC then run spectector. rm the stats file first —
+    # Spectector's --stats appends, so a stale file would accumulate objects.
+    inner_script = (
         f"mkdir -p {work_dir}/oracle/build && rm -f {out_json} && "
         f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none -o {out_asm} {work_dir}/{rel_path} "
         f"&& run-spectector {out_asm} -a noninter --stats {out_json}"
-    ]
+    )
+    container_cmd = _container_cmd(repo_root, work_dir, inner_script)
 
     try:
-        # Run docker command with timeout. Spectector's symbolic data check on a
-        # leaking gadget takes ~25-40s; docker+compile add overhead. 30s flakily
+        # Run the container with a timeout. Spectector's symbolic data check on a
+        # leaking gadget takes ~25-40s; container+compile add overhead. 30s flakily
         # times out real leaks (observed on SPECTRE_V1). Allow 300s per gadget.
         result = subprocess.run(
-            docker_cmd,
+            container_cmd,
             capture_output=True,
             text=True,
             timeout=300,
