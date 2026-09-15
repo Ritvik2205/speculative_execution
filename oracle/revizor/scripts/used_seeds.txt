@@ -17,3 +17,9 @@
 3333333
 4444444
 5555555
+
+# baseline_260811 / smt_off_260811 campaigns via the demo configs' own
+# hardcoded program_generator_seed (these produced the MDS/L1TF/SPECTRE_V1
+# gadgets now in eval/data/revizor_{mds,l1tf,spectre_v1}_real.jsonl)
+955240
+100
