@@ -181,12 +181,57 @@ def _hf_fail_message(hf_dataset: str, err: Exception) -> str:
     )
 
 
-def stage_hf_c_sources(hf_dataset: str, limit: int, tmp_dir: Path) -> list:
+# Dataset fields that carry a per-record language/extension tag, checked (in
+# order) when a --hf-lang filter is active. the-stack-* uses `lang` + `ext`.
+_HF_LANG_FIELDS = ("lang", "language", "language_name")
+_HF_EXT_FIELDS = ("ext", "extension", "path", "max_stars_repo_path")
+# What counts as C for each accepted --hf-lang token.
+_C_LANGS = {"c"}
+_C_EXTS = {"c", "h"}
+
+
+def _row_lang_ok(item, lang_filter) -> bool:
+    """True if `item` should be kept under `lang_filter` (a set of lowercase
+    language tokens, e.g. {"c"}). With no filter, everything passes. A row is
+    kept if any language field equals a requested token, else if a filename/ext
+    field ends in an accepted extension for a requested token. A row that
+    carries no language/ext field at all is KEPT (can't disprove it) so
+    single-function datasets with no lang column still work."""
+    if not lang_filter:
+        return True
+    exts = set()
+    for tok in lang_filter:
+        if tok in _C_LANGS:
+            exts |= _C_EXTS
+    saw_tag = False
+    for f in _HF_LANG_FIELDS:
+        v = item.get(f) if hasattr(item, "get") else None
+        if isinstance(v, str) and v.strip():
+            saw_tag = True
+            if v.strip().lower() in lang_filter:
+                return True
+    for f in _HF_EXT_FIELDS:
+        v = item.get(f) if hasattr(item, "get") else None
+        if isinstance(v, str) and v.strip():
+            saw_tag = True
+            e = v.strip().lower().rsplit(".", 1)[-1]
+            if e in exts:
+                return True
+    # No language/ext field present anywhere -> can't disprove; keep it.
+    return not saw_tag
+
+
+def stage_hf_c_sources(hf_dataset: str, limit: int, tmp_dir: Path,
+                       lang_filter=None) -> list:
     """Stream up to `limit` C function/file bodies from `hf_dataset` into
     individual .c files under `tmp_dir`. Returns the list of written paths.
-    FAILS LOUDLY (`CorpusUnavailable`) on any problem -- missing `datasets`
-    package, no network, no HF auth, dataset terms not accepted, a schema
-    with none of the known text fields, etc. Never fabricates C source."""
+    If `lang_filter` (a set of lowercase language tokens, e.g. {"c"}) is given,
+    only records whose language/extension field matches are written -- needed
+    for whole-repo multi-language dumps like the-stack-smol-xl, whose first
+    rows are Ada/etc. FAILS LOUDLY (`CorpusUnavailable`) on any problem --
+    missing `datasets` package, no network, no HF auth, dataset terms not
+    accepted, a schema with none of the known text fields, etc. Never
+    fabricates C source."""
     try:
         import datasets  # noqa: F401 -- only checking availability here
     except ImportError as e:
@@ -209,6 +254,8 @@ def stage_hf_c_sources(hf_dataset: str, limit: int, tmp_dir: Path) -> list:
         for i, item in enumerate(ds):
             if len(paths) >= limit:
                 break
+            if not _row_lang_ok(item, lang_filter):
+                continue
             text = None
             for field in _HF_TEXT_FIELDS:
                 v = item.get(field) if hasattr(item, "get") else None
@@ -226,9 +273,13 @@ def stage_hf_c_sources(hf_dataset: str, limit: int, tmp_dir: Path) -> list:
         raise CorpusUnavailable(_hf_fail_message(hf_dataset, e)) from e
 
     if not paths:
+        why = (f"tried text fields {_HF_TEXT_FIELDS}"
+               + (f" after a --hf-lang={sorted(lang_filter)} filter (maybe no matching "
+                  "language was reached within --limit rows; raise --limit or widen "
+                  "--hf-lang)" if lang_filter else ""))
         raise CorpusUnavailable(
             f"HF dataset {hf_dataset!r} streamed but produced zero usable C sources "
-            f"(tried text fields {_HF_TEXT_FIELDS}); inspect the dataset schema with "
+            f"({why}); inspect the dataset schema with "
             f"`datasets.load_dataset({hf_dataset!r}, split='train', streaming=True)` "
             "and extend _HF_TEXT_FIELDS in this script."
         )
@@ -355,7 +406,9 @@ def main(argv=None) -> int:
     src_group.add_argument("--from-local", metavar="DIR", default=None,
                             help="directory of local .c files to compile (no network; "
                                  "dev/test/offline mode)")
-    ap.add_argument("--out", required=True, help="output JSONL path")
+    ap.add_argument("--out", default=None,
+                     help="output JSONL path (required unless --stage-only, which "
+                          "writes no corpus)")
     ap.add_argument("--min-instr", type=int, default=DEFAULT_MIN_INSTR,
                      help="drop sequences shorter than this many instructions "
                           "(default: %(default)s)")
@@ -371,9 +424,49 @@ def main(argv=None) -> int:
     ap.add_argument("--limit", type=int, default=20000,
                      help="max C sources to pull from --from-hf (default: %(default)s); "
                           "ignored for --from-local")
+    ap.add_argument("--hf-lang", default=None,
+                     help="comma-separated language tokens to keep from a --from-hf "
+                          "dataset that mixes languages (e.g. 'c' for the-stack-smol-xl, "
+                          "whose leading rows are Ada/etc.); default: keep everything")
+    ap.add_argument("--stage-only", metavar="DIR", default=None,
+                     help="with --from-hf: download the C sources into DIR and STOP "
+                          "(no compile, no toolchain needed). Use on an internet host "
+                          "that lacks the cross-compilers (e.g. this Mac), then rsync "
+                          "DIR to the cluster and finish with --from-local DIR there.")
     ap.add_argument("--seed", type=int, default=DEFAULT_SEED,
                      help="RNG seed for per-cell-cap sampling (default: %(default)s)")
     args = ap.parse_args(argv)
+
+    if args.stage_only and not args.from_hf:
+        print("ERROR: --stage-only requires --from-hf (it downloads HF sources)",
+              file=sys.stderr)
+        return 1
+    if not args.stage_only and not args.out:
+        print("ERROR: --out is required (unless --stage-only)", file=sys.stderr)
+        return 1
+
+    lang_filter = None
+    if args.hf_lang:
+        lang_filter = {t.strip().lower() for t in args.hf_lang.split(",") if t.strip()}
+
+    # --stage-only: download the .c files and exit BEFORE requiring a toolchain,
+    # so an internet host without the cross-compilers (the Mac) can do the
+    # network half and hand the .c dir to the cluster via rsync.
+    if args.stage_only:
+        stage_dir = Path(args.stage_only)
+        stage_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            c_files = stage_hf_c_sources(args.from_hf, args.limit, stage_dir,
+                                         lang_filter=lang_filter)
+        except CorpusUnavailable as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 1
+        print(f"[build_pretrain_corpus_from_c] staged {len(c_files)} C files to "
+              f"{stage_dir}\n  next: rsync it to the cluster, then on a compute node run\n"
+              f"    python3 gen/build_pretrain_corpus_from_c.py --from-local {stage_dir} "
+              f"--out gen/data/pretrain_corpus_fromC.jsonl "
+              f"--min-instr {args.min_instr} --max-instr {args.max_instr}")
+        return 0
 
     opts = [o.strip() for o in args.opts.split(",") if o.strip()]
 
@@ -391,7 +484,8 @@ def main(argv=None) -> int:
     try:
         if args.from_hf:
             cleanup_dir = Path(tempfile.mkdtemp(prefix="pretrain_hf_c_src_"))
-            c_files = stage_hf_c_sources(args.from_hf, args.limit, cleanup_dir)
+            c_files = stage_hf_c_sources(args.from_hf, args.limit, cleanup_dir,
+                                         lang_filter=lang_filter)
         else:
             src_dir = Path(args.from_local)
             if not src_dir.is_dir():
