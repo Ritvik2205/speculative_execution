@@ -54,6 +54,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -210,8 +211,8 @@ def rejection_sample_finetune(
 
 # ===========================================================================
 # CLI (Step 4 / NEXT_STEPS_PLAN_2026-09-10.md): real generator + realize.py +
-# SpectectorValidator wiring, run on the i5-8300H box (Docker + the pinned
-# Spectector image live there, not on the cluster or a laptop dev env).
+# SpectectorValidator wiring. Docker on the i5/Mac; Apptainer + .sif on the
+# Teaching/ICF cluster (see oracle/apptainer/pull_spectector.sh).
 # ===========================================================================
 
 # Exact Docker build command a human runs if the image is missing (mirrors
@@ -228,15 +229,36 @@ _GEN_VOCAB_ALIAS = {"BHI": "BRANCH_HISTORY_INJECTION"}
 
 
 def _docker_unavailable_reason() -> Optional[str]:
-    """None if Docker + the pinned Spectector image are both usable from this
-    host; otherwise a human-readable reason plus remediation. Never raises —
-    every failure mode (docker missing, daemon down, image not built) is
-    reported, not guessed past."""
+    """None if a usable Spectector container runtime is available; otherwise a
+    human-readable reason plus remediation. Never raises.
+
+    Respects SPECEXEC_CONTAINER_RUNTIME (docker default; apptainer/singularity
+    on the cluster). Matches oracle/spectector_oracle._container_cmd."""
+    runtime = os.environ.get("SPECEXEC_CONTAINER_RUNTIME", "docker").lower()
+    if runtime in ("apptainer", "singularity"):
+        if not shutil.which(runtime):
+            return (f"{runtime} not found on PATH. On the Teaching/ICF cluster "
+                    f"run from a compute node where apptainer is installed.")
+        sif = os.environ.get("SPECEXEC_SPECTECTOR_SIF")
+        if not sif:
+            return ("SPECEXEC_CONTAINER_RUNTIME=%s requires SPECEXEC_SPECTECTOR_SIF "
+                    "to point at the pulled .sif. Pull it with:\n"
+                    "    GHCR_OWNER=<user> bash oracle/apptainer/pull_spectector.sh\n"
+                    "then:\n"
+                    "    export SPECEXEC_CONTAINER_RUNTIME=apptainer\n"
+                    "    export SPECEXEC_SPECTECTOR_SIF=/disk/scratch/$USER/spectector.sif"
+                    % runtime)
+        if not Path(sif).is_file():
+            return (f"SPECEXEC_SPECTECTOR_SIF={sif!r} does not exist. "
+                    f"Re-run oracle/apptainer/pull_spectector.sh.")
+        return None
     if not shutil.which("docker"):
-        return ("docker not found on PATH. gen/rl_from_oracle.py drives the Spectector "
-                "oracle over Docker and must run on a machine that has it installed "
-                "(the i5-8300H box per docs/NEXT_STEPS_PLAN_2026-09-10.md Step 4) — "
-                "not this dev environment.")
+        return ("docker not found on PATH. For Docker hosts (i5/Mac), install Docker "
+                "and build the pinned image. On the Teaching/ICF cluster (no Docker), "
+                "use Apptainer instead:\n"
+                "    export SPECEXEC_CONTAINER_RUNTIME=apptainer\n"
+                "    export SPECEXEC_SPECTECTOR_SIF=/disk/scratch/$USER/spectector.sif\n"
+                "    # after: GHCR_OWNER=... bash oracle/apptainer/pull_spectector.sh")
     try:
         r = subprocess.run(["docker", "image", "inspect", _SPECTECTOR_IMAGE],
                             capture_output=True, text=True, timeout=15)
@@ -414,9 +436,9 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="Oracle-RL loop (W6 Task 6.4): sample from the class-conditioned "
                     "generator, realize to concrete assembly, validate against the real "
-                    "Spectector Docker oracle, and rejection-sample-finetune on the "
-                    "confirmed leaks. Requires Docker + the pinned Spectector image -- "
-                    "run this on the i5-8300H box, not the cluster or a laptop dev env.")
+                    "Spectector oracle, and rejection-sample-finetune on the confirmed "
+                    "leaks. Requires Docker + pinned image (i5/Mac), or Apptainer + "
+                    "SPECEXEC_SPECTECTOR_SIF on the Teaching/ICF cluster.")
     ap.add_argument("--gen", default=str(ROOT / "gen" / "generator.pt"),
                      help="trained CondTransformerLM checkpoint")
     ap.add_argument("--rounds", type=int, default=5)

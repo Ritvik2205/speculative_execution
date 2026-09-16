@@ -18,6 +18,8 @@
 set -euo pipefail
 
 : "${GHCR_OWNER:?set GHCR_OWNER=<github username or org used when publishing>}"
+# ghcr.io repository paths must be lowercase (Docker reference rules).
+GHCR_OWNER="$(printf '%s' "$GHCR_OWNER" | tr '[:upper:]' '[:lower:]')"
 REMOTE="docker://ghcr.io/${GHCR_OWNER}/specdiscover-spectector:pinned"
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

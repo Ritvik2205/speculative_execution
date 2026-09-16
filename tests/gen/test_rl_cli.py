@@ -197,15 +197,18 @@ def test_default_classes_excludes_benign_and_non_adjudicable():
 def test_docker_missing_from_path(monkeypatch):
     import gen.rl_from_oracle as rl
 
+    monkeypatch.delenv("SPECEXEC_CONTAINER_RUNTIME", raising=False)
     monkeypatch.setattr(rl.shutil, "which", lambda name: None)
     reason = rl._docker_unavailable_reason()
     assert reason is not None
     assert "docker not found" in reason.lower()
+    assert "apptainer" in reason.lower()  # points cluster users at the alt path
 
 
 def test_docker_present_but_image_not_built(monkeypatch):
     import gen.rl_from_oracle as rl
 
+    monkeypatch.delenv("SPECEXEC_CONTAINER_RUNTIME", raising=False)
     monkeypatch.setattr(rl.shutil, "which", lambda name: "/usr/bin/docker")
 
     def fake_run(cmd, **kwargs):
@@ -221,6 +224,7 @@ def test_docker_present_but_image_not_built(monkeypatch):
 def test_docker_and_image_both_available(monkeypatch):
     import gen.rl_from_oracle as rl
 
+    monkeypatch.delenv("SPECEXEC_CONTAINER_RUNTIME", raising=False)
     monkeypatch.setattr(rl.shutil, "which", lambda name: "/usr/bin/docker")
 
     def fake_run(cmd, **kwargs):
@@ -233,6 +237,7 @@ def test_docker_and_image_both_available(monkeypatch):
 def test_docker_query_raises_is_reported_not_crashed(monkeypatch):
     import gen.rl_from_oracle as rl
 
+    monkeypatch.delenv("SPECEXEC_CONTAINER_RUNTIME", raising=False)
     monkeypatch.setattr(rl.shutil, "which", lambda name: "/usr/bin/docker")
 
     def fake_run(cmd, **kwargs):
@@ -242,3 +247,40 @@ def test_docker_query_raises_is_reported_not_crashed(monkeypatch):
     reason = rl._docker_unavailable_reason()
     assert reason is not None
     assert "could not be queried" in reason
+
+
+def test_apptainer_ok_when_sif_exists(monkeypatch, tmp_path):
+    import gen.rl_from_oracle as rl
+
+    sif = tmp_path / "spectector.sif"
+    sif.write_bytes(b"sif")
+    monkeypatch.setenv("SPECEXEC_CONTAINER_RUNTIME", "apptainer")
+    monkeypatch.setenv("SPECEXEC_SPECTECTOR_SIF", str(sif))
+    monkeypatch.setattr(rl.shutil, "which",
+                        lambda name: "/usr/bin/apptainer" if name == "apptainer" else None)
+    assert rl._docker_unavailable_reason() is None
+
+
+def test_apptainer_missing_sif_env(monkeypatch):
+    import gen.rl_from_oracle as rl
+
+    monkeypatch.setenv("SPECEXEC_CONTAINER_RUNTIME", "apptainer")
+    monkeypatch.delenv("SPECEXEC_SPECTECTOR_SIF", raising=False)
+    monkeypatch.setattr(rl.shutil, "which",
+                        lambda name: "/usr/bin/apptainer" if name == "apptainer" else None)
+    reason = rl._docker_unavailable_reason()
+    assert reason is not None
+    assert "SPECEXEC_SPECTECTOR_SIF" in reason
+
+
+def test_apptainer_sif_path_missing(monkeypatch, tmp_path):
+    import gen.rl_from_oracle as rl
+
+    missing = tmp_path / "nope.sif"
+    monkeypatch.setenv("SPECEXEC_CONTAINER_RUNTIME", "apptainer")
+    monkeypatch.setenv("SPECEXEC_SPECTECTOR_SIF", str(missing))
+    monkeypatch.setattr(rl.shutil, "which",
+                        lambda name: "/usr/bin/apptainer" if name == "apptainer" else None)
+    reason = rl._docker_unavailable_reason()
+    assert reason is not None
+    assert "does not exist" in reason
