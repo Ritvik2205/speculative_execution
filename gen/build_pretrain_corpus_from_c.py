@@ -67,7 +67,7 @@ Run (small, from local C, no network):
         --from-local c_vulns/c_code --out /tmp/pretrain_c_local.jsonl
 
 Run (full corpus, cluster HEAD node, internet + `datasets` required):
-    pip install --user datasets huggingface_hub
+    pip install datasets huggingface_hub   # drop --user inside a venv
     python3 gen/build_pretrain_corpus_from_c.py \\
         --from-hf angha/AnghaBench --out gen/data/pretrain_corpus_c.jsonl \\
         --limit 50000 --per-cell-cap 8000
@@ -173,7 +173,7 @@ def _hf_fail_message(hf_dataset: str, err: Exception) -> str:
         "This needs internet access (the cluster compute nodes do NOT have it -- the "
         "HEAD node does) and, for a gated dataset, a Hugging Face account that has "
         "accepted its terms. On the HEAD node, run:\n"
-        "    pip install --user datasets huggingface_hub\n"
+        "    pip install datasets huggingface_hub   # drop --user inside a venv\n"
         "    huggingface-cli login   # token from https://huggingface.co/settings/tokens\n"
         f"    # accept the dataset terms first: https://huggingface.co/datasets/{hf_dataset}\n"
         f"    python3 gen/build_pretrain_corpus_from_c.py --from-hf {hf_dataset} "
@@ -192,7 +192,7 @@ def stage_hf_c_sources(hf_dataset: str, limit: int, tmp_dir: Path) -> list:
     except ImportError as e:
         raise CorpusUnavailable(
             "the `datasets` package is not installed.\n"
-            "    pip install --user datasets huggingface_hub\n"
+            "    pip install datasets huggingface_hub   # drop --user inside a venv\n"
             "then re-run this command on a host with internet access (the cluster "
             "HEAD node):\n"
             f"    python3 gen/build_pretrain_corpus_from_c.py --from-hf {hf_dataset} "
