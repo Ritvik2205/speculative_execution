@@ -221,7 +221,18 @@ def main():
         model.save(args.save)
         print(f"saved generator -> {args.save}")
 
-    # ---- verification: independent classifier (MLM embed -> RF on REAL data)
+    # ---- verification (OPTIONAL): independent classifier (MLM embed -> RF on
+    # REAL data). Needs a reference MLM at spec/mlm.pt. This is a conditioning
+    # sanity check only -- it is NOT required for the checkpoint (already saved
+    # above) or for the oracle-RL loop (gen/rl_from_oracle.py), which is the real
+    # evaluation. Skip cleanly when the artifact is absent (e.g. not staged on the
+    # cluster) instead of crashing an otherwise-successful training.
+    if not MLM.exists():
+        print(f"\n[verify] SKIPPED: no reference classifier at {MLM}. "
+              f"The generator checkpoint is saved; this step is just a sanity "
+              f"check. To enable it, run "
+              f"`python3 spec/train_mlm.py --epochs 10 --save {MLM}` first.")
+        return
     print("\n[verify] training reference classifier (MLM+RF on real data)...")
     mlm = MlmEncoder.load(MLM)
     lid = {c: i for i, c in enumerate(classes)}
