@@ -20,7 +20,7 @@ module builds that JSONL two ways:
      this is meant to run on the cluster HEAD node, per the plan:
 
          cd ~/speculative_execution && git pull
-         pip install --user datasets huggingface_hub
+         pip install datasets huggingface_hub   # drop --user inside a venv
          huggingface-cli login          # token from https://huggingface.co/settings/tokens
          python3 gen/stage_pretrain_corpus.py \\
              --out gen/data/pretrain_corpus.jsonl --source the-stack-assembly --limit 50000
@@ -242,7 +242,7 @@ def _fetch_fail_message(source: str, cfg: dict, err: Exception) -> str:
         "This needs internet access (the cluster compute nodes do NOT have it -- the "
         "HEAD node does) and, for a gated dataset, a Hugging Face account that has "
         "accepted its terms. On the HEAD node, run:\n"
-        "    pip install --user datasets huggingface_hub\n"
+        "    pip install datasets huggingface_hub   # drop --user inside a venv\n"
         "    huggingface-cli login   # token from https://huggingface.co/settings/tokens\n"
         f"    # accept the dataset terms first: https://huggingface.co/datasets/{cfg['hf_dataset']}\n"
         "    python3 gen/stage_pretrain_corpus.py --out gen/data/pretrain_corpus.jsonl "
@@ -277,7 +277,7 @@ def stage(out_jsonl, source: str = DEFAULT_SOURCE, limit: int = 50000,
     except ImportError as e:
         raise CorpusUnavailable(
             "the `datasets` package is not installed.\n"
-            "    pip install --user datasets huggingface_hub\n"
+            "    pip install datasets huggingface_hub   # drop --user inside a venv\n"
             "then re-run this command on a host with internet access "
             "(the cluster HEAD node, per docs/NEXT_STEPS_PLAN_2026-09-10.md Step 4)."
         ) from e
