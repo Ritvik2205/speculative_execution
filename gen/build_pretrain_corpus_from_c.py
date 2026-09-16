@@ -77,12 +77,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import multiprocessing
+import os
 import random
 import shutil
 import statistics
 import subprocess
 import sys
 import tempfile
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Optional
@@ -347,6 +350,274 @@ def build_from_c_files(c_files, archs, opts, min_instr: int = DEFAULT_MIN_INSTR,
 
 
 # ---------------------------------------------------------------------------
+# streaming / parallel / resumable build (for cluster wall-clock timeouts --
+# see the module docstring's "WHY THIS EXISTS" for build_from_c_files itself;
+# this half exists because build_from_c_files compiles serially and buffers
+# every record in memory until one final write, so hundreds of thousands of
+# serial ~0.1-60s compiles can run for hours and a timeout loses EVERYTHING.
+# build_from_c_files above is left untouched (other code/tests depend on its
+# exact shape) -- this is an additive parallel/incremental/resumable path.
+# ---------------------------------------------------------------------------
+
+def _compile_and_extract_one(task) -> tuple:
+    """Worker: compile ONE source across all archs x opts in its own temp
+    dir, extract+neutralize+filter, return (src_basename, records, stats).
+    Module-level (picklable) so multiprocessing.Pool can dispatch it. Must
+    NEVER raise on a per-(arch,opt) compile/extract failure -- it returns
+    whatever it managed to compile, same as build_from_c_files does inline.
+    No global dedup here: the parent (_stream_consume) owns seen_hashes."""
+    src_path_str, archs, opts, min_instr, max_instr = task
+    src = Path(src_path_str)
+    stats = Counter()
+    records = []
+
+    with tempfile.TemporaryDirectory(prefix="pretrain_c_worker_") as td:
+        tmp = Path(td)
+        for arch in archs:
+            compile_fn = _COMPILERS[arch]
+            for opt in opts:
+                out = tmp / f"{src.stem}.{arch}.{opt}.s"
+                stats[f"{arch}:{opt}:attempted"] += 1
+                try:
+                    asm = compile_fn(src, opt, out)
+                except Exception:
+                    asm = None
+                if asm is None:
+                    stats[f"{arch}:{opt}:compile_fail"] += 1
+                    continue
+                stats[f"{arch}:{opt}:compiled"] += 1
+                try:
+                    funcs = extract_functions(asm)
+                except Exception:
+                    funcs = []
+                for func in funcs:
+                    try:
+                        seq = clean_seq(_neutralize(func))
+                    except Exception:
+                        continue
+                    n = len(seq)
+                    if n < min_instr:
+                        stats["dropped_short"] += 1
+                        continue
+                    if n > max_instr:
+                        stats["dropped_long"] += 1
+                        continue
+                    records.append({
+                        "sequence": seq, "arch": arch,
+                        "source": "compiled_c", "opt": opt,
+                    })
+                    stats[f"{arch}:{opt}:kept"] += 1
+
+    return src.name, records, dict(stats)
+
+
+def _load_resume_state(out_path, done_path) -> tuple:
+    """Pure, no compiler. Reads an existing (out_path, done_path) pair (from
+    a prior, possibly timed-out, run) and reconstructs the bookkeeping a
+    fresh streaming run needs to continue rather than restart:
+      seen_hashes:     content hashes already written (same hash scheme as
+                        build_from_c_files) so a re-run drops them as dups.
+      per_cell_count:  {(arch, opt): n} already written, so a per-cell cap
+                        is honored across the resume boundary.
+      done_set:        source basenames already fully processed -- these are
+                        skipped entirely (not even recompiled).
+    Absent files -> all empty. A truncated trailing JSONL line (the shape a
+    killed job leaves behind) is tolerated -- skipped, not a crash."""
+    seen_hashes = set()
+    per_cell_count = defaultdict(int)
+    done_set = set()
+
+    out_path = Path(out_path)
+    done_path = Path(done_path)
+
+    if out_path.exists():
+        lines = out_path.read_text().splitlines()
+        n = len(lines)
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                if i == n - 1:
+                    # Truncated final line from a killed job -- tolerate it.
+                    continue
+                raise
+            seq = rec.get("sequence", [])
+            h = hashlib.sha256("\n".join(seq).encode()).hexdigest()
+            seen_hashes.add(h)
+            per_cell_count[(rec.get("arch"), rec.get("opt"))] += 1
+
+    if done_path.exists():
+        for line in done_path.read_text().splitlines():
+            line = line.strip()
+            if line:
+                done_set.add(line)
+
+    return seen_hashes, per_cell_count, done_set
+
+
+def _stream_consume(results_iter, out_f, done_f, seen_hashes, per_cell_count,
+                     per_cell_cap, stats) -> dict:
+    """Consume (src_basename, records, local_stats) tuples as they arrive
+    (from an in-process generator or a multiprocessing.Pool.imap_unordered),
+    apply the SAME dedup + per-cell-cap policy build_from_c_files applies in
+    memory -- but incrementally: each kept record is written + flushed
+    immediately, and the source is marked done + flushed immediately after,
+    so a killed process loses at most the one source it was mid-compiling,
+    never the whole run. Pure w.r.t. its results_iter -- no subprocess here,
+    which is what makes it cheap to unit-test without a compiler."""
+    for src_basename, records, local_stats in results_iter:
+        for k, v in local_stats.items():
+            stats[k] += v
+        for rec in records:
+            h = hashlib.sha256("\n".join(rec["sequence"]).encode()).hexdigest()
+            if h in seen_hashes:
+                stats["dropped_dup"] += 1
+                continue
+            cell = (rec["arch"], rec["opt"])
+            if per_cell_cap is not None and per_cell_count.get(cell, 0) >= per_cell_cap:
+                stats[f"{rec['arch']}:{rec['opt']}:capped_out"] += 1
+                continue
+            seen_hashes.add(h)
+            per_cell_count[cell] = per_cell_count.get(cell, 0) + 1
+            out_f.write(json.dumps(rec) + "\n")
+        out_f.flush()
+        done_f.write(src_basename + "\n")
+        done_f.flush()
+    return stats
+
+
+def build_from_c_files_streaming(c_files, archs, opts, out_path,
+                                  min_instr: int = DEFAULT_MIN_INSTR,
+                                  max_instr: int = DEFAULT_MAX_INSTR,
+                                  per_cell_cap: Optional[int] = None,
+                                  workers: int = 1, resume: bool = False) -> dict:
+    """Parallel + incremental + resumable counterpart to build_from_c_files:
+    compiles are dispatched across `workers` processes (workers<=1 runs
+    in-process, no Pool -- debuggable/testable without multiprocessing), and
+    every kept record is written to `out_path` (JSONL, append mode) as soon
+    as its source finishes, with `out_path + ".done"` tracking finished
+    sources -- so a wall-clock timeout loses at most one in-flight source's
+    work, and re-running with resume=True picks up where it left off instead
+    of restarting from scratch."""
+    out_path = Path(out_path)
+    done_path = Path(str(out_path) + ".done")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    stats = Counter()
+    if resume:
+        seen_hashes, per_cell_count, done_set = _load_resume_state(out_path, done_path)
+    else:
+        seen_hashes, per_cell_count, done_set = set(), {}, set()
+
+    remaining = [f for f in c_files if f.name not in done_set]
+    n_skipped = len(c_files) - len(remaining)
+    if n_skipped:
+        print(f"[build_pretrain_corpus_from_c] resume: skipping {n_skipped} "
+              f"already-done sources ({len(remaining)} remaining)")
+
+    tasks = [(str(f), tuple(archs), tuple(opts), min_instr, max_instr) for f in remaining]
+    total = len(tasks)
+    start = time.time()
+    processed = 0
+
+    def _progress(it):
+        nonlocal processed
+        for item in it:
+            processed += 1
+            if processed % 200 == 0 or processed == total:
+                elapsed = time.time() - start
+                print(f"[build_pretrain_corpus_from_c] progress: "
+                      f"{processed}/{total} sources processed, "
+                      f"elapsed={elapsed:.0f}s", flush=True)
+            yield item
+
+    with out_path.open("a") as out_f, done_path.open("a") as done_f:
+        if not tasks:
+            print("[build_pretrain_corpus_from_c] nothing to do "
+                  "(all sources already done)")
+        elif workers <= 1:
+            results_iter = (_compile_and_extract_one(t) for t in tasks)
+            _stream_consume(_progress(results_iter), out_f, done_f,
+                             seen_hashes, per_cell_count, per_cell_cap, stats)
+        else:
+            with multiprocessing.Pool(workers) as pool:
+                results_iter = pool.imap_unordered(_compile_and_extract_one, tasks,
+                                                     chunksize=4)
+                _stream_consume(_progress(results_iter), out_f, done_f,
+                                 seen_hashes, per_cell_count, per_cell_cap, stats)
+
+    elapsed = time.time() - start
+    print(f"[build_pretrain_corpus_from_c] streaming build done: "
+          f"{total} sources processed in {elapsed:.0f}s")
+    return dict(stats)
+
+
+def print_summary_streaming(out_path, toolchains: dict, stats: dict, n_sources: int) -> None:
+    """Same report as print_summary, but derived by streaming back the JSONL
+    that build_from_c_files_streaming already wrote to disk (only ints/short
+    strings accumulated in memory -- never the full instruction sequences),
+    since holding every record in memory again here would defeat the whole
+    point of streaming the build."""
+    print(f"\n[build_pretrain_corpus_from_c] source C files: {n_sources}")
+    print(f"toolchains run: {', '.join(sorted(toolchains)) or '(none)'}")
+    for arch, desc in sorted(toolchains.items()):
+        print(f"    {arch}: {desc}")
+
+    by_arch = Counter()
+    by_opt = Counter()
+    lens = []
+    n_records = 0
+    n_unknown = 0
+    out_path = Path(out_path)
+    if out_path.exists():
+        with out_path.open() as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rec = json.loads(line)
+                n_records += 1
+                arch = rec.get("arch")
+                if arch not in REAL_ARCHES:
+                    n_unknown += 1
+                by_arch[arch] += 1
+                by_opt[rec.get("opt")] += 1
+                lens.append(len(rec.get("sequence", [])))
+
+    assert n_unknown == 0, f"{n_unknown} records reached output with a non-real arch"
+    print(f"\nrecords written: {n_records}  (unknown-arch: {n_unknown}, asserted 0)")
+
+    print("per-arch counts:")
+    for arch in REAL_ARCHES:
+        if by_arch.get(arch):
+            print(f"    {arch}: {by_arch[arch]}")
+
+    print("per-opt counts:")
+    for opt, n in sorted(by_opt.items()):
+        print(f"    {opt}: {n}")
+
+    if lens:
+        print(f"length distribution: median={statistics.median(lens):.1f} "
+              f"mean={statistics.mean(lens):.1f} min={min(lens)} max={max(lens)}")
+
+    print(f"dropped (too short, <min-instr): {stats.get('dropped_short', 0)}")
+    print(f"dropped (too long, >max-instr): {stats.get('dropped_long', 0)}")
+    print(f"dropped (dedup): {stats.get('dropped_dup', 0)}")
+    capped = sum(v for k, v in stats.items() if k.endswith(":capped_out"))
+    print(f"dropped (per-cell cap): {capped}")
+
+    for arch in toolchains:
+        for opt in DEFAULT_OPTS:
+            attempted = stats.get(f"{arch}:{opt}:attempted", 0)
+            compiled = stats.get(f"{arch}:{opt}:compiled", 0)
+            if attempted:
+                print(f"compile coverage {arch}/{opt}: {compiled}/{attempted}")
+
+
+# ---------------------------------------------------------------------------
 # summary reporting
 # ---------------------------------------------------------------------------
 
@@ -435,6 +706,15 @@ def main(argv=None) -> int:
                           "DIR to the cluster and finish with --from-local DIR there.")
     ap.add_argument("--seed", type=int, default=DEFAULT_SEED,
                      help="RNG seed for per-cell-cap sampling (default: %(default)s)")
+    ap.add_argument("--workers", type=int,
+                     default=int(os.environ.get("SLURM_CPUS_PER_TASK") or os.cpu_count() or 1),
+                     help="parallel compile worker processes (default: "
+                          "$SLURM_CPUS_PER_TASK if set, else os.cpu_count())")
+    ap.add_argument("--resume", action="store_true",
+                     help="resume an interrupted run from an existing --out "
+                          "(+ its .done sidecar) instead of starting over -- "
+                          "already-finished sources are skipped, already-written "
+                          "records are kept and deduped against")
     args = ap.parse_args(argv)
 
     if args.stage_only and not args.from_hf:
@@ -499,23 +779,38 @@ def main(argv=None) -> int:
             shutil.rmtree(cleanup_dir, ignore_errors=True)
         return 1
 
-    records, stats = build_from_c_files(
-        c_files, list(toolchains), opts,
+    out_path = Path(args.out)
+    done_path = Path(str(out_path) + ".done")
+
+    if args.per_cell_cap is not None:
+        print("[build_pretrain_corpus_from_c] NOTE: --per-cell-cap is set -- with "
+              "--workers > 1, source-compile completion order is nondeterministic, "
+              "so exactly WHICH records land in a capped (arch, opt) cell is "
+              "completion-order dependent (fine for a pretraining corpus; the "
+              "records outside any capped cell, and the kept SET when no cap is "
+              "given, are still deterministic).")
+
+    if not args.resume:
+        # A fresh (non-resume) run must not silently append onto stale output
+        # from a previous invocation of this same --out path.
+        if out_path.exists():
+            out_path.unlink()
+        if done_path.exists():
+            done_path.unlink()
+    print(f"[build_pretrain_corpus_from_c] workers={args.workers} "
+          f"resume={args.resume} out={out_path}")
+
+    stats = build_from_c_files_streaming(
+        c_files, list(toolchains), opts, out_path,
         min_instr=args.min_instr, max_instr=args.max_instr,
-        per_cell_cap=args.per_cell_cap, seed=args.seed,
+        per_cell_cap=args.per_cell_cap, workers=args.workers, resume=args.resume,
     )
 
     if cleanup_dir is not None:
         shutil.rmtree(cleanup_dir, ignore_errors=True)
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w") as f:
-        for r in records:
-            f.write(json.dumps(r) + "\n")
-
-    print_summary(c_files, toolchains, records, stats)
-    print(f"\n[build_pretrain_corpus_from_c] wrote {len(records)} records to {out_path}")
+    print_summary_streaming(out_path, toolchains, stats, len(c_files))
+    print(f"\n[build_pretrain_corpus_from_c] wrote records to {out_path}")
     return 0
 
 
