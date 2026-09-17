@@ -20,7 +20,7 @@
 #SBATCH --job-name=build_corpus
 #SBATCH --partition=Teaching           # confirm with `sinfo`; CPU-only, no --gres needed
 #SBATCH --time=08:00:00
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
 #SBATCH --output=eval/cluster_out/%x_%j.out
 #SBATCH --error=eval/cluster_out/%x_%j.err
