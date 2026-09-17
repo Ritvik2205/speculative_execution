@@ -155,24 +155,38 @@ def encode_record(seq_tokens: List[str], cls: str, arch: str, vocab: GenVocab,
 
 
 def train(model, encoded: List[List[int]], epochs, pad_id, bs=64, lr=3e-3):
+    # Use the GPU when one is present -- without this the transformer trains on
+    # CPU no matter what node it runs on, which is intractable on a large
+    # (100k+ record) corpus. sample() is already device-aware (it reads the
+    # parameters' device), so only the training path needed moving.
+    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(dev)
+    n_batches = (len(encoded) + bs - 1) // bs
+    print(f"  [train] device={dev} records={len(encoded)} "
+          f"batches/epoch={n_batches} bs={bs}", flush=True)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
     lossf = nn.CrossEntropyLoss(ignore_index=pad_id)
+    # Print intra-epoch progress ~10x/epoch so a long run isn't silent for hours.
+    log_every = max(1, n_batches // 10)
     for ep in range(epochs):
         model.train()
         order = np.random.permutation(len(encoded))
         tot = nb = 0.0
-        for k in range(0, len(order), bs):
+        for bi, k in enumerate(range(0, len(order), bs)):
             batch = [encoded[i] for i in order[k:k + bs]]
             m = max(len(r) for r in batch)
             ids = np.full((len(batch), m), pad_id, dtype=np.int64)
             for r, row in enumerate(batch):
                 ids[r, :len(row)] = row
-            ids = torch.tensor(ids)
+            ids = torch.tensor(ids).to(dev)
             pad = ids.eq(pad_id)
             logits = model(ids[:, :-1], pad[:, :-1])
             loss = lossf(logits.reshape(-1, logits.size(-1)),
                          ids[:, 1:].reshape(-1))
             opt.zero_grad(); loss.backward(); opt.step()
             tot += loss.item(); nb += 1
-        print(f"  epoch {ep+1}/{epochs}  lm_loss={tot/max(nb,1):.4f}")
+            if (bi + 1) % log_every == 0:
+                print(f"    epoch {ep+1}/{epochs}  batch {bi+1}/{n_batches}  "
+                      f"lm_loss={tot/max(nb,1):.4f}", flush=True)
+        print(f"  epoch {ep+1}/{epochs}  lm_loss={tot/max(nb,1):.4f}", flush=True)
     return model
