@@ -102,7 +102,6 @@ out/
 *.so
 *.dylib
 *.test
-*.out
 go.work
 
 # CUDA

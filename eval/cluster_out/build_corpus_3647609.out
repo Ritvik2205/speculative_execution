@@ -1,0 +1,131 @@
+host=saxa.inf.ed.ac.uk job=3647609 cpus=8
+[build_pretrain_corpus_from_c] detected toolchains:
+    arm64: clang -target aarch64-linux-gnu
+    x86_64: clang -target x86_64-linux-gnu
+[build_pretrain_corpus_from_c] workers=8 resume=True out=gen/data/pretrain_corpus_fromC.jsonl
+[build_pretrain_corpus_from_c] progress: 200/20000 sources processed, elapsed=6s
+[build_pretrain_corpus_from_c] progress: 400/20000 sources processed, elapsed=10s
+[build_pretrain_corpus_from_c] progress: 600/20000 sources processed, elapsed=15s
+[build_pretrain_corpus_from_c] progress: 800/20000 sources processed, elapsed=19s
+[build_pretrain_corpus_from_c] progress: 1000/20000 sources processed, elapsed=24s
+[build_pretrain_corpus_from_c] progress: 1200/20000 sources processed, elapsed=28s
+[build_pretrain_corpus_from_c] progress: 1400/20000 sources processed, elapsed=33s
+[build_pretrain_corpus_from_c] progress: 1600/20000 sources processed, elapsed=38s
+[build_pretrain_corpus_from_c] progress: 1800/20000 sources processed, elapsed=42s
+[build_pretrain_corpus_from_c] progress: 2000/20000 sources processed, elapsed=47s
+[build_pretrain_corpus_from_c] progress: 2200/20000 sources processed, elapsed=51s
+[build_pretrain_corpus_from_c] progress: 2400/20000 sources processed, elapsed=56s
+[build_pretrain_corpus_from_c] progress: 2600/20000 sources processed, elapsed=60s
+[build_pretrain_corpus_from_c] progress: 2800/20000 sources processed, elapsed=65s
+[build_pretrain_corpus_from_c] progress: 3000/20000 sources processed, elapsed=69s
+[build_pretrain_corpus_from_c] progress: 3200/20000 sources processed, elapsed=74s
+[build_pretrain_corpus_from_c] progress: 3400/20000 sources processed, elapsed=79s
+[build_pretrain_corpus_from_c] progress: 3600/20000 sources processed, elapsed=83s
+[build_pretrain_corpus_from_c] progress: 3800/20000 sources processed, elapsed=88s
+[build_pretrain_corpus_from_c] progress: 4000/20000 sources processed, elapsed=92s
+[build_pretrain_corpus_from_c] progress: 4200/20000 sources processed, elapsed=97s
+[build_pretrain_corpus_from_c] progress: 4400/20000 sources processed, elapsed=102s
+[build_pretrain_corpus_from_c] progress: 4600/20000 sources processed, elapsed=106s
+[build_pretrain_corpus_from_c] progress: 4800/20000 sources processed, elapsed=111s
+[build_pretrain_corpus_from_c] progress: 5000/20000 sources processed, elapsed=115s
+[build_pretrain_corpus_from_c] progress: 5200/20000 sources processed, elapsed=119s
+[build_pretrain_corpus_from_c] progress: 5400/20000 sources processed, elapsed=124s
+[build_pretrain_corpus_from_c] progress: 5600/20000 sources processed, elapsed=128s
+[build_pretrain_corpus_from_c] progress: 5800/20000 sources processed, elapsed=133s
+[build_pretrain_corpus_from_c] progress: 6000/20000 sources processed, elapsed=137s
+[build_pretrain_corpus_from_c] progress: 6200/20000 sources processed, elapsed=142s
+[build_pretrain_corpus_from_c] progress: 6400/20000 sources processed, elapsed=146s
+[build_pretrain_corpus_from_c] progress: 6600/20000 sources processed, elapsed=151s
+[build_pretrain_corpus_from_c] progress: 6800/20000 sources processed, elapsed=155s
+[build_pretrain_corpus_from_c] progress: 7000/20000 sources processed, elapsed=160s
+[build_pretrain_corpus_from_c] progress: 7200/20000 sources processed, elapsed=164s
+[build_pretrain_corpus_from_c] progress: 7400/20000 sources processed, elapsed=169s
+[build_pretrain_corpus_from_c] progress: 7600/20000 sources processed, elapsed=173s
+[build_pretrain_corpus_from_c] progress: 7800/20000 sources processed, elapsed=178s
+[build_pretrain_corpus_from_c] progress: 8000/20000 sources processed, elapsed=182s
+[build_pretrain_corpus_from_c] progress: 8200/20000 sources processed, elapsed=186s
+[build_pretrain_corpus_from_c] progress: 8400/20000 sources processed, elapsed=191s
+[build_pretrain_corpus_from_c] progress: 8600/20000 sources processed, elapsed=196s
+[build_pretrain_corpus_from_c] progress: 8800/20000 sources processed, elapsed=200s
+[build_pretrain_corpus_from_c] progress: 9000/20000 sources processed, elapsed=204s
+[build_pretrain_corpus_from_c] progress: 9200/20000 sources processed, elapsed=209s
+[build_pretrain_corpus_from_c] progress: 9400/20000 sources processed, elapsed=213s
+[build_pretrain_corpus_from_c] progress: 9600/20000 sources processed, elapsed=218s
+[build_pretrain_corpus_from_c] progress: 9800/20000 sources processed, elapsed=223s
+[build_pretrain_corpus_from_c] progress: 10000/20000 sources processed, elapsed=227s
+[build_pretrain_corpus_from_c] progress: 10200/20000 sources processed, elapsed=230s
+[build_pretrain_corpus_from_c] progress: 10400/20000 sources processed, elapsed=234s
+[build_pretrain_corpus_from_c] progress: 10600/20000 sources processed, elapsed=238s
+[build_pretrain_corpus_from_c] progress: 10800/20000 sources processed, elapsed=241s
+[build_pretrain_corpus_from_c] progress: 11000/20000 sources processed, elapsed=244s
+[build_pretrain_corpus_from_c] progress: 11200/20000 sources processed, elapsed=247s
+[build_pretrain_corpus_from_c] progress: 11400/20000 sources processed, elapsed=251s
+[build_pretrain_corpus_from_c] progress: 11600/20000 sources processed, elapsed=254s
+[build_pretrain_corpus_from_c] progress: 11800/20000 sources processed, elapsed=257s
+[build_pretrain_corpus_from_c] progress: 12000/20000 sources processed, elapsed=260s
+[build_pretrain_corpus_from_c] progress: 12200/20000 sources processed, elapsed=263s
+[build_pretrain_corpus_from_c] progress: 12400/20000 sources processed, elapsed=267s
+[build_pretrain_corpus_from_c] progress: 12600/20000 sources processed, elapsed=270s
+[build_pretrain_corpus_from_c] progress: 12800/20000 sources processed, elapsed=273s
+[build_pretrain_corpus_from_c] progress: 13000/20000 sources processed, elapsed=276s
+[build_pretrain_corpus_from_c] progress: 13200/20000 sources processed, elapsed=279s
+[build_pretrain_corpus_from_c] progress: 13400/20000 sources processed, elapsed=282s
+[build_pretrain_corpus_from_c] progress: 13600/20000 sources processed, elapsed=285s
+[build_pretrain_corpus_from_c] progress: 13800/20000 sources processed, elapsed=289s
+[build_pretrain_corpus_from_c] progress: 14000/20000 sources processed, elapsed=292s
+[build_pretrain_corpus_from_c] progress: 14200/20000 sources processed, elapsed=295s
+[build_pretrain_corpus_from_c] progress: 14400/20000 sources processed, elapsed=298s
+[build_pretrain_corpus_from_c] progress: 14600/20000 sources processed, elapsed=302s
+[build_pretrain_corpus_from_c] progress: 14800/20000 sources processed, elapsed=305s
+[build_pretrain_corpus_from_c] progress: 15000/20000 sources processed, elapsed=308s
+[build_pretrain_corpus_from_c] progress: 15200/20000 sources processed, elapsed=312s
+[build_pretrain_corpus_from_c] progress: 15400/20000 sources processed, elapsed=315s
+[build_pretrain_corpus_from_c] progress: 15600/20000 sources processed, elapsed=319s
+[build_pretrain_corpus_from_c] progress: 15800/20000 sources processed, elapsed=322s
+[build_pretrain_corpus_from_c] progress: 16000/20000 sources processed, elapsed=326s
+[build_pretrain_corpus_from_c] progress: 16200/20000 sources processed, elapsed=329s
+[build_pretrain_corpus_from_c] progress: 16400/20000 sources processed, elapsed=332s
+[build_pretrain_corpus_from_c] progress: 16600/20000 sources processed, elapsed=336s
+[build_pretrain_corpus_from_c] progress: 16800/20000 sources processed, elapsed=339s
+[build_pretrain_corpus_from_c] progress: 17000/20000 sources processed, elapsed=342s
+[build_pretrain_corpus_from_c] progress: 17200/20000 sources processed, elapsed=346s
+[build_pretrain_corpus_from_c] progress: 17400/20000 sources processed, elapsed=350s
+[build_pretrain_corpus_from_c] progress: 17600/20000 sources processed, elapsed=353s
+[build_pretrain_corpus_from_c] progress: 17800/20000 sources processed, elapsed=357s
+[build_pretrain_corpus_from_c] progress: 18000/20000 sources processed, elapsed=360s
+[build_pretrain_corpus_from_c] progress: 18200/20000 sources processed, elapsed=364s
+[build_pretrain_corpus_from_c] progress: 18400/20000 sources processed, elapsed=367s
+[build_pretrain_corpus_from_c] progress: 18600/20000 sources processed, elapsed=370s
+[build_pretrain_corpus_from_c] progress: 18800/20000 sources processed, elapsed=374s
+[build_pretrain_corpus_from_c] progress: 19000/20000 sources processed, elapsed=377s
+[build_pretrain_corpus_from_c] progress: 19200/20000 sources processed, elapsed=380s
+[build_pretrain_corpus_from_c] progress: 19400/20000 sources processed, elapsed=384s
+[build_pretrain_corpus_from_c] progress: 19600/20000 sources processed, elapsed=387s
+[build_pretrain_corpus_from_c] progress: 19800/20000 sources processed, elapsed=391s
+[build_pretrain_corpus_from_c] progress: 20000/20000 sources processed, elapsed=394s
+[build_pretrain_corpus_from_c] streaming build done: 20000 sources processed in 394s
+
+[build_pretrain_corpus_from_c] source C files: 20000
+toolchains run: arm64, x86_64
+    arm64: clang -target aarch64-linux-gnu
+    x86_64: clang -target x86_64-linux-gnu
+
+records written: 3390  (unknown-arch: 0, asserted 0)
+per-arch counts:
+    x86_64: 1627
+    arm64: 1763
+per-opt counts:
+    O0: 1920
+    O2: 1470
+length distribution: median=37.0 mean=63.7 min=10 max=511
+dropped (too short, <min-instr): 1275
+dropped (too long, >max-instr): 80
+dropped (dedup): 47
+dropped (per-cell cap): 0
+compile coverage x86_64/O0: 956/20000
+compile coverage x86_64/O2: 955/20000
+compile coverage arm64/O0: 939/20000
+compile coverage arm64/O2: 938/20000
+
+[build_pretrain_corpus_from_c] wrote records to gen/data/pretrain_corpus_fromC.jsonl
+done rc=0

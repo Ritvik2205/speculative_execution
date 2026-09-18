@@ -1,0 +1,29 @@
+host=saxa.inf.ed.ac.uk job=3647611 cpus=8
+[build_pretrain_corpus_from_c] detected toolchains:
+    arm64: clang -target aarch64-linux-gnu
+    x86_64: clang -target x86_64-linux-gnu
+[build_pretrain_corpus_from_c] workers=8 resume=True out=gen/data/pretrain_corpus_fromC.jsonl
+[build_pretrain_corpus_from_c] resume: skipping 20000 already-done sources (0 remaining)
+[build_pretrain_corpus_from_c] nothing to do (all sources already done)
+[build_pretrain_corpus_from_c] streaming build done: 0 sources processed in 0s
+
+[build_pretrain_corpus_from_c] source C files: 20000
+toolchains run: arm64, x86_64
+    arm64: clang -target aarch64-linux-gnu
+    x86_64: clang -target x86_64-linux-gnu
+
+records written: 3390  (unknown-arch: 0, asserted 0)
+per-arch counts:
+    x86_64: 1627
+    arm64: 1763
+per-opt counts:
+    O0: 1920
+    O2: 1470
+length distribution: median=37.0 mean=63.7 min=10 max=511
+dropped (too short, <min-instr): 0
+dropped (too long, >max-instr): 0
+dropped (dedup): 0
+dropped (per-cell cap): 0
+
+[build_pretrain_corpus_from_c] wrote records to gen/data/pretrain_corpus_fromC.jsonl
+done rc=0
