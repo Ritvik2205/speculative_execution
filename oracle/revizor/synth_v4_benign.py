@@ -1,6 +1,42 @@
 #!/usr/bin/env python3
-"""oracle/revizor/synth_v4_benign.py — synthesize V4-shaped BENIGN negatives
-by fencing the real hardware-confirmed SPECTRE_V4 gadgets.
+"""oracle/revizor/synth_v4_benign.py — synthesize per-class fenced-BENIGN
+twins from real hardware-confirmed vulnerability gadgets (SPECTRE_V4,
+SPECTRE_V1, L1TF, MDS).
+
+HONESTY NOTE (read before trusting a twin as a ground-truth BENIGN):
+  - SPECTRE_V4 twins are HARDWARE-CONFIRMED mitigations: the Revizor SSBP-on
+    control measured the fenced sequences going from 15/15 leaks -> 0 (see
+    oracle/revizor/HARDWARE_VALIDATION_RESULTS.md). These are genuine,
+    verified BENIGN negatives.
+  - SPECTRE_V1, L1TF, and MDS twins are STRUCTURAL only: this script places
+    an `lfence` at the textbook speculation boundary for each class (see
+    `fence_gadget_for_class` below) and nothing more. They have the same
+    instruction shape as their positive, plus a serializing barrier, but
+    this script does NOT symbolically or hardware-verify that the barrier
+    actually kills the leak. Treat their `source` field
+    ("synth_mitigated_twin") as a flag that they are unverified. To make
+    them as trustworthy as the V4 twins they should ideally be re-run
+    through Revizor on the i5 (fenced -> 0 leaks expected) and/or, for
+    SPECTRE_V1 specifically, checked with the Spectector oracle
+    (oracle/revizor/spectector_oracle.py or similar) since it already
+    exists in this repo for x86.
+
+Per-class speculation boundary (why each fence goes where it does):
+  - SPECTRE_V4 (store-bypass): leaks through a store->load pair, so the
+    fix is `lfence` AFTER every memory WRITE (see `fence_gadget` below,
+    unchanged from before this file grew multi-class support).
+  - SPECTRE_V1 (bounds-check bypass): leaks by speculating past a
+    conditional guard branch, so the fix is `lfence` AFTER every Jcc
+    (conditional branch) -- the textbook V1 mitigation serializes
+    speculation right at the guard.
+  - L1TF / MDS (faulting / sampling transient LOAD): leaks through a
+    transient load itself (a faulting load for L1TF, a stale
+    fill-buffer/store-buffer/load-port sample for MDS), so the fix is
+    `lfence` BEFORE every memory-READING instruction, serializing the load
+    so it cannot execute speculatively. Real MDS hardware mitigation uses
+    `verw` (buffer-overwrite), not `lfence` -- `lfence` is used here only
+    to keep the twin structurally comparable (same barrier primitive) to
+    the other three classes; it is not the literal MDS fix.
 
 Background (docs/NEXT_STEPS_PLAN_2026-09-10.md, Step 2): the Revizor SSBP-on
 control confirmed that fencing the store->load pair in a real V4 gadget
@@ -174,6 +210,175 @@ def fence_gadget(sequence: List[str]) -> List[str]:
 
 
 # ---------------------------------------------------------------------------
+# SPECTRE_V1 boundary: lfence AFTER every conditional (Jcc) branch -- the
+# guard branch a bounds-check-bypass gadget speculates past.
+# ---------------------------------------------------------------------------
+
+# x86 Jcc mnemonics (AT&T), including synonyms of the same condition code
+# under a different mnemonic (jz==je, jnb==jae, etc.). Deliberately excludes
+# `jmp`/`jmpq` (unconditional) and `jrcxz`/`loop*` (not guard-branch idioms
+# this corpus uses). Jcc mnemonics never take x86 size suffixes, so no
+# suffix-stripping is needed here (unlike `_mnemonic_root`).
+_JCC_MNEMONICS = {
+    "je", "jne", "jg", "jge", "jl", "jle", "ja", "jae", "jb", "jbe",
+    "jc", "jnc", "jo", "jno", "js", "jns", "jp", "jnp",
+    "jz", "jnz", "jnb", "jnbe", "jna", "jnae", "jng", "jnge", "jnl", "jnle",
+}
+
+
+def _is_cond_branch(instr: str) -> bool:
+    """True if `instr`'s mnemonic is an x86 Jcc (conditional branch).
+    Operands (the target and any `<symbol>` annotation) are ignored --
+    only the mnemonic is inspected."""
+    stripped = instr.strip()
+    if not stripped:
+        return False
+    mnemonic = stripped.split(None, 1)[0].lower()
+    return mnemonic in _JCC_MNEMONICS
+
+
+def fence_after_cond_branch(sequence: List[str]) -> List[str]:
+    """SPECTRE_V1 twin primitive: insert an `lfence` immediately after
+    every conditional branch in `sequence`. This is the textbook V1
+    (bounds-check-bypass) mitigation: it serializes execution right at the
+    guard branch so the CPU cannot speculate past a mispredicted bounds
+    check into the code that reads out-of-bounds.
+
+    Returns a NEW list; `sequence` is not mutated.
+    """
+    out: List[str] = []
+    for instr in sequence:
+        out.append(instr)
+        if _is_cond_branch(instr):
+            out.append(FENCE_INSTR)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# L1TF / MDS boundary: lfence BEFORE every memory-READING instruction -- the
+# transient load itself is the leak for these two classes (a faulting load
+# for L1TF, a stale sampled value for MDS), unlike V4 where the leak needs a
+# store first.
+# ---------------------------------------------------------------------------
+
+# `mov`/`movb`/`movw`/`movl`/`movq` storing a register or immediate INTO
+# memory is a pure write: it never reads the memory operand first (unlike
+# every other mnemonic that can target memory, which is a read-modify-write
+# when its memory operand is the destination). `movz*`/`movs*` (movzbl,
+# movsbl, ...) are excluded on purpose -- those are always widening LOADS
+# (mem, if present, is the source), so they must NOT be treated as a
+# pure-store mov here.
+_PURE_STORE_MOV_MNEMONICS = {"mov", "movb", "movw", "movl", "movq"}
+
+# `lea`/`leaq`/`leal`/`leaw`/`leab` compute an address; despite the
+# `(...)` syntax they never actually access memory, so they must never be
+# reported as a memory read.
+_NO_MEM_ACCESS_MNEMONICS = {"lea", "leab", "leaw", "leal", "leaq"}
+
+
+def _reads_mem(instr: str) -> bool:
+    """True if `instr` reads a memory operand as a source.
+
+    Judgment calls (deliberately conservative -- see module docstring):
+      - No `(` at all -> never a memory access.
+      - `lea*` -> never a real memory access despite the `(...)` syntax
+        (address computation only).
+      - A memory operand in any NON-last operand position is a source
+        (AT&T convention: destination is last) -> always a read, e.g. a
+        plain load (`movl (%rax), %rbx`) or a widening load
+        (`movzbl (%rax), %ebx`).
+      - A memory operand ONLY in the last (destination) position is a
+        read too, UNLESS the mnemonic is a plain `mov` family member
+        (`mov`/`movb`/`movw`/`movl`/`movq`), which is a pure store with no
+        read -- every other mnemonic that can write memory
+        (`and`/`or`/`xor`/`add`/`sub`/`inc`/`dec`/`not`/`neg`/`bts`/`btr`/
+        `btc`/...) is a read-modify-write and DOES read the memory operand
+        first. `cmp`/`test`/`bt` (see `_NEVER_WRITES_ROOTS`) never write
+        but always read their memory operand -- they fall into this same
+        "not a plain mov" case, so they correctly come out `True`.
+      - A `lock` prefix is stripped first (it never changes whether the
+        underlying op reads memory) via `_strip_lock_prefix`.
+    """
+    stripped = instr.strip()
+    if not stripped or "(" not in stripped:
+        return False
+    body, _has_lock = _strip_lock_prefix(stripped)
+    parts = body.split(None, 1)
+    if not parts:
+        return False
+    mnemonic = parts[0].lower()
+    if mnemonic in _NO_MEM_ACCESS_MNEMONICS:
+        return False
+    if len(parts) < 2:
+        return False
+
+    operands = _split_operands(parts[1])
+    if not operands:
+        return False
+    mem_positions = [i for i, o in enumerate(operands) if "(" in o and ")" in o]
+    if not mem_positions:
+        return False
+
+    last_idx = len(operands) - 1
+    if any(pos != last_idx for pos in mem_positions):
+        return True  # mem operand in a source position -- always a read
+
+    # Mem operand only in the destination (last) position. Reduce the
+    # mnemonic the same way instr_writes_mem's helper does (for
+    # documentation/consistency -- cmp/test/bt land here too and are
+    # correctly `True` since they aren't in _PURE_STORE_MOV_MNEMONICS).
+    _mnemonic_root(mnemonic)
+    return mnemonic not in _PURE_STORE_MOV_MNEMONICS
+
+
+def fence_before_mem_read(sequence: List[str]) -> List[str]:
+    """L1TF/MDS twin primitive: insert an `lfence` immediately BEFORE
+    every memory-reading instruction in `sequence`. Serializes the
+    transient load so it cannot execute speculatively -- unlike V4, the
+    leak here IS the load, so there is no later instruction to fence
+    after.
+
+    Returns a NEW list; `sequence` is not mutated.
+    """
+    out: List[str] = []
+    for instr in sequence:
+        if _reads_mem(instr):
+            out.append(FENCE_INSTR)
+        out.append(instr)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Per-class dispatch
+# ---------------------------------------------------------------------------
+
+_VULN_CLASS_FENCERS = {
+    "SPECTRE_V4": fence_gadget,
+    "SPECTRE_V1": fence_after_cond_branch,
+    "L1TF": fence_before_mem_read,
+    "MDS": fence_before_mem_read,
+}
+
+
+def fence_gadget_for_class(sequence: List[str], vuln_class: str) -> List[str]:
+    """Dispatch to the right speculation-boundary fencer for `vuln_class`.
+
+    Returns a NEW list; `sequence` is never mutated. If the fencer finds no
+    boundary to fence (e.g. a SPECTRE_V1 record with no conditional
+    branch), the returned list is equal to (but not the same object as)
+    `sequence` -- a twin identical to its positive is useless as a BENIGN
+    negative, and callers (the CLI below) should warn about it.
+    """
+    fencer = _VULN_CLASS_FENCERS.get(vuln_class)
+    if fencer is None:
+        raise ValueError(
+            f"unknown vuln_class {vuln_class!r}; expected one of "
+            f"{sorted(_VULN_CLASS_FENCERS)}"
+        )
+    return fencer(sequence)
+
+
+# ---------------------------------------------------------------------------
 # JSONL I/O + CLI
 # ---------------------------------------------------------------------------
 
@@ -194,19 +399,34 @@ def write_jsonl(path: Path, records: List[dict]) -> None:
             f.write(json.dumps(r) + "\n")
 
 
-def make_benign_variant(record: dict) -> dict:
-    """One real V4 gadget record -> its fenced BENIGN twin."""
+# SPECTRE_V4 twins are hardware-confirmed (Revizor SSBP-on: 15 leaks -> 0);
+# V1/L1TF/MDS twins are structural-only (see module docstring HONESTY NOTE).
+_HW_CONFIRMED_SOURCE = "revizor_hw_mitigated"
+_STRUCTURAL_SOURCE = "synth_mitigated_twin"
+
+
+def make_benign_variant(record: dict, vuln_class: Optional[str] = None) -> dict:
+    """One real gadget record -> its fenced BENIGN twin.
+
+    `vuln_class` picks the speculation boundary to fence (see
+    `fence_gadget_for_class`); if omitted it falls back to
+    `record["vuln_class"]`, then `record["label"]` (the field the real
+    revizor_*_real.jsonl corpora actually use), then SPECTRE_V4 to preserve
+    this function's original no-argument behavior.
+    """
+    cls = vuln_class or record.get("vuln_class") or record.get("label") or "SPECTRE_V4"
+    source = _HW_CONFIRMED_SOURCE if cls == "SPECTRE_V4" else _STRUCTURAL_SOURCE
     return {
         "label": "BENIGN",
         "arch": record.get("arch", "x86_64"),
-        "sequence": fence_gadget(record["sequence"]),
+        "sequence": fence_gadget_for_class(record["sequence"], cls),
         "group": f"{record['group']}_fenced",
-        "source": "revizor_hw_mitigated",
+        "source": source,
     }
 
 
-def convert_all(records: List[dict]) -> List[dict]:
-    return [make_benign_variant(r) for r in records]
+def convert_all(records: List[dict], vuln_class: Optional[str] = None) -> List[dict]:
+    return [make_benign_variant(r, vuln_class) for r in records]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -215,23 +435,40 @@ def build_parser() -> argparse.ArgumentParser:
                     help="input real-V4 JSONL (default: eval/data/revizor_v4_real.jsonl)")
     p.add_argument("--out", dest="out_path", type=Path, default=DEFAULT_OUT_PATH,
                     help="output BENIGN JSONL (default: eval/data/revizor_v4_benign.jsonl)")
+    p.add_argument("--vuln-class", dest="vuln_class",
+                    choices=sorted(_VULN_CLASS_FENCERS),
+                    default="SPECTRE_V4",
+                    help="which class's speculation boundary to fence "
+                         "(default: SPECTRE_V4, preserving prior no-arg behavior)")
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> None:
     args = build_parser().parse_args(argv)
 
-    real_v4 = load_jsonl(args.in_path)
-    benign = convert_all(real_v4)
+    real = load_jsonl(args.in_path)
+    benign = convert_all(real, args.vuln_class)
 
     write_jsonl(args.out_path, benign)
 
     n_fenced_instr = sum(len(r["sequence"]) for r in benign)
-    n_orig_instr = sum(len(r["sequence"]) for r in real_v4)
-    print(f"Read {len(real_v4)} real V4 gadgets from {args.in_path}")
+    n_orig_instr = sum(len(r["sequence"]) for r in real)
+    n_identical = sum(
+        1 for orig, twin in zip(real, benign)
+        if twin["sequence"] == orig["sequence"]
+    )
+
+    print(f"Read {len(real)} real {args.vuln_class} gadgets from {args.in_path}")
     print(f"Wrote {len(benign)} fenced BENIGN records to {args.out_path}")
     print(f"Inserted {n_fenced_instr - n_orig_instr} lfence instructions total "
           f"({n_orig_instr} -> {n_fenced_instr} instructions)")
+    if n_identical:
+        print(
+            f"WARNING: {n_identical} twin(s) identical to their positive "
+            f"(no {args.vuln_class} speculation boundary found) -- useless "
+            f"as BENIGN negatives",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":
