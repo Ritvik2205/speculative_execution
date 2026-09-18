@@ -457,6 +457,10 @@ def main(argv=None) -> int:
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--top-k", type=int, default=20)
     ap.add_argument("--epochs-per-round", type=int, default=1)
+    ap.add_argument("--seed", type=int, default=0,
+                     help="seed torch/numpy/random (and the realizer) so a run is "
+                          "reproducible and multi-seed comparisons are meaningful "
+                          "(generator sampling is otherwise nondeterministic).")
     args = ap.parse_args(argv)
 
     reason = _docker_unavailable_reason()
@@ -470,10 +474,17 @@ def main(argv=None) -> int:
     # gen.rl_from_oracle` (as the unit tests do) never needs torch, a
     # generator checkpoint, or Docker.
     import gen.decode as gen_decode  # sets up v54/spec/gen on sys.path itself
+    import random as _random
+    import numpy as _np
+    import torch as _torch
+    _random.seed(args.seed)
+    _np.random.seed(args.seed)
+    _torch.manual_seed(args.seed)
+    print(f"[rl] seed={args.seed} gen={args.gen} arch={args.arch}")
 
     model = gen_decode.CondTransformerLM.load(args.gen)
     spec = gen_decode.load_spec(f"{args.arch}.json")
-    realizer = gen_decode.Realizer(spec, seed=0)
+    realizer = gen_decode.Realizer(spec, seed=args.seed)
     validator = SpectectorValidator(repo_root=str(repo_root))
     out_dir = repo_root / "oracle" / "build"
 
