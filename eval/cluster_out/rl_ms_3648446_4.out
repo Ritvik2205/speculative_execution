@@ -1,0 +1,21 @@
+task=4 arm=pretrained seed=2 gen=gen/generator_pretrained.pt -> gen/rl_ms/pretrained_s2
+[rl] seed=2 gen=gen/generator_pretrained.pt arch=x86_64
+  [train] device=cpu records=19 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.8037
+  epoch 1/1  lm_loss=0.8037
+  [train] device=cpu records=36 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.3942
+  epoch 1/1  lm_loss=0.3942
+  [train] device=cpu records=36 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.2506
+  epoch 1/1  lm_loss=0.2506
+  [train] device=cpu records=39 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.2378
+  epoch 1/1  lm_loss=0.2378
+  [train] device=cpu records=40 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.1710
+  epoch 1/1  lm_loss=0.1710
+[SPECTRE_V1] yield per round: {0: 0.5135135135135135, 1: 0.9, 2: 0.9, 3: 0.975, 4: 1.0}
+wrote gen/rl_ms/pretrained_s2/yield.md
+wrote gen/rl_ms/pretrained_s2/samples.jsonl
+done rc=0 -> gen/rl_ms/pretrained_s2
