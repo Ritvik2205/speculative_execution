@@ -159,7 +159,6 @@ docker-compose.override.yml.backup.10
 *.db
 *.joblib
 *.npy
-*.pt
 
 *.png 
 *.dot
