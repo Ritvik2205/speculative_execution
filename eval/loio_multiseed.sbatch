@@ -1,0 +1,71 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# Paper-ready, multi-seed leave-one-ISA-out (riscv64 held out) run: 5 RF
+# seeds x 3 feature tiers (hand-58, spec-42, cand-impurity), whole-sequence
+# and --windowed, then aggregated into per-class recall + benign-FP-rate +
+# macro-F1 with 95% CIs (eval/aggregate_loio_multiseed.py -> eval/loio_multiseed.md).
+#
+# Run AFTER harvesting the riscv64 attack corpus this eval consumes:
+#   python3 gen/build_riscv_attack_corpus.py --apply
+#     -> spec/data/riscv_cvulns_batch.jsonl
+#
+# Then:
+#   sbatch eval/loio_multiseed.sbatch
+#   # once it finishes:
+#   python3 eval/aggregate_loio_multiseed.py     # (also run automatically below)
+#
+# CPU-only -- RandomForestClassifier fits, no GPU needed. Confirm the
+# partition actually exists/is CPU-friendly with `sinfo` before submitting;
+# Teaching is what every other CPU-only sbatch in this repo uses
+# (gen/rl_multiseed.sbatch, gen/build_corpus.sbatch) -- swap if `sinfo` says
+# otherwise on your cluster.
+# ---------------------------------------------------------------------------
+#SBATCH --job-name=loio_ms
+#SBATCH --partition=Teaching          # confirm with `sinfo`; CPU-only, no --gres needed
+#SBATCH --time=04:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=16G
+#SBATCH --output=eval/cluster_out/%x_%j.out
+#SBATCH --error=eval/cluster_out/%x_%j.err
+
+set -euo pipefail
+
+REPO="${REPO:-$HOME/speculative_execution}"
+cd "$REPO"
+[ -f .venv/bin/activate ] && source .venv/bin/activate
+mkdir -p eval/cluster_out
+
+RISCV_CORPUS="spec/data/riscv_cvulns_batch.jsonl"
+if [ ! -s "$RISCV_CORPUS" ]; then
+    echo "ERROR: $RISCV_CORPUS missing or empty -- run first:" >&2
+    echo "  python3 gen/build_riscv_attack_corpus.py --apply" >&2
+    exit 1
+fi
+
+SEEDS="42 1 7 13 21"
+
+echo "[loio] whole-sequence run -> eval/loio_metrics.json"
+python3 eval/leave_one_isa_out.py \
+    --idiomatic --riscv-path "$RISCV_CORPUS" \
+    --seeds $SEEDS \
+    --metrics-out eval/loio_metrics.json \
+    --confusion-out eval/loio_confusion.txt
+
+echo "[loio] --windowed run -> eval/loio_metrics_windowed.json"
+python3 eval/leave_one_isa_out.py \
+    --idiomatic --riscv-path "$RISCV_CORPUS" \
+    --seeds $SEEDS --windowed \
+    --metrics-out eval/loio_metrics_windowed.json \
+    --confusion-out eval/loio_confusion_windowed.txt
+
+echo "[loio] aggregating (whole-sequence) -> eval/loio_multiseed.md"
+python3 eval/aggregate_loio_multiseed.py \
+    --metrics-in eval/loio_metrics.json \
+    --out eval/loio_multiseed.md
+
+echo "[loio] aggregating (windowed) -> eval/loio_multiseed_windowed.md"
+python3 eval/aggregate_loio_multiseed.py \
+    --metrics-in eval/loio_metrics_windowed.json \
+    --out eval/loio_multiseed_windowed.md
+
+echo "[loio] done -> eval/loio_multiseed.md eval/loio_multiseed_windowed.md"

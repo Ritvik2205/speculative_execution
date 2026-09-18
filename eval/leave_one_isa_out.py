@@ -272,6 +272,52 @@ def group_bootstrap_f1(y_true, y_pred, groups, labels, n_boot=2000, seed=0, alph
     return point, float(lo), float(hi)
 
 
+def per_class_metrics(y_true, y_pred, labels) -> dict:
+    """Per-(split,tier,seed) machine-readable metrics computed from
+    already-computed predictions (no model fitting) — factored out so it is
+    unit-testable without sklearn training or corpora
+    (tests/eval/test_aggregate_loio_multiseed.py). Feeds --metrics-out
+    (Task A4 deliverable 1).
+
+    recall[label] is None (not 0.0) when a label has zero true records in
+    this split's `labels` set — "unmeasurable" must not be conflated with
+    "measured zero", the same care load_idiomatic_riscv_records'/group_stats'
+    NaN-vs-zero handling already takes elsewhere in this file.
+
+    benign_fp_rate is the fraction of true-BENIGN held-out records predicted
+    as anything other than BENIGN; None when BENIGN has zero true records
+    (e.g. the harvested riscv64 attack-only corpus,
+    spec/data/riscv_cvulns_batch.jsonl, has no BENIGN class at all) or is not
+    in `labels` (e.g. dropped by this split's class intersection).
+    """
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    labels = list(labels)
+    support = {}
+    recall = {}
+    for lbl in labels:
+        mask = y_true == lbl
+        n = int(mask.sum())
+        support[lbl] = n
+        recall[lbl] = None if n == 0 else float((y_pred[mask] == lbl).sum()) / n
+    if "BENIGN" in labels:
+        mask = y_true == "BENIGN"
+        n = int(mask.sum())
+        benign_fp_rate = None if n == 0 else float((y_pred[mask] != "BENIGN").sum()) / n
+    else:
+        benign_fp_rate = None
+    macro_f1 = float(f1_score(y_true, y_pred, labels=labels, average="macro",
+                              zero_division=0) * 100)
+    accuracy = float(accuracy_score(y_true, y_pred) * 100)
+    return {
+        "support": support,
+        "recall": recall,
+        "benign_fp_rate": benign_fp_rate,
+        "macro_f1": macro_f1,
+        "accuracy": accuracy,
+    }
+
+
 def load_idiomatic_riscv_records(path=IDIOMATIC_RISCV_PATH):
     """Load the real, riscv64-gcc-compiled corpus (eval/data/idiomatic_riscv.jsonl)
     — NOT a transliteration of the x86/arm corpus, unlike the default
@@ -370,6 +416,19 @@ def main():
                     help="source riscv64 from eval/data/idiomatic_riscv.jsonl "
                          "(real riscv64-gcc corpus) instead of build_riscv_records() "
                          "(default: OFF, unchanged behavior)")
+    ap.add_argument("--riscv-path", type=Path, default=IDIOMATIC_RISCV_PATH,
+                    help="with --idiomatic, load riscv64 records from this path "
+                         "instead of the default eval/data/idiomatic_riscv.jsonl — "
+                         "lets this eval consume a harvested corpus (e.g. "
+                         "spec/data/riscv_cvulns_batch.jsonl from "
+                         "gen/build_riscv_attack_corpus.py) without moving files. "
+                         "No effect without --idiomatic.")
+    ap.add_argument("--metrics-out", type=Path, default=None,
+                    help="write a machine-readable JSON record per (split, tier, "
+                         "seed) — per-class recall (incl. BENIGN), benign "
+                         "false-positive rate, macro-F1, accuracy, and per-class "
+                         "support — to this path. Additive: default None leaves "
+                         "stdout/confusion-out output byte-identical.")
     ap.add_argument("--windowed", action="store_true",
                     help="apply the inference-time windowing wrapper "
                          "(eval/isa_windowing.py) to the held-out ISA's test "
@@ -393,8 +452,8 @@ def main():
     x86 = filter_by_arch(all_v54, ["x86_64"])
     arm = filter_by_arch(all_v54, ["arm64"])
     if args.idiomatic:
-        riscv_full = load_idiomatic_riscv_records()
-        print(f"riscv64: sourced from {IDIOMATIC_RISCV_PATH} (--idiomatic: real "
+        riscv_full = load_idiomatic_riscv_records(args.riscv_path)
+        print(f"riscv64: sourced from {args.riscv_path} (--idiomatic: real "
               f"riscv64-gcc-compiled corpus, NOT a transliteration) — "
               f"{len(riscv_full)} labeled records")
     else:
@@ -420,6 +479,7 @@ def main():
 
     all_results = {}
     confusion_report = []  # per-ISA, per-tier confusion matrices (Task 5.4 deliverable 3)
+    metrics_records = []  # per (split, tier, seed) machine-readable metrics (Task A4)
 
     for train_archs, held_out in SPLITS:
         split_name = f"{'+'.join(train_archs)} -> {held_out}"
@@ -536,6 +596,18 @@ def main():
                 accs.append(accuracy_score(yte, p) * 100)
                 f1s.append(f1_score(yte, p, labels=keep_sorted, average="macro",
                                     zero_division=0) * 100)
+                if args.metrics_out is not None:
+                    pcm = per_class_metrics(yte, p, keep_sorted)
+                    metrics_records.append({
+                        "split": split_name,
+                        "held_out": held_out,
+                        "train_archs": list(train_archs),
+                        "tier": name,
+                        "seed": sd,
+                        "windowed": bool(args.windowed),
+                        "idiomatic": bool(args.idiomatic),
+                        **pcm,
+                    })
 
             acc_mean, acc_hw = ci95_seeds(accs)
             f1_mean, f1_hw = ci95_seeds(f1s)
@@ -754,6 +826,17 @@ def main():
     with open(args.confusion_out, "w") as f:
         f.write("\n".join(confusion_report))
     print(f"per-ISA, per-tier confusion matrices written to {args.confusion_out}")
+
+    # -----------------------------------------------------------------
+    # Per-(split, tier, seed) machine-readable metrics (Task A4 deliverable
+    # 1) — additive, only written when --metrics-out is given.
+    # -----------------------------------------------------------------
+    if args.metrics_out is not None:
+        args.metrics_out.parent.mkdir(parents=True, exist_ok=True)
+        with open(args.metrics_out, "w") as f:
+            json.dump(metrics_records, f, indent=2)
+        print(f"per-class recall / benign-FP-rate / macro-F1 / support metrics "
+              f"({len(metrics_records)} records) written to {args.metrics_out}")
 
 
 if __name__ == "__main__":
