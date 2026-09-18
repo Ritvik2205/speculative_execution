@@ -71,11 +71,44 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "spec"))
 sys.path.insert(0, str(ROOT / "gen"))
 
-from asm_tokenizer import MultiArchTokenizer          # noqa: E402
+from asm_tokenizer import MultiArchTokenizer, AsmTokenizer  # noqa: E402
+from isa_spec import load_engine                     # noqa: E402
 from generator import GenVocab, CondTransformerLM, encode_record, train  # noqa: E402
 
 DEFAULT_MAX_LEN = 64
 GENERIC_CLASS = "CODE"   # class token used when a corpus record has no label
+
+
+class _AsmRecordTokenizer:
+    """Adapts AsmTokenizer (the tokenizer gen/train_generator.py uses) to the
+    record interface pretrain expects. CRITICAL for transfer: the generator's
+    vocab is built from AsmTokenizer, which keeps raw mnemonics
+    (`movq <reg> <reg>`, `addl <imm> <reg>`). MultiArchTokenizer(mode="canonical")
+    instead emits ISA-neutral ops (`VECTOR`, `ADD`, `BRANCH_COND`) -- a DISJOINT
+    vocabulary, so pretraining in canonical space transfers almost nothing to
+    the generator (only the 4 special tokens overlap -> the observed 4/460).
+    Pretraining with THIS tokenizer puts the pretrained embeddings in the same
+    token space the generator fine-tunes in, so they actually transfer. A
+    generator also needs realizable raw-mnemonic tokens (canonical `ADD` is
+    ambiguous to turn back into concrete asm), so this is the correct space for
+    a generator pretrain."""
+
+    def __init__(self, engine_name: str = "base.json"):
+        self.tok = AsmTokenizer(load_engine(engine_name))
+
+    def tokenize_record(self, r: dict):
+        return self.tok.tokenize_sequence(r.get("sequence", []))
+
+
+def make_tokenizer(kind: str = "asm"):
+    """kind='asm' -> the generator's AsmTokenizer (default; transfers to the
+    generator). kind='canonical' -> MultiArchTokenizer ISA-neutral ops (matches
+    the Phase-1 CLASSIFIER encoder, but does NOT transfer to the generator)."""
+    if kind == "asm":
+        return _AsmRecordTokenizer()
+    if kind == "canonical":
+        return MultiArchTokenizer(mode="canonical")
+    raise ValueError(f"unknown tokenizer kind {kind!r} (want 'asm' or 'canonical')")
 
 
 def _seed_all(seed: int) -> None:
@@ -130,7 +163,7 @@ def pretrain(corpus_records: List[dict], epochs: int, save_path=None,
     useful as the from-scratch baseline in heldout_perplexity comparisons.
     """
     _seed_all(seed)
-    tok = tokenizer or MultiArchTokenizer(mode="canonical")
+    tok = tokenizer or make_tokenizer("asm")
     vocab, tokenized = build_vocab(corpus_records, tok, min_count=min_count)
     encoded = _encode_corpus(corpus_records, tokenized, vocab, max_len)
     if not encoded:
@@ -159,7 +192,7 @@ def heldout_perplexity(model: CondTransformerLM, records: List[dict],
     vocab = model.vocab
     if vocab is None:
         raise ValueError("model.vocab is not set — build via pretrain() or CondTransformerLM.load()")
-    tok = tokenizer or MultiArchTokenizer(mode="canonical")
+    tok = tokenizer or make_tokenizer("asm")
     max_len = max_len or model.max_len
     tokenized = _tokenize_corpus(records, tok)
     encoded = _encode_corpus(records, tokenized, vocab, max_len)
@@ -210,6 +243,12 @@ def main():
     ap.add_argument("--heads", type=int, default=4)
     ap.add_argument("--max-len", type=int, default=DEFAULT_MAX_LEN)
     ap.add_argument("--min-count", type=int, default=5)
+    ap.add_argument("--tokenizer", choices=["asm", "canonical"], default="asm",
+                     help="'asm' (default): the generator's AsmTokenizer, so "
+                          "pretrained embeddings TRANSFER to the fine-tuned "
+                          "generator. 'canonical': ISA-neutral ops (matches the "
+                          "Phase-1 classifier encoder but does NOT transfer to "
+                          "the generator -- disjoint vocab, ~4/460 overlap).")
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
 
@@ -218,7 +257,7 @@ def main():
     model = pretrain(records, args.epochs, args.save, dim=args.dim,
                       layers=args.layers, heads=args.heads,
                       max_len=args.max_len, min_count=args.min_count,
-                      seed=args.seed)
+                      seed=args.seed, tokenizer=make_tokenizer(args.tokenizer))
     print(f"[pretrain] saved -> {args.save}  vocab={len(model.vocab)} "
           f"classes={len(model.vocab.classes)} archs={model.vocab.archs}")
 
