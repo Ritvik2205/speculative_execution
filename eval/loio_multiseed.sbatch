@@ -35,11 +35,24 @@ cd "$REPO"
 [ -f .venv/bin/activate ] && source .venv/bin/activate
 mkdir -p eval/cluster_out
 
-RISCV_CORPUS="spec/data/riscv_cvulns_batch.jsonl"
-if [ ! -s "$RISCV_CORPUS" ]; then
-    echo "ERROR: $RISCV_CORPUS missing or empty -- run first:" >&2
+RISCV_ATTACK="spec/data/riscv_cvulns_batch.jsonl"
+RISCV_BENIGN="spec/data/riscv_benign_train.jsonl"
+RISCV_CORPUS="spec/data/riscv_loio_corpus.jsonl"
+if [ ! -s "$RISCV_ATTACK" ]; then
+    echo "ERROR: $RISCV_ATTACK missing or empty -- run first:" >&2
     echo "  python3 gen/build_riscv_attack_corpus.py --apply" >&2
     exit 1
+fi
+# Combine idiomatic riscv ATTACK + BENIGN so the held-out set has both classes:
+# without BENIGN, benign_fp_rate is unmeasurable (the attack corpus alone has no
+# negatives). riscv_benign_train.jsonl is 240 real-compiled (idiomatic) BENIGN
+# records with the same {label,arch,sequence,group} shape.
+if [ -s "$RISCV_BENIGN" ]; then
+    cat "$RISCV_ATTACK" "$RISCV_BENIGN" > "$RISCV_CORPUS"
+    echo "[loio] combined riscv corpus: $(wc -l < "$RISCV_ATTACK") attack + $(wc -l < "$RISCV_BENIGN") benign -> $RISCV_CORPUS"
+else
+    echo "WARNING: $RISCV_BENIGN missing -- running attack-only; benign-FP will be n/a" >&2
+    cp "$RISCV_ATTACK" "$RISCV_CORPUS"
 fi
 
 SEEDS="42 1 7 13 21"
