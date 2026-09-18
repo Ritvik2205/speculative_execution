@@ -52,7 +52,14 @@ ENGINE = load_engine("riscv.json")
 # file -> vulnerability class (portable cores only; _arm64/x86 variants excluded)
 FILE_CLASS = {
     "spectre_1.c": "SPECTRE_V1", "spectre_github.c": "SPECTRE_V1",
-    # spectre_v1.c excluded: x86 inline asm (rbx/rax); V1 covered by spectre_1.c "spectre_2.c": "SPECTRE_V2",
+    # spectre_v1.c excluded: x86 inline asm (rbx/rax); V1 covered by spectre_1.c.
+    # spectre_2.c (SPECTRE_V2) excluded ON PURPOSE: its harness uses x86-only
+    #   inline asm (callq *%0 / mfence / _mm_lfence) that cannot compile for
+    #   riscv64, so it yields no idiomatic riscv gadget. This entry was
+    #   previously swallowed into the comment above (silently dropped), which
+    #   is WHY riscv SPECTRE_V2 attack coverage is 0. Giving RISC-V a real V2
+    #   sample needs a PORTABLE V2 gadget authored (no x86 asm) -- tracked as
+    #   the A3 "missing riscv attack classes" gap (also L1TF, MDS).
     "spectre_rsb.c": "SPECTRE_RSB", "spectre_v4.c": "SPECTRE_V4",
     "l1tf.c": "L1TF", "mds.c": "MDS",
     "retbleed.c": "RETBLEED", "bhi.c": "BRANCH_HISTORY_INJECTION",
