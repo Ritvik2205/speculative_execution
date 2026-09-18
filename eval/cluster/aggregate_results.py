@@ -10,7 +10,7 @@ robustness suite's evaluate_checkpoint (dict API), and writes:
 Everything mean +/- 95% CI over whatever seeds are present.
 """
 from __future__ import annotations
-import sys, glob, re, statistics as st
+import sys, glob, json, re, statistics as st
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -26,9 +26,20 @@ REAL_V4_HELDOUT = str(ROOT / "eval" / "data" / "revizor_v4_heldout.jsonl")
 # Real-transfer (Step 2b, docs/NEXT_STEPS_2026-09-11.md): generalizes P3's
 # V4-only real-hardware transfer result to MDS, L1TF, and SPECTRE_V1. Each
 # class's held-out set is produced by oracle/revizor/build_hw_transfer.py
-# and is POSITIVES ONLY (no fenced-BENIGN twins the way V4's is -- see that
-# script's docstring for why), so there is no benign_fp_rate column for
-# these classes.
+# and is POSITIVES ONLY by default (no fenced-BENIGN twins the way V4's
+# is). Since task B3, `build_hw_transfer.py --with-synth-twins` can fold in
+# a fenced BENIGN twin (oracle/revizor/synth_v4_benign.py's
+# `make_benign_variant`, source `synth_mitigated_twin`) of each held-out
+# positive, which lets a false-positive rate be measured for these three
+# classes too -- BUT, unlike V4's `revizor_hw_mitigated` twins (hardware-
+# confirmed by Revizor's SSBP-on control), these twins are STRUCTURAL ONLY:
+# an `lfence` placed at the textbook speculation boundary with no hardware
+# or symbolic verification that it actually kills the leak. Any FP number
+# reported below for MDS/L1TF/SPECTRE_V1 is therefore SYNTHETIC/UNVERIFIED
+# and must never be conflated with V4's HW-CONFIRMED number in
+# real_v4_p3.md. If the held-out file has no BENIGN twins (the flag was
+# off when it was built), the FP cell prints "n/a (positives-only)" instead
+# of a fabricated number.
 REAL_HW_CLASSES = ["MDS", "L1TF", "SPECTRE_V1"]
 REAL_HW_HELDOUT = {
     c: str(ROOT / "eval" / "data" / f"revizor_{c.lower()}_heldout.jsonl")
@@ -45,6 +56,26 @@ def ci(xs):
 def f(mh):
     m, h = mh
     return f"{m:.3f}±{h:.3f}" if m == m else "n/a"
+
+def heldout_has_benign(path):
+    """True if the JSONL at `path` contains at least one BENIGN record --
+    i.e. it was built with `build_hw_transfer.py --with-synth-twins`.
+    False (not an error) if the file is missing, empty, or positives-only."""
+    p = Path(path)
+    if not p.exists():
+        return False
+    with open(p) as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if rec.get("label") == "BENIGN":
+                return True
+    return False
 
 def seeds_for(tag):
     """checkpoints eval/cluster_out/<tag>_s<seed>/gine_best.pt -> list of paths."""
@@ -146,8 +177,11 @@ def main():
     # For each class C with a trained "<class>_hw" tag AND a
     # revizor_<class>_heldout.jsonl, report held-out C recall BEFORE
     # (w3_embed_on scored on the held-out) vs AFTER (<class>_hw scored on
-    # the held-out). Positives-only sets (see build_hw_transfer.py) — no
-    # false-positive-rate column here, unlike real_v4_p3.md.
+    # the held-out). Additionally, if the held-out file carries fenced
+    # BENIGN twins (built with build_hw_transfer.py --with-synth-twins),
+    # report a false-positive rate on them too -- SYNTHETIC/UNVERIFIED for
+    # these three classes, unlike V4's HW-CONFIRMED number in
+    # real_v4_p3.md (see module-level comment above REAL_HW_CLASSES).
     transfer_rows = []
     for cls in REAL_HW_CLASSES:
         hp = REAL_HW_HELDOUT[cls]
@@ -156,16 +190,24 @@ def main():
             continue
         before = metric(off, "recall", cond=cls, cls=cls)
         after = metric(tag, "recall", cond=cls, cls=cls)
-        transfer_rows.append((cls, before, after))
+        if heldout_has_benign(hp):
+            fp_cell = f(metric(tag, "benign_fp_rate", cond=cls))
+        else:
+            fp_cell = "n/a (positives-only)"
+        transfer_rows.append((cls, before, after, fp_cell))
     if transfer_rows:
         L = ["# Real-transfer — held-out real-hardware recall: baseline vs trained-with-real (mean±95%CI)\n",
              "Generalizes P3 (SPECTRE_V4) to MDS/L1TF/SPECTRE_V1. Held-out sets are "
-             "POSITIVES ONLY (oracle/revizor/build_hw_transfer.py) — no fenced-BENIGN "
-             "twins the way real_v4_p3.md has, so no false-positive-rate column.\n",
-             "| class | BEFORE (w3_embed_on) | AFTER (<class>_hw) |",
-             "|---|---|---|"]
-        for cls, before, after in transfer_rows:
-            L.append(f"| {cls} | {f(before)} | {f(after)} |")
+             "POSITIVES ONLY by default (oracle/revizor/build_hw_transfer.py); built with "
+             "`--with-synth-twins`, they additionally carry fenced-BENIGN twins "
+             "(source=synth_mitigated_twin) — **SYNTHETIC / UNVERIFIED** structural "
+             "mitigations (an `lfence` placed at the textbook boundary, no hardware or "
+             "symbolic confirmation), NOT the HW-CONFIRMED kind real_v4_p3.md reports for "
+             "SPECTRE_V4. Never conflate the two false-positive numbers.\n",
+             "| class | BEFORE (w3_embed_on) | AFTER (<class>_hw) | synthetic-twin FP (heldout twins predicted non-BENIGN) [SYNTHETIC/UNVERIFIED] |",
+             "|---|---|---|---|"]
+        for cls, before, after, fp_cell in transfer_rows:
+            L.append(f"| {cls} | {f(before)} | {f(after)} | {fp_cell} |")
         (OUT / "real_transfer.md").write_text("\n".join(L) + "\n")
         print("wrote real_transfer.md")
 

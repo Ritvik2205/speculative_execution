@@ -41,9 +41,21 @@ EXPLORATORY, not a benchmark -- report it as "does real MDS/L1TF/SPECTRE_V1
 recall move at all when N held-out gadgets are seen", not as a stable
 recall percentage.
 
+UPDATE (task B3): `oracle/revizor/synth_v4_benign.py` now provides
+`fence_gadget_for_class`/`make_benign_variant` for MDS/L1TF/SPECTRE_V1 too
+(source `synth_mitigated_twin` -- STRUCTURAL, NOT hardware-verified, unlike
+V4's `revizor_hw_mitigated` twins). Passing `--with-synth-twins` (default
+OFF, so all prior output stays byte-identical) generates one fenced twin per
+positive on EACH side of the split and folds it in as BENIGN, mirroring
+`build_hwv4_dataset.py`'s V4 treatment -- so a `benign_fp_rate` can finally
+be measured for these three classes too. Each twin's group is
+`<origgroup>_fenced` (from `make_benign_variant`), which keeps it on the
+SAME side of the split as its positive; this is asserted at build time.
+
 Usage:
     python3 oracle/revizor/build_hw_transfer.py --seed 0
     python3 oracle/revizor/build_hw_transfer.py --classes MDS L1TF SPECTRE_V1 --seed 0
+    python3 oracle/revizor/build_hw_transfer.py --classes MDS L1TF SPECTRE_V1 --seed 0 --with-synth-twins
 """
 from __future__ import annotations
 
@@ -55,6 +67,9 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from synth_v4_benign import make_benign_variant  # noqa: E402
 
 DEFAULT_CLASSES = ["MDS", "L1TF", "SPECTRE_V1"]
 DEFAULT_V55H_TRAIN_PATH = REPO_ROOT / "v54" / "data" / "v55h_train.jsonl"
@@ -158,14 +173,36 @@ def split_by_group(
     return train_add, heldout, sorted(train_groups), sorted(heldout_groups)
 
 
+def _origin_group(twin_group: str) -> str:
+    """Strip a fenced twin's `_fenced` suffix to recover its positive's
+    original `group`. `make_benign_variant` always appends exactly this
+    suffix (see synth_v4_benign.py)."""
+    return twin_group[: -len("_fenced")] if twin_group.endswith("_fenced") else twin_group
+
+
+def _make_twins(records: List[dict], cls: str) -> List[dict]:
+    return [make_benign_variant(r, vuln_class=cls) for r in records]
+
+
 def build_one_class(
     cls: str,
     seed: int = 0,
     v55h_train_path: Path = DEFAULT_V55H_TRAIN_PATH,
     repo_root: Path = REPO_ROOT,
+    with_synth_twins: bool = False,
 ) -> dict:
     """Build the train-add/heldout split for one class and write both
-    output files. Returns a summary dict for reporting."""
+    output files. Returns a summary dict for reporting.
+
+    `with_synth_twins=False` (default): positives-only, byte-identical to
+    this module's original behavior.
+
+    `with_synth_twins=True`: additionally generates a fenced BENIGN twin
+    (`synth_v4_benign.make_benign_variant`) of EACH train-add positive and
+    of EACH held-out positive, and folds each twin into the same side of
+    the split as its positive (its `group` is `<origgroup>_fenced`, so it
+    stays on that side by construction -- asserted below).
+    """
     rp = real_path(cls, repo_root)
     real = load_jsonl(rp)
     v55h_train = load_jsonl(v55h_train_path)
@@ -179,12 +216,56 @@ def build_one_class(
         f"{cls}: train-add + heldout must account for every real gadget exactly once"
     )
 
-    merged_train = v55h_train + train_add
-    assert len(merged_train) == len(v55h_train) + len(train_add)
+    train_add_twins: List[dict] = []
+    heldout_twins: List[dict] = []
+    twin_source: Optional[str] = None
+
+    if with_synth_twins:
+        train_add_twins = _make_twins(train_add, cls)
+        heldout_twins = _make_twins(heldout, cls)
+
+        train_groups_set = set(train_groups)
+        heldout_groups_set = set(heldout_groups)
+        train_twin_origins = {_origin_group(t["group"]) for t in train_add_twins}
+        heldout_twin_origins = {_origin_group(t["group"]) for t in heldout_twins}
+
+        # A twin's origin group must match a positive on the SAME side of
+        # the split -- no twin may leak across the split.
+        assert train_twin_origins.issubset(train_groups_set), (
+            f"{cls}: a train-add twin's origin group is not among the train-add groups"
+        )
+        assert heldout_twin_origins.issubset(heldout_groups_set), (
+            f"{cls}: a heldout twin's origin group is not among the heldout groups"
+        )
+        assert train_twin_origins.isdisjoint(heldout_groups_set), (
+            f"{cls}: a train-add twin's origin group leaked onto the heldout side"
+        )
+        assert heldout_twin_origins.isdisjoint(train_groups_set), (
+            f"{cls}: a heldout twin's origin group leaked onto the train-add side"
+        )
+        assert len(train_add_twins) == len(train_add), (
+            f"{cls}: expected exactly one train-add twin per train-add positive"
+        )
+        assert len(heldout_twins) == len(heldout), (
+            f"{cls}: expected exactly one heldout twin per heldout positive"
+        )
+
+        all_twins = train_add_twins + heldout_twins
+        if all_twins:
+            twin_source = all_twins[0]["source"]
+            assert all(t["source"] == twin_source for t in all_twins), (
+                f"{cls}: mixed twin sources within one class"
+            )
+            assert all(t["label"] == "BENIGN" for t in all_twins)
+
+    merged_train = v55h_train + train_add + train_add_twins
+    assert len(merged_train) == len(v55h_train) + len(train_add) + len(train_add_twins)
+
+    heldout_all = heldout + heldout_twins
 
     hp = heldout_path(cls, repo_root)
     tp = train_out_path(cls, repo_root)
-    write_jsonl(hp, heldout)
+    write_jsonl(hp, heldout_all)
     write_jsonl(tp, merged_train)
 
     return {
@@ -196,6 +277,9 @@ def build_one_class(
         "heldout_groups": heldout_groups,
         "train_out": tp,
         "heldout_out": hp,
+        "train_twins": len(train_add_twins),
+        "heldout_twins": len(heldout_twins),
+        "twin_source": twin_source,
     }
 
 
@@ -206,25 +290,40 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--seed", type=int, default=0,
                     help="RNG seed for the deterministic group-shuffle split (default 0)")
     p.add_argument("--v55h-train-path", type=Path, default=DEFAULT_V55H_TRAIN_PATH)
+    p.add_argument("--repo-root", type=Path, default=REPO_ROOT,
+                    help="repo root to resolve real/heldout/train-out paths against (default: this repo)")
+    p.add_argument("--with-synth-twins", action="store_true", default=False,
+                    help="also generate a fenced BENIGN twin per positive on each side of "
+                         "the split (synth_v4_benign.make_benign_variant), so a "
+                         "false-positive rate can be measured for MDS/L1TF/SPECTRE_V1 the "
+                         "way build_hwv4_dataset.py already does for SPECTRE_V4. Default "
+                         "OFF keeps output positives-only and byte-identical to before.")
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> None:
     args = build_parser().parse_args(argv)
     classes = [c.upper() for c in args.classes]
+    repo_root = args.repo_root
 
     print("=== Real-hardware transfer split (per class, group-disjoint) ===")
     for cls in classes:
-        rp = real_path(cls)
+        rp = real_path(cls, repo_root)
         if not rp.exists():
             print(f"{cls}: SKIP ({rp} not found -- run convert_revizor_gadgets.py first)")
             continue
-        summary = build_one_class(cls, seed=args.seed, v55h_train_path=args.v55h_train_path)
+        summary = build_one_class(
+            cls, seed=args.seed, v55h_train_path=args.v55h_train_path,
+            repo_root=repo_root, with_synth_twins=args.with_synth_twins,
+        )
         print(f"{cls}: total={summary['total']} "
               f"train-add={summary['train_add']} (groups: {summary['train_groups']}) "
               f"heldout={summary['heldout']} (groups: {summary['heldout_groups']})")
         print(f"  wrote {summary['train_out']}")
         print(f"  wrote {summary['heldout_out']}")
+        if args.with_synth_twins:
+            print(f"  twins: +{summary['train_twins']} train, +{summary['heldout_twins']} "
+                  f"heldout (source={summary['twin_source']})")
 
 
 if __name__ == "__main__":
