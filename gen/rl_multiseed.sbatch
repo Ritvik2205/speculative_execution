@@ -30,12 +30,18 @@ cd "$REPO"
 [ -f .venv/bin/activate ] && source .venv/bin/activate
 mkdir -p eval/cluster_out
 
-# Spectector oracle via Apptainer (override SIF if elsewhere).
+# Spectector oracle via Apptainer. IMPORTANT: the .sif must live on a SHARED
+# filesystem, not /disk/scratch -- /disk/scratch is NODE-LOCAL on this cluster,
+# so a .sif pulled on one node is invisible to the node an array task lands on
+# (the classic "jobs exit instantly, SIF not found" failure). The repo lives in
+# your home dir, which IS shared across nodes, so default the .sif to inside it.
 export SPECEXEC_CONTAINER_RUNTIME="${SPECEXEC_CONTAINER_RUNTIME:-apptainer}"
-export SPECEXEC_SPECTECTOR_SIF="${SPECEXEC_SPECTECTOR_SIF:-/disk/scratch/$USER/spectector.sif}"
+export SPECEXEC_SPECTECTOR_SIF="${SPECEXEC_SPECTECTOR_SIF:-$REPO/oracle/apptainer/spectector.sif}"
 if [ ! -e "$SPECEXEC_SPECTECTOR_SIF" ]; then
-    echo "ERROR: SIF not found at $SPECEXEC_SPECTECTOR_SIF -- pull it first:" >&2
-    echo "  GHCR_OWNER=<you> bash oracle/apptainer/pull_spectector.sh" >&2
+    echo "ERROR: SIF not found at $SPECEXEC_SPECTECTOR_SIF" >&2
+    echo "  Pull it to SHARED storage (home/repo), NOT /disk/scratch (node-local):" >&2
+    echo "  SIF_OUT=$REPO/oracle/apptainer/spectector.sif GHCR_OWNER=<you> \\" >&2
+    echo "    bash oracle/apptainer/pull_spectector.sh" >&2
     exit 1
 fi
 
