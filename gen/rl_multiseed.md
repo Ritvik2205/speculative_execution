@@ -15,5 +15,6 @@ Mean ± 95% CI across seeds. Yield saturates after round 0, so round-0 yield and
 ## Verdict
 
 - **round-0 yield**: pretrained > baseline — CIs overlap (not significant at n)
+- **overall yield (raw leak rate)**: pretrained < baseline — CIs SEPARATE (real)
 - **unique leaking gadgets**: pretrained > baseline — CIs SEPARATE (real)
 - **top-1 multiplicity (lower=less collapse)**: pretrained < baseline — CIs SEPARATE (real)

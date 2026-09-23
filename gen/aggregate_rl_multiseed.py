@@ -126,6 +126,7 @@ def main(argv=None):
     L.append("\n## Verdict\n")
     if {"baseline", "pretrained"} <= set(arms):
         for k, label in [("round0_yield", "round-0 yield"),
+                          ("overall_yield", "overall yield (raw leak rate)"),
                           ("unique_leak", "unique leaking gadgets"),
                           ("top1_mult", "top-1 multiplicity (lower=less collapse)")]:
             b, p = agg["baseline"][k], agg["pretrained"][k]

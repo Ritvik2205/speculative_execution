@@ -280,35 +280,38 @@ diversity.** Two independent lines of evidence:
   any RL so RL's saturation can't explain it):** low-LR pretrained beats
   base on every axis — unique-rate 0.85→**1.00**, mean pairwise similarity
   0.25→**0.15**, realize-rate 0.95→**1.00**, mean length 22.7→33.6.
-- **Powered RL (5-seed array once it lands; 3-seed shown here,
-  `gen/rl_multiseed.md`):** baseline vs. low-LR pretrained —
+- **Powered RL (5 seeds/arm, `gen/rl_multiseed.md`):** baseline vs. low-LR
+  pretrained — mean ± 95% CI, "separate" = the two arms' CIs do not overlap:
 
   | metric | baseline | pretrained | verdict |
   |---|---|---|---|
-  | **top-1 template multiplicity** | 24.7±4.3 | **3.3±1.7** | **CIs SEPARATE — real** |
-  | unique leaking gadgets | 96.7±29.5 | 132.7±6.8 | favors pretrained (CIs touch) |
-  | unique-rate | 0.68±0.13 | 0.96±0.03 | favors pretrained |
-  | round-0 yield | 0.509 | 0.583 | up, not sig |
-  | overall yield | 0.801 | 0.702 | **down**, not sig |
+  | **top-1 template multiplicity** | 28.8±6.3 | **3.0±1.1** | **CIs SEPARATE** |
+  | **unique leaking gadgets** | 102.4±18.0 | **134.8±5.9** | **CIs SEPARATE** |
+  | **unique-rate** | 0.674±0.083 | 0.971±0.021 | **CIs SEPARATE** |
+  | round-0 yield | 0.540±0.048 | 0.545±0.072 | tied |
+  | overall yield (raw leak rate) | **0.839±0.078** | 0.703±0.030 | **SEPARATE — baseline higher** |
 
-  The dominant-template count dropping 24.7→3.3 (statistically significant)
-  is the headline: pretraining stops the generator collapsing onto one
-  winning shape. Contrast the SAME comparison at 3e-3, where top-1 was 30
-  vs. 35 (favoring baseline) — **confirming the LR-overwrite explanation.**
+  The dominant-template count dropping 28.8→**3.0** (significant) is the
+  headline: pretraining stops the generator collapsing onto one winning
+  shape. At n=5 the two other diversity metrics also clear significance
+  (unique leaking gadgets 102→135, unique-rate 0.67→0.97) — not just top-1.
+  Contrast the SAME comparison at 3e-3, where top-1 was 30 vs. 35 (favoring
+  baseline) — **confirming the LR-overwrite explanation.**
 
-**The honest trade-off:** pretraining buys **diversity / anti-collapse, not
-leak yield** — overall yield actually trends slightly *lower* for the
-pretrained arm (0.70 vs. 0.80, not significant). For a *discovery* tool
-(the goal is many distinct leaking gadgets, not 25 copies of one) diversity
-is the right property to optimize, but the paper must state that yield
-itself did not improve.
+**The honest trade-off (both directions now significant at n=5):**
+pretraining buys **diversity / anti-collapse at a cost in raw leak yield** —
+overall yield is significantly *lower* for the pretrained arm (0.70 vs.
+**0.84**, CIs separate): it spreads probability mass over many distinct
+shapes instead of exploiting the one high-yield template. **round-0 yield is
+genuinely tied** (0.540 vs. 0.545) — no faster-start advantage; the earlier
+single-run +0.08 was noise. For a *discovery* tool (the goal is many
+distinct leaking gadgets, not ~29 copies of one) the diversity win is the
+right thing to optimize, but the paper must state the yield cost plainly.
 
-**Caveats:** n=3, so only top-1 multiplicity clears significance; unique-rate
-and unique-leak favor pretraining strongly but need ~5–7 seeds to separate
-(the 5-seed rerun is queued). Scope SPECTRE_V1/x86_64. Adding BENIGN to the
-RL fine-tune (`--finetune-with-benign`, `gen/rl_benign.sbatch`) is a single
-exploratory run so far (unique-rate 0.955, 154 distinct leaking gadgets) —
-promising but not yet multi-seed.
+**Caveats:** scope SPECTRE_V1/x86_64. Adding BENIGN to the RL fine-tune
+(`--finetune-with-benign`, `gen/rl_benign.sbatch`) is a single exploratory
+run so far (unique-rate 0.955, 154 distinct leaking gadgets) — promising but
+not yet multi-seed.
 
 **Supersedes** the earlier "pretraining is a null ablation" conclusion
 (`docs/GENERATOR_ARM_STATUS_2026-09-18.md` original Stage 9): that was the
