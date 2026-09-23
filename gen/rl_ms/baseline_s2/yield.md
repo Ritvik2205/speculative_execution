@@ -6,8 +6,8 @@
 
 | class | round | validated-leak yield |
 |---|---|---|
-| SPECTRE_V1 | 0 | 0.486 |
-| SPECTRE_V1 | 1 | 0.325 |
-| SPECTRE_V1 | 2 | 0.975 |
+| SPECTRE_V1 | 0 | 0.514 |
+| SPECTRE_V1 | 1 | 0.350 |
+| SPECTRE_V1 | 2 | 0.600 |
 | SPECTRE_V1 | 3 | 1.000 |
-| SPECTRE_V1 | 4 | 1.000 |
+| SPECTRE_V1 | 4 | 0.975 |

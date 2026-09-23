@@ -1,0 +1,29 @@
+host=saxa.inf.ed.ac.uk gen=gen/generator_pretrained.pt seed=1 (finetune-with-benign)
+[rl] seed=1 gen=gen/generator_pretrained.pt arch=x86_64
+[rl] round 0 class=SPECTRE_V1: benign_added=1
+  [train] device=cpu records=23 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.9934
+  epoch 1/1  lm_loss=1.9934
+[rl] round 1 class=SPECTRE_V1: benign_added=0
+  [train] device=cpu records=27 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.3061
+  epoch 1/1  lm_loss=1.3061
+[rl] round 2 class=SPECTRE_V1: benign_added=0
+  [train] device=cpu records=35 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.1973
+  epoch 1/1  lm_loss=1.1973
+[rl] round 3 class=SPECTRE_V1: benign_added=0
+  [train] device=cpu records=39 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.4428
+  epoch 1/1  lm_loss=1.4428
+[rl] round 4 class=SPECTRE_V1: benign_added=0
+  [train] device=cpu records=40 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.5549
+  epoch 1/1  lm_loss=0.5549
+[SPECTRE_V1] yield per round: {0: 0.55, 1: 0.675, 2: 0.875, 3: 0.975, 4: 1.0}
+wrote gen/rl_yield_benign.md
+wrote gen/rl_samples_benign.jsonl
+verdict: discovery
+  - unique-leak count holds or grows across rounds and the leaking set is not dominated by a handful of duplicate sequences
+wrote gen/rl_diversity_benign.md
+done rc=0 -> gen/rl_yield_benign.md gen/rl_diversity_benign.md

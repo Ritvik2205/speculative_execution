@@ -1,0 +1,2 @@
+ERROR: SIF not found at /disk/scratch/s2473583/spectector.sif -- pull it first:
+  GHCR_OWNER=<you> bash oracle/apptainer/pull_spectector.sh

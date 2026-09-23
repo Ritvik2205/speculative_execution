@@ -1,0 +1,7 @@
+host=saxa.inf.ed.ac.uk A=gen/generator.pt B=gen/generator_pretrained.pt class=SPECTRE_V1 arch=x86_64 n=40 seeds=1 2 3 realize=1
+[compare] class=SPECTRE_V1 arch=x86_64 n=40 seeds=[1, 2, 3] realize=True
+[compare] base (gen/generator.pt): {'n_seeds': 3, 'total': 120, 'unique_total': 102, 'unique_rate_mean': 0.85, 'unique_rate_spread': 0.061237243569579464, 'mean_sim_mean': 0.2519402685733307, 'mean_sim_spread': 0.010711773329036991, 'mean_len_mean': 22.675, 'mean_len_spread': 1.0301698889018265, 'realize_rate_mean': 0.95, 'realize_rate_spread': 0.020412414523193124}
+[compare] pretrained (gen/generator_pretrained.pt): {'n_seeds': 3, 'total': 120, 'unique_total': 120, 'unique_rate_mean': 1.0, 'unique_rate_spread': 0.0, 'mean_sim_mean': 0.15058515780355194, 'mean_sim_spread': 0.004463393488323662, 'mean_len_mean': 33.6, 'mean_len_spread': 2.360437812497221, 'realize_rate_mean': 1.0, 'realize_rate_spread': 0.0}
+pretrained looks better on unique-rate (base=0.850 vs pretrained=1.000); mean pairwise similarity (base=0.252 vs pretrained=0.151) -- this isolates a pretraining effect independent of RL (measured before any RL fine-tuning, so RL's yield-saturation can't hide it).
+wrote gen/generator_ab.md
+done rc=0 -> gen/generator_ab.md
