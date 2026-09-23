@@ -52,6 +52,7 @@ plotted to `gen/w6/rl_yield.md` (plan step 5), is out of scope here.
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import json
 import os
@@ -106,11 +107,22 @@ def _append_sample_record(path, record: dict) -> None:
         f.flush()
 
 
-def _default_finetune(model, kept: list, epochs_per_round: int) -> None:
+def _default_finetune(model, kept: list, epochs_per_round: int,
+                       lr: float = 3e-3, benign: list = None) -> None:
     """Real fine-tune step: re-encode each kept (leak-verdict) gadget's raw
     token sequence with the model's own vocab and run gen.generator.train on
     the kept batch. Only exercised by the deferred real run — the unit test
-    injects a stub `finetune_fn` instead."""
+    injects a stub `finetune_fn` instead.
+
+    `lr` is forwarded to gen.generator.train (default 3e-3, matching the
+    prior hardcoded rate — see --finetune-lr).
+
+    `benign` (optional, default None => current behavior) is a list of
+    SAFE-verdict realized gadgets (same shape as `kept`, i.e. dicts with
+    `_tokens`/`_arch`) to additionally fine-tune on, re-encoded under the
+    BENIGN class token so the model sees both "attack prompt -> leaky shape"
+    (kept) and "these SAFE shapes are BENIGN" (benign) in the same batch —
+    see --finetune-with-benign in rejection_sample_finetune."""
     from gen.generator import encode_record, train
 
     vocab = model.vocab
@@ -118,7 +130,12 @@ def _default_finetune(model, kept: list, epochs_per_round: int) -> None:
         encode_record(g["_tokens"], g["_class"], g["_arch"], vocab, model.max_len)
         for g in kept
     ]
-    train(model, encoded, epochs_per_round, vocab.pad_id)
+    if benign:
+        encoded += [
+            encode_record(g["_tokens"], "BENIGN", g["_arch"], vocab, model.max_len)
+            for g in benign
+        ]
+    train(model, encoded, epochs_per_round, vocab.pad_id, lr=lr)
 
 
 def rejection_sample_finetune(
@@ -133,6 +150,8 @@ def rejection_sample_finetune(
     finetune_fn: Optional[Callable] = None,
     sample_kwargs: Optional[dict] = None,
     samples_out: Optional[object] = None,
+    finetune_lr: float = 3e-3,
+    finetune_with_benign: bool = False,
 ) -> dict:
     """Rejection-sampled fine-tuning loop.
 
@@ -143,13 +162,32 @@ def rejection_sample_finetune(
          sample failed to realize into a runnable gadget and is dropped
          before oracle validation)
       3. oracle-validate each realized gadget
-      4. keep only the LEAK-verdict gadgets
+      4. keep only the LEAK-verdict gadgets (and, if `finetune_with_benign`,
+         separately collect the SAFE-verdict gadgets too — see below)
       5. fine-tune `model` on the kept set via `finetune_fn` (default:
-         `_default_finetune`, which calls `gen.generator.train`)
+         `_default_finetune`, which calls `gen.generator.train` at
+         `finetune_lr`)
 
     `validator`, `realize_fn`, and `finetune_fn` are all injectable so this
     can run against a stub model with no Docker/Spectector/real-model
     dependency (see tests/gen/test_rl_reward.py).
+
+    `finetune_lr` (default 3e-3, matching the prior hardcoded rate) is only
+    consulted when `finetune_fn` is left at its default: it's bound into the
+    default `_default_finetune` via `functools.partial`. An injected
+    `finetune_fn` still has exactly the call signature it always did
+    (`finetune_fn(model, kept, epochs_per_round)`, plus a `benign=` kwarg
+    only when `finetune_with_benign` is set — see below) and is responsible
+    for its own learning rate if it uses one.
+
+    `finetune_with_benign` (default False => current behavior EXACTLY: fine-
+    tune on LEAK gadgets only). When True, the SAFE-verdict realized gadgets
+    from each round are also collected and passed to `finetune_fn` as a
+    `benign=` kwarg (the default `_default_finetune` re-encodes them under
+    the BENIGN class token and trains on LEAK+BENIGN together, so the model
+    learns to discriminate). This requires `"BENIGN" in model.vocab.cls_id`;
+    if that's not the case, a warning is printed once (not crashed) and this
+    call falls back to leak-only fine-tuning, matching the flag-off path.
 
     If `samples_out` is given, every realized+validated sample is appended
     (one JSON line each, flushed immediately -- see `_append_sample_record`)
@@ -168,12 +206,25 @@ def rejection_sample_finetune(
     if validator is None:
         validator = SpectectorValidator(repo_root=ROOT)
     if finetune_fn is None:
-        finetune_fn = _default_finetune
+        finetune_fn = functools.partial(_default_finetune, lr=finetune_lr)
     sample_kwargs = sample_kwargs or {}
+
+    # Resolve --finetune-with-benign once, up front, rather than re-checking
+    # every round: warn (at most once per call) and fall back to leak-only
+    # for the whole run if the model's vocab has no BENIGN class token.
+    effective_with_benign = finetune_with_benign
+    if finetune_with_benign:
+        vocab = getattr(model, "vocab", None)
+        if vocab is None or "BENIGN" not in getattr(vocab, "cls_id", {}):
+            print("[rl] WARNING: --finetune-with-benign requested but "
+                  "'BENIGN' not in model.vocab.cls_id -- falling back to "
+                  "leak-only fine-tuning for this run.")
+            effective_with_benign = False
 
     history: dict = {}
     for round_idx in range(n_rounds):
         kept = []
+        safe_kept = []
         n_realized = 0
         for sample_idx in range(k_per_round):
             tokens = model.sample(target_class, target_arch, **sample_kwargs)
@@ -200,11 +251,20 @@ def rejection_sample_finetune(
                 })
             if result.verdict == LEAK:
                 kept.append(gadget)
+            elif effective_with_benign and result.verdict == SAFE:
+                safe_kept.append(gadget)
 
         history[round_idx] = (len(kept) / n_realized) if n_realized else 0.0
 
-        if kept:
-            finetune_fn(model, kept, epochs_per_round)
+        if effective_with_benign:
+            print(f"[rl] round {round_idx} class={target_class}: "
+                  f"benign_added={len(safe_kept)}")
+
+        if kept or (effective_with_benign and safe_kept):
+            if effective_with_benign:
+                finetune_fn(model, kept, epochs_per_round, benign=safe_kept)
+            else:
+                finetune_fn(model, kept, epochs_per_round)
 
     return history
 
@@ -309,6 +369,8 @@ def run_oracle_rl(
     class_to_vocab: Optional[Callable[[str], str]] = None,
     meta: Optional[dict] = None,
     samples_out: Optional[object] = None,
+    finetune_lr: float = 3e-3,
+    finetune_with_benign: bool = False,
 ) -> dict:
     """Core oracle-RL loop, factored out of `main()` so it's directly unit-
     testable with a stub model/validator/realize_fn_factory (no Docker, no
@@ -360,6 +422,8 @@ def run_oracle_rl(
             finetune_fn=finetune_fn,
             sample_kwargs=sample_kwargs,
             samples_out=samples_out,
+            finetune_lr=finetune_lr,
+            finetune_with_benign=finetune_with_benign,
         )
         all_history[cls] = history
 
@@ -461,6 +525,20 @@ def main(argv=None) -> int:
                      help="seed torch/numpy/random (and the realizer) so a run is "
                           "reproducible and multi-seed comparisons are meaningful "
                           "(generator sampling is otherwise nondeterministic).")
+    ap.add_argument("--finetune-lr", type=float, default=3e-3,
+                     help="learning rate for the per-round rejection-sampled "
+                          "fine-tune step (gen.generator.train via "
+                          "_default_finetune). Default (3e-3) is byte-identical "
+                          "to the prior hardcoded rate.")
+    ap.add_argument("--finetune-with-benign", action="store_true", default=False,
+                     help="also collect this round's SAFE-verdict realized "
+                          "gadgets and fine-tune on them (re-encoded under the "
+                          "BENIGN class token) alongside the LEAK gadgets, so "
+                          "the model learns to discriminate attack shapes from "
+                          "safe ones. Default OFF: leak-only fine-tuning, "
+                          "exactly as before. Requires 'BENIGN' in the "
+                          "checkpoint's vocab; otherwise warns once and falls "
+                          "back to leak-only for the run.")
     args = ap.parse_args(argv)
 
     reason = _docker_unavailable_reason()
@@ -503,6 +581,8 @@ def main(argv=None) -> int:
         class_to_vocab=lambda c: _GEN_VOCAB_ALIAS.get(c, c),
         meta={"gen": args.gen, "arch": args.arch, "rounds": args.rounds, "k": args.k},
         samples_out=(args.samples_out or None),
+        finetune_lr=args.finetune_lr,
+        finetune_with_benign=args.finetune_with_benign,
     )
     for cls, h in history.items():
         print(f"[{cls}] yield per round: {h}")

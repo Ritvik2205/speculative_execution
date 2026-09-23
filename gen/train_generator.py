@@ -34,6 +34,16 @@ Pretrain -> fine-tune (Task 6.3 Step 5):
       python3 gen/train_generator.py --init-from gen/pretrained.pt
 
   Omitting --init-from is byte-identical to the original from-scratch path.
+
+Fine-tune learning rate:
+  --lr <float> (default 3e-3, byte-identical to before) sets the learning
+  rate passed to gen/generator.py's train(). When fine-tuning from a
+  pretrained checkpoint (--init-from), the default 3e-3 is high enough to
+  overwrite the pretrained weights within the first few steps -- pass a much
+  lower rate, e.g. --lr 1e-4, to actually fine-tune rather than retrain from
+  scratch.
+
+      python3 gen/train_generator.py --init-from gen/pretrained.pt --lr 1e-4
 """
 
 from __future__ import annotations
@@ -199,6 +209,12 @@ def main():
                           "(gen/pretrain_encoder.py --save ...); vocab-transfer "
                           "initializes the fine-tune generator from it instead "
                           "of training from scratch")
+    ap.add_argument("--lr", type=float, default=3e-3,
+                     help="fine-tune learning rate passed to gen.generator.train. "
+                          "Default (3e-3) is byte-identical to the pre-existing "
+                          "hardcoded rate. When starting from --init-from, a much "
+                          "lower LR (e.g. 1e-4) avoids overwriting the pretrained "
+                          "weights in the first few steps.")
     args = ap.parse_args()
     torch.manual_seed(SEED); np.random.seed(SEED)
 
@@ -215,7 +231,9 @@ def main():
                              vocab, MAX_LEN)
                for t, r in zip(tr_tok, train_rows) if len(t) >= 2]
     model = _build_model(vocab, args.init_from, max_len=MAX_LEN)
-    train(model, encoded, 1 if args.smoke else args.epochs, vocab.pad_id)
+    print(f"[train] lr={args.lr}" +
+          (f"  init-from={args.init_from}" if args.init_from else "  (from scratch)"))
+    train(model, encoded, 1 if args.smoke else args.epochs, vocab.pad_id, lr=args.lr)
 
     if not args.smoke:
         model.save(args.save)
