@@ -1,0 +1,2 @@
+ERROR: no riscv64 gcc on PATH (need riscv64-elf-gcc / riscv64-linux-gnu-gcc).
+  Load the toolchain module or install it, then resubmit.
