@@ -1,3 +1,4 @@
+wrote /home/s2473583/speculative_execution/gen/rl_multiseed.md
 # Oracle-RL multi-seed: baseline vs pretrained
 
 Runs: baseline_s1, baseline_s2, baseline_s3, baseline_s4, baseline_s5, pretrained_s1, pretrained_s2, pretrained_s3, pretrained_s4, pretrained_s5

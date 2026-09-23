@@ -1,0 +1,21 @@
+task=4 arm=baseline seed=5 gen=gen/generator.pt -> gen/rl_ms/baseline_s5
+[rl] seed=5 gen=gen/generator.pt arch=x86_64
+  [train] device=cpu records=20 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.5155
+  epoch 1/1  lm_loss=0.5155
+  [train] device=cpu records=37 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.7854
+  epoch 1/1  lm_loss=0.7854
+  [train] device=cpu records=34 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.5686
+  epoch 1/1  lm_loss=0.5686
+  [train] device=cpu records=39 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.1849
+  epoch 1/1  lm_loss=0.1849
+  [train] device=cpu records=40 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.2569
+  epoch 1/1  lm_loss=0.2569
+[SPECTRE_V1] yield per round: {0: 0.5405405405405406, 1: 0.925, 2: 0.85, 3: 0.975, 4: 1.0}
+wrote gen/rl_ms/baseline_s5/yield.md
+wrote gen/rl_ms/baseline_s5/samples.jsonl
+done rc=0 -> gen/rl_ms/baseline_s5
