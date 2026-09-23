@@ -75,10 +75,10 @@ TAG="rv_${COND}"
 echo "host=$(hostname) job=${SLURM_JOB_ID:-?} cond=$COND seed=$SEED extra='$EXTRA' train=$TRAIN"
 nvidia-smi --query-gpu=name,memory.total --format=csv || true
 
-SCRATCH="/disk/scratch/${USER}/gine_rv_${SLURM_JOB_ID:-$$}_${IDX}"
-mkdir -p "$SCRATCH"
-rsync -a --exclude '.git' --exclude 'eval/cluster_out' "$REPO/" "$SCRATCH/repo/"
-cd "$SCRATCH/repo"
+# Run in place from the existing checkout — no copy to node-local scratch
+# (copying the whole repo per task stalled for >1h with 20 tasks in flight).
+# Each task writes only to its own eval/cluster_out/rv_<COND>_s<SEED>/.
+cd "$REPO"
 
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
 conda activate specexec
@@ -106,9 +106,5 @@ TQDM_DISABLE=1 python3 -u eval/gine_riscv_holdout_eval.py \
     --ckpt "$OUT/gine_best.pt" --records "$RISCV" \
     --out "$OUT/riscv_holdout.json"
 
-DEST="$REPO/$OUT"
-mkdir -p "$DEST"
-rsync -a --exclude '*.png' "$OUT/" "$DEST/"
-echo "results -> $DEST"
-rm -rf "$SCRATCH"
+echo "results -> $REPO/$OUT"
 echo "done cond=$COND seed=$SEED rc=0"
