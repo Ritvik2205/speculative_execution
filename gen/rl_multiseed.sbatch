@@ -11,12 +11,14 @@
 # Needs the Spectector oracle (symbolic, no GPU): Apptainer + the pulled .sif.
 # CPU-only is fine -- the per-round fine-tunes are tiny (<40 records).
 #
-# array 0-2 -> baseline (gen/generator.pt) seeds 1,2,3
-# array 3-5 -> pretrained (gen/generator_pretrained.pt) seeds 1,2,3
+# array 0-4 -> baseline (gen/generator.pt) seeds 1,2,3,4,5
+# array 5-9 -> pretrained (gen/generator_pretrained.pt) seeds 1,2,3,4,5
+# (5 seeds/arm so the diversity metrics -- unique-rate, unique-leak -- reach
+# significance, not just top-1 multiplicity. Was 3 seeds/arm.)
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=rl_ms
 #SBATCH --partition=Teaching          # confirm with `sinfo`; CPU-only
-#SBATCH --array=0-5
+#SBATCH --array=0-9
 #SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=8G
@@ -45,14 +47,15 @@ if [ ! -e "$SPECEXEC_SPECTECTOR_SIF" ]; then
     exit 1
 fi
 
-SEEDS=(1 2 3)
+SEEDS=(1 2 3 4 5)
+NSEEDS=${#SEEDS[@]}
 id=$SLURM_ARRAY_TASK_ID
-if [ "$id" -lt 3 ]; then
+if [ "$id" -lt "$NSEEDS" ]; then
     ARM=baseline;   GEN=gen/generator.pt
 else
     ARM=pretrained; GEN=gen/generator_pretrained.pt
 fi
-SEED=${SEEDS[$(( id % 3 ))]}
+SEED=${SEEDS[$(( id % NSEEDS ))]}
 RUNDIR="gen/rl_ms/${ARM}_s${SEED}"
 mkdir -p "$RUNDIR"
 
