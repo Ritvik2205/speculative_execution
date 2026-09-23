@@ -75,7 +75,7 @@ TEST = ROOT / "v54" / "data" / "v54_test.jsonl"
 MLM = ROOT / "spec" / "mlm.pt"
 SEED = 42
 MAX_LEN = 64
-ARCHS = ["x86_64", "arm64"]
+ARCHS = ["x86_64", "arm64", "riscv64"]
 
 
 def load(path):
@@ -180,12 +180,22 @@ def _build_model(vocab, init_from, max_len=MAX_LEN):
 
 
 def norm_arch(a: str) -> str:
-    return "arm64" if str(a).startswith("arm") else "x86_64"
+    s = str(a)
+    if s.startswith("riscv"):
+        return "riscv64"
+    if s.startswith("arm") or s.startswith("aarch"):
+        return "arm64"
+    return "x86_64"
 
 
 def isa_purity(norm_seq, target_arch):
     """Fraction of ISA-decisive opcodes that are native to target_arch.
-    Returns None if the sequence has no ISA-decisive opcodes."""
+    Returns None if the sequence has no ISA-decisive opcodes, or if
+    target_arch has no ISA-decisive opcode set defined (riscv64 -- we only
+    have _X86_ONLY / _ARM_ONLY, so a riscv purity number would be meaningless
+    rather than mis-scored against the arm set)."""
+    if target_arch not in ("x86_64", "arm64"):
+        return None
     tgt = _X86_ONLY if target_arch == "x86_64" else _ARM_ONLY
     oth = _ARM_ONLY if target_arch == "x86_64" else _X86_ONLY
     hit = dec = 0
@@ -215,12 +225,27 @@ def main():
                           "hardcoded rate. When starting from --init-from, a much "
                           "lower LR (e.g. 1e-4) avoids overwriting the pretrained "
                           "weights in the first few steps.")
+    ap.add_argument("--extra-train", nargs="+", default=None,
+                     help="extra gadget JSONL(s) ({label,arch,sequence}) appended "
+                          "to the v54 training pool -- e.g. the idiomatic riscv "
+                          "corpus (spec/data/riscv_cvulns_batch.jsonl + "
+                          "spec/data/riscv_benign_train.jsonl) to make the "
+                          "generator emit riscv64. Default: none (byte-identical).")
     args = ap.parse_args()
     torch.manual_seed(SEED); np.random.seed(SEED)
 
     engine = load_engine("base.json")
     tok = AsmTokenizer(engine)
     train_rows, test_rows = load(TRAIN), load(TEST)
+    if args.extra_train:
+        extra = []
+        for p in args.extra_train:
+            recs = load(p)
+            extra.extend(recs)
+            print(f"[extra-train] +{len(recs)} records from {p}")
+        by_arch = Counter(norm_arch(r.get("arch", "x86_64")) for r in extra)
+        print(f"[extra-train] merged {len(extra)} records; arch mix {dict(by_arch)}")
+        train_rows = train_rows + extra
     tr_tok = [tok.tokenize_sequence(r["sequence"]) for r in train_rows]
     classes = sorted({r["label"] for r in train_rows})
 

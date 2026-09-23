@@ -29,13 +29,22 @@ INIT="${INIT:-gen/pretrained_angha.pt}"
 LR="${LR:-1e-4}"
 SAVE="${SAVE:-gen/generator_pretrained.pt}"
 EPOCHS="${EPOCHS:-15}"
+# RISCV=1 folds the idiomatic riscv64 gadgets into the training pool so the
+# generator can emit riscv64 (adds --extra-train). Default off = x86/arm only.
+EXTRA=""
+if [ "${RISCV:-0}" = "1" ]; then
+    EXTRA="--extra-train spec/data/riscv_cvulns_batch.jsonl spec/data/riscv_benign_train.jsonl"
+    for f in spec/data/riscv_cvulns_batch.jsonl spec/data/riscv_benign_train.jsonl; do
+        [ -s "$f" ] || { echo "ERROR: RISCV=1 but $f missing -- run gen/build_riscv_corpus.sbatch first" >&2; exit 1; }
+    done
+fi
 
 if [ ! -s "$INIT" ]; then
     echo "ERROR: pretrained checkpoint $INIT missing -- run gen/pretrain.sbatch first" >&2
     exit 1
 fi
-echo "host=$(hostname) job=${SLURM_JOB_ID:-?} init=$INIT lr=$LR save=$SAVE epochs=$EPOCHS"
+echo "host=$(hostname) job=${SLURM_JOB_ID:-?} init=$INIT lr=$LR save=$SAVE epochs=$EPOCHS riscv=${RISCV:-0}"
 python3 -c "import torch; print('cuda:', torch.cuda.is_available())"
 
-python3 gen/train_generator.py --init-from "$INIT" --lr "$LR" --epochs "$EPOCHS" --save "$SAVE"
+python3 gen/train_generator.py --init-from "$INIT" --lr "$LR" --epochs "$EPOCHS" --save "$SAVE" $EXTRA
 echo "done rc=0 -> $SAVE"
