@@ -319,6 +319,100 @@ not yet multi-seed.
 
 ---
 
+## Data & representation — design justification
+
+What data enters the pipeline, and why. These are the answers to the recurring
+supervisor questions (source language, assembly-vs-high-level, stale/patched
+data), verified against the code.
+
+**What is actually used (verified):**
+- Pretrain corpus: **C source only** (AnghaBench / the-stack `--hf-lang c`),
+  compiled to **x86_64 + arm64 + riscv64** per-function assembly
+  (`gen/build_pretrain_corpus_from_c.py`, `REAL_ARCHES`). One language, three ISAs.
+- The generator emits **assembly directly** (`CondTransformerLM` over
+  `AsmTokenizer` tokens, `sample(class, arch)`), NOT high-level-then-compile.
+- Generation targets are **x86_64 + arm64 only** (`ARCHS`); base trained on v54
+  (arm64 3434 / x86_64 2093). RISC-V is pretrained + detected but NOT generated.
+- Post-training (RL) data: the generator's own asm output, **oracle-verified**
+  (Spectector), leak-only unless `--finetune-with-benign` (G3).
+
+**1. One source language (C) is fine for an assembly-target generator.** The
+concern ("don't limit to one language") is about generation breadth, but we
+generate assembly, not C. C→asm covers essentially the whole systems-code
+instruction distribution; adding C++/Rust source yields marginal new *asm*
+idioms (all lower to the same ISA). It would only matter if we switched to
+high-level generation (see 3).
+
+**2. Stale / patched data does not bite — oracle-in-the-loop neutralizes it.**
+Pretrain teaches code *structure*, not vulns (arbitrary AnghaBench C). Every
+generated leak is verified on Spectector (ground truth), so a patched or
+non-existent vuln cannot pass as a false positive. uarch vulns are *hardware*
+properties, not source patches. "Patched compiler won't emit vulnerable asm" is
+moot: we synthesize the asm and let the oracle judge — we never rely on the
+compiler to produce the gadget.
+
+**3. Assembly-direct vs high-level-then-compile — we keep assembly-direct.**
+- assembly-direct (current): faithful threat model (an attacker runs asm,
+  bypassing the compiler) and **precise control of the exact instruction
+  sequence**, which uarch gadgets require. Cost: can only target archs it is
+  trained on (no unseen-arch generation).
+- high-level-then-compile: easier generation + free multi-arch, BUT the compiler
+  may optimize the gadget away or be patched → loss of control over the exact
+  asm, the thing that matters for uarch leaks.
+- For a *uarch-gadget discovery tool*, assembly-direct is correct; high-level
+  would suit a different goal (finding source patterns a given compiler lowers
+  to vulnerable asm — a source/compiler-hardening tool).
+
+**4. Two efficiency/scope findings:**
+- The generator is effectively **2-arch (x86/arm), not 3** — RISC-V is in the
+  200k pretrain corpus but the generator's fine-tune vocab (x86/arm) barely
+  overlaps the riscv tokens, so **the riscv third of the pretrain corpus is
+  largely wasted on the generator**. Either drop riscv from the generator's
+  pretrain corpus, or add riscv to the generator's training/vocab if riscv
+  *generation* is a goal (see roadmap below).
+- The model is a **from-scratch 3-layer transformer**, not an open-weights
+  language model continue-pretrained on asm (a recurring meeting misconception).
+
+## Roadmap — multi-arch generation (the ultimate goal)
+
+The generator DESIGN is already architecture-agnostic (arch-token conditioning,
+shared vocab). Each new arch needs three things; **only the third is a real
+research blocker**:
+
+1. **Training data for the arch** — bootstrap by compiling portable C per arch
+   (the `harvest_riscv_from_cvulns.py` / `build_pretrain_corpus_from_c.py`
+   machinery already does this for riscv64). Cheap.
+2. **A realizer + splice convention** — extend `gen/realize.py` and
+   `_SPLICE_CONVENTION` (`gen/decode.py`) to emit that arch's concrete asm +
+   harness. Currently x86-centric. Moderate, mechanical.
+3. **A leak ORACLE for the arch — THE bottleneck.** Every verifier here is
+   **x86 only**: Spectector (symbolic, x86 muasm), InvisiSpec/gem5 (x86),
+   Revizor (x86 Intel/AMD hardware; its executor is x86-only). Without an
+   oracle, an arch can be *generated* but never *verified* — so its output is
+   unverified/provenance-only, the same ceiling the RISC-V detector work hit.
+
+**Prioritized next steps:**
+- **RISC-V generation (unverified), now, cheap:** fold the idiomatic riscv
+  attack gadgets (`spec/data/riscv_cvulns_batch.jsonl`, from A1) into the
+  generator's training set + add `riscv64` to `ARCHS`. The generator can then be
+  prompted `sample(cls, "riscv64")`, AND the riscv third of the pretrain corpus
+  stops being wasted (vocab now overlaps). Validate structurally + by provenance;
+  label it clearly "unverified" until a riscv oracle exists.
+- **ARM as a fully-VERIFIED arch (highest value):** we already have the most
+  training data for arm64 (3434 gadgets) and the generator already emits it, but
+  there is **no arm oracle**, so arm RL is unverified today. The unlock is an
+  ARM speculation oracle: either an ARM symbolic SNI checker, or an ARM port of
+  Revizor's executor (ARM hardware fuzzing). Getting arm64 to oracle-verified
+  parity with x86 is the single most valuable multi-arch step — arm64 is
+  ubiquitous and the data already exists.
+- **General rule:** frame each arch as **verified** (has an oracle: x86 today)
+  vs **generation-only/unverified** (arm, riscv until an oracle exists). The
+  paper should present multi-arch generation as "the model conditions on and
+  emits N ISAs; leak-verification is available for x86 and is the gating
+  dependency for extending the closed-loop discovery to other ISAs."
+
+---
+
 ## Parallel track A — Real-C cross-ISA synthesis (`generate_c.py`, `gen/synth/`)
 
 Separate from the token-level neural generator above, there are two
