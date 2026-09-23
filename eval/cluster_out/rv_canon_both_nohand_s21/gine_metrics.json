@@ -1,0 +1,144 @@
+{
+  "test_accuracy": 0.9077844311377246,
+  "best_epoch": 4,
+  "total_params": 482369,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 4803,
+  "val_count": 729,
+  "test_count": 1670,
+  "best_val_acc": 0.9218106995884774,
+  "final_edge_type_scales": {
+    "DATA_DEP": 1.0056504011154175,
+    "CONTROL_FLOW": 0.944206178188324,
+    "SPEC_CONDITIONAL": 0.9794304966926575,
+    "SPEC_INDIRECT": 1.2262269258499146,
+    "SPEC_RETURN": 0.9974799156188965,
+    "MEMORY_ORDER": 1.043814778327942,
+    "CACHE_TEMPORAL": 1.118822455406189,
+    "FENCE_BOUNDARY": 1.0209776163101196,
+    "RSB_CHAIN": 0.9784595966339111
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9929859719438878,
+      "recall": 0.9612027158098934,
+      "f1-score": 0.9768358797437161,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.6116504854368932,
+      "recall": 0.9402985074626866,
+      "f1-score": 0.7411764705882353,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.7647058823529411,
+      "recall": 0.6914893617021277,
+      "f1-score": 0.7262569832402235,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.7,
+      "recall": 0.5675675675675675,
+      "f1-score": 0.6268656716417911,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.7450980392156863,
+      "recall": 0.8444444444444444,
+      "f1-score": 0.7916666666666666,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.7373737373737373,
+      "recall": 0.9733333333333334,
+      "f1-score": 0.8390804597701149,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.037037037037037035,
+      "recall": 1.0,
+      "f1-score": 0.07142857142857142,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.8636363636363636,
+      "recall": 0.9047619047619048,
+      "f1-score": 0.8837209302325582,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9454545454545454,
+      "recall": 0.6753246753246753,
+      "f1-score": 0.7878787878787878,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.991869918699187,
+      "recall": 0.9838709677419355,
+      "f1-score": 0.9878542510121457,
+      "support": 124.0
+    },
+    "accuracy": 0.9077844311377246,
+    "macro avg": {
+      "precision": 0.7389811981150279,
+      "recall": 0.8542293478148568,
+      "f1-score": 0.7432764672202812,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.9318955382250277,
+      "recall": 0.9077844311377246,
+      "f1-score": 0.9148561703013799,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7228815323755986,
+    "epoch1_val_acc": 0.8641975308641975
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/rv_canon_both_nohand_s21",
+    "viz_dir": "eval/cluster_out/rv_canon_both_nohand_s21",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "drop",
+    "arch_lambda": 1.0,
+    "no_handcrafted": true,
+    "node_feature_mode": "both",
+    "mlm_path": "spec/mlm_canonical.pt",
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 21
+  }
+}
