@@ -22,7 +22,7 @@
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=loio_ms
 #SBATCH --partition=Teaching          # confirm with `sinfo`; CPU-only, no --gres needed
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00          # ~11 min/seed whole-seq on M-series; windowed slower
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
 #SBATCH --output=eval/cluster_out/%x_%j.out
@@ -32,7 +32,10 @@ set -euo pipefail
 
 REPO="${REPO:-$HOME/speculative_execution}"
 cd "$REPO"
-[ -f .venv/bin/activate ] && source .venv/bin/activate
+# Same conda env as eval/cluster/train.sbatch (see eval/cluster/README.md);
+# the repo .venv on the cluster lacks matplotlib (imported via train_gine_v38).
+source "$HOME/miniconda3/etc/profile.d/conda.sh"
+conda activate specexec
 mkdir -p eval/cluster_out
 
 RISCV_ATTACK="spec/data/riscv_cvulns_batch.jsonl"

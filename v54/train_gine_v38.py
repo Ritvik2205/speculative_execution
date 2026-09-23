@@ -302,7 +302,12 @@ class GINEDatasetV47(Dataset):
             # Learned contextual node embeddings, aligned 1:1 with PDG nodes.
             # PDG is built from `sequence` (post-strip); tokenize the SAME sequence
             # so token i corresponds to node i (identical skip rules).
-            toks = self.tokenizer.tokenize_sequence(sequence)
+            tk = self.tokenizer
+            if hasattr(tk, 'for_arch'):
+                # Canonical encoders index ISA-neutral op names resolved from
+                # each record's OWN ISA spec (see asm_tokenizer.MultiArchTokenizer).
+                tk = tk.for_arch(rec.get('arch', 'unknown'))
+            toks = tk.tokenize_sequence(sequence)
             emb = self.mlm.embed_instructions(toks)              # [m, dim]
             learned = np.zeros((self.max_nodes, self.mlm.dim), dtype=np.float32)
             m = min(n_nodes, emb.shape[0])
@@ -887,9 +892,18 @@ def main():
         from asm_tokenizer import AsmTokenizer
         from train_mlm import MlmEncoder
         mlm_enc = MlmEncoder.load(args.mlm_path)
-        asm_tok = AsmTokenizer(load_engine('base.json'))
+        _tok_mode = getattr(mlm_enc, 'tokenizer_mode', 'mnemonic')
+        if _tok_mode == 'canonical':
+            # A canonical vocabulary (spec/mlm_canonical.pt) is built from each
+            # ISA's own spec, so a single base-engine tokenizer would miss every
+            # lookup. Mnemonic encoders keep the original base-engine tokenizer
+            # so existing checkpoints (eval/full_tost learned/both) reproduce.
+            from asm_tokenizer import MultiArchTokenizer
+            asm_tok = MultiArchTokenizer(mode='canonical')
+        else:
+            asm_tok = AsmTokenizer(load_engine('base.json'))
         print(f"Loaded MLM encoder ({args.node_feature_mode}) dim={mlm_enc.dim} "
-              f"vocab={len(mlm_enc.vocab)} from {args.mlm_path}")
+              f"vocab={len(mlm_enc.vocab)} tokenizer={_tok_mode} from {args.mlm_path}")
 
     print("\nCreating datasets...")
     _ds_kw = dict(speculative_window=args.speculative_window,
