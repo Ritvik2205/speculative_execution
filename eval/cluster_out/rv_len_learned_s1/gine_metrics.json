@@ -1,0 +1,147 @@
+{
+  "test_accuracy": 0.9352905931695626,
+  "best_epoch": 28,
+  "total_params": 614731,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 16746,
+  "val_count": 2151,
+  "test_count": 1670,
+  "best_val_acc": 0.958139534883721,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.7231234312057495,
+    "CONTROL_FLOW": 0.6905971169471741,
+    "SPEC_CONDITIONAL": 1.2368868589401245,
+    "SPEC_INDIRECT": 1.486574649810791,
+    "SPEC_RETURN": 1.1854174137115479,
+    "MEMORY_ORDER": 0.8129287362098694,
+    "CACHE_TEMPORAL": 1.3771727085113525,
+    "FENCE_BOUNDARY": 1.10793137550354,
+    "RSB_CHAIN": 1.0353822708129883
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9929506545820745,
+      "recall": 0.95635305528613,
+      "f1-score": 0.974308300395257,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.7435897435897436,
+      "recall": 0.8656716417910447,
+      "f1-score": 0.8,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.7821782178217822,
+      "recall": 0.8494623655913979,
+      "f1-score": 0.8144329896907216,
+      "support": 93.0
+    },
+    "L1TF": {
+      "precision": 0.8484848484848485,
+      "recall": 0.7567567567567568,
+      "f1-score": 0.8,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.9,
+      "recall": 1.0,
+      "f1-score": 0.9473684210526315,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.972972972972973,
+      "recall": 0.96,
+      "f1-score": 0.9664429530201343,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.05263157894736842,
+      "recall": 1.0,
+      "f1-score": 0.1,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.6885245901639344,
+      "recall": 1.0,
+      "f1-score": 0.8155339805825242,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9343065693430657,
+      "recall": 0.8311688311688312,
+      "f1-score": 0.8797250859106529,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.991869918699187,
+      "recall": 0.9838709677419355,
+      "f1-score": 0.9878542510121457,
+      "support": 124.0
+    },
+    "accuracy": 0.9352905931695626,
+    "macro avg": {
+      "precision": 0.7907509094604978,
+      "recall": 0.9203283618336096,
+      "f1-score": 0.8085665981664067,
+      "support": 1669.0
+    },
+    "weighted avg": {
+      "precision": 0.9508734992704216,
+      "recall": 0.9352905931695626,
+      "f1-score": 0.9412180609423836,
+      "support": 1669.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7196775156763213,
+    "epoch1_val_acc": 0.8776744186046511
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train_lenmatch.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/rv_len_learned_s1",
+    "viz_dir": "eval/cluster_out/rv_len_learned_s1",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "drop",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "neutral",
+    "drop_nops": true,
+    "node_drop": 0.1,
+    "no_handcrafted": false,
+    "node_feature_mode": "learned",
+    "mlm_path": "spec/mlm_neutral.pt",
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 1
+  }
+}

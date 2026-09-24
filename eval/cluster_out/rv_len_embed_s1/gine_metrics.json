@@ -1,0 +1,147 @@
+{
+  "test_accuracy": 0.9491017964071856,
+  "best_epoch": 21,
+  "total_params": 618059,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 16746,
+  "val_count": 2151,
+  "test_count": 1670,
+  "best_val_acc": 0.9739655973965597,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.8302404284477234,
+    "CONTROL_FLOW": 0.6454959511756897,
+    "SPEC_CONDITIONAL": 0.9941855072975159,
+    "SPEC_INDIRECT": 1.3108950853347778,
+    "SPEC_RETURN": 1.181216835975647,
+    "MEMORY_ORDER": 1.0904438495635986,
+    "CACHE_TEMPORAL": 1.1966530084609985,
+    "FENCE_BOUNDARY": 0.9683111906051636,
+    "RSB_CHAIN": 1.1599974632263184
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9912451361867705,
+      "recall": 0.988360814742968,
+      "f1-score": 0.9898008742107819,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.9552238805970149,
+      "recall": 0.9552238805970149,
+      "f1-score": 0.9552238805970149,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.8247422680412371,
+      "recall": 0.851063829787234,
+      "f1-score": 0.837696335078534,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.90625,
+      "recall": 0.7837837837837838,
+      "f1-score": 0.8405797101449275,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.8627450980392157,
+      "recall": 0.9777777777777777,
+      "f1-score": 0.9166666666666666,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.9733333333333334,
+      "recall": 0.9733333333333334,
+      "f1-score": 0.9733333333333334,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.9333333333333333,
+      "recall": 1.0,
+      "f1-score": 0.9655172413793104,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9649122807017544,
+      "recall": 0.7142857142857143,
+      "f1-score": 0.8208955223880597,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.8,
+      "recall": 1.0,
+      "f1-score": 0.8888888888888888,
+      "support": 124.0
+    },
+    "accuracy": 0.9491017964071856,
+    "macro avg": {
+      "precision": 0.8211785330232659,
+      "recall": 0.8243829134307827,
+      "f1-score": 0.8188602452687519,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.9555992690085459,
+      "recall": 0.9491017964071856,
+      "f1-score": 0.9495637502347157,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7327720052549863,
+    "epoch1_val_acc": 0.9037656903765691
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train_lenmatch.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/rv_len_embed_s1",
+    "viz_dir": "eval/cluster_out/rv_len_embed_s1",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "embed",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "all",
+    "drop_nops": false,
+    "node_drop": 0.0,
+    "no_handcrafted": false,
+    "node_feature_mode": "hand",
+    "mlm_path": null,
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 1
+  }
+}

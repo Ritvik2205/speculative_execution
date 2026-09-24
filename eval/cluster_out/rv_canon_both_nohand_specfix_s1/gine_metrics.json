@@ -1,0 +1,144 @@
+{
+  "test_accuracy": 0.9341317365269461,
+  "best_epoch": 10,
+  "total_params": 482369,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 4803,
+  "val_count": 729,
+  "test_count": 1670,
+  "best_val_acc": 0.9286694101508917,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.9785317778587341,
+    "CONTROL_FLOW": 0.8918930292129517,
+    "SPEC_CONDITIONAL": 1.0560214519500732,
+    "SPEC_INDIRECT": 1.2830727100372314,
+    "SPEC_RETURN": 0.9655090570449829,
+    "MEMORY_ORDER": 1.1128991842269897,
+    "CACHE_TEMPORAL": 1.194974422454834,
+    "FENCE_BOUNDARY": 1.0611592531204224,
+    "RSB_CHAIN": 1.0021979808807373
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.994140625,
+      "recall": 0.9873908826382153,
+      "f1-score": 0.9907542579075426,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.5409836065573771,
+      "recall": 0.9850746268656716,
+      "f1-score": 0.6984126984126984,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.8181818181818182,
+      "recall": 0.7659574468085106,
+      "f1-score": 0.7912087912087912,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.9583333333333334,
+      "recall": 0.6216216216216216,
+      "f1-score": 0.7540983606557377,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.8775510204081632,
+      "recall": 0.9555555555555556,
+      "f1-score": 0.9148936170212766,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.8470588235294118,
+      "recall": 0.96,
+      "f1-score": 0.9,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1-score": 0.6666666666666666,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.8367346938775511,
+      "recall": 0.9761904761904762,
+      "f1-score": 0.9010989010989011,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9902912621359223,
+      "recall": 0.6623376623376623,
+      "f1-score": 0.7937743190661478,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.9838709677419355,
+      "recall": 0.9838709677419355,
+      "f1-score": 0.9838709677419355,
+      "support": 124.0
+    },
+    "accuracy": 0.9341317365269461,
+    "macro avg": {
+      "precision": 0.8347146150765512,
+      "recall": 0.8897999239759649,
+      "f1-score": 0.8394778579779697,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.9501432511686413,
+      "recall": 0.9341317365269461,
+      "f1-score": 0.9353058891192698,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.728086612533833,
+    "epoch1_val_acc": 0.8491083676268861
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/rv_canon_both_nohand_specfix_s1",
+    "viz_dir": "eval/cluster_out/rv_canon_both_nohand_specfix_s1",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "drop",
+    "arch_lambda": 1.0,
+    "no_handcrafted": true,
+    "node_feature_mode": "both",
+    "mlm_path": "spec/mlm_canonical.pt",
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 1
+  }
+}

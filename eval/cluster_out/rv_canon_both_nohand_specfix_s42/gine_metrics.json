@@ -1,0 +1,144 @@
+{
+  "test_accuracy": 0.9149700598802395,
+  "best_epoch": 13,
+  "total_params": 482369,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 4803,
+  "val_count": 729,
+  "test_count": 1670,
+  "best_val_acc": 0.9272976680384087,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.9877880215644836,
+    "CONTROL_FLOW": 0.883632242679596,
+    "SPEC_CONDITIONAL": 1.1730252504348755,
+    "SPEC_INDIRECT": 1.2413513660430908,
+    "SPEC_RETURN": 0.9522266983985901,
+    "MEMORY_ORDER": 1.0577031373977661,
+    "CACHE_TEMPORAL": 1.15804922580719,
+    "FENCE_BOUNDARY": 1.0242778062820435,
+    "RSB_CHAIN": 1.180873990058899
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9949748743718593,
+      "recall": 0.9602327837051406,
+      "f1-score": 0.9772951628825272,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.6458333333333334,
+      "recall": 0.9253731343283582,
+      "f1-score": 0.7607361963190185,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.7244897959183674,
+      "recall": 0.7553191489361702,
+      "f1-score": 0.7395833333333334,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.8695652173913043,
+      "recall": 0.5405405405405406,
+      "f1-score": 0.6666666666666666,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.9444444444444444,
+      "recall": 0.7555555555555555,
+      "f1-score": 0.8395061728395061,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.7613636363636364,
+      "recall": 0.8933333333333333,
+      "f1-score": 0.8220858895705522,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.02857142857142857,
+      "recall": 1.0,
+      "f1-score": 0.05555555555555555,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.8541666666666666,
+      "recall": 0.9761904761904762,
+      "f1-score": 0.9111111111111111,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.959349593495935,
+      "recall": 0.7662337662337663,
+      "f1-score": 0.851985559566787,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.96875,
+      "recall": 1.0,
+      "f1-score": 0.9841269841269841,
+      "support": 124.0
+    },
+    "accuracy": 0.9149700598802395,
+    "macro avg": {
+      "precision": 0.7751508990556975,
+      "recall": 0.8572778738823341,
+      "f1-score": 0.7608652631972042,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.9417584216914631,
+      "recall": 0.9149700598802395,
+      "f1-score": 0.9243964682683127,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.713720591297106,
+    "epoch1_val_acc": 0.8381344307270233
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/rv_canon_both_nohand_specfix_s42",
+    "viz_dir": "eval/cluster_out/rv_canon_both_nohand_specfix_s42",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "drop",
+    "arch_lambda": 1.0,
+    "no_handcrafted": true,
+    "node_feature_mode": "both",
+    "mlm_path": "spec/mlm_canonical.pt",
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 42
+  }
+}
