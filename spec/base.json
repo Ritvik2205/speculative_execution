@@ -322,7 +322,8 @@
     "speculative_window": 10,
     "cache_window": 20,
     "rsb_pair_window": 15,
-    "data_dep_reaching_defs": 1
+    "data_dep_reaching_defs": 1,
+    "memory_order_mode": "address_base"
   },
   "canonical_op_vocab": [
     "MOV",

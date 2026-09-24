@@ -1,0 +1,354 @@
+{
+ "comparisons": {
+  "x86_64 vs arm64": {
+   "n": 634,
+   "classes": [
+    "BRANCH_HISTORY_INJECTION",
+    "INCEPTION",
+    "RETBLEED",
+    "SPECTRE_RSB",
+    "SPECTRE_V1",
+    "SPECTRE_V2",
+    "SPECTRE_V4"
+   ],
+   "channels": {
+    "graph": {
+     "dims": 10,
+     "isa_bal_acc": 0.6876971608832807,
+     "class_bal_acc": 0.4666666666666666
+    },
+    "categories": {
+     "dims": 19,
+     "isa_bal_acc": 0.8233438485804416,
+     "class_bal_acc": 0.5035714285714286
+    },
+    "memtype": {
+     "dims": 5,
+     "isa_bal_acc": 0.8659305993690851,
+     "class_bal_acc": 0.3880952380952381
+    },
+    "specflags": {
+     "dims": 14,
+     "isa_bal_acc": 0.8233438485804416,
+     "class_bal_acc": 0.4869047619047619
+    },
+    "regs": {
+     "dims": 2,
+     "isa_bal_acc": 0.6577287066246056,
+     "class_bal_acc": 0.2523809523809524
+    },
+    "global": {
+     "dims": 5,
+     "isa_bal_acc": 0.6656151419558359,
+     "class_bal_acc": 0.4297619047619047
+    },
+    "inline": {
+     "dims": 58,
+     "isa_bal_acc": 1.0,
+     "class_bal_acc": 0.6404761904761905
+    },
+    "ALL": {
+     "dims": 113,
+     "isa_bal_acc": 1.0,
+     "class_bal_acc": 0.6642857142857144
+    }
+   },
+   "top_isa_features": [
+    {
+     "feature": "inline/frac_x86_only",
+     "std_diff": 1.78047130397991,
+     "A": 0.6517602550541565,
+     "B": 0.0
+    },
+    {
+     "feature": "inline/frac_arm_only",
+     "std_diff": 1.6693336468151168,
+     "A": 0.005594825072431414,
+     "B": 0.260209516348899
+    },
+    {
+     "feature": "inline/frac_load",
+     "std_diff": 1.5217243835034158,
+     "A": 0.0,
+     "B": 0.1795720661100153
+    },
+    {
+     "feature": "inline/frac_store",
+     "std_diff": 1.5131604287521845,
+     "A": 0.0,
+     "B": 0.1465205388490334
+    },
+    {
+     "feature": "inline/has_indexed_load",
+     "std_diff": 1.5090486151122757,
+     "A": 0.0,
+     "B": 0.7255520504731862
+    },
+    {
+     "feature": "inline/frac_movq",
+     "std_diff": 1.4603727156296538,
+     "A": 0.21174214991861337,
+     "B": 0.0
+    },
+    {
+     "feature": "inline/load_store_ratio",
+     "std_diff": 1.3658689913968334,
+     "A": 0.0,
+     "B": 0.8926041719477259
+    },
+    {
+     "feature": "inline/frac_ldr",
+     "std_diff": 1.330295658190572,
+     "A": 0.0,
+     "B": 0.11393182031363719
+    },
+    {
+     "feature": "inline/indexed_load_norm",
+     "std_diff": 1.3236453051368418,
+     "A": 0.0,
+     "B": 0.09301547911781995
+    },
+    {
+     "feature": "inline/frac_str",
+     "std_diff": 1.3177522392599978,
+     "A": 0.0,
+     "B": 0.08677208602240409
+    },
+    {
+     "feature": "inline/frac_retq",
+     "std_diff": 1.2924665969892468,
+     "A": 0.051465046060292126,
+     "B": 0.0
+    },
+    {
+     "feature": "inline/frac_stp",
+     "std_diff": 1.213279240491337,
+     "A": 0.0,
+     "B": 0.04600090249103703
+    },
+    {
+     "feature": "inline/frac_bl",
+     "std_diff": 1.1682211703541046,
+     "A": 0.0,
+     "B": 0.06549245652034644
+    },
+    {
+     "feature": "inline/frac_ldp",
+     "std_diff": 1.1611106472788173,
+     "A": 0.0,
+     "B": 0.04454952023617853
+    },
+    {
+     "feature": "inline/frac_movl",
+     "std_diff": 1.133231304902019,
+     "A": 0.08252959189002258,
+     "B": 0.0
+    },
+    {
+     "feature": "inline/has_lfence",
+     "std_diff": 1.0738496883424389,
+     "A": 0.4605678233438486,
+     "B": 0.006309148264984227
+    },
+    {
+     "feature": "inline/frac_callq",
+     "std_diff": 1.0455323668798444,
+     "A": 0.04283047601439599,
+     "B": 0.0
+    },
+    {
+     "feature": "inline/frac_ret",
+     "std_diff": 1.027910866296539,
+     "A": 0.015250349276308382,
+     "B": 0.0566358982647067
+    },
+    {
+     "feature": "mem/2",
+     "std_diff": 1.0175304735892363,
+     "A": 0.07840894999478369,
+     "B": 0.013040721062388112
+    },
+    {
+     "feature": "inline/frac_adrp",
+     "std_diff": 0.9743321605622234,
+     "A": 0.0,
+     "B": 0.037673429559551955
+    }
+   ]
+  },
+  "riscv64 vs x86_64+arm64": {
+   "n": 62,
+   "classes": [
+    "BRANCH_HISTORY_INJECTION",
+    "RETBLEED",
+    "SPECTRE_RSB",
+    "SPECTRE_V1",
+    "SPECTRE_V4"
+   ],
+   "channels": {
+    "graph": {
+     "dims": 10,
+     "isa_bal_acc": 0.9193548387096774,
+     "class_bal_acc": 0.4083333333333333
+    },
+    "categories": {
+     "dims": 19,
+     "isa_bal_acc": 0.967741935483871,
+     "class_bal_acc": 0.3476190476190476
+    },
+    "memtype": {
+     "dims": 5,
+     "isa_bal_acc": 0.7580645161290323,
+     "class_bal_acc": 0.33571428571428574
+    },
+    "specflags": {
+     "dims": 14,
+     "isa_bal_acc": 0.7903225806451613,
+     "class_bal_acc": 0.3380952380952381
+    },
+    "regs": {
+     "dims": 2,
+     "isa_bal_acc": 0.8225806451612903,
+     "class_bal_acc": 0.225
+    },
+    "global": {
+     "dims": 5,
+     "isa_bal_acc": 0.8225806451612903,
+     "class_bal_acc": 0.3059523809523809
+    },
+    "inline": {
+     "dims": 58,
+     "isa_bal_acc": 0.967741935483871,
+     "class_bal_acc": 0.4392857142857142
+    },
+    "ALL": {
+     "dims": 113,
+     "isa_bal_acc": 0.967741935483871,
+     "class_bal_acc": 0.3773809523809524
+    }
+   },
+   "top_isa_features": [
+    {
+     "feature": "cat/ARITHMETIC",
+     "std_diff": 1.6177627554498992,
+     "A": 0.3199254226499963,
+     "B": 0.09285889424712232
+    },
+    {
+     "feature": "edge/DATA_DEP",
+     "std_diff": 1.5867830421159377,
+     "A": 0.9009754163827919,
+     "B": 0.4062786330671112
+    },
+    {
+     "feature": "inline/frac_x86_only",
+     "std_diff": 1.5393483069249438,
+     "A": 0.005884653137576195,
+     "B": 0.5001199579527301
+    },
+    {
+     "feature": "inline/frac_branch",
+     "std_diff": 1.4792355028299107,
+     "A": 0.03364117539698078,
+     "B": 0.17470363876031292
+    },
+    {
+     "feature": "ret_frac",
+     "std_diff": 1.455653126039537,
+     "A": 0.013267367958061157,
+     "B": 0.07859093972271489
+    },
+    {
+     "feature": "dest_regs/node",
+     "std_diff": 1.3105671693562202,
+     "A": 0.6890346997311909,
+     "B": 0.47090054475903875
+    },
+    {
+     "feature": "inline/frac_movq",
+     "std_diff": 1.305035409322652,
+     "A": 0.0,
+     "B": 0.1415791983806318
+    },
+    {
+     "feature": "src_regs/node",
+     "std_diff": 1.2965577881718129,
+     "A": 1.0791472465355558,
+     "B": 0.7183008158830676
+    },
+    {
+     "feature": "inline/has_call_ret_pair",
+     "std_diff": 1.2292725943057181,
+     "A": 0.0,
+     "B": 0.5483870967741935
+    },
+    {
+     "feature": "inline/ret_call_ratio",
+     "std_diff": 1.1117812937197362,
+     "A": 0.22580645161290322,
+     "B": 0.6936132782889951
+    },
+    {
+     "feature": "cat/COMPARE",
+     "std_diff": 1.0959694608945039,
+     "A": 0.0007590395470766372,
+     "B": 0.04585080450640053
+    },
+    {
+     "feature": "inline/frac_retq",
+     "std_diff": 1.0849078614182306,
+     "A": 0.0,
+     "B": 0.04479775770056632
+    },
+    {
+     "feature": "inline/frac_movl",
+     "std_diff": 1.0598752642332239,
+     "A": 0.0,
+     "B": 0.058342205480702465
+    },
+    {
+     "feature": "inline/call_ret_pair_norm",
+     "std_diff": 1.043372470870642,
+     "A": 0.0,
+     "B": 0.03331846443395461
+    },
+    {
+     "feature": "edge/RSB_CHAIN",
+     "std_diff": 0.9015091955866505,
+     "A": 0.00644114298023282,
+     "B": 0.03589438672683644
+    },
+    {
+     "feature": "flag/2",
+     "std_diff": 0.8330194316415467,
+     "A": 0.13127122776438635,
+     "B": 0.19304591911975919
+    },
+    {
+     "feature": "mem/3",
+     "std_diff": 0.8271395166523676,
+     "A": 0.0,
+     "B": 0.030301425531412622
+    },
+    {
+     "feature": "inline/has_nop_run_3plus",
+     "std_diff": 0.8241633836921342,
+     "A": 0.0,
+     "B": 0.2903225806451613
+    },
+    {
+     "feature": "cat/RET",
+     "std_diff": 0.818780171672822,
+     "A": 0.049317290362566324,
+     "B": 0.07859626270177957
+    },
+    {
+     "feature": "cat/CALL",
+     "std_diff": 0.8083490962819807,
+     "A": 0.00967977011531647,
+     "B": 0.050318746309900915
+    }
+   ]
+  }
+ }
+}

@@ -72,17 +72,37 @@ def test_same_base_produces_memory_order_edge_when_opted_in():
     assert _pairs(edges) == [(0, 1)], edges     # once — no duplicate of the base edge
 
 
-def test_default_off_produces_no_memory_order_edge():
-    """Off by default: the opt-in pass contributes nothing — the only
-    MEMORY_ORDER edges are the base heuristic's, identical to an explicit
-    mem_order_edges=False build."""
+def test_address_mode_is_default_so_flag_changes_nothing():
+    """Since memory_order_mode=address_base (spec/base.json) the address-based
+    pass runs on every spec-builder graph; the opt-in flag is now redundant."""
     seq = ["mov %rax, (%rdx)", "mov (%rdx,%rsi), %rcx", "addl %ebx, (%r14,%rdi)",
            "movl (%r14,%rdi), %ecx"]
     off = _pairs(_memory_order_edges(_build(seq, mem_order_edges=False)))
+    on = _pairs(_memory_order_edges(_build(seq, mem_order_edges=True)))
     default_pdg = SpecBackedPDGBuilder(_ENGINE, dataflow_taint=False).build(seq)
-    assert _pairs(_memory_order_edges(default_pdg)) == off
-    assert (2, 3) not in off     # RMW->load pair is the opt-in pass's alone
+    assert off == on == _pairs(_memory_order_edges(default_pdg))
+    assert (2, 3) in off     # RMW -> load of the same address
 
+
+def test_load_through_stored_value_is_not_a_reload():
+    """`str x0,[x8]` then `ldrb w8,[x0]` loads THROUGH the stored value (the
+    v4_family 'safe' twin) — not a reload of the stored location. The old
+    any-shared-register rule linked them; the address rule must not."""
+    arm = SpecBackedPDGBuilder(load_engine("arm64.json"), dataflow_taint=False)
+    assert _memory_order_edges(arm.build(["str x0, [x8]", "ldrb w8, [x0]"])) == []
+    assert _pairs(_memory_order_edges(arm.build(["str x0, [x8]", "ldr x9, [x8]"]))) == [(0, 1)]
+    x86 = _build(["movq %rdi, (%rax)", "movzbl (%rdi), %eax"], False)
+    assert _memory_order_edges(x86) == []
+
+
+def test_riscv_memory_operands_parse():
+    """riscv `off(base)` / `%lo(sym)(base)`: same base+offset aliases,
+    different constant offsets don't, and w/x-style aliases normalise."""
+    rv = SpecBackedPDGBuilder(load_engine("riscv.json"), dataflow_taint=False)
+    assert _pairs(_memory_order_edges(rv.build(["sd a1,0(a0)", "ld a4,0(a0)"]))) == [(0, 1)]
+    assert _memory_order_edges(rv.build(["sd a1,8(sp)", "ld a4,16(sp)"])) == []
+    assert _memory_order_edges(rv.build(["sd a1,0(a0)", "lbu a4,0(a1)"])) == []
+    assert _pairs(_memory_order_edges(rv.build(["sd a1,0(x10)", "ld a4,0(a0)"]))) == [(0, 1)]
 
 def test_different_base_register_no_edge():
     seq = ["mov %rax, (%rbx)", "mov (%rdx), %rcx"]
@@ -144,7 +164,6 @@ def test_rmw_different_base_no_edge():
     assert _memory_order_edges(pdg) == []
 
 
-def test_rmw_default_off_no_edge():
+def test_rmw_edge_present_by_default():
     seq = ["addl %ebx, (%r14,%rdi)", "movl (%r14,%rdi), %ecx"]
-    pdg = _build(seq, mem_order_edges=False)
-    assert _memory_order_edges(pdg) == []
+    assert _pairs(_memory_order_edges(_build(seq, mem_order_edges=False))) == [(0, 1)]

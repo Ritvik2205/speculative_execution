@@ -7,7 +7,9 @@
 #
 # Slurm job ARRAY: one task per (condition, seed). Index i maps to
 #   COND = CONDS[i / nSEEDS],  SEED = SEEDS[i % nSEEDS]
-# Default grid = 3 lv4_* conditions x 5 seeds = tasks 0-14 (earlier grids:
+# Default grid = lv4_* x3 + embed (B1 reference) x 5 seeds = tasks 0-19. Graph
+# construction changed (address-based MEMORY_ORDER), so submit with
+# TAG_SUFFIX=_addrmo to keep earlier runs' results. (Earlier grids:
 #   --array=0-29 --export=ALL,CONDS="len_embed len_neutral len_neutral_adv len_learned len_learned_adv len_both"):
 #   sbatch eval/cluster/riscv_holdout.sbatch
 # then aggregate once every task has finished (any exit status):
@@ -42,14 +44,14 @@
 #SBATCH --mem=16000
 #SBATCH --time=04:00:00                # len_* conditions train on 3.4x more records
 #SBATCH --cpus-per-task=4
-#SBATCH --array=0-14
+#SBATCH --array=0-19
 #SBATCH --output=eval/cluster_out/%x_%A_%a.out
 #SBATCH --error=eval/cluster_out/%x_%A_%a.err
 
 set -euo pipefail
 
 REPO="${REPO:-$HOME/speculative_execution}"
-CONDS="${CONDS:-lv4_embed lv4_learned lv4_learned_adv}"
+CONDS="${CONDS:-lv4_embed lv4_learned lv4_learned_adv embed}"
 SEEDS="${SEEDS:-42 1 7 13 21}"
 read -r -a _C <<< "$CONDS"
 read -r -a _S <<< "$SEEDS"

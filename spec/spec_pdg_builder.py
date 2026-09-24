@@ -86,6 +86,15 @@ def _parse_mem_operand(instr: str) -> Tuple[Optional[str], Optional[int], bool]:
         base, imm, reg_off = m.groups()
         offset = int(imm) if imm else 0
         return base.lower(), offset, reg_off is None
+    # RISC-V: `off(base)` or `%lo(sym)(base)` — always the LAST operand of a
+    # load/store. A relocation displacement (%lo(sym)) is a link-time constant
+    # we can't compare numerically, so it can't prove no-alias.
+    m = re.search(r'(%lo\([^)]*\)|-?\d+)?\(\s*([A-Za-z][A-Za-z0-9]*)\s*\)\s*$', instr.strip())
+    if m:
+        disp, base = m.groups()
+        if disp and disp.startswith('%'):
+            return base.lower(), 0, False
+        return base.lower(), int(disp) if disp else 0, True
     return None, None, False
 
 
@@ -228,18 +237,37 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
     def _compute_spec_flags(self, instr: str, category: int, mem_type: int) -> np.ndarray:
         return self.engine.spec_flags_vector(instr, category, mem_type)
 
+    def _parse_mem(self, instr):
+        """_parse_mem_operand with the base register normalised through the
+        spec's register aliases (arm w8 -> x8, riscv x10 -> a0, x86 eax -> rax),
+        so two views of one base register are recognised as the same base."""
+        base, off, const = _parse_mem_operand(instr)
+        return (self.engine._norm_reg(base) if base else base), off, const
+
     def build(self, sequence):
         pdg = super().build(sequence)
+        # memory_order_mode "address_base" (base.json): the parent's
+        # MEMORY_ORDER rule links a store to a later load that shares ANY
+        # register — including the store's VALUE register — so `str x0,[x8]`
+        # followed by `ldrb w8,[x0]` (a load through the value just stored,
+        # NOT a reload of the stored location) looked exactly like a real
+        # store->reload. Replace it with the address-based pass: same parsed
+        # base register, may-alias offsets, stop at a base redefinition.
+        addr_mo = self.engine.pipeline.get("memory_order_mode") == "address_base"
+        if addr_mo:
+            pdg.edges = [e for e in pdg.edges
+                         if e.edge_type != pb.EDGE_TYPES['MEMORY_ORDER']]
         if self.cfg_spec_edges:
             pdg.edges = [e for e in pdg.edges
                          if e.edge_type != pb.EDGE_TYPES['SPEC_CONDITIONAL']]
             pdg.edges.extend(self._cfg_conditional_spec_edges(pdg, sequence))
             pdg.__post_init__()  # rebuild the (edge_type -> [(src,dst)]) index
-        if self.mem_order_edges:
+        if self.mem_order_edges or addr_mo:
             defuse_raw = defuse_for_sequence(sequence, self.engine.arch)
             defuse = [du for line, du in zip(sequence, defuse_raw)
                       if _is_instruction_line(line)]
             self._add_v4_memory_order_edges(pdg, defuse)
+            pdg.__post_init__()
         if not self.dataflow_taint:
             return pdg
         if self.taint_mode == "slice":
@@ -266,7 +294,7 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         """
         instr = node.raw_instruction
         body, has_lock = _strip_lock_prefix(instr)
-        if _parse_mem_operand(body)[0] is None:
+        if self._parse_mem(body)[0] is None:
             return False
         if node.opcode_category == pb.OPCODE_CATEGORIES['STORE']:
             return True
@@ -293,7 +321,7 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         writes it back)."""
         instr = node.raw_instruction
         body, has_lock = _strip_lock_prefix(instr)
-        if _parse_mem_operand(body)[0] is None:
+        if self._parse_mem(body)[0] is None:
             return False
         if node.opcode_category == pb.OPCODE_CATEGORIES['LOAD']:
             return True
@@ -352,12 +380,12 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         for i, writer in enumerate(nodes):
             if not self._writes_mem(writer):
                 continue
-            s_base, s_off, s_const = _parse_mem_operand(writer.raw_instruction)
+            s_base, s_off, s_const = self._parse_mem(writer.raw_instruction)
             window_end = min(n, i + self.speculative_window + 1)
             for j in range(i + 1, window_end):
                 node = nodes[j]
                 if self._reads_mem(node):
-                    l_base, l_off, l_const = _parse_mem_operand(node.raw_instruction)
+                    l_base, l_off, l_const = self._parse_mem(node.raw_instruction)
                     if (_may_alias(s_base, s_off, s_const, l_base, l_off, l_const)
                             and (writer.id, node.id) not in have):
                         have.add((writer.id, node.id))
