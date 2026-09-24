@@ -12,6 +12,7 @@
  "riscv_oov_rate": 0.07913312693498452,
  "arch_mode": "drop",
  "no_handcrafted": true,
+ "handcrafted_subset": "all",
  "n": 252,
  "n_groups": 40,
  "effective_n": 27.325301204819276,
@@ -1379,5 +1380,314 @@
    "pred": "BENIGN"
   }
  ],
- "macro_f1": 0.12160979877515311
+ "macro_f1": 0.12160979877515311,
+ "windowed": {
+  "window_len": 33,
+  "stride": 16,
+  "n_windows": 1894,
+  "by_k": {
+   "0.5": {
+    "accuracy": {
+     "value": 0.8452380952380952,
+     "ci_lo": 0.75,
+     "ci_hi": 0.9163882287152243,
+     "n": 252
+    },
+    "benign_fp_rate": {
+     "value": 0.03619909502262444,
+     "ci_lo": 0.009569377990430622,
+     "ci_hi": 0.06639004149377593,
+     "n": 221
+    },
+    "attack_detection_rate": {
+     "value": 0.1935483870967742,
+     "ci_lo": 0.0,
+     "ci_hi": 0.42857142857142855,
+     "n": 31
+    },
+    "per_class": {
+     "BENIGN": {
+      "recall": {
+       "value": 0.9638009049773756,
+       "ci_lo": 0.9336099585062241,
+       "ci_hi": 0.9904306220095693,
+       "n": 221
+      },
+      "precision": 0.8949579831932774,
+      "f1": 0.9281045751633987,
+      "support": 221,
+      "low_support": false
+     },
+     "BRANCH_HISTORY_INJECTION": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": NaN,
+       "ci_hi": NaN,
+       "n": 4
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 4,
+      "low_support": true
+     },
+     "RETBLEED": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 7
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 7,
+      "low_support": false
+     },
+     "SPECTRE_RSB": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 6
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 6,
+      "low_support": false
+     },
+     "SPECTRE_V1": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 12
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 12,
+      "low_support": false
+     },
+     "SPECTRE_V4": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 2
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 2,
+      "low_support": true
+     }
+    },
+    "pred_distribution": {
+     "BENIGN": 238,
+     "INCEPTION": 8,
+     "SPECTRE_RSB": 5,
+     "SPECTRE_V2": 1
+    },
+    "macro_f1": 0.15468409586056645
+   },
+   "0.7": {
+    "accuracy": {
+     "value": 0.8452380952380952,
+     "ci_lo": 0.75,
+     "ci_hi": 0.9163882287152243,
+     "n": 252
+    },
+    "benign_fp_rate": {
+     "value": 0.03619909502262444,
+     "ci_lo": 0.009569377990430622,
+     "ci_hi": 0.06639004149377593,
+     "n": 221
+    },
+    "attack_detection_rate": {
+     "value": 0.1935483870967742,
+     "ci_lo": 0.0,
+     "ci_hi": 0.42857142857142855,
+     "n": 31
+    },
+    "per_class": {
+     "BENIGN": {
+      "recall": {
+       "value": 0.9638009049773756,
+       "ci_lo": 0.9336099585062241,
+       "ci_hi": 0.9904306220095693,
+       "n": 221
+      },
+      "precision": 0.8949579831932774,
+      "f1": 0.9281045751633987,
+      "support": 221,
+      "low_support": false
+     },
+     "BRANCH_HISTORY_INJECTION": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": NaN,
+       "ci_hi": NaN,
+       "n": 4
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 4,
+      "low_support": true
+     },
+     "RETBLEED": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 7
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 7,
+      "low_support": false
+     },
+     "SPECTRE_RSB": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 6
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 6,
+      "low_support": false
+     },
+     "SPECTRE_V1": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 12
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 12,
+      "low_support": false
+     },
+     "SPECTRE_V4": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 2
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 2,
+      "low_support": true
+     }
+    },
+    "pred_distribution": {
+     "BENIGN": 238,
+     "INCEPTION": 8,
+     "SPECTRE_RSB": 5,
+     "SPECTRE_V2": 1
+    },
+    "macro_f1": 0.15468409586056645
+   },
+   "0.9": {
+    "accuracy": {
+     "value": 0.8611111111111112,
+     "ci_lo": 0.7649769585253456,
+     "ci_hi": 0.9310344827586207,
+     "n": 252
+    },
+    "benign_fp_rate": {
+     "value": 0.01809954751131222,
+     "ci_lo": 0.0,
+     "ci_hi": 0.039525691699604744,
+     "n": 221
+    },
+    "attack_detection_rate": {
+     "value": 0.16129032258064516,
+     "ci_lo": 0.0,
+     "ci_hi": 0.3611111111111111,
+     "n": 31
+    },
+    "per_class": {
+     "BENIGN": {
+      "recall": {
+       "value": 0.9819004524886877,
+       "ci_lo": 0.9604743083003953,
+       "ci_hi": 1.0,
+       "n": 221
+      },
+      "precision": 0.8930041152263375,
+      "f1": 0.9353448275862069,
+      "support": 221,
+      "low_support": false
+     },
+     "BRANCH_HISTORY_INJECTION": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": NaN,
+       "ci_hi": NaN,
+       "n": 4
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 4,
+      "low_support": true
+     },
+     "RETBLEED": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 7
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 7,
+      "low_support": false
+     },
+     "SPECTRE_RSB": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 6
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 6,
+      "low_support": false
+     },
+     "SPECTRE_V1": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 12
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 12,
+      "low_support": false
+     },
+     "SPECTRE_V4": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 2
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 2,
+      "low_support": true
+     }
+    },
+    "pred_distribution": {
+     "BENIGN": 243,
+     "INCEPTION": 6,
+     "SPECTRE_RSB": 3
+    },
+    "macro_f1": 0.15589080459770113
+   }
+  }
+ }
 }

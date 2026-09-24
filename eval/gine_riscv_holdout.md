@@ -25,10 +25,14 @@ Cells: mean ± 95% t-CI across seeds. `grpCI` = mean per-seed cluster-bootstrap 
 
 ## Windowed inference (training-size windows, confidence k=0.5; abstain to BENIGN)
 
-Window length = each checkpoint's own training-set p90 (e.g. 156); never tuned on this test set.
+Window length = each checkpoint's own training-set p90 (e.g. 33); never tuned on this test set.
 
 | condition | seeds | macro-F1 | benign FP rate | attack detection | J = det − FP |
 |---|---|---|---|---|---|
+| rv_canon_both_nohand_specfix | 5 | 15.1 ± 0.5 | 8.4 ± 6.5 | 29.0 ± 10.2 | 20.6 ± 4.0 |
+| rv_canon_nohand_specfix | 5 | 16.7 ± 2.2 | 6.0 ± 4.5 | 32.3 ± 5.7 | 26.3 ± 7.4 |
+| rv_drop_nohand_specfix | 5 | 32.7 ± 9.4 | 5.0 ± 3.4 | 45.8 ± 18.2 | 40.8 ± 16.0 |
+| rv_embed_specfix | 5 | 38.5 ± 4.3 | 7.7 ± 8.0 | 63.2 ± 16.4 | 55.5 ± 12.0 |
 | rv_len_both | 5 | 35.2 ± 4.1 | 5.1 ± 2.8 | 46.5 ± 15.1 | 41.4 ± 14.7 |
 | rv_len_embed | 5 | 40.8 ± 5.8 | 12.1 ± 0.7 | 65.2 ± 14.0 | 53.0 ± 13.4 |
 | rv_len_learned | 5 | 35.7 ± 3.3 | 6.5 ± 2.0 | 57.4 ± 13.1 | 50.9 ± 13.8 |
