@@ -89,3 +89,5 @@ Support: BENIGN=221, BRANCH_HISTORY_INJECTION=4 (LOW — not evidence), RETBLEED
 - **rv_lv4_embed**: SPECTRE_RSB 60, INCEPTION 25, SPECTRE_V1 22, SPECTRE_V2 8
 - **rv_lv4_learned**: INCEPTION 32, SPECTRE_RSB 30, SPECTRE_V2 10, SPECTRE_V1 5
 - **rv_lv4_learned_adv**: INCEPTION 36, SPECTRE_RSB 31, SPECTRE_V2 16, RETBLEED 5
+
+-> /home/s2473583/speculative_execution/eval/gine_riscv_holdout.md
