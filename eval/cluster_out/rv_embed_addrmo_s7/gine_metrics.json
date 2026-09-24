@@ -1,0 +1,147 @@
+{
+  "test_accuracy": 0.9604790419161676,
+  "best_epoch": 20,
+  "total_params": 618059,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 4803,
+  "val_count": 729,
+  "test_count": 1670,
+  "best_val_acc": 0.9766803840877915,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.934556782245636,
+    "CONTROL_FLOW": 0.9027769565582275,
+    "SPEC_CONDITIONAL": 1.0755250453948975,
+    "SPEC_INDIRECT": 1.1455843448638916,
+    "SPEC_RETURN": 1.1678674221038818,
+    "MEMORY_ORDER": 1.073595643043518,
+    "CACHE_TEMPORAL": 1.0367010831832886,
+    "FENCE_BOUNDARY": 1.0237458944320679,
+    "RSB_CHAIN": 0.9901049733161926
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9903567984570878,
+      "recall": 0.9961202715809894,
+      "f1-score": 0.9932301740812379,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.7692307692307693,
+      "recall": 0.8955223880597015,
+      "f1-score": 0.8275862068965517,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.9629629629629629,
+      "recall": 0.8297872340425532,
+      "f1-score": 0.8914285714285715,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.96,
+      "recall": 0.6486486486486487,
+      "f1-score": 0.7741935483870968,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.9333333333333333,
+      "recall": 0.9333333333333333,
+      "f1-score": 0.9333333333333333,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.9125,
+      "recall": 0.9733333333333334,
+      "f1-score": 0.9419354838709677,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.7777777777777778,
+      "recall": 1.0,
+      "f1-score": 0.875,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9507042253521126,
+      "recall": 0.8766233766233766,
+      "f1-score": 0.9121621621621622,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.9919354838709677,
+      "recall": 0.9919354838709677,
+      "f1-score": 0.9919354838709677,
+      "support": 124.0
+    },
+    "accuracy": 0.9604790419161676,
+    "macro avg": {
+      "precision": 0.824880135098501,
+      "recall": 0.8145304069492904,
+      "f1-score": 0.8140804964030888,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.9647589560701375,
+      "recall": 0.9604790419161676,
+      "f1-score": 0.9609438123399575,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7401623985009369,
+    "epoch1_val_acc": 0.8820301783264746
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/rv_embed_addrmo_s7",
+    "viz_dir": "eval/cluster_out/rv_embed_addrmo_s7",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "embed",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "all",
+    "drop_nops": false,
+    "node_drop": 0.0,
+    "no_handcrafted": false,
+    "node_feature_mode": "hand",
+    "mlm_path": null,
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 7
+  }
+}

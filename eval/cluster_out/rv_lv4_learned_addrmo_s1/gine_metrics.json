@@ -1,0 +1,147 @@
+{
+  "test_accuracy": 0.9155182744158179,
+  "best_epoch": 19,
+  "total_params": 614731,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 16970,
+  "val_count": 2239,
+  "test_count": 1670,
+  "best_val_acc": 0.8758374274229567,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.7384964227676392,
+    "CONTROL_FLOW": 0.6318573355674744,
+    "SPEC_CONDITIONAL": 1.2269656658172607,
+    "SPEC_INDIRECT": 1.3458658456802368,
+    "SPEC_RETURN": 0.9772890210151672,
+    "MEMORY_ORDER": 0.9251795411109924,
+    "CACHE_TEMPORAL": 1.349197506904602,
+    "FENCE_BOUNDARY": 1.069380760192871,
+    "RSB_CHAIN": 0.9318240284919739
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9909274193548387,
+      "recall": 0.953443258971872,
+      "f1-score": 0.9718240237271379,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.6354166666666666,
+      "recall": 0.9104477611940298,
+      "f1-score": 0.7484662576687117,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.6991150442477876,
+      "recall": 0.8494623655913979,
+      "f1-score": 0.7669902912621359,
+      "support": 93.0
+    },
+    "L1TF": {
+      "precision": 0.7714285714285715,
+      "recall": 0.7297297297297297,
+      "f1-score": 0.75,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.9302325581395349,
+      "recall": 0.8888888888888888,
+      "f1-score": 0.9090909090909091,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.9866666666666667,
+      "recall": 0.9866666666666667,
+      "f1-score": 0.9866666666666667,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.14285714285714285,
+      "recall": 1.0,
+      "f1-score": 0.25,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.640625,
+      "recall": 0.9761904761904762,
+      "f1-score": 0.7735849056603774,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9339622641509434,
+      "recall": 0.6428571428571429,
+      "f1-score": 0.7615384615384615,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.8913043478260869,
+      "recall": 0.9919354838709677,
+      "f1-score": 0.9389312977099237,
+      "support": 124.0
+    },
+    "accuracy": 0.9155182744158179,
+    "macro avg": {
+      "precision": 0.7622535681338238,
+      "recall": 0.8929621773961172,
+      "f1-score": 0.7857092813324323,
+      "support": 1669.0
+    },
+    "weighted avg": {
+      "precision": 0.9317202770211044,
+      "recall": 0.9155182744158179,
+      "f1-score": 0.9182336523389107,
+      "support": 1669.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7215346534653465,
+    "epoch1_val_acc": 0.8307280035730237
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train_lenmatch_v4.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/rv_lv4_learned_addrmo_s1",
+    "viz_dir": "eval/cluster_out/rv_lv4_learned_addrmo_s1",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "drop",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "neutral",
+    "drop_nops": true,
+    "node_drop": 0.1,
+    "no_handcrafted": false,
+    "node_feature_mode": "learned",
+    "mlm_path": "spec/mlm_neutral.pt",
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 1
+  }
+}
