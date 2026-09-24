@@ -1,0 +1,1690 @@
+{
+ "ckpt": "/Users/ritvikgupta/SpecExec/eval/cluster_out/rv_drop_nohand_s42/gine_best.pt",
+ "train_data": "v54/data/v54_train.jsonl",
+ "train_archs": {
+  "arm64": 3434,
+  "x86_64": 2093,
+  "arm32": 5
+ },
+ "seed": 42,
+ "node_feature_mode": "hand",
+ "mlm_path": null,
+ "riscv_oov_rate": null,
+ "arch_mode": "drop",
+ "no_handcrafted": true,
+ "handcrafted_subset": "all",
+ "n": 252,
+ "n_groups": 40,
+ "effective_n": 27.325301204819276,
+ "always_benign_baseline": 0.876984126984127,
+ "accuracy": {
+  "value": 0.6785714285714286,
+  "ci_lo": 0.5748982964658021,
+  "ci_hi": 0.7659574468085106,
+  "n": 252
+ },
+ "benign_fp_rate": {
+  "value": 0.2398190045248869,
+  "ci_lo": 0.1641005291005291,
+  "ci_hi": 0.3289515323117921,
+  "n": 221
+ },
+ "attack_detection_rate": {
+  "value": 0.5806451612903226,
+  "ci_lo": 0.3225806451612903,
+  "ci_hi": 0.8125,
+  "n": 31
+ },
+ "per_class": {
+  "BENIGN": {
+   "recall": {
+    "value": 0.7601809954751131,
+    "ci_lo": 0.6710484676882078,
+    "ci_hi": 0.8358994708994709,
+    "n": 221
+   },
+   "precision": 0.9281767955801105,
+   "f1": 0.835820895522388,
+   "support": 221,
+   "low_support": false
+  },
+  "BRANCH_HISTORY_INJECTION": {
+   "recall": {
+    "value": 0.0,
+    "ci_lo": NaN,
+    "ci_hi": NaN,
+    "n": 4
+   },
+   "precision": 0.0,
+   "f1": 0.0,
+   "support": 4,
+   "low_support": true
+  },
+  "RETBLEED": {
+   "recall": {
+    "value": 0.0,
+    "ci_lo": 0.0,
+    "ci_hi": 0.0,
+    "n": 7
+   },
+   "precision": 0.0,
+   "f1": 0.0,
+   "support": 7,
+   "low_support": false
+  },
+  "SPECTRE_RSB": {
+   "recall": {
+    "value": 0.5,
+    "ci_lo": 0.0,
+    "ci_hi": 0.8571428571428571,
+    "n": 6
+   },
+   "precision": 0.3,
+   "f1": 0.37499999999999994,
+   "support": 6,
+   "low_support": false
+  },
+  "SPECTRE_V1": {
+   "recall": {
+    "value": 0.0,
+    "ci_lo": 0.0,
+    "ci_hi": 0.0,
+    "n": 12
+   },
+   "precision": 0.0,
+   "f1": 0.0,
+   "support": 12,
+   "low_support": false
+  },
+  "SPECTRE_V4": {
+   "recall": {
+    "value": 0.0,
+    "ci_lo": 0.0,
+    "ci_hi": 0.0,
+    "n": 2
+   },
+   "precision": 0.0,
+   "f1": 0.0,
+   "support": 2,
+   "low_support": true
+  }
+ },
+ "pred_distribution": {
+  "BENIGN": 181,
+  "INCEPTION": 37,
+  "SPECTRE_RSB": 10,
+  "RETBLEED": 18,
+  "BRANCH_HISTORY_INJECTION": 4,
+  "SPECTRE_V2": 2
+ },
+ "records": [
+  {
+   "group": "spectre_1:speculative_read_v1",
+   "true": "SPECTRE_V1",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "spectre_1:speculative_read_v1",
+   "true": "SPECTRE_V1",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "spectre_1:speculative_read_v1",
+   "true": "SPECTRE_V1",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "spectre_1:speculative_read_v1",
+   "true": "SPECTRE_V1",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "spectre_github:victim_function",
+   "true": "SPECTRE_V1",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "spectre_github:readMemoryByte",
+   "true": "SPECTRE_V1",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "spectre_github:victim_function",
+   "true": "SPECTRE_V1",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "spectre_github:readMemoryByte",
+   "true": "SPECTRE_V1",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "spectre_github:victim_function",
+   "true": "SPECTRE_V1",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "spectre_github:readMemoryByte",
+   "true": "SPECTRE_V1",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "spectre_github:victim_function",
+   "true": "SPECTRE_V1",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "spectre_github:readMemoryByte",
+   "true": "SPECTRE_V1",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "spectre_rsb:gadget_load",
+   "true": "SPECTRE_RSB",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "spectre_rsb:spectre_rsb_cross_stack",
+   "true": "SPECTRE_RSB",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "spectre_rsb:spectre_rsb_underflow",
+   "true": "SPECTRE_RSB",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "spectre_rsb:rsb_rop_gadget",
+   "true": "SPECTRE_RSB",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "spectre_rsb:spectre_rsb_cross_stack",
+   "true": "SPECTRE_RSB",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "spectre_rsb:spectre_rsb_underflow",
+   "true": "SPECTRE_RSB",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "spectre_v4:ssb_read",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "spectre_v4:ssb_read.constprop.0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "retbleed:leak_gadget_retbleed",
+   "true": "RETBLEED",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "retbleed:deep_call_retbleed",
+   "true": "RETBLEED",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "retbleed:victim_function_with_return_retbleed",
+   "true": "RETBLEED",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "retbleed:victim_function_with_return_retbleed",
+   "true": "RETBLEED",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "retbleed:victim_function_with_return_retbleed",
+   "true": "RETBLEED",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "retbleed:victim_function_with_return_retbleed",
+   "true": "RETBLEED",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "retbleed:victim_function_with_return_retbleed",
+   "true": "RETBLEED",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "bhi:branch_history_conditioner_bhi",
+   "true": "BRANCH_HISTORY_INJECTION",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "bhi:branch_history_conditioner_bhi",
+   "true": "BRANCH_HISTORY_INJECTION",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "bhi:branch_history_conditioner_bhi",
+   "true": "BRANCH_HISTORY_INJECTION",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "bhi:branch_history_conditioner_bhi",
+   "true": "BRANCH_HISTORY_INJECTION",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_arc4_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_arc4_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_arc4_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "benigntrain_asn1parse_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1write_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_base64_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_base64_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_base64_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_camellia_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_camellia_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_camellia_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_camellia_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_camellia_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_camellia_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_camellia_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_camellia_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BRANCH_HISTORY_INJECTION"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ctr_drbg_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_des_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_dhm_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdh_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdh_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdh_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdh_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdh_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdh_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdh_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdh_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecdsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecp_curves_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecp_curves_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecp_curves_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecp_curves_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecp_curves_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecp_curves_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecp_curves_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ecp_curves_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_entropy_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_oid_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_pkcs5_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_pkcs5_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_pkcs5_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_rsa_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_cache_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_cache_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_cache_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_cache_O2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "benigntrain_ssl_cli_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_cli_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_cli_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ssl_cli_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "BRANCH_HISTORY_INJECTION"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V2"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ssl_srv_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BRANCH_HISTORY_INJECTION"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BRANCH_HISTORY_INJECTION"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V2"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_RSB"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_ssl_tls_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509_crl_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509_crl_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_x509_crl_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509_crl_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509_crl_O2",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_x509_csr_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509_csr_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_x509_csr_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509_csr_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509_csr_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_x509write_crt_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_csr_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_csr_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_csr_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_x509write_csr_O2",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_x509write_csr_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_xtea_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_xtea_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_xtea_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_xtea_O2",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O0",
+   "true": "BENIGN",
+   "pred": "INCEPTION"
+  },
+  {
+   "group": "benigntrain_aes_O0",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O0",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O0",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O0",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_aes_O0",
+   "true": "BENIGN",
+   "pred": "RETBLEED"
+  },
+  {
+   "group": "benigntrain_asn1parse_O0",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  },
+  {
+   "group": "benigntrain_asn1parse_O0",
+   "true": "BENIGN",
+   "pred": "BENIGN"
+  }
+ ],
+ "macro_f1": 0.20180348258706468,
+ "windowed": {
+  "window_len": 33,
+  "stride": 16,
+  "n_windows": 1894,
+  "by_k": {
+   "0.5": {
+    "accuracy": {
+     "value": 0.8333333333333334,
+     "ci_lo": 0.7419287634408602,
+     "ci_hi": 0.9047619047619048,
+     "n": 252
+    },
+    "benign_fp_rate": {
+     "value": 0.06334841628959276,
+     "ci_lo": 0.02304147465437788,
+     "ci_hi": 0.10731933152664856,
+     "n": 221
+    },
+    "attack_detection_rate": {
+     "value": 0.45161290322580644,
+     "ci_lo": 0.18518518518518517,
+     "ci_hi": 0.7272727272727273,
+     "n": 31
+    },
+    "per_class": {
+     "BENIGN": {
+      "recall": {
+       "value": 0.9366515837104072,
+       "ci_lo": 0.8926806684733514,
+       "ci_hi": 0.9769585253456221,
+       "n": 221
+      },
+      "precision": 0.9241071428571429,
+      "f1": 0.9303370786516854,
+      "support": 221,
+      "low_support": false
+     },
+     "BRANCH_HISTORY_INJECTION": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": NaN,
+       "ci_hi": NaN,
+       "n": 4
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 4,
+      "low_support": true
+     },
+     "RETBLEED": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 7
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 7,
+      "low_support": false
+     },
+     "SPECTRE_RSB": {
+      "recall": {
+       "value": 0.5,
+       "ci_lo": 0.0,
+       "ci_hi": 0.8571428571428571,
+       "n": 6
+      },
+      "precision": 0.3,
+      "f1": 0.37499999999999994,
+      "support": 6,
+      "low_support": false
+     },
+     "SPECTRE_V1": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 12
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 12,
+      "low_support": false
+     },
+     "SPECTRE_V4": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 2
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 2,
+      "low_support": true
+     }
+    },
+    "pred_distribution": {
+     "BENIGN": 224,
+     "INCEPTION": 18,
+     "SPECTRE_RSB": 10
+    },
+    "macro_f1": 0.21755617977528088
+   },
+   "0.7": {
+    "accuracy": {
+     "value": 0.8650793650793651,
+     "ci_lo": 0.7695847525545982,
+     "ci_hi": 0.933798549907768,
+     "n": 252
+    },
+    "benign_fp_rate": {
+     "value": 0.02262443438914027,
+     "ci_lo": 0.004484304932735426,
+     "ci_hi": 0.04580232188295164,
+     "n": 221
+    },
+    "attack_detection_rate": {
+     "value": 0.3548387096774194,
+     "ci_lo": 0.06666666666666667,
+     "ci_hi": 0.6538461538461539,
+     "n": 31
+    },
+    "per_class": {
+     "BENIGN": {
+      "recall": {
+       "value": 0.9773755656108597,
+       "ci_lo": 0.9541976781170484,
+       "ci_hi": 0.9955156950672646,
+       "n": 221
+      },
+      "precision": 0.9152542372881356,
+      "f1": 0.9452954048140044,
+      "support": 221,
+      "low_support": false
+     },
+     "BRANCH_HISTORY_INJECTION": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": NaN,
+       "ci_hi": NaN,
+       "n": 4
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 4,
+      "low_support": true
+     },
+     "RETBLEED": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 7
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 7,
+      "low_support": false
+     },
+     "SPECTRE_RSB": {
+      "recall": {
+       "value": 0.3333333333333333,
+       "ci_lo": 0.0,
+       "ci_hi": 0.8571428571428571,
+       "n": 6
+      },
+      "precision": 0.4,
+      "f1": 0.3636363636363636,
+      "support": 6,
+      "low_support": false
+     },
+     "SPECTRE_V1": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 12
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 12,
+      "low_support": false
+     },
+     "SPECTRE_V4": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 2
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 2,
+      "low_support": true
+     }
+    },
+    "pred_distribution": {
+     "BENIGN": 236,
+     "INCEPTION": 11,
+     "SPECTRE_RSB": 5
+    },
+    "macro_f1": 0.218155294741728
+   },
+   "0.9": {
+    "accuracy": {
+     "value": 0.8650793650793651,
+     "ci_lo": 0.765952654782442,
+     "ci_hi": 0.936026936026936,
+     "n": 252
+    },
+    "benign_fp_rate": {
+     "value": 0.013574660633484163,
+     "ci_lo": 0.0,
+     "ci_hi": 0.035555555555555556,
+     "n": 221
+    },
+    "attack_detection_rate": {
+     "value": 0.2903225806451613,
+     "ci_lo": 0.0,
+     "ci_hi": 0.5853658536585366,
+     "n": 31
+    },
+    "per_class": {
+     "BENIGN": {
+      "recall": {
+       "value": 0.9864253393665159,
+       "ci_lo": 0.9644444444444444,
+       "ci_hi": 1.0,
+       "n": 221
+      },
+      "precision": 0.9083333333333333,
+      "f1": 0.945770065075922,
+      "support": 221,
+      "low_support": false
+     },
+     "BRANCH_HISTORY_INJECTION": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": NaN,
+       "ci_hi": NaN,
+       "n": 4
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 4,
+      "low_support": true
+     },
+     "RETBLEED": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 7
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 7,
+      "low_support": false
+     },
+     "SPECTRE_RSB": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 6
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 6,
+      "low_support": false
+     },
+     "SPECTRE_V1": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 12
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 12,
+      "low_support": false
+     },
+     "SPECTRE_V4": {
+      "recall": {
+       "value": 0.0,
+       "ci_lo": 0.0,
+       "ci_hi": 0.0,
+       "n": 2
+      },
+      "precision": 0.0,
+      "f1": 0.0,
+      "support": 2,
+      "low_support": true
+     }
+    },
+    "pred_distribution": {
+     "BENIGN": 240,
+     "INCEPTION": 11,
+     "SPECTRE_RSB": 1
+    },
+    "macro_f1": 0.15762834417932034
+   }
+  }
+ }
+}
