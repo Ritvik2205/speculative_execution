@@ -326,7 +326,10 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     raw = [json.loads(l) for l in open(args.records) if l.strip()]
-    records = [r for r in raw if n_instructions(r["sequence"]) > args.stub_max]
+    # keep_short marks complete gadgets that merely compile short (see
+    # eval/build_riscv_heldout_v2.py); everything else keeps the stub rule.
+    records = [r for r in raw
+               if r.get("keep_short") or n_instructions(r["sequence"]) > args.stub_max]
     assert all(r.get("arch") == "riscv64" for r in records), "non-riscv64 record in held-out set"
     print(f"riscv64 held-out: {len(raw)} records, {len(raw) - len(records)} stubs "
           f"(<= {args.stub_max} instr) excluded -> {len(records)}; "
