@@ -171,9 +171,19 @@ class GINEDatasetV47(Dataset):
         taint_mode: str = "shift",
         mem_order_edges: bool = False,
         cfg_spec_edges: bool = False,
+        drop_nops: bool = False,
     ):
         self.label_to_id = label_to_id
         self.handcrafted_feature_names = handcrafted_feature_names
+        # A feature-name list that is a strict subset of the inline features
+        # (e.g. inline_features.NEUTRAL_FEATURES) selects those columns.
+        _all = get_feature_names()
+        self._hc_idx = (None if list(handcrafted_feature_names) == _all
+                        else [_all.index(n) for n in handcrafted_feature_names])
+        # NOPs are ~8-12% of x86/arm attack tokens (alignment padding + the
+        # insert_nops augmentation) vs ~1% on riscv — a corpus artifact, not
+        # attack semantics. drop_nops removes them before every feature.
+        self.drop_nops = drop_nops
         self.max_nodes = max_nodes
         self.max_edges = max_edges
         self.strip_bp = strip_bp
@@ -194,10 +204,15 @@ class GINEDatasetV47(Dataset):
                 "SpecBackedPDGBuilder and will be ignored (legacy PDGBuilder "
                 "path is used instead)."
             )
-        if use_spec_builder:
+        if use_spec_builder or drop_nops:
             spec_dir = Path(__file__).resolve().parent.parent / "spec"
             sys.path.insert(0, str(spec_dir))
             from isa_spec import load_engine
+            _nop_specs = {"x86_64": "x86_64.json", "arm64": "arm64.json",
+                          "arm32": "arm64.json", "riscv64": "riscv.json",
+                          "unknown": "base.json"}
+            self._nop_engines = {a: load_engine(f) for a, f in _nop_specs.items()}
+        if use_spec_builder:
             from spec_pdg_builder import SpecBackedPDGBuilder
             _specs = {"x86_64": "x86_64.json", "arm64": "arm64.json",
                       "arm32": "arm64.json", "riscv64": "riscv.json",
@@ -266,6 +281,16 @@ class GINEDatasetV47(Dataset):
         label = rec.get('label', 'UNKNOWN')
         if label not in self.label_to_id:
             return None
+
+        if self.drop_nops:
+            eng = self._nop_engines.get(rec.get('arch', 'unknown'), self._nop_engines['unknown'])
+            nop_cat = eng.opcode_categories['NOP']
+            sequence = [l for l in sequence
+                        if not (l.strip() and not l.strip().endswith(':')
+                                and not l.strip().startswith('.')
+                                and eng.classify_opcode(l.strip()) == nop_cat)]
+            if len(sequence) < 3:
+                return None
 
         len_before = len(sequence)
         sequence_raw = sequence  # preserve raw for feature extraction
@@ -343,6 +368,8 @@ class GINEDatasetV47(Dataset):
         # between train and any future inference. No fitting on training set —
         # all features are instruction-count statistics or binary flags.
         handcrafted = compute_inline_features(sequence_raw)
+        if self._hc_idx is not None:
+            handcrafted = handcrafted[self._hc_idx]
 
         # Architecture ID — from `arch` field, not derived from labels
         arch_str = rec.get('arch', 'unknown')
@@ -405,7 +432,8 @@ def collate_fn(batch):
 
 def train_epoch(model, loader, optimizer, ce_criterion, con_criterion, device,
                 lambda_con, grad_accum, desc="Train",
-                arch_mode="embed", arch_lambda=0.0, arch_ce_criterion=None):
+                arch_mode="embed", arch_lambda=0.0, arch_ce_criterion=None,
+                node_drop=0.0):
     model.train()
     total_ce_loss = 0
     total_con_loss = 0
@@ -424,6 +452,11 @@ def train_epoch(model, loader, optimizer, ce_criterion, con_criterion, device,
         global_features = batch['global_features'].to(device)
         arch_id         = batch['arch_id'].to(device)
         labels          = batch['label'].to(device)
+        if node_drop > 0:
+            # DropNode: zero whole node feature vectors (graph structure kept),
+            # so no single instruction's surface form can carry the decision.
+            keep = (torch.rand(node_features.shape[:2], device=device) >= node_drop)
+            node_features = node_features * keep.unsqueeze(-1).to(node_features.dtype)
 
         outputs = model(
             node_features, edge_index, edge_type, node_mask,
@@ -706,6 +739,14 @@ def main():
                         help="Weight on the adversarial arch-discriminator loss "
                              "(and gradient-reversal strength), warmed up over 10 epochs "
                              "like --lambda-con. Only used when --arch-mode adversarial.")
+    parser.add_argument('--handcrafted-subset', choices=['all', 'neutral'], default='all',
+                        help="neutral: only the 9 inline features that fire on every ISA "
+                             "(inline_features.NEUTRAL_FEATURES)")
+    parser.add_argument('--drop-nops', action='store_true',
+                        help="remove NOP instructions before graph/feature extraction")
+    parser.add_argument('--node-drop', type=float, default=0.0,
+                        help="DropNode rate: zero this fraction of node feature vectors "
+                             "per training batch (0 = off)")
     parser.add_argument('--no-handcrafted', action='store_true',
                         help="Ablate the 58-dim hand-feature branch entirely "
                              "(feature_encoder + feature_aux_head not built; "
@@ -845,7 +886,11 @@ def main():
 
     # Inline features replace per-record `features` dict (which is empty in v44+ data).
     # Fixed 56-dim vocabulary, computed from raw sequence — no label leakage.
-    feature_names = get_feature_names()
+    if args.handcrafted_subset == 'neutral':
+        from inline_features import NEUTRAL_FEATURES
+        feature_names = list(NEUTRAL_FEATURES)
+    else:
+        feature_names = get_feature_names()
     handcrafted_dim = len(feature_names)
     print(f"Handcrafted features (inline): {handcrafted_dim}")
 
@@ -893,13 +938,13 @@ def main():
         from train_mlm import MlmEncoder
         mlm_enc = MlmEncoder.load(args.mlm_path)
         _tok_mode = getattr(mlm_enc, 'tokenizer_mode', 'mnemonic')
-        if _tok_mode == 'canonical':
+        if _tok_mode in ('canonical', 'neutral'):
             # A canonical vocabulary (spec/mlm_canonical.pt) is built from each
             # ISA's own spec, so a single base-engine tokenizer would miss every
             # lookup. Mnemonic encoders keep the original base-engine tokenizer
             # so existing checkpoints (eval/full_tost learned/both) reproduce.
             from asm_tokenizer import MultiArchTokenizer
-            asm_tok = MultiArchTokenizer(mode='canonical')
+            asm_tok = MultiArchTokenizer(mode=_tok_mode)
         else:
             asm_tok = AsmTokenizer(load_engine('base.json'))
         print(f"Loaded MLM encoder ({args.node_feature_mode}) dim={mlm_enc.dim} "
@@ -913,7 +958,8 @@ def main():
                   use_spec_builder=args.use_spec_builder,
                   taint_mode=args.taint_mode,
                   mem_order_edges=args.mem_order_edges,
-                  cfg_spec_edges=args.cfg_spec_edges)
+                  cfg_spec_edges=args.cfg_spec_edges,
+                  drop_nops=args.drop_nops)
     train_dataset = GINEDatasetV47(train_records, label_to_id, feature_names, **_ds_kw)
     val_dataset = GINEDatasetV47(val_records, label_to_id, feature_names, **_ds_kw)
     test_dataset = GINEDatasetV47(test_records, label_to_id, feature_names, **_ds_kw)
@@ -998,7 +1044,7 @@ def main():
             DEVICE, lambda_con, args.grad_accum,
             desc=f"Epoch {epoch}/{args.epochs} train",
             arch_mode=args.arch_mode, arch_lambda=arch_lambda,
-            arch_ce_criterion=arch_ce_criterion,
+            arch_ce_criterion=arch_ce_criterion, node_drop=args.node_drop,
         )
         # Early stopping uses VAL set (held-out from train). Test never seen during training.
         val_acc, _, _ = evaluate(

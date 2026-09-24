@@ -181,7 +181,10 @@ def main():
                     help="cpu | mps | cuda | auto")
     ap.add_argument("--save", type=str, default=None,
                     help="path to save trained MlmEncoder (e.g. spec/mlm.pt)")
-    ap.add_argument("--tokenizer-mode", choices=["mnemonic", "canonical"],
+    ap.add_argument("--train", default=str(TRAIN),
+                    help="pretraining corpus (labels unused); must contain no riscv64 "
+                         "for held-out-ISA work")
+    ap.add_argument("--tokenizer-mode", choices=["mnemonic", "canonical", "neutral"],
                     default="mnemonic",
                     help="mnemonic = literal opcode (original, ISA-specific); "
                          "canonical = spec's ISA-neutral op name, so the vocabulary "
@@ -197,7 +200,9 @@ def main():
 
     from asm_tokenizer import MultiArchTokenizer
     tok = MultiArchTokenizer(mode=args.tokenizer_mode)
-    train_rows, test_rows = load(TRAIN), load(TEST)
+    train_rows, test_rows = load(Path(args.train)), load(TEST)
+    n_rv = sum(1 for r in train_rows if r.get("arch") == "riscv64")
+    print(f"pretraining corpus {args.train}: {len(train_rows)} records, riscv64={n_rv}")
     tr_tok = [tok.tokenize_record(r) for r in train_rows]
     te_tok = [tok.tokenize_record(r) for r in test_rows]
 

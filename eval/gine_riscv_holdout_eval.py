@@ -106,8 +106,9 @@ def train_archs(ckpt_args: dict) -> Counter:
 
 @torch.no_grad()
 def predict(model, loader, device):
+    """-> (softmax probabilities [n, C], label ids)."""
     model.eval()
-    preds, labels = [], []
+    probs, labels = [], []
     for b in loader:
         logits = model(b["node_features"].to(device), b["edge_index"].to(device),
                        b["edge_type"].to(device), b["node_mask"].to(device),
@@ -115,9 +116,47 @@ def predict(model, loader, device):
                        b["arch_id"].to(device),
                        edge_mask=b["edge_mask"].to(device),
                        edge_weight=b["edge_weight"].to(device))
-        preds += logits.argmax(1).cpu().tolist()
+        probs.append(torch.softmax(logits, 1).cpu().numpy())
         labels += b["label"].cpu().tolist()
-    return preds, labels
+    return np.concatenate(probs), labels
+
+
+def train_len_p90(ckpt_args: dict) -> int:
+    """p90 instruction count of the checkpoint's training file — the window
+    size that keeps inference inside the training size regime."""
+    p = Path(ckpt_args.get("train_data", ""))
+    for cand in (p, ROOT / p, ROOT / "v54" / p):
+        if cand.is_file():
+            n = [n_instructions(json.loads(l)["sequence"]) for l in open(cand) if l.strip()]
+            return int(np.percentile(n, 90))
+    raise SystemExit(f"can't find train_data {p} to size windows; pass --window-len")
+
+
+def metrics(y, p, groups) -> dict:
+    benign = y == "BENIGN"
+    attack = ~benign
+    out = {
+        "accuracy": ci((y == p).astype(float), groups),
+        "benign_fp_rate": ci((p[benign] != "BENIGN").astype(float), groups[benign]),
+        "attack_detection_rate": ci((p[attack] != "BENIGN").astype(float), groups[attack]),
+        "per_class": {},
+        "pred_distribution": dict(Counter(p.tolist())),
+        "records": [{"group": g, "true": t, "pred": q} for g, t, q in zip(groups, y, p)],
+    }
+    f1s = []
+    for c in sorted(set(y)):
+        m = y == c
+        rec = ci((p[m] == c).astype(float), groups[m])
+        tp = int(((p == c) & m).sum())
+        prec = tp / max(int((p == c).sum()), 1)
+        r = rec["value"]
+        f1 = 0.0 if tp == 0 else 2 * prec * r / (prec + r)
+        f1s.append(f1)
+        out["per_class"][c] = {"recall": rec, "precision": prec, "f1": f1,
+                               "support": int(m.sum()),
+                               "low_support": bool(m.sum() < LOW_SUPPORT)}
+    out["macro_f1"] = float(np.mean(f1s))
+    return out
 
 
 def ci(values, groups):
@@ -125,7 +164,8 @@ def ci(values, groups):
     return {"value": p, "ci_lo": lo, "ci_hi": hi, "n": int(len(values))}
 
 
-def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool) -> dict:
+def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool,
+          window_len=None, ks=(0.5,)) -> dict:
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     a = ckpt["args"]
     label_to_id = ckpt["label_to_id"]
@@ -145,11 +185,14 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool) -> di
                  node_feature_mode=mode,
                  use_spec_builder=a["use_spec_builder"])
     oov = None
-    if mode == "hand":
+    if _IMPL == "v54":
+        # v54's dataset takes the edge/taint/NOP knobs in every node mode.
         ds_kw.update(taint_mode=a.get("taint_mode", "shift"),
                      mem_order_edges=a.get("mem_order_edges", False),
                      cfg_spec_edges=a.get("cfg_spec_edges", False))
-    else:
+        if a.get("drop_nops"):           # only newer v54 datasets accept it
+            ds_kw["drop_nops"] = True
+    if mode != "hand":
         from train_mlm import MlmEncoder
         from asm_tokenizer import MultiArchTokenizer
         mlm_path = Path(a["mlm_path"])
@@ -162,7 +205,7 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool) -> di
         # Mirror the training script's tokenizer choice exactly: v56 always
         # tokenises per-arch; v54 does so only for canonical encoders and
         # otherwise uses the single base-engine AsmTokenizer.
-        if _IMPL == "v54" and tok_mode != "canonical":
+        if _IMPL == "v54" and tok_mode not in ("canonical", "neutral"):
             from asm_tokenizer import AsmTokenizer
             from isa_spec import load_engine
             tok = AsmTokenizer(load_engine("base.json"))
@@ -180,7 +223,10 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool) -> di
         oov = unk / max(tot, 1)
         print(f"  MLM {mlm_path.name}: tokenizer={getattr(mlm, 'tokenizer_mode', 'mnemonic')} "
               f"vocab={len(mlm.vocab)}  riscv64 OOV={100*oov:.1f}% of {tot} tokens")
-    ds = GINEDatasetV47(recs, label_to_id, ckpt["feature_names"], **ds_kw)
+    def make_ds(rs):
+        return GINEDatasetV47(rs, label_to_id, ckpt["feature_names"], **ds_kw)
+
+    ds = make_ds(recs)
     if len(ds) != len(recs):
         # GINEDatasetV47 drops records whose PDG fails to build; keep the
         # record list aligned with the dataset so groups line up.
@@ -205,14 +251,11 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool) -> di
     ).to(device)
     model.load_state_dict(ckpt["model_state_dict"])
 
-    p_ids, y_ids = predict(model, loader, device)
+    probs, y_ids = predict(model, loader, device)
     y = np.array([id_to_label[i] for i in y_ids])
-    p = np.array([id_to_label[i] for i in p_ids])
+    p = np.array([id_to_label[i] for i in probs.argmax(1)])
     groups = np.array([group_of(r) for r in recs])
 
-    benign = y == "BENIGN"
-    attack = ~benign
-    present = sorted(set(y))
     out = {
         "ckpt": str(ckpt_path),
         "train_data": a.get("train_data"),
@@ -223,30 +266,47 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool) -> di
         "riscv_oov_rate": oov,
         "arch_mode": a.get("arch_mode", "embed"),
         "no_handcrafted": a.get("no_handcrafted", False),
+        "handcrafted_subset": a.get("handcrafted_subset", "all"),
         "n": int(len(y)),
         "n_groups": int(len(set(groups))),
         "effective_n": effective_n(groups),
-        "always_benign_baseline": float(benign.mean()),
-        "accuracy": ci((y == p).astype(float), groups),
-        "benign_fp_rate": ci((p[benign] != "BENIGN").astype(float), groups[benign]),
-        "attack_detection_rate": ci((p[attack] != "BENIGN").astype(float), groups[attack]),
-        "per_class": {},
-        "pred_distribution": dict(Counter(p.tolist())),
-        "records": [{"group": g, "true": t, "pred": q} for g, t, q in zip(groups, y, p)],
+        "always_benign_baseline": float((y == "BENIGN").mean()),
+        **metrics(y, p, groups),
     }
-    f1s = []
-    for c in present:
-        m = y == c
-        rec = ci((p[m] == c).astype(float), groups[m])
-        tp = int(((p == c) & m).sum())
-        prec = tp / max(int((p == c).sum()), 1)
-        r = rec["value"]
-        f1 = 0.0 if tp == 0 else 2 * prec * r / (prec + r)
-        f1s.append(f1)
-        out["per_class"][c] = {"recall": rec, "precision": prec, "f1": f1,
-                               "support": int(m.sum()),
-                               "low_support": bool(m.sum() < LOW_SUPPORT)}
-    out["macro_f1"] = float(np.mean(f1s))
+
+    # Inference-time windowing (eval/isa_windowing.predict_windowed): slice each
+    # record into training-size windows, vote among confident windows, abstain
+    # to BENIGN. Window size is fixed from the TRAIN data (p90), never tuned on
+    # this test set; several confidence thresholds are reported as sensitivity.
+    if window_len is not None:
+        from isa_windowing import predict_windowed, rewindow
+        wl = train_len_p90(a) if window_len == "auto" else int(window_len)
+        stride = max(1, wl // 2)
+        win_recs, owner = [], []
+        for i, r in enumerate(recs):
+            for w in rewindow(r["sequence"], wl, stride):
+                win_recs.append({**r, "sequence": w})
+                owner.append(i)
+        wds = make_ds(win_recs)
+        if len(wds) != len(win_recs):
+            raise SystemExit(f"{ckpt_path}: {len(win_recs) - len(wds)} windows failed to build")
+        wprobs, _ = predict(model, torch.utils.data.DataLoader(
+            wds, batch_size=64, shuffle=False, collate_fn=collate_fn, num_workers=0), device)
+        per_rec = [[] for _ in recs]
+        for j, i in enumerate(owner):
+            per_rec[i].append((id_to_label[int(wprobs[j].argmax())], float(wprobs[j].max())))
+        out["windowed"] = {"window_len": wl, "stride": stride,
+                           "n_windows": len(win_recs), "by_k": {}}
+        for k in ks:
+            pw = []
+            for i, r in enumerate(recs):
+                it = iter(per_rec[i])
+                pw.append(predict_windowed(None, r["sequence"], r["arch"], wl, k,
+                                           stride=stride,
+                                           predict_fn=lambda _w, _a, it=it: next(it)))
+            m = metrics(y, np.array(pw), groups)
+            m.pop("records")
+            out["windowed"]["by_k"][str(k)] = m
     return out
 
 
@@ -258,6 +318,11 @@ def main(argv=None) -> int:
     ap.add_argument("--stub-max", type=int, default=10)
     ap.add_argument("--out", help="JSON output (one object, or a list if several ckpts)")
     ap.add_argument("--allow-riscv-train", action="store_true")
+    ap.add_argument("--window-len", default=None,
+                    help="also score with inference-time windowing: an int, or 'auto' "
+                         "for the checkpoint's training-set p90 length")
+    ap.add_argument("--k", type=float, nargs="+", default=[0.5, 0.7, 0.9],
+                    help="window-confidence thresholds reported under 'windowed'")
     args = ap.parse_args(argv)
 
     raw = [json.loads(l) for l in open(args.records) if l.strip()]
@@ -271,7 +336,8 @@ def main(argv=None) -> int:
     device = select_device()
     results = []
     for c in args.ckpt:
-        r = score(Path(c), records, device, args.allow_riscv_train)
+        r = score(Path(c), records, device, args.allow_riscv_train,
+                  window_len=args.window_len, ks=tuple(args.k))
         results.append(r)
         pc = "  ".join(f"{k}={v['recall']['value']:.2f}(n={v['support']})"
                        for k, v in r["per_class"].items())
@@ -281,6 +347,10 @@ def main(argv=None) -> int:
               f"(always-BENIGN {100*r['always_benign_baseline']:.1f})  "
               f"benignFP={100*r['benign_fp_rate']['value']:.1f}  "
               f"attack-detect={100*r['attack_detection_rate']['value']:.1f}\n  recall: {pc}")
+        for k, m in r.get("windowed", {}).get("by_k", {}).items():
+            print(f"  windowed(len={r['windowed']['window_len']}, k={k}): "
+                  f"macroF1={100*m['macro_f1']:.1f}  benignFP={100*m['benign_fp_rate']['value']:.1f}  "
+                  f"attack-detect={100*m['attack_detection_rate']['value']:.1f}")
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         with open(args.out, "w") as f:

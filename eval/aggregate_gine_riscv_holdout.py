@@ -45,13 +45,18 @@ def fmt(m, h, pct=True):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--glob", default=str(ROOT / "eval/cluster_out/rv_*_s*/riscv_holdout.json"))
+    ap.add_argument("--glob", nargs="+",
+                    default=[str(ROOT / "eval/cluster_out/rv_*_s*/riscv_holdout.json")],
+                    help="one or more globs; condition = <dir>/riscv_holdout.json's dir "
+                         "name, or a flat file's stem, minus the trailing _s<SEED>")
+    ap.add_argument("--k", default="0.5", help="window-confidence threshold for the headline windowed table")
     ap.add_argument("--out", default=str(ROOT / "eval/gine_riscv_holdout.md"))
     args = ap.parse_args(argv)
 
     by_cond = defaultdict(list)
-    for p in sorted(glob.glob(args.glob)):
-        cond = re.sub(r"_s\d+$", "", Path(p).parent.name)
+    for p in sorted(x for g in args.glob for x in glob.glob(g)):
+        stem = Path(p).parent.name if Path(p).name == "riscv_holdout.json" else Path(p).stem
+        cond = re.sub(r"_s\d+$", "", stem)
         by_cond[cond].append(json.load(open(p)))
     if not by_cond:
         raise SystemExit(f"no results match {args.glob}")
@@ -65,16 +70,38 @@ def main(argv=None) -> int:
          f"accuracy is therefore NOT a headline metric here.", "",
          "Cells: mean ± 95% t-CI across seeds. `grpCI` = mean per-seed "
          "cluster-bootstrap interval (source-family resampling).", "",
-         "| condition | seeds | macro-F1 | benign FP rate | attack detection | grpCI benign FP | grpCI attack det. |",
-         "|---|---|---|---|---|---|---|"]
+         "## Whole-function inference", "",
+         "| condition | seeds | macro-F1 | benign FP rate | attack detection | J = det − FP | grpCI benign FP | grpCI attack det. |",
+         "|---|---|---|---|---|---|---|---|"]
     for cond, rs in sorted(by_cond.items()):
         mf = tci([r["macro_f1"] for r in rs])
         fp = tci([r["benign_fp_rate"]["value"] for r in rs])
         ad = tci([r["attack_detection_rate"]["value"] for r in rs])
         g = lambda k: (f"[{100*np.nanmean([r[k]['ci_lo'] for r in rs]):.0f}, "
                        f"{100*np.nanmean([r[k]['ci_hi'] for r in rs]):.0f}]")
-        L.append(f"| {cond} | {sorted(r['seed'] for r in rs)} | {fmt(*mf)} | {fmt(*fp)} | "
-                 f"{fmt(*ad)} | {g('benign_fp_rate')} | {g('attack_detection_rate')} |")
+        jj = tci([r["attack_detection_rate"]["value"] - r["benign_fp_rate"]["value"] for r in rs])
+        L.append(f"| {cond} | {len(rs)} | {fmt(*mf)} | {fmt(*fp)} | "
+                 f"{fmt(*ad)} | {fmt(*jj)} | {g('benign_fp_rate')} | {g('attack_detection_rate')} |")
+
+    W = {c: [r["windowed"]["by_k"].get(args.k) for r in rs if "windowed" in r]
+         for c, rs in by_cond.items()}
+    W = {c: [m for m in ms if m] for c, ms in W.items()}
+    if any(W.values()):
+        wl = next(r["windowed"]["window_len"] for rs in by_cond.values() for r in rs if "windowed" in r)
+        L += ["", f"## Windowed inference (training-size windows, confidence k={args.k}; "
+                  f"abstain to BENIGN)", "",
+              "Window length = each checkpoint's own training-set p90 (e.g. "
+              f"{wl}); never tuned on this test set.", "",
+              "| condition | seeds | macro-F1 | benign FP rate | attack detection | J = det − FP |",
+              "|---|---|---|---|---|---|"]
+        for cond, ms in sorted(W.items()):
+            if not ms:
+                continue
+            mf = tci([m["macro_f1"] for m in ms])
+            fp = tci([m["benign_fp_rate"]["value"] for m in ms])
+            ad = tci([m["attack_detection_rate"]["value"] for m in ms])
+            jj = tci([m["attack_detection_rate"]["value"] - m["benign_fp_rate"]["value"] for m in ms])
+            L.append(f"| {cond} | {len(ms)} | {fmt(*mf)} | {fmt(*fp)} | {fmt(*ad)} | {fmt(*jj)} |")
 
     L += ["", "## Per-class recall (mean ± 95% t-CI across seeds)", "",
           "| condition | " + " | ".join(classes) + " |",

@@ -52,8 +52,22 @@ class AsmTokenizer:
         existing mlm_large.pt checkpoint stays reproducible); mode='canonical'
         replaces it with the spec's ISA-neutral operation name, so a vocabulary
         learned on one ISA transfers to another (see SPECDISCOVER_CANONICAL_OPS_PLAN.md)."""
-        if mode not in ("mnemonic", "canonical"):
+        if mode not in ("mnemonic", "canonical", "neutral"):
             raise ValueError(f"unknown tokenizer mode: {mode}")
+        # 'neutral' = canonical op, with the spec's ISA-only ops merged into
+        # their shared form (arm ldp/stp pairs, x86 push/pop, test vs cmp, ...)
+        # and operands reduced to the SET of operand kinds: operand count and
+        # order are ISA conventions (x86 two-address vs arm/riscv three-address),
+        # indexed addressing is an x86/arm addressing mode riscv lacks (the
+        # index dependency is still in the graph's DATA_DEP edges), and
+        # control-flow targets/registers (riscv compare-in-branch, `jr ra`)
+        # are dropped entirely. Both tables live in base.json.
+        self._merge = engine.spec.get("neutral_op_merge", {})
+        self._operandless = set(engine.spec.get("neutral_operandless_ops", []))
+        self._implicit_mem = set(engine.spec.get("neutral_implicit_mem_ops", []))
+        # memory-op immediates are offsets / arm post-index write-back — addressing
+        # details, not operands (`ldp x29,x30,[sp],#16` vs riscv `ld ra,8(sp)`)
+        self._drop_imm = set(engine.spec.get("neutral_drop_imm_ops", []))
         self.mode = mode
         self.engine = engine
         # Register patterns come from the spec (arm_reg / x86_reg by default).
@@ -81,11 +95,34 @@ class AsmTokenizer:
             return "<reg>"
         return "<sym>"
 
+    def _neutral_kind(self, operand: str) -> str:
+        """Operand kind for neutral mode: any memory reference is <mem>
+        (riscv `%lo(sym)(a5)` included — relocation syntax is not a symbol
+        operand), and <fn>/<sym> collapse (whether a symbol survived name
+        neutralisation is a toolchain detail)."""
+        if self._mem.search(operand) or self._mem_idx.search(operand):
+            return "<mem>"
+        k = self._classify_operand(operand)
+        return "<sym>" if k == "<fn>" else k
+
     def normalize(self, instr: str) -> Optional[str]:
         instr = instr.strip()
         if not instr or instr.endswith(':') or instr.startswith('.'):
             return None
         parts = instr.split(None, 1)
+        if self.mode == "neutral":
+            raw_op = self.engine.canonical_op(instr)
+            op = self._merge.get(raw_op, raw_op)
+            if op in self._operandless or len(parts) == 1:
+                return op
+            kinds = {self._neutral_kind(o) for o in _operands(parts[1])}
+            if (raw_op in self._implicit_mem       # x86 push/pop touch memory
+                    or self.engine._pat["stack_push"].search(instr)
+                    or self.engine._pat["stack_pop"].search(instr)):
+                kinds.add("<mem>")                  # like arm stp / riscv sd to sp
+            if op in self._drop_imm:
+                kinds.discard("<imm>")
+            return " ".join([op] + sorted(kinds))
         opcode = (self.engine.canonical_op(instr) if self.mode == "canonical"
                   else parts[0].rstrip(':').lower())
         toks = [opcode]
@@ -128,8 +165,8 @@ class MultiArchTokenizer:
     def __init__(self, mode: str = "canonical"):
         from isa_spec import load_engine
         self.mode = mode
-        if mode == "canonical":
-            self._by_arch = {a: AsmTokenizer(load_engine(f), mode="canonical")
+        if mode in ("canonical", "neutral"):
+            self._by_arch = {a: AsmTokenizer(load_engine(f), mode=mode)
                              for a, f in SPEC_FOR_ARCH.items()}
         else:
             base = AsmTokenizer(load_engine("base.json"), mode="mnemonic")

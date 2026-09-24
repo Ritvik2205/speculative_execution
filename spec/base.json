@@ -408,5 +408,33 @@
     "CALL",
     "CALL_INDIRECT",
     "JUMP_INDIRECT"
+  ],
+  "neutral_op_merge": {
+    "LOAD_PAIR": "LOAD",
+    "STORE_PAIR": "STORE",
+    "PUSH": "STORE",
+    "POP": "LOAD",
+    "MOV_ZX": "MOV",
+    "MOV_SX": "MOV",
+    "COND_MOV": "MOV",
+    "TEST": "CMP",
+    "BIC": "AND",
+    "SUB": "ADD"
+  },
+  "neutral_operandless_ops": [
+    "BRANCH_COND",
+    "BRANCH_UNCOND",
+    "CALL",
+    "CALL_IND",
+    "RET",
+    "JMP_IND"
+  ],
+  "neutral_implicit_mem_ops": [
+    "PUSH",
+    "POP"
+  ],
+  "neutral_drop_imm_ops": [
+    "LOAD",
+    "STORE"
   ]
 }

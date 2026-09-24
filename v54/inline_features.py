@@ -282,6 +282,18 @@ def compute_inline_features(sequence: List[str]) -> np.ndarray:
     return feats
 
 
+# Features whose extraction actually fires on x86_64, arm64 AND riscv64 (nonzero
+# on >= 2% of records of each ISA; measured on v54_train + the held-out riscv
+# corpus). The other 49 match only one ISA's spelling (retq/bl/ldr/movq/clflush/
+# `(%b,%i)` ...), so on another ISA they are structurally 0 — an ISA label, not
+# a feature. `--handcrafted-subset neutral` in train_gine_v38.py uses these.
+NEUTRAL_FEATURES: List[str] = [
+    "frac_nop", "frac_ret", "frac_branch", "max_nop_run_norm",
+    "call_ret_pair_norm", "unique_opcode_fraction", "has_call_ret_pair",
+    "ret_call_ratio", "nop_ret_ratio",
+]
+
+
 def get_feature_names() -> List[str]:
     global FEATURE_NAMES
     if FEATURE_NAMES is None:

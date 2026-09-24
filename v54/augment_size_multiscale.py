@@ -89,6 +89,7 @@ def enlarge(base_seq, fillers, target, rng):
 
 
 def main():
+    global FILLER, OUT
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--variants", type=int, default=2,
@@ -96,7 +97,12 @@ def main():
     ap.add_argument("--frac", type=float, default=1.0,
                     help="fraction of records to also enlarge")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--filler-suffix", default="",
+                    help="use benign_filler_<arch><suffix>.jsonl (e.g. _heldout_clean)")
+    ap.add_argument("--out", default=str(OUT))
     args = ap.parse_args()
+    FILLER = {a: p.with_name(p.stem + args.filler_suffix + p.suffix) for a, p in FILLER.items()}
+    OUT = Path(args.out)
 
     for a, f in FILLER.items():
         if not f.exists():

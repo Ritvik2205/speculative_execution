@@ -40,21 +40,51 @@ MBED = ROOT / "vendor_riscv" / "Security-RISC" / "mbedtls-key-leak" / "mbedtls"
 STUBS = ROOT / "spec" / "riscv_stub_include"
 TRIPLE = {"x86_64": "x86_64-linux-gnu", "arm64": "aarch64-linux-gnu"}
 OUT = {a: ROOT / "v54" / "data" / f"benign_filler_{a}.jsonl" for a in TRIPLE}
+# Every mbedTLS file the held-out riscv64 test set or the benign validation sets
+# are built from. --exclude-heldout drops them so no filler function shares a
+# source file (and so near-identical code) with anything we evaluate on.
+HELDOUT_SOURCES = [
+    ROOT / "spec" / "data" / "riscv_loio_corpus.jsonl",
+    ROOT / "spec" / "data" / "benign_x86_64_validation.jsonl",
+    ROOT / "spec" / "data" / "benign_arm64_validation.jsonl",
+    ROOT / "spec" / "data" / "riscv_benign_validation.jsonl",
+]
 
 
-def compile_arch(src: Path, arch: str, out: Path):
+def heldout_stems() -> set:
+    stems = set()
+    for f in HELDOUT_SOURCES:
+        if not f.exists():
+            continue
+        for l in open(f):
+            if not l.strip():
+                continue
+            r = json.loads(l)
+            s = Path(r.get("source_file") or r.get("group") or "").stem
+            stems.add(s.replace("benigntrain_", "").split("_O")[0])
+    return stems
+
+
+def compile_arch(src: Path, arch: str, out: Path, opt: str = "O2"):
     r = subprocess.run(
-        ["clang", "-S", "-O2", f"--target={TRIPLE[arch]}", "-nostdlibinc",
+        ["clang", "-S", f"-{opt}", f"--target={TRIPLE[arch]}", "-nostdlibinc",
+         # the stub libc (spec/riscv_stub_include) lacks some prototypes
+         # (ferror, ...); we only emit assembly, so don't let clang >= 16's
+         # implicit-declaration error drop whole files
+         "-Wno-error=implicit-function-declaration", "-Wno-error=int-conversion",
+         "-Wno-error=incompatible-function-pointer-types",
+         "-DNULL=((void*)0)", "-isystem", str(ROOT / "v54" / "filler_stub_include"),
          "-isystem", str(STUBS), "-I", str(MBED / "include"),
          "-o", str(out), str(src)],
         capture_output=True, text=True)
     return out if r.returncode == 0 else None
 
 
-def build(arch, files, per_file, min_instr, test_hashes, tmp):
+def build(arch, files, per_file, min_instr, test_hashes, tmp, opts=("O2",), exclude=()):
     recs, seen = [], set()
-    for src in sorted(MBED.glob("library/*.c"))[:files]:
-        asm = compile_arch(src, arch, tmp / f"{src.stem}.{arch}.s")
+    srcs = [s for s in sorted(MBED.glob("library/*.c")) if s.stem not in exclude][:files]
+    for src, opt in [(s, o) for s in srcs for o in opts]:
+        asm = compile_arch(src, arch, tmp / f"{src.stem}.{arch}.{opt}.s", opt)
         if asm is None:
             continue
         kept = 0
@@ -71,7 +101,7 @@ def build(arch, files, per_file, min_instr, test_hashes, tmp):
             kept += 1
             recs.append({"label": "BENIGN", "sequence": seq, "arch": arch,
                          "group": f"filler_{src.stem}", "source_file": src.name,
-                         "provenance": "benign_filler"})
+                         "opt": opt, "provenance": "benign_filler"})
     return recs
 
 
@@ -81,7 +111,17 @@ def main():
     ap.add_argument("--files", type=int, default=40)
     ap.add_argument("--per-file", type=int, default=8)
     ap.add_argument("--min-instructions", type=int, default=6)
+    ap.add_argument("--opts", default="O2", help="comma-separated, e.g. O0,O2")
+    ap.add_argument("--exclude-heldout", action="store_true",
+                    help="skip every mbedTLS file used by the riscv64 test set or "
+                         "the benign validation sets (required for held-out-ISA work)")
+    ap.add_argument("--out-suffix", default="",
+                    help="write benign_filler_<arch><suffix>.jsonl instead")
     args = ap.parse_args()
+    exclude = heldout_stems() if args.exclude_heldout else set()
+    if exclude:
+        print(f"excluding {len(exclude)} held-out source files: {sorted(exclude)}")
+    out_paths = {a: p.with_name(p.stem + args.out_suffix + p.suffix) for a, p in OUT.items()}
 
     if not MBED.exists():
         print(f"missing {MBED} — run spec/fetch_riscv_pocs.sh"); sys.exit(2)
@@ -97,7 +137,9 @@ def main():
 
     for arch in TRIPLE:
         recs = build(arch, args.files, args.per_file, args.min_instructions,
-                     test_h, tmp)
+                     test_h, tmp, opts=tuple(args.opts.split(",")), exclude=exclude)
+        leaked = {r["source_file"] for r in recs if Path(r["source_file"]).stem in exclude}
+        assert not leaked, f"held-out source files leaked into filler: {leaked}"
         def ic(s): return sum(1 for l in s if l.strip()
                               and not l.strip().startswith('.')
                               and not l.strip().endswith(':'))
@@ -106,10 +148,10 @@ def main():
         print(f"{arch:8s}: {len(recs)} benign filler funcs, "
               f"{len({r['group'] for r in recs})} files, median {med} instr")
         if args.apply:
-            with OUT[arch].open("w") as f:
+            with out_paths[arch].open("w") as f:
                 for r in recs:
                     f.write(json.dumps(r) + "\n")
-            print(f"          wrote {OUT[arch].relative_to(ROOT)}")
+            print(f"          wrote {out_paths[arch].relative_to(ROOT)}")
     if not args.apply:
         print("dry run — pass --apply to write")
 
