@@ -18,6 +18,8 @@
 # Subsets: override CONDS/SEEDS and --array to match (n_conds*n_seeds - 1):
 #   sbatch --array=0-9 --export=ALL,CONDS="embed canon_nohand",SEEDS="42 1 7 13 21" \
 #          eval/cluster/riscv_holdout.sbatch
+# Re-run the grid without overwriting earlier results (new dirs rv_<COND>_specfix_s<SEED>):
+#   sbatch --export=ALL,TAG_SUFFIX=_specfix eval/cluster/riscv_holdout.sbatch
 # Single run (no array): COND/SEED set explicitly win over the array mapping:
 #   sbatch --array=0 --export=ALL,COND=drop,SEED=42 eval/cluster/riscv_holdout.sbatch
 #
@@ -70,7 +72,7 @@ esac
 TRAIN="${TRAIN:-v54/data/v54_train.jsonl}"
 TEST="${TEST:-v54/data/v54_test.jsonl}"
 RISCV="${RISCV:-spec/data/riscv_loio_corpus.jsonl}"
-TAG="rv_${COND}"
+TAG="rv_${COND}${TAG_SUFFIX:-}"   # e.g. TAG_SUFFIX=_specfix keeps earlier runs' results
 
 echo "host=$(hostname) job=${SLURM_JOB_ID:-?} cond=$COND seed=$SEED extra='$EXTRA' train=$TRAIN"
 nvidia-smi --query-gpu=name,memory.total --format=csv || true

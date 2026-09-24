@@ -1,0 +1,77 @@
+class x arch counts:
+  BENIGN                     x86_64=    0  arm64= 2820  riscv64=  221
+  BRANCH_HISTORY_INJECTION   x86_64=  110  arm64=   79  riscv64=    4   <- shared attack class
+  INCEPTION                  x86_64=  195  arm64=  171  riscv64=    0   <- shared attack class
+  L1TF                       x86_64=  160  arm64=    0  riscv64=    0
+  MDS                        x86_64=  161  arm64=    0  riscv64=    0
+  RETBLEED                   x86_64=  201  arm64=   15  riscv64=    7   <- shared attack class
+  SPECTRE_RSB                x86_64=  291  arm64=  168  riscv64=    6   <- shared attack class
+  SPECTRE_V1                 x86_64=  551  arm64=    2  riscv64=   12   <- shared attack class
+  SPECTRE_V2                 x86_64=  284  arm64=  116  riscv64=    0   <- shared attack class
+  SPECTRE_V4                 x86_64=  140  arm64=   63  riscv64=    2   <- shared attack class
+
+=== x86_64 vs arm64: 634 records (317 per side), classes ['BRANCH_HISTORY_INJECTION', 'INCEPTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+channel      dims  ISA bal-acc (chance 0.50)  class bal-acc (chance 0.14)
+graph          10        0.856                      0.430
+categories     19        0.983                      0.506
+memtype         5        0.866                      0.388
+specflags      14        0.863                      0.482
+regs            2        0.831                      0.254
+global          5        0.666                      0.430
+inline         58        1.000                      0.640
+ALL           113        1.000                      0.629
+top ISA-separating features (A=x86_64, B=arm64):
+  inline/frac_x86_only                 |diff|/sd= 1.78   A=   0.652   B=   0.000
+  cat/OTHER                            |diff|/sd= 1.70   A=   0.446   B=   0.077
+  inline/frac_arm_only                 |diff|/sd= 1.67   A=   0.006   B=   0.260
+  inline/frac_load                     |diff|/sd= 1.52   A=   0.000   B=   0.180
+  inline/frac_store                    |diff|/sd= 1.51   A=   0.000   B=   0.147
+  inline/has_indexed_load              |diff|/sd= 1.51   A=   0.000   B=   0.726
+  cat/ARITHMETIC                       |diff|/sd= 1.47   A=   0.000   B=   0.133
+  inline/frac_movq                     |diff|/sd= 1.46   A=   0.212   B=   0.000
+  inline/load_store_ratio              |diff|/sd= 1.37   A=   0.000   B=   0.893
+  inline/frac_ldr                      |diff|/sd= 1.33   A=   0.000   B=   0.114
+  inline/indexed_load_norm             |diff|/sd= 1.32   A=   0.000   B=   0.093
+  inline/frac_str                      |diff|/sd= 1.32   A=   0.000   B=   0.087
+  inline/frac_retq                     |diff|/sd= 1.29   A=   0.051   B=   0.000
+  edge/MEMORY_ORDER                    |diff|/sd= 1.22   A=   0.059   B=   0.315
+  src_regs/node                        |diff|/sd= 1.22   A=   0.415   B=   0.829
+  inline/frac_stp                      |diff|/sd= 1.21   A=   0.000   B=   0.046
+  inline/frac_bl                       |diff|/sd= 1.17   A=   0.000   B=   0.065
+  inline/frac_ldp                      |diff|/sd= 1.16   A=   0.000   B=   0.045
+  inline/frac_movl                     |diff|/sd= 1.13   A=   0.083   B=   0.000
+  cat/MOVE                             |diff|/sd= 1.08   A=   0.000   B=   0.070
+
+=== riscv64 vs x86_64+arm64: 62 records (31 per side), classes ['BRANCH_HISTORY_INJECTION', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V4']
+channel      dims  ISA bal-acc (chance 0.50)  class bal-acc (chance 0.20)
+graph          10        0.984                      0.335
+categories     19        0.968                      0.333
+memtype         5        0.758                      0.336
+specflags      14        0.774                      0.321
+regs            2        0.903                      0.235
+global          5        0.823                      0.306
+inline         58        0.968                      0.439
+ALL           113        0.984                      0.377
+top ISA-separating features (A=riscv64, B=x86_64+arm64):
+  cat/ARITHMETIC                       |diff|/sd= 1.85   A=   0.240   B=   0.010
+  edge/DATA_DEP                        |diff|/sd= 1.79   A=   1.669   B=   0.336
+  cat/OTHER                            |diff|/sd= 1.64   A=   0.041   B=   0.403
+  src_regs/node                        |diff|/sd= 1.58   A=   1.043   B=   0.468
+  inline/frac_x86_only                 |diff|/sd= 1.54   A=   0.006   B=   0.500
+  inline/frac_branch                   |diff|/sd= 1.48   A=   0.034   B=   0.175
+  ret_frac                             |diff|/sd= 1.46   A=   0.013   B=   0.079
+  cat/MOVE                             |diff|/sd= 1.39   A=   0.142   B=   0.019
+  inline/frac_movq                     |diff|/sd= 1.31   A=   0.000   B=   0.142
+  inline/has_call_ret_pair             |diff|/sd= 1.23   A=   0.000   B=   0.548
+  inline/ret_call_ratio                |diff|/sd= 1.11   A=   0.226   B=   0.694
+  inline/frac_retq                     |diff|/sd= 1.08   A=   0.000   B=   0.045
+  inline/frac_movl                     |diff|/sd= 1.06   A=   0.000   B=   0.058
+  inline/call_ret_pair_norm            |diff|/sd= 1.04   A=   0.000   B=   0.033
+  dest_regs/node                       |diff|/sd= 1.04   A=   0.725   B=   0.566
+  cat/SHIFT                            |diff|/sd= 1.02   A=   0.038   B=   0.007
+  cat/STORE                            |diff|/sd= 0.95   A=   0.150   B=   0.083
+  edge/RSB_CHAIN                       |diff|/sd= 0.90   A=   0.006   B=   0.036
+  edge/MEMORY_ORDER                    |diff|/sd= 0.90   A=   0.260   B=   0.093
+  flag/4                               |diff|/sd= 0.86   A=   0.363   B=   0.251
+
+-> /private/tmp/claude-501/-Users-ritvikgupta-SpecExec/c329a033-3aaa-449a-80af-4998d64d4593/scratchpad/fp_before.json

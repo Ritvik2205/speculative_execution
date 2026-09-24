@@ -259,6 +259,12 @@ class PDGBuilder:
         # RSB pairing window as an instance attr (default = module global, so
         # default behavior is unchanged) — lets subclasses source it from a spec.
         self.rsb_pair_window = RSB_PAIR_WINDOW
+        # How many prior definitions of a register each read links to. 3 is the
+        # original behaviour; the spec builder sets 1 (the reaching definition
+        # in straight-line code) — linking stale definitions made DATA_DEP
+        # density track a compiler's register-reuse habits (riscv gcc reusing
+        # a4/a5: 1.7 edges/node vs ~0.7 on x86/arm at the same -O level).
+        self.data_dep_defs = 3
 
     def build(self, sequence: List[str]) -> PDG:
         nodes = []
@@ -301,7 +307,7 @@ class PDGBuilder:
             # DATA_DEP
             for src_reg in node.src_regs:
                 if src_reg in reg_defs:
-                    for def_node_id, _ in reg_defs[src_reg][-3:]:
+                    for def_node_id, _ in reg_defs[src_reg][-self.data_dep_defs:]:
                         edges.append(PDGEdge(src=def_node_id, dst=node_id,
                                              edge_type=EDGE_TYPES['DATA_DEP'], weight=1.0))
             for dest_reg in node.dest_regs:

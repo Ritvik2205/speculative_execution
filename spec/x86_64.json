@@ -186,7 +186,7 @@
     "notes": "Phase 0: inherits base patterns verbatim; per-ISA pattern pruning deferred to Phase 1."
   },
   "patterns": {
-    "load": "\\b(mov[qldwb]?|movzx|movsx|movz[bw][blwq]|movs[bwl][blwq]|movabs|lods[bwdq]?|pop[qldw]?|lea)\\b",
+    "load": "\\b(mov[qldwb]?|movzx|movsx|movz[bw][blwq]|movs[bwl][blwq]|movabs|lods[bwdq]?|pop[qldw]?)\\b",
     "store": "\\b(mov[qldwb]?|movnti|stos[bwdq]?|push[qldw]?)\\b",
     "branch_cond": "\\b(j(e|ne|z|nz|g|ge|l|le|a|ae|b|be|o|no|c|nc|s|ns|p|np|cxz|ecxz|rcxz))\\b",
     "branch_uncond": "\\b(jmp|jmpq)\\b",
@@ -194,19 +194,21 @@
     "ret": "\\b(ret|retq|retl)\\b",
     "indirect": "\\b(jmpq?|callq?)\\s*\\*",
     "indirect_jump_op": "\\b(jmpq?)\\b",
-    "compare": "\\b(cmp|test)\\b",
-    "arithmetic": "\\b(add|sub|mul|div|inc|dec|imul|idiv|adc|sbc|neg)\\b",
-    "logic": "\\b(and|or|xor|not)\\b",
-    "shift": "\\b(shl|shr|sar|sal|rol|ror)\\b",
+    "compare": "\\b(cmp|test|bt)[bwlq]?\\b",
+    "arithmetic": "\\b(add|sub|mul|div|inc|dec|imul|idiv|adc|sbb|neg|lea)[bwlq]?\\b",
+    "logic": "\\b(and|andn|or|xor|not)[bwlq]?\\b",
+    "shift": "\\b(shl|shr|sar|sal|rol|ror|shld|shrd)[bwlq]?\\b",
     "fence": "\\b(lfence|mfence|sfence|cpuid)\\b",
     "cache": "\\b(clflush|clflushopt|clwb|cldemote|prefetcht[012]|prefetchnta|prefetchw|invlpg|wbinvd)\\b",
     "timing": "\\b(rdtsc|rdtscp|rdpmc)\\b",
-    "move": "\\b(mov[zskn]?)\\b",
-    "stack_op": "\\b(push|pop)\\b",
+    "move": "\\b(mov[bwlqzskn]?|movabs[q]?|movz[bw][lwq]?|movs[bwl][lwq]?|movslq|cmov[a-z]+|set[a-z]+|cltq|cqto|cltd|cwtl)\\b",
+    "stack_op": "(?!)",
+    "stack_push": "\\bpush[qlw]?\\b",
+    "stack_pop": "\\bpop[qlw]?\\b",
     "stack_access": "%[re]?sp|%[re]?bp|\\[%[re]?[sb]p\\]",
     "indexed_access": "\\([^)]*,[^)]*\\)",
     "memory_operand": "\\(.*%|\\(%",
-    "reg": "%([re]?[abcd]x|[re]?[sd]i|[re]?[sb]p|r[0-9]+[dwb]?)"
+    "reg": "%(r[0-9]+[dwb]?|[re]?[abcd]x|[abcd][lh]|[re]?[sd]il?|[re]?[sb]pl?|[xy]mm[0-9]+)"
   },
   "provenance": "B1: ISA-only grammar overriding base UNION; contamination-free + mnemonic fixes (blr/jcc/bare-b).",
   "canonical_ops": [
@@ -383,5 +385,18 @@
       "mnemonic": "ret[ql]?|iret[ql]?"
     }
   ],
-  "operand_order": "src_first"
+  "operand_order": "src_first",
+  "register_extraction": {
+    "aliases": [
+      ["^[re]?([abcd])x$", "r\\1x"],
+      ["^([abcd])[lh]$", "r\\1x"],
+      ["^[re]?([sd]i)l?$", "r\\1"],
+      ["^[re]?([sb]p)l?$", "r\\1"],
+      ["^(r[0-9]+)[dwb]$", "\\1"],
+      ["^ymm([0-9]+)$", "xmm\\1"]
+    ],
+    "rmw_categories": ["ARITHMETIC", "LOGIC", "SHIFT"],
+    "rmw_exclude_mnemonics": "^lea[lq]?$",
+    "read_only_mnemonics": "^push[qlw]?$"
+  }
 }

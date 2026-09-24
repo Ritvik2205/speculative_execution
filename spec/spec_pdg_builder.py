@@ -170,6 +170,7 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         # Spec-driven edge windows (override parent defaults). All three now come
         # from the spec pipeline block; build() reads self.rsb_pair_window.
         self.cache_window = int(pipe.get("cache_window", self.cache_window))
+        self.data_dep_defs = int(pipe.get("data_dep_reaching_defs", self.data_dep_defs))
         self.rsb_pair_window = int(pipe.get("rsb_pair_window", self.rsb_pair_window))
         # G6 follow-up: derive is_secret_source/is_transmitter from DATA_DEP
         # graph reachability (gated on a page/cache-line-scale SHIFT), not just
@@ -321,8 +322,10 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         does not touch or replace the base ``PDGBuilder.build()``'s own
         unconditional (always-on) src-reg-keyed MEMORY_ORDER edges, which
         key off ``node.src_regs`` rather than the parsed memory-operand base
-        register and do not fire for the store/load pairs this task targets
-        (see the AT&T dest/src-labeling note in the task report).
+        register. Before the AT&T register-direction fix those never fired on
+        x86 (a load's base register was recorded as its destination); they
+        now do, exactly as on ARM, so pairs they already cover are skipped
+        here instead of duplicated.
 
         Fix round 1: redefinition is checked against ``defuse`` (Task 4.1's
         ``ir_defuse.defuse_for_sequence``, index-aligned to ``pdg.nodes`` by
@@ -341,6 +344,11 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         """
         nodes = pdg.nodes
         n = len(nodes)
+        mo = pb.EDGE_TYPES['MEMORY_ORDER']
+        # Since the AT&T register-direction fix the base heuristic DOES fire
+        # on x86 same-register store/load pairs (as it always did on ARM), so
+        # skip pairs it already linked rather than emit a duplicate edge.
+        have = {(e.src, e.dst) for e in pdg.edges if e.edge_type == mo}
         for i, writer in enumerate(nodes):
             if not self._writes_mem(writer):
                 continue
@@ -350,10 +358,11 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
                 node = nodes[j]
                 if self._reads_mem(node):
                     l_base, l_off, l_const = _parse_mem_operand(node.raw_instruction)
-                    if _may_alias(s_base, s_off, s_const, l_base, l_off, l_const):
+                    if (_may_alias(s_base, s_off, s_const, l_base, l_off, l_const)
+                            and (writer.id, node.id) not in have):
+                        have.add((writer.id, node.id))
                         pdg.edges.append(pb.PDGEdge(
-                            src=writer.id, dst=node.id,
-                            edge_type=pb.EDGE_TYPES['MEMORY_ORDER'], weight=1.0))
+                            src=writer.id, dst=node.id, edge_type=mo, weight=1.0))
                 defs_j = defuse[j][0] if j < len(defuse) else set()
                 if s_base is not None and s_base in defs_j:
                     # Genuine redefinition of the writer's base register per

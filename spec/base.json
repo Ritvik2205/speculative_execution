@@ -77,7 +77,9 @@
     "stack_access": "\\[sp|\\[x29|\\[fp|%[re]?sp|%[re]?bp|\\[%[re]?[sb]p\\]",
     "indexed_access": "\\[.*,.*,.*\\]|\\[.*\\+.*\\*.*\\]|,\\s*lsl\\s+#|\\[x[0-9]+,\\s*x[0-9]+|\\([^)]*,[^)]*\\)",
     "memory_operand": "\\[|\\(.*%",
-    "reg": "\\b([xwbhsdq][0-9]+|sp|lr|fp|pc|xzr|wzr)\\b|%([re]?[abcd]x|[re]?[sd]i|[re]?[sb]p|r[0-9]+[dwb]?)"
+    "reg": "\\b([xwbhsdq][0-9]+|sp|lr|fp|pc|xzr|wzr)\\b|%([re]?[abcd]x|[re]?[sd]i|[re]?[sb]p|r[0-9]+[dwb]?)",
+    "stack_push": "(?!)",
+    "stack_pop": "(?!)"
   },
   "classify_rules": [
     {
@@ -125,6 +127,16 @@
       "kind": "simple",
       "pat": "compare",
       "cat": "COMPARE"
+    },
+    {
+      "kind": "simple",
+      "pat": "stack_push",
+      "cat": "STORE"
+    },
+    {
+      "kind": "simple",
+      "pat": "stack_pop",
+      "cat": "LOAD"
     },
     {
       "kind": "simple",
@@ -257,13 +269,11 @@
       "set": "is_transmitter"
     },
     {
-      "opcode_in": [
-        "lfence"
-      ],
-      "set": "is_lfence"
+      "set": "is_lfence",
+      "opcode_regex": "^(lfence|csdb|sb|ssbb|pssbb)$"
     },
     {
-      "opcode_regex": "^(mfence|sfence|dsb|dmb|isb)",
+      "opcode_regex": "^(mfence|sfence|dsb|dmb|isb|fence)",
       "set": "is_mfence_or_sfence"
     },
     {
@@ -297,7 +307,9 @@
       "BRANCH_COND",
       "BRANCH_UNCOND",
       "CALL",
-      "CALL_INDIRECT"
+      "CALL_INDIRECT",
+      "RET",
+      "JUMP_INDIRECT"
     ]
   },
   "addressing": {
@@ -309,7 +321,8 @@
   "pipeline": {
     "speculative_window": 10,
     "cache_window": 20,
-    "rsb_pair_window": 15
+    "rsb_pair_window": 15,
+    "data_dep_reaching_defs": 1
   },
   "canonical_op_vocab": [
     "MOV",

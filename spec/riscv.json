@@ -13,13 +13,13 @@
     "indirect": "\\b(jalr|jr|c\\.jalr|c\\.jr)\\b",
     "indirect_jump_op": "\\b(jr|c\\.jr)\\b",
     "compare": "\\b(slt|sltu|slti|sltiu|seqz|snez|sltz|sgtz)\\b",
-    "arithmetic": "\\b(add|addi|sub|mul|mulh|div|divu|rem|remu|addw|subw|mulw|divw|remw|addiw|neg|negw)\\b",
+    "arithmetic": "\\b(add|addi|sub|mul|mulh|div|divu|rem|remu|addw|subw|mulw|divw|remw|addiw|neg|negw|lui|auipc)\\b",
     "logic": "\\b(and|andi|or|ori|xor|xori|not)\\b",
     "shift": "\\b(sll|slli|srl|srli|sra|srai|sllw|slliw|srlw|srliw|sraw|sraiw|rol|ror|rori)\\b",
     "fence": "\\b(fence|fence\\.i|fence\\.tso|sfence\\.vma|pause)\\b",
     "cache": "\\b(cbo\\.(flush|clean|inval|zero)|prefetch\\.[rwi])\\b",
     "timing": "\\b(rdcycle|rdtime|rdinstret|rdcycleh|rdtimeh)\\b",
-    "move": "\\b(mv|li|lui|auipc|c\\.mv|c\\.li)\\b",
+    "move": "\\b(mv|li|c\\.mv|c\\.li|sext\\.[bhw]|zext\\.[bhw])\\b",
     "stack_op": "(?!x)x",
     "stack_access": "\\((sp|s0|fp|x2|x8)\\)|\\bsp\\b|\\bfp\\b",
     "indexed_access": "(?!x)x",
@@ -204,5 +204,6 @@
       "op": "RET",
       "mnemonic": "ret"
     }
-  ]
+  ],
+  "register_extraction": {"aliases": [["^fp$", "s0"], ["^x0$", "zero"], ["^x1$", "ra"], ["^x2$", "sp"], ["^x3$", "gp"], ["^x4$", "tp"], ["^x5$", "t0"], ["^x6$", "t1"], ["^x7$", "t2"], ["^x8$", "s0"], ["^x9$", "s1"], ["^x1([0-7])$", "a\\1"], ["^x18$", "s2"], ["^x19$", "s3"], ["^x20$", "s4"], ["^x21$", "s5"], ["^x22$", "s6"], ["^x23$", "s7"], ["^x24$", "s8"], ["^x25$", "s9"], ["^x26$", "s10"], ["^x27$", "s11"], ["^x28$", "t3"], ["^x29$", "t4"], ["^x30$", "t5"], ["^x31$", "t6"]]}
 }

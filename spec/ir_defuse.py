@@ -300,6 +300,17 @@ def defuse_for_sequence(
         category = engine.classify_opcode(instr)
         mnemonic, operands = _split_mnemonic_operands(instr)
 
+        # push/pop are now classified STORE/LOAD (stack memory ops, matching
+        # arm stp/ldp and riscv sd/ld to sp), but their register operand
+        # still has push = use / pop = def semantics; the spec's own
+        # stack_push/stack_pop patterns identify them, so no ISA literal here.
+        if engine._pat["stack_pop"].search(instr):
+            out.append((set(_regs_in(instr, spec_fname, engine)), set()))
+            continue
+        if engine._pat["stack_push"].search(instr):
+            out.append((set(), set(_regs_in(instr, spec_fname, engine))))
+            continue
+
         if category in all_source:
             all_regs = set(_regs_in(instr, spec_fname, engine))
             out.append((set(), all_regs))

@@ -147,13 +147,13 @@
     "indirect": "\\b(br|blr)\\b|\\[x[0-9]+\\]",
     "indirect_jump_op": "\\b(br)\\b",
     "compare": "\\b(cmp|cmn|tst|ccmp|ccmn|fcmp)\\b",
-    "arithmetic": "\\b(add|sub|mul|udiv|sdiv|madd|msub|neg|adc|sbc)\\b",
-    "logic": "\\b(and|orr|eor|orn|bic|not)\\b",
+    "arithmetic": "\\b(add|sub|mul|udiv|sdiv|madd|msub|neg|adc|sbc|adr|adrp)\\b",
+    "logic": "\\b(and|orr|eor|orn|bic|not|mvn|eon)\\b",
     "shift": "\\b(lsl|lsr|asr|ror)\\b",
     "fence": "\\b(dsb|dmb|isb|csdb)\\b",
     "cache": "\\b(prfm|dc\\s+(civac|cvac|cvau|zva|ivac))\\b",
-    "timing": "\\b(mrs\\s+.*cntvct|mrs\\s+.*pmccntr)\\b",
-    "move": "\\b(mov[zskn]?)\\b",
+    "timing": "\\bmrs\\s+\\S+,\\s*(cntvct|cntpct|pmccntr)\\w*",
+    "move": "\\b(mov[zskn]?|sxt[bhw]|uxt[bhw]|cset|csetm|csel|csinc|csinv|csneg|cinc|fmov)\\b",
     "stack_op": "(?!)",
     "stack_access": "\\[sp|\\[x29|\\[fp",
     "indexed_access": "\\[x[0-9]+,\\s*x[0-9]+|\\[.*,.*,.*\\]|,\\s*lsl\\s+#",
@@ -326,5 +326,6 @@
       "op": "RET",
       "mnemonic": "ret"
     }
-  ]
+  ],
+  "register_extraction": {"aliases": [["^w([0-9]+)$", "x\\1"], ["^wzr$", "xzr"], ["^fp$", "x29"], ["^lr$", "x30"]]}
 }

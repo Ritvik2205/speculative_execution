@@ -84,6 +84,19 @@ class SpecEngine:
         self.flag_rules: List[dict] = spec["spec_flag_rules"]
         self.reg_all_source_cats: Set[str] = set(spec["register_extraction"]["all_source_categories"])
         self.reg_pattern_names: List[str] = spec["register_extraction"]["patterns"]
+        # Register-name normalisation: every view of one architectural register
+        # (x86 al/ax/eax/rax, arm w0/x0, riscv x10/a0) maps to a single name,
+        # so a narrow write and a wide read still form a def-use edge.
+        _rx = spec["register_extraction"]
+        self._reg_aliases: List[Tuple[re.Pattern, str]] = [
+            (re.compile(pat, re.IGNORECASE), rep) for pat, rep in _rx.get("aliases", [])]
+        # Two-address ISAs (x86 `addq %rsi, %rax` reads %rax too): categories
+        # whose destination is also a source when there are <= 2 operands.
+        self._rmw_cats: Set[str] = set(_rx.get("rmw_categories", []))
+        self._rmw_exclude = (re.compile(_rx["rmw_exclude_mnemonics"], re.IGNORECASE)
+                             if _rx.get("rmw_exclude_mnemonics") else None)
+        self._read_only_mn = (re.compile(_rx["read_only_mnemonics"], re.IGNORECASE)
+                              if _rx.get("read_only_mnemonics") else None)
 
         # Pipeline / edge-window parameters (used by later phases).
         self.pipeline: dict = spec.get("pipeline", {})
@@ -229,21 +242,57 @@ class SpecEngine:
         return m[self.spec["default_mem_type"]]
 
     # ---- register def/use extraction ------------------------------------
-    def extract_registers(self, instr: str, category: int) -> Tuple[Set[str], Set[str]]:
-        dest: Set[str] = set()
-        src: Set[str] = set()
+    def _norm_reg(self, r: str) -> str:
+        r = r.lower()
+        for pat, rep in self._reg_aliases:
+            if pat.fullmatch(r):
+                return pat.sub(rep, r)
+        return r
+
+    def _regs_in(self, text: str) -> List[str]:
         regs: List[str] = []
         for pname in self.reg_pattern_names:
-            regs.extend(r.lower() for r in self._pat[pname].findall(instr))
+            regs.extend(self._norm_reg(r) for r in self._pat[pname].findall(text))
+        return regs
+
+    def extract_registers(self, instr: str, category: int) -> Tuple[Set[str], Set[str]]:
+        """(dest, src) register sets.
+
+        Which operand is the destination comes from the spec's
+        ``operand_order``: "src_first" (AT&T, `movq src, dst`) puts it LAST;
+        ISAs that omit the key are destination-first (ARM, RISC-V) and keep
+        the original first-register-is-dest rule. A memory destination
+        defines no register — every register in the instruction is then an
+        address or value source.
+        """
+        regs = self._regs_in(instr)
         if not regs:
-            return dest, src
+            return set(), set()
         all_source = category in {self.opcode_categories[c] for c in self.reg_all_source_cats}
         if all_source:
-            src = set(regs)
-        else:
-            dest.add(regs[0])
-            if len(regs) > 1:
-                src = set(regs[1:])
+            return set(), set(regs)
+
+        if self.spec.get("operand_order") == "src_first":
+            parts = instr.strip().split(None, 1)
+            ops = self._split_operands(parts[1]) if len(parts) == 2 else []
+            mnemonic = parts[0].lower() if parts else ""
+            mem = self._addr_pat.get("mem")
+            if ops:
+                if self._read_only_mn is not None and self._read_only_mn.fullmatch(mnemonic):
+                    return set(), set(regs)
+                dest_op = ops[-1]
+                if mem is not None and mem.search(dest_op):
+                    return set(), set(regs)
+                dest = set(self._regs_in(dest_op))
+                src = {r for op in ops[:-1] for r in self._regs_in(op)}
+                cat_name = self._cat_name(category)
+                if (cat_name in self._rmw_cats and len(ops) <= 2
+                        and not (self._rmw_exclude is not None
+                                 and self._rmw_exclude.fullmatch(mnemonic))):
+                    src |= dest
+                return dest, src
+
+        dest, src = {regs[0]}, set(regs[1:])
         return dest, src
 
     # ---- speculative flags ----------------------------------------------

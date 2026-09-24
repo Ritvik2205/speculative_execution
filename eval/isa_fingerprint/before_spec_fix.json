@@ -1,0 +1,354 @@
+{
+ "comparisons": {
+  "x86_64 vs arm64": {
+   "n": 634,
+   "classes": [
+    "BRANCH_HISTORY_INJECTION",
+    "INCEPTION",
+    "RETBLEED",
+    "SPECTRE_RSB",
+    "SPECTRE_V1",
+    "SPECTRE_V2",
+    "SPECTRE_V4"
+   ],
+   "channels": {
+    "graph": {
+     "dims": 10,
+     "isa_bal_acc": 0.8564668769716088,
+     "class_bal_acc": 0.4297619047619047
+    },
+    "categories": {
+     "dims": 19,
+     "isa_bal_acc": 0.9826498422712934,
+     "class_bal_acc": 0.5059523809523809
+    },
+    "memtype": {
+     "dims": 5,
+     "isa_bal_acc": 0.8659305993690851,
+     "class_bal_acc": 0.3880952380952381
+    },
+    "specflags": {
+     "dims": 14,
+     "isa_bal_acc": 0.862776025236593,
+     "class_bal_acc": 0.48214285714285715
+    },
+    "regs": {
+     "dims": 2,
+     "isa_bal_acc": 0.8312302839116719,
+     "class_bal_acc": 0.25357142857142856
+    },
+    "global": {
+     "dims": 5,
+     "isa_bal_acc": 0.6656151419558359,
+     "class_bal_acc": 0.4297619047619047
+    },
+    "inline": {
+     "dims": 58,
+     "isa_bal_acc": 1.0,
+     "class_bal_acc": 0.6404761904761905
+    },
+    "ALL": {
+     "dims": 113,
+     "isa_bal_acc": 1.0,
+     "class_bal_acc": 0.6285714285714287
+    }
+   },
+   "top_isa_features": [
+    {
+     "feature": "inline/frac_x86_only",
+     "std_diff": 1.78047130397991,
+     "A": 0.6517602550541565,
+     "B": 0.0
+    },
+    {
+     "feature": "cat/OTHER",
+     "std_diff": 1.697379782796742,
+     "A": 0.4461947018639058,
+     "B": 0.07691506803935794
+    },
+    {
+     "feature": "inline/frac_arm_only",
+     "std_diff": 1.6693336468151168,
+     "A": 0.005594825072431414,
+     "B": 0.260209516348899
+    },
+    {
+     "feature": "inline/frac_load",
+     "std_diff": 1.5217243835034158,
+     "A": 0.0,
+     "B": 0.1795720661100153
+    },
+    {
+     "feature": "inline/frac_store",
+     "std_diff": 1.5131604287521845,
+     "A": 0.0,
+     "B": 0.1465205388490334
+    },
+    {
+     "feature": "inline/has_indexed_load",
+     "std_diff": 1.5090486151122757,
+     "A": 0.0,
+     "B": 0.7255520504731862
+    },
+    {
+     "feature": "cat/ARITHMETIC",
+     "std_diff": 1.4668630572820722,
+     "A": 0.0,
+     "B": 0.13313737096694914
+    },
+    {
+     "feature": "inline/frac_movq",
+     "std_diff": 1.4603727156296538,
+     "A": 0.21174214991861337,
+     "B": 0.0
+    },
+    {
+     "feature": "inline/load_store_ratio",
+     "std_diff": 1.3658689913968334,
+     "A": 0.0,
+     "B": 0.8926041719477259
+    },
+    {
+     "feature": "inline/frac_ldr",
+     "std_diff": 1.330295658190572,
+     "A": 0.0,
+     "B": 0.11393182031363719
+    },
+    {
+     "feature": "inline/indexed_load_norm",
+     "std_diff": 1.3236453051368418,
+     "A": 0.0,
+     "B": 0.09301547911781995
+    },
+    {
+     "feature": "inline/frac_str",
+     "std_diff": 1.3177522392599978,
+     "A": 0.0,
+     "B": 0.08677208602240409
+    },
+    {
+     "feature": "inline/frac_retq",
+     "std_diff": 1.2924665969892468,
+     "A": 0.051465046060292126,
+     "B": 0.0
+    },
+    {
+     "feature": "edge/MEMORY_ORDER",
+     "std_diff": 1.2173684609890414,
+     "A": 0.05949873051422428,
+     "B": 0.31498054730764113
+    },
+    {
+     "feature": "src_regs/node",
+     "std_diff": 1.2152952789048075,
+     "A": 0.4150963953713097,
+     "B": 0.8286066512668824
+    },
+    {
+     "feature": "inline/frac_stp",
+     "std_diff": 1.213279240491337,
+     "A": 0.0,
+     "B": 0.04600090249103703
+    },
+    {
+     "feature": "inline/frac_bl",
+     "std_diff": 1.1682211703541046,
+     "A": 0.0,
+     "B": 0.06549245652034644
+    },
+    {
+     "feature": "inline/frac_ldp",
+     "std_diff": 1.1611106472788173,
+     "A": 0.0,
+     "B": 0.04454952023617853
+    },
+    {
+     "feature": "inline/frac_movl",
+     "std_diff": 1.133231304902019,
+     "A": 0.08252959189002258,
+     "B": 0.0
+    },
+    {
+     "feature": "cat/MOVE",
+     "std_diff": 1.0829671229076314,
+     "A": 7.789071932079293e-05,
+     "B": 0.07009703412663741
+    }
+   ]
+  },
+  "riscv64 vs x86_64+arm64": {
+   "n": 62,
+   "classes": [
+    "BRANCH_HISTORY_INJECTION",
+    "RETBLEED",
+    "SPECTRE_RSB",
+    "SPECTRE_V1",
+    "SPECTRE_V4"
+   ],
+   "channels": {
+    "graph": {
+     "dims": 10,
+     "isa_bal_acc": 0.9838709677419355,
+     "class_bal_acc": 0.33452380952380956
+    },
+    "categories": {
+     "dims": 19,
+     "isa_bal_acc": 0.967741935483871,
+     "class_bal_acc": 0.3333333333333333
+    },
+    "memtype": {
+     "dims": 5,
+     "isa_bal_acc": 0.7580645161290323,
+     "class_bal_acc": 0.33571428571428574
+    },
+    "specflags": {
+     "dims": 14,
+     "isa_bal_acc": 0.7741935483870968,
+     "class_bal_acc": 0.32142857142857145
+    },
+    "regs": {
+     "dims": 2,
+     "isa_bal_acc": 0.9032258064516129,
+     "class_bal_acc": 0.2345238095238095
+    },
+    "global": {
+     "dims": 5,
+     "isa_bal_acc": 0.8225806451612903,
+     "class_bal_acc": 0.3059523809523809
+    },
+    "inline": {
+     "dims": 58,
+     "isa_bal_acc": 0.967741935483871,
+     "class_bal_acc": 0.4392857142857142
+    },
+    "ALL": {
+     "dims": 113,
+     "isa_bal_acc": 0.9838709677419355,
+     "class_bal_acc": 0.3773809523809524
+    }
+   },
+   "top_isa_features": [
+    {
+     "feature": "cat/ARITHMETIC",
+     "std_diff": 1.8501678102284802,
+     "A": 0.24019915917147625,
+     "B": 0.01038075432329918
+    },
+    {
+     "feature": "edge/DATA_DEP",
+     "std_diff": 1.7865157574415842,
+     "A": 1.6694250347801551,
+     "B": 0.3361412274304495
+    },
+    {
+     "feature": "cat/OTHER",
+     "std_diff": 1.6445818695616343,
+     "A": 0.041230485444706984,
+     "B": 0.402804649239105
+    },
+    {
+     "feature": "src_regs/node",
+     "std_diff": 1.5817669794691163,
+     "A": 1.0430973239794563,
+     "B": 0.46810043980980626
+    },
+    {
+     "feature": "inline/frac_x86_only",
+     "std_diff": 1.5393483069249438,
+     "A": 0.005884653137576195,
+     "B": 0.5001199579527301
+    },
+    {
+     "feature": "inline/frac_branch",
+     "std_diff": 1.4792355028299107,
+     "A": 0.03364117539698078,
+     "B": 0.17470363876031292
+    },
+    {
+     "feature": "ret_frac",
+     "std_diff": 1.455653126039537,
+     "A": 0.013267367958061157,
+     "B": 0.07859093972271489
+    },
+    {
+     "feature": "cat/MOVE",
+     "std_diff": 1.3887217823309934,
+     "A": 0.14200892550984742,
+     "B": 0.019390592722072143
+    },
+    {
+     "feature": "inline/frac_movq",
+     "std_diff": 1.305035409322652,
+     "A": 0.0,
+     "B": 0.1415791983806318
+    },
+    {
+     "feature": "inline/has_call_ret_pair",
+     "std_diff": 1.2292725943057181,
+     "A": 0.0,
+     "B": 0.5483870967741935
+    },
+    {
+     "feature": "inline/ret_call_ratio",
+     "std_diff": 1.1117812937197362,
+     "A": 0.22580645161290322,
+     "B": 0.6936132782889951
+    },
+    {
+     "feature": "inline/frac_retq",
+     "std_diff": 1.0849078614182306,
+     "A": 0.0,
+     "B": 0.04479775770056632
+    },
+    {
+     "feature": "inline/frac_movl",
+     "std_diff": 1.0598752642332239,
+     "A": 0.0,
+     "B": 0.058342205480702465
+    },
+    {
+     "feature": "inline/call_ret_pair_norm",
+     "std_diff": 1.043372470870642,
+     "A": 0.0,
+     "B": 0.03331846443395461
+    },
+    {
+     "feature": "dest_regs/node",
+     "std_diff": 1.0362400842572925,
+     "A": 0.7250846222872902,
+     "B": 0.566464492873671
+    },
+    {
+     "feature": "cat/SHIFT",
+     "std_diff": 1.0234291877018278,
+     "A": 0.03794973902200813,
+     "B": 0.007266926621765332
+    },
+    {
+     "feature": "cat/STORE",
+     "std_diff": 0.9525470823465582,
+     "A": 0.14980110288043164,
+     "B": 0.08292883973343779
+    },
+    {
+     "feature": "edge/RSB_CHAIN",
+     "std_diff": 0.9015091955866505,
+     "A": 0.00644114298023282,
+     "B": 0.03589438672683644
+    },
+    {
+     "feature": "edge/MEMORY_ORDER",
+     "std_diff": 0.9000002014470236,
+     "A": 0.25974209523264163,
+     "B": 0.09261100081007212
+    },
+    {
+     "feature": "flag/4",
+     "std_diff": 0.8582883460033326,
+     "A": 0.3626313598955958,
+     "B": 0.2509565636576283
+    }
+   ]
+  }
+ }
+}
