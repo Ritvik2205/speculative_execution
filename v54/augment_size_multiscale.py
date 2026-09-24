@@ -89,7 +89,7 @@ def enlarge(base_seq, fillers, target, rng):
 
 
 def main():
-    global FILLER, OUT
+    global FILLER, OUT, TRAIN
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--variants", type=int, default=2,
@@ -100,6 +100,9 @@ def main():
     ap.add_argument("--filler-suffix", default="",
                     help="use benign_filler_<arch><suffix>.jsonl (e.g. _heldout_clean)")
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--extra-train", nargs="*", default=[],
+                    help="extra x86/arm record files appended to v54_train before "
+                         "enlarging (e.g. gen/v4_family/out/v4_train_family_records.jsonl)")
     args = ap.parse_args()
     FILLER = {a: p.with_name(p.stem + args.filler_suffix + p.suffix) for a, p in FILLER.items()}
     OUT = Path(args.out)
@@ -110,6 +113,10 @@ def main():
 
     rng = random.Random(args.seed)
     train = load(TRAIN)
+    for f in args.extra_train:
+        extra = load(f)
+        print(f"+ {len(extra)} records from {f}")
+        train += extra
     fillers = {a: [r["sequence"] for r in load(f)] for a, f in FILLER.items()}
     test_h = {h(r["sequence"]) for r in load(TEST)} if TEST.exists() else set()
 

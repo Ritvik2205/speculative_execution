@@ -7,7 +7,8 @@
 #
 # Slurm job ARRAY: one task per (condition, seed). Index i maps to
 #   COND = CONDS[i / nSEEDS],  SEED = SEEDS[i % nSEEDS]
-# Default grid = 6 length-matched conditions x 5 seeds = tasks 0-29:
+# Default grid = 3 lv4_* conditions x 5 seeds = tasks 0-14 (earlier grids:
+#   --array=0-29 --export=ALL,CONDS="len_embed len_neutral len_neutral_adv len_learned len_learned_adv len_both"):
 #   sbatch eval/cluster/riscv_holdout.sbatch
 # then aggregate once every task has finished (any exit status):
 #   sbatch --dependency=afterany:<ARRAY_JOB_ID> eval/cluster/aggregate_riscv_holdout.sbatch
@@ -41,14 +42,14 @@
 #SBATCH --mem=16000
 #SBATCH --time=04:00:00                # len_* conditions train on 3.4x more records
 #SBATCH --cpus-per-task=4
-#SBATCH --array=0-29
+#SBATCH --array=0-14
 #SBATCH --output=eval/cluster_out/%x_%A_%a.out
 #SBATCH --error=eval/cluster_out/%x_%A_%a.err
 
 set -euo pipefail
 
 REPO="${REPO:-$HOME/speculative_execution}"
-CONDS="${CONDS:-len_embed len_neutral len_neutral_adv len_learned len_learned_adv len_both}"
+CONDS="${CONDS:-lv4_embed lv4_learned lv4_learned_adv}"
 SEEDS="${SEEDS:-42 1 7 13 21}"
 read -r -a _C <<< "$CONDS"
 read -r -a _S <<< "$SEEDS"
@@ -77,11 +78,20 @@ case "$COND" in
     len_learned)       TRAIN_C=v54/data/v54_train_lenmatch.jsonl; EXTRA="--arch-mode drop --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
     len_learned_adv)   TRAIN_C=v54/data/v54_train_lenmatch.jsonl; EXTRA="--arch-mode adversarial --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
     len_both)          TRAIN_C=v54/data/v54_train_lenmatch.jsonl; EXTRA="--arch-mode drop --handcrafted-subset neutral --drop-nops --node-feature-mode both --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
+    # --- + complete V4 gadgets with matched fenced/safe twins
+    #     (gen/v4_family/build_v4_train_family.py): the v54 V4 windows are mostly
+    #     harness fragments without the reload->transmit, so len_* models learned
+    #     no V4 (0% riscv recall).
+    lv4_embed)         TRAIN_C=v54/data/v54_train_lenmatch_v4.jsonl; EXTRA="" ;;
+    lv4_learned)       TRAIN_C=v54/data/v54_train_lenmatch_v4.jsonl; EXTRA="--arch-mode drop --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
+    lv4_learned_adv)   TRAIN_C=v54/data/v54_train_lenmatch_v4.jsonl; EXTRA="--arch-mode adversarial --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
     *) echo "unknown condition $COND" >&2; exit 1 ;;
 esac
 TRAIN="${TRAIN:-${TRAIN_C:-v54/data/v54_train.jsonl}}"
 TEST="${TEST:-v54/data/v54_test.jsonl}"
-RISCV="${RISCV:-spec/data/riscv_loio_corpus.jsonl}"
+# v2 = corrected labels (eval/build_riscv_heldout_v2.py): RETBLEED removed,
+# the complete short V4 gadgets restored.
+RISCV="${RISCV:-spec/data/riscv_loio_corpus_v2.jsonl}"
 TAG="rv_${COND}${TAG_SUFFIX:-}"   # e.g. TAG_SUFFIX=_specfix keeps earlier runs' results
 
 echo "host=$(hostname) job=${SLURM_JOB_ID:-?} cond=$COND seed=$SEED extra='$EXTRA' train=$TRAIN"
