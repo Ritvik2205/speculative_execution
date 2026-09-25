@@ -967,8 +967,13 @@ def main():
     node_feat_dim = train_dataset.node_feature_dim
     print(f"Node feature mode: {args.node_feature_mode}  node_feat_dim={node_feat_dim}")
 
+    # BatchNorm cannot normalise a batch of one sample in train mode; when the
+    # train set size leaves exactly one record in the final batch (it did for
+    # lenmatch_v4s + --drop-nops: every lv4s_learned* run crashed in epoch 1),
+    # drop that batch. Any other size keeps the original behaviour exactly.
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-                              collate_fn=collate_fn, num_workers=0)
+                              collate_fn=collate_fn, num_workers=0,
+                              drop_last=(len(train_dataset) % args.batch_size == 1))
     val_loader   = DataLoader(val_dataset,   batch_size=args.batch_size, shuffle=False,
                               collate_fn=collate_fn, num_workers=0)
     test_loader  = DataLoader(test_dataset,  batch_size=args.batch_size, shuffle=False,

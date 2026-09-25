@@ -103,6 +103,9 @@ def main():
     ap.add_argument("--extra-train", nargs="*", default=[],
                     help="extra x86/arm record files appended to v54_train before "
                          "enlarging (e.g. gen/v4_family/out/v4_train_family_records.jsonl)")
+    ap.add_argument("--extra-repeat", type=int, default=1,
+                    help="include each --extra-train record this many times (identical "
+                         "copies share a group, so they stay on one side of the val split)")
     args = ap.parse_args()
     FILLER = {a: p.with_name(p.stem + args.filler_suffix + p.suffix) for a, p in FILLER.items()}
     OUT = Path(args.out)
@@ -115,8 +118,8 @@ def main():
     train = load(TRAIN)
     for f in args.extra_train:
         extra = load(f)
-        print(f"+ {len(extra)} records from {f}")
-        train += extra
+        print(f"+ {len(extra)} records x{args.extra_repeat} from {f}")
+        train += extra * args.extra_repeat
     fillers = {a: [r["sequence"] for r in load(f)] for a, f in FILLER.items()}
     test_h = {h(r["sequence"]) for r in load(TEST)} if TEST.exists() else set()
 

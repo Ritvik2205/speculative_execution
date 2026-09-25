@@ -50,7 +50,7 @@
 set -euo pipefail
 
 REPO="${REPO:-$HOME/speculative_execution}"
-CONDS="${CONDS:-lv4s_embed lv4s_learned lv4s_learned_adv embed}"
+CONDS="${CONDS:-lv4s_learned lv4s_learned_adv lv4x_embed lv4x_learned}"
 SEEDS="${SEEDS:-42 1 7 13 21}"
 read -r -a _C <<< "$CONDS"
 read -r -a _S <<< "$SEEDS"
@@ -93,6 +93,10 @@ case "$COND" in
     lv4s_embed)        TRAIN_C=v54/data/v54_train_lenmatch_v4s.jsonl; EXTRA="" ;;
     lv4s_learned)      TRAIN_C=v54/data/v54_train_lenmatch_v4s.jsonl; EXTRA="--arch-mode drop --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
     lv4s_learned_adv)  TRAIN_C=v54/data/v54_train_lenmatch_v4s.jsonl; EXTRA="--arch-mode adversarial --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
+    # --- same, V4 family oversampled x5 (only 1/5 lv4s_embed seeds learned the
+    #     vuln/safe reload difference against 609 fragment V4 windows)
+    lv4x_embed)        TRAIN_C=v54/data/v54_train_lenmatch_v4x5.jsonl; EXTRA="" ;;
+    lv4x_learned)      TRAIN_C=v54/data/v54_train_lenmatch_v4x5.jsonl; EXTRA="--arch-mode drop --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
     *) echo "unknown condition $COND" >&2; exit 1 ;;
 esac
 TRAIN="${TRAIN:-${TRAIN_C:-v54/data/v54_train.jsonl}}"
