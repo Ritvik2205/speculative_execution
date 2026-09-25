@@ -1,0 +1,105 @@
+{
+  "name": "lv4s_learned_adv",
+  "locked_on": "2026-09-25",
+  "trained_at_commit": "d8c5693 (cluster run 81aecb9)",
+  "ensemble": "mean softmax over the 5 seed checkpoints",
+  "training_flags": {
+    "node_feature_mode": "learned",
+    "mlm_path": "spec/mlm_neutral.pt",
+    "arch_mode": "adversarial",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "neutral",
+    "drop_nops": true,
+    "node_drop": 0.1,
+    "use_spec_builder": true,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "epochs": 60,
+    "patience": 10,
+    "batch_size": 32,
+    "lr": 0.001,
+    "train_data": "v54/data/v54_train_lenmatch_v4s.jsonl",
+    "test_data": "v54/data/v54_test.jsonl"
+  },
+  "dependencies": {
+    "mlm": "spec/mlm_neutral.pt",
+    "spec": "spec/*.json (memory_order_mode=address_base)"
+  },
+  "checkpoints": [
+    {
+      "seed": 42,
+      "path": "eval/cluster_out/rv_lv4s_learned_adv_v4s_s42/gine_best.pt",
+      "sha256": "d22f1e1861bac5837d8d5f0ca7afa2e637c024eb97a12ff3745cb194c3de4152"
+    },
+    {
+      "seed": 1,
+      "path": "eval/cluster_out/rv_lv4s_learned_adv_v4s_s1/gine_best.pt",
+      "sha256": "c318559d30e123763dcebebe587d29f8e776fcf39c8fc6007de6db387e9ca15b"
+    },
+    {
+      "seed": 7,
+      "path": "eval/cluster_out/rv_lv4s_learned_adv_v4s_s7/gine_best.pt",
+      "sha256": "b11d1c2243e0380eb702fe3c01f722683295db585533b5f7ae8c77f3042e413a"
+    },
+    {
+      "seed": 13,
+      "path": "eval/cluster_out/rv_lv4s_learned_adv_v4s_s13/gine_best.pt",
+      "sha256": "5ae21bfdedfae5b5f6583ce1e7ad824108134b14764960f23a0bf2717a6c0c8d"
+    },
+    {
+      "seed": 21,
+      "path": "eval/cluster_out/rv_lv4s_learned_adv_v4s_s21/gine_best.pt",
+      "sha256": "3a3a586be4877dbe3ad133d63859672b21b610608899d88d8cfe7741005e3582"
+    }
+  ],
+  "measured_ensemble": {
+    "riscv64_heldout_v2": {
+      "n": 248,
+      "benign_fp_rate": [
+        0.023,
+        0.004,
+        0.048
+      ],
+      "attack_detection": [
+        0.481,
+        0.179,
+        0.771
+      ],
+      "J": 0.459,
+      "per_class_recall": {
+        "BENIGN": 0.977,
+        "BRANCH_HISTORY_INJECTION": 0.75,
+        "SPECTRE_RSB": 0.333,
+        "SPECTRE_V1": 0.25,
+        "SPECTRE_V4": 0.0
+      },
+      "note": "[value, cluster-bootstrap lo, hi]"
+    },
+    "locked_test_x86_arm": {
+      "n": 1669,
+      "accuracy": 0.9245
+    },
+    "v4fam_riscv64": {
+      "vuln_to_V4": 0.375,
+      "safe_to_V4": 0.444,
+      "fenced_to_V4": 0.375,
+      "separation": -0.069
+    },
+    "v4fam_x86arm": {
+      "vuln_to_V4": 1.0,
+      "safe_to_V4": 0.7,
+      "fenced_to_V4": 0.625,
+      "separation": 0.3
+    }
+  },
+  "measured_ensemble_how": "eval/locked_classifier.py on 2026-09-25: riscv64 = spec/data/riscv_loio_corpus_v2.jsonl (held-out ISA, corrected labels, stub rule + keep_short); locked test = v54/data/v54_test.jsonl (x86_64+arm64, BENIGN arm64-only); v4fam = held-out strides 11-12",
+  "per_seed_reference": "eval/gine_riscv_heldout_v2/SUMMARY_v4s.md (rv_lv4s_learned_adv_v4s: per-seed mean benign FP 5.2 +/- 3.5, detection 60.0 +/- 17.0, J 54.8 +/- 13.9)",
+  "known_limits": [
+    "Held-out riscv64 attack set is small: 27 attacks from a handful of source families; detection CI is wide (18-77%).",
+    "SPECTRE_V4: store-bypass is not learned in a transferable way (riscv family separation ~0; x86 twins mostly confused). Do not trust V4 labels on non-training ISAs.",
+    "SPECTRE_V1 recall on riscv64 is low (25%); RSB 33%.",
+    "RETBLEED/INCEPTION/L1TF/MDS are unscored on riscv64 (no valid riscv64 examples).",
+    "Ensembling is more conservative than a single seed (lower FP, lower detection). For a generator reward, use attack_prob with an explicit threshold rather than argmax."
+  ]
+}

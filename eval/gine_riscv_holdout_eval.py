@@ -190,6 +190,80 @@ def ci(values, groups):
     return {"value": p, "ci_lo": lo, "ci_hi": hi, "n": int(len(values))}
 
 
+def load_checkpoint(ckpt_path, device, ckpt=None) -> dict:
+    """Rebuild a trained GINE exactly as it was trained, from the FULL saved
+    args (node-feature mode + MLM/tokenizer, arch_mode, hand-feature subset,
+    NOP stripping, edge/taint knobs). Returns {model (eval mode), make_ds
+    (records -> dataset built the training way), label_to_id, id_to_label,
+    args, mlm, riscv_tok}. Shared by score() and eval/locked_classifier.py so
+    the two cannot drift apart."""
+    if ckpt is None:
+        ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    a = ckpt["args"]
+    label_to_id = ckpt["label_to_id"]
+    mode = a.get("node_feature_mode", "hand")
+    _use_impl(impl_for(a))
+    ds_kw = dict(speculative_window=a["speculative_window"],
+                 strip_bp=not a["no_strip"],
+                 node_feature_mode=mode,
+                 use_spec_builder=a["use_spec_builder"])
+    if _IMPL == "v54":
+        # v54's dataset takes the edge/taint/NOP knobs in every node mode.
+        ds_kw.update(taint_mode=a.get("taint_mode", "shift"),
+                     mem_order_edges=a.get("mem_order_edges", False),
+                     cfg_spec_edges=a.get("cfg_spec_edges", False))
+        if a.get("drop_nops"):           # only newer v54 datasets accept it
+            ds_kw["drop_nops"] = True
+    mlm = riscv_tok = None
+    if mode != "hand":
+        from train_mlm import MlmEncoder
+        from asm_tokenizer import MultiArchTokenizer
+        mlm_path = Path(a["mlm_path"])
+        for cand in (mlm_path, ROOT / mlm_path, ROOT / "v56" / mlm_path, ROOT / "spec" / mlm_path.name):
+            if cand.is_file():
+                mlm_path = cand
+                break
+        mlm = MlmEncoder.load(str(mlm_path))
+        tok_mode = getattr(mlm, "tokenizer_mode", "mnemonic")
+        # Mirror the training script's tokenizer choice exactly: v56 always
+        # tokenises per-arch; v54 does so only for canonical/neutral encoders
+        # and otherwise uses the single base-engine AsmTokenizer.
+        if _IMPL == "v54" and tok_mode not in ("canonical", "neutral"):
+            from asm_tokenizer import AsmTokenizer
+            from isa_spec import load_engine
+            tok = AsmTokenizer(load_engine("base.json"))
+            riscv_tok = tok
+        else:
+            tok = MultiArchTokenizer(mode=tok_mode)
+            riscv_tok = tok.for_arch("riscv64")
+        ds_kw.update(mlm=mlm, tokenizer=tok)
+
+    def make_ds(rs):
+        return GINEDatasetV47(rs, label_to_id, ckpt["feature_names"], **ds_kw)
+
+    node_feat_dim = make_ds([]).node_feature_dim
+    model = GINEClassifier(
+        node_feat_dim=node_feat_dim,
+        num_edge_types=NUM_EDGE_TYPES,
+        hidden_dim=a["hidden_dim"],
+        num_layers=a["num_layers"],
+        num_classes=len(label_to_id),
+        handcrafted_dim=max(len(ckpt["feature_names"]), 1),
+        global_feat_dim=5,
+        arch_emb_dim=a["arch_emb_dim"],
+        dropout=a["dropout"],
+        use_virtual_node=not a["no_virtual_node"],
+        jk_mode=a["jk_mode"],
+        **({"arch_mode": a.get("arch_mode", "embed"),
+            "use_handcrafted": not a.get("no_handcrafted", False)} if _IMPL == "v54" else {}),
+    ).to(device)
+    model.load_state_dict(ckpt["model_state_dict"])
+    model.eval()
+    return {"model": model, "make_ds": make_ds, "label_to_id": label_to_id,
+            "id_to_label": {i: l for l, i in label_to_id.items()},
+            "args": a, "mlm": mlm, "riscv_tok": riscv_tok}
+
+
 def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool,
           window_len=None, ks=(0.5,), allow_group_overlap: bool = False) -> dict:
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
@@ -210,43 +284,12 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool,
                          f"{archs['riscv64']} riscv64 records — not a held-out-ISA "
                          f"checkpoint (pass --allow-riscv-train to score anyway)")
     mode = a.get("node_feature_mode", "hand")
-    _use_impl(impl_for(a))
+    L = load_checkpoint(ckpt_path, device, ckpt=ckpt)
+    model, make_ds, riscv_tok, mlm = L["model"], L["make_ds"], L["riscv_tok"], L["mlm"]
 
     recs = [r for r in records if r["label"] in label_to_id]
-    ds_kw = dict(speculative_window=a["speculative_window"],
-                 strip_bp=not a["no_strip"],
-                 node_feature_mode=mode,
-                 use_spec_builder=a["use_spec_builder"])
     oov = None
-    if _IMPL == "v54":
-        # v54's dataset takes the edge/taint/NOP knobs in every node mode.
-        ds_kw.update(taint_mode=a.get("taint_mode", "shift"),
-                     mem_order_edges=a.get("mem_order_edges", False),
-                     cfg_spec_edges=a.get("cfg_spec_edges", False))
-        if a.get("drop_nops"):           # only newer v54 datasets accept it
-            ds_kw["drop_nops"] = True
-    if mode != "hand":
-        from train_mlm import MlmEncoder
-        from asm_tokenizer import MultiArchTokenizer
-        mlm_path = Path(a["mlm_path"])
-        for cand in (mlm_path, ROOT / mlm_path, ROOT / "v56" / mlm_path, ROOT / "spec" / mlm_path.name):
-            if cand.is_file():
-                mlm_path = cand
-                break
-        mlm = MlmEncoder.load(str(mlm_path))
-        tok_mode = getattr(mlm, "tokenizer_mode", "mnemonic")
-        # Mirror the training script's tokenizer choice exactly: v56 always
-        # tokenises per-arch; v54 does so only for canonical encoders and
-        # otherwise uses the single base-engine AsmTokenizer.
-        if _IMPL == "v54" and tok_mode not in ("canonical", "neutral"):
-            from asm_tokenizer import AsmTokenizer
-            from isa_spec import load_engine
-            tok = AsmTokenizer(load_engine("base.json"))
-            riscv_tok = tok
-        else:
-            tok = MultiArchTokenizer(mode=tok_mode)
-            riscv_tok = tok.for_arch("riscv64")
-        ds_kw.update(mlm=mlm, tokenizer=tok)
+    if mlm is not None:
         # How much of riscv64 the encoder can even see: tokens outside its vocab.
         unk = tot = 0
         for r in recs:
@@ -254,10 +297,8 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool,
                 tot += 1
                 unk += t not in mlm.vocab
         oov = unk / max(tot, 1)
-        print(f"  MLM {mlm_path.name}: tokenizer={getattr(mlm, 'tokenizer_mode', 'mnemonic')} "
+        print(f"  MLM {Path(a['mlm_path']).name}: tokenizer={getattr(mlm, 'tokenizer_mode', 'mnemonic')} "
               f"vocab={len(mlm.vocab)}  riscv64 OOV={100*oov:.1f}% of {tot} tokens")
-    def make_ds(rs):
-        return GINEDatasetV47(rs, label_to_id, ckpt["feature_names"], **ds_kw)
 
     ds = make_ds(recs)
     if len(ds) != len(recs):
@@ -267,22 +308,6 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool,
                          f"PDG build — refusing to misalign groups")
     loader = torch.utils.data.DataLoader(ds, batch_size=32, shuffle=False,
                                          collate_fn=collate_fn, num_workers=0)
-    model = GINEClassifier(
-        node_feat_dim=ds.node_feature_dim,
-        num_edge_types=NUM_EDGE_TYPES,
-        hidden_dim=a["hidden_dim"],
-        num_layers=a["num_layers"],
-        num_classes=len(label_to_id),
-        handcrafted_dim=max(len(ckpt["feature_names"]), 1),
-        global_feat_dim=5,
-        arch_emb_dim=a["arch_emb_dim"],
-        dropout=a["dropout"],
-        use_virtual_node=not a["no_virtual_node"],
-        jk_mode=a["jk_mode"],
-        **({"arch_mode": a.get("arch_mode", "embed"),
-            "use_handcrafted": not a.get("no_handcrafted", False)} if _IMPL == "v54" else {}),
-    ).to(device)
-    model.load_state_dict(ckpt["model_state_dict"])
 
     probs, y_ids = predict(model, loader, device)
     y = np.array([id_to_label[i] for i in y_ids])
