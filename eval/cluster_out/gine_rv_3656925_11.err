@@ -1,0 +1,53 @@
+Traceback (most recent call last):
+  File "/home/s2473583/speculative_execution/v54/train_gine_v38.py", line 1194, in <module>
+    main()
+  File "/home/s2473583/speculative_execution/v54/train_gine_v38.py", line 1042, in main
+    ce_loss, con_loss, train_acc = train_epoch(
+                                   ^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/v54/train_gine_v38.py", line 461, in train_epoch
+    outputs = model(
+              ^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/v54/gine_classifier_v38.py", line 381, in forward
+    graph_repr_raw = self.encode_graph(
+                     ^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/v54/gine_classifier_v38.py", line 357, in encode_graph
+    h, vn = self.vn_updates[layer_idx](h, vn, node_mask)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/v54/gine_classifier_v38.py", line 154, in forward
+    vn_new = self.mlp(vn_new)
+             ^^^^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/container.py", line 250, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/batchnorm.py", line 193, in forward
+    return F.batch_norm(
+           ^^^^^^^^^^^^^
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/functional.py", line 2810, in batch_norm
+    _verify_batch_size(input.size())
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/functional.py", line 2776, in _verify_batch_size
+    raise ValueError(
+ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 128])

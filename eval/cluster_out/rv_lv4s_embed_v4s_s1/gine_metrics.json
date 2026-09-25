@@ -1,0 +1,147 @@
+{
+  "test_accuracy": 0.9281437125748503,
+  "best_epoch": 34,
+  "total_params": 618059,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 16866,
+  "val_count": 2187,
+  "test_count": 1670,
+  "best_val_acc": 0.9547325102880658,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.8918284177780151,
+    "CONTROL_FLOW": 0.6112180948257446,
+    "SPEC_CONDITIONAL": 0.945761501789093,
+    "SPEC_INDIRECT": 1.005609154701233,
+    "SPEC_RETURN": 1.3126769065856934,
+    "MEMORY_ORDER": 1.1227025985717773,
+    "CACHE_TEMPORAL": 1.159683346748352,
+    "FENCE_BOUNDARY": 0.9838869571685791,
+    "RSB_CHAIN": 1.294486165046692
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9912875121006777,
+      "recall": 0.9932104752667313,
+      "f1-score": 0.9922480620155039,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.5855855855855856,
+      "recall": 0.9701492537313433,
+      "f1-score": 0.7303370786516854,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.9294117647058824,
+      "recall": 0.8404255319148937,
+      "f1-score": 0.88268156424581,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.9,
+      "recall": 0.7297297297297297,
+      "f1-score": 0.8059701492537313,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.88,
+      "recall": 0.9777777777777777,
+      "f1-score": 0.9263157894736842,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.925,
+      "recall": 0.9866666666666667,
+      "f1-score": 0.9548387096774194,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.2,
+      "recall": 1.0,
+      "f1-score": 0.3333333333333333,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.8571428571428571,
+      "recall": 1.0,
+      "f1-score": 0.9230769230769231,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.972972972972973,
+      "recall": 0.4675324675324675,
+      "f1-score": 0.631578947368421,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.7973856209150327,
+      "recall": 0.9838709677419355,
+      "f1-score": 0.8808664259927798,
+      "support": 124.0
+    },
+    "accuracy": 0.9281437125748503,
+    "macro avg": {
+      "precision": 0.8038786313423009,
+      "recall": 0.8949362870361546,
+      "f1-score": 0.8061246983089292,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.9435958203135855,
+      "recall": 0.9281437125748503,
+      "f1-score": 0.924325491821359,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7325981264081585,
+    "epoch1_val_acc": 0.8550525834476452
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train_lenmatch_v4s.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/rv_lv4s_embed_v4s_s1",
+    "viz_dir": "eval/cluster_out/rv_lv4s_embed_v4s_s1",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "embed",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "all",
+    "drop_nops": false,
+    "node_drop": 0.0,
+    "no_handcrafted": false,
+    "node_feature_mode": "hand",
+    "mlm_path": null,
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 1
+  }
+}

@@ -1,0 +1,541 @@
+{
+ "ckpt": "eval/cluster_out/rv_embed_v4s_s1/gine_best.pt",
+ "train_data": "v54/data/v54_train.jsonl",
+ "train_archs": {
+  "arm64": 3434,
+  "x86_64": 2093,
+  "arm32": 5
+ },
+ "seed": 1,
+ "node_feature_mode": "hand",
+ "mlm_path": null,
+ "riscv_oov_rate": null,
+ "arch_mode": "embed",
+ "no_handcrafted": false,
+ "handcrafted_subset": "all",
+ "n": 46,
+ "n_groups": 6,
+ "effective_n": 5.718918918918919,
+ "always_benign_baseline": 0.6956521739130435,
+ "accuracy": {
+  "value": 0.391304347826087,
+  "ci_lo": 0.36363636363636365,
+  "ci_hi": 0.4166666666666667,
+  "n": 46
+ },
+ "benign_fp_rate": {
+  "value": 0.4375,
+  "ci_lo": 0.4117647058823529,
+  "ci_hi": 0.4666666666666667,
+  "n": 32
+ },
+ "attack_detection_rate": {
+  "value": 0.42857142857142855,
+  "ci_lo": 0.375,
+  "ci_hi": 0.5,
+  "n": 14
+ },
+ "per_class": {
+  "BENIGN": {
+   "recall": {
+    "value": 0.5625,
+    "ci_lo": 0.5333333333333333,
+    "ci_hi": 0.5882352941176471,
+    "n": 32
+   },
+   "precision": 0.6923076923076923,
+   "f1": 0.6206896551724138,
+   "support": 32,
+   "low_support": false
+  },
+  "SPECTRE_V4": {
+   "recall": {
+    "value": 0.0,
+    "ci_lo": 0.0,
+    "ci_hi": 0.0,
+    "n": 14
+   },
+   "precision": 0.0,
+   "f1": 0.0,
+   "support": 14,
+   "low_support": false
+  }
+ },
+ "pred_distribution": {
+  "SPECTRE_V1": 20,
+  "BENIGN": 26
+ },
+ "records": [
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "SPECTRE_V4",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "SPECTRE_V4",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "SPECTRE_V4",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "SPECTRE_V4",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "x86_64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "arm64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  }
+ ],
+ "macro_f1": 0.3103448275862069,
+ "v4_family": {
+  "all": {
+   "vuln": {
+    "n": 14,
+    "pred_v4": 0.0,
+    "pred_attack": 0.42857142857142855
+   },
+   "fenced": {
+    "n": 16,
+    "pred_v4": 0.0,
+    "pred_attack": 0.5
+   },
+   "safe": {
+    "n": 16,
+    "pred_v4": 0.0,
+    "pred_attack": 0.375
+   },
+   "v4_separation": 0.0
+  },
+  "x86_64/clang": {
+   "vuln": {
+    "n": 6,
+    "pred_v4": 0.0,
+    "pred_attack": 1.0
+   },
+   "fenced": {
+    "n": 8,
+    "pred_v4": 0.0,
+    "pred_attack": 1.0
+   },
+   "safe": {
+    "n": 6,
+    "pred_v4": 0.0,
+    "pred_attack": 1.0
+   },
+   "v4_separation": 0.0
+  },
+  "arm64/clang": {
+   "vuln": {
+    "n": 8,
+    "pred_v4": 0.0,
+    "pred_attack": 0.0
+   },
+   "fenced": {
+    "n": 8,
+    "pred_v4": 0.0,
+    "pred_attack": 0.0
+   },
+   "safe": {
+    "n": 10,
+    "pred_v4": 0.0,
+    "pred_attack": 0.0
+   },
+   "v4_separation": 0.0
+  }
+ }
+}

@@ -1,0 +1,113 @@
+host=saxa.inf.ed.ac.uk job=3656935 cond=lv4s_learned seed=13 extra='--arch-mode drop --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1' train=v54/data/v54_train_lenmatch_v4s.jsonl
+name, memory.total [MiB]
+NVIDIA H200, 143771 MiB
+[guard] v54/data/v54_train_lenmatch_v4s.jsonl: 0 riscv64 records
+Device: cuda
+
+======================================================================
+v52_b GINE — group-aware val + stable-hash dataset
+======================================================================
+Node features: 41  Edge types: 9 (incl. RSB_CHAIN)
+Global features: 5  Arch embedding: 8-dim
+
+Loading pre-split train: v54/data/v54_train_lenmatch_v4s.jsonl
+  19053 records
+Loading pre-split test: v54/data/v54_test.jsonl
+  1670 records
+
+Label distribution:
+  BENIGN: 11991
+  BRANCH_HISTORY_INJECTION: 639
+  INCEPTION: 1192
+  L1TF: 513
+  MDS: 498
+  RETBLEED: 680
+  SPECTRE_RSB: 1378
+  SPECTRE_V1: 1697
+  SPECTRE_V2: 1354
+  SPECTRE_V4: 781
+
+Classes (10): ['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+  Hard negative: SPECTRE_V1 <-> BRANCH_HISTORY_INJECTION
+  Hard negative: INCEPTION <-> BRANCH_HISTORY_INJECTION
+  Hard negative: MDS <-> RETBLEED
+  Hard negative: INCEPTION <-> RETBLEED
+  Hard negative: L1TF <-> SPECTRE_V1
+  Hard negative: L1TF <-> SPECTRE_V4
+  Hard negative: MDS <-> SPECTRE_V4
+  Hard negative: SPECTRE_V1 <-> SPECTRE_V4
+  Hard negative: SPECTRE_V2 <-> BRANCH_HISTORY_INJECTION
+  Hard negative: SPECTRE_V2 <-> INCEPTION
+  Hard negative: RETBLEED <-> INCEPTION
+  Hard negative: MDS <-> L1TF
+  Hard negative: SPECTRE_V2 <-> RETBLEED
+Handcrafted features (inline): 9
+  Train-only augmentation (excluded from val): 900 records (fastspec)
+
+Group-aware val split: StratifiedGroupKFold(n_splits=10) → val_frac≈0.120 (target ~0.100, pool=18153 val-eligible records)
+  Distinct groups — train: 684, val: 83, train∩val groups: 0
+
+Pre-split: Train=16866, Val=2187, Test=1670
+  Val carve-out: stratified_group_kfold_n10
+  Early stopping uses VAL accuracy. Test evaluated once at end.
+
+Global feature statistics (train, mean±std):
+  nop_frac            : 0.0668 ± 0.1197
+  indirect_frac       : 0.0470 ± 0.0645
+  ret_frac            : 0.0380 ± 0.0388
+  verw_frac           : 0.0010 ± 0.0093
+  movntdqa_frac       : 0.0002 ± 0.0029
+Loaded MLM encoder (learned) dim=128 vocab=119 tokenizer=neutral from spec/mlm_neutral.pt
+
+Creating datasets...
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 16865/16866
+  Boilerplate stripped: 4 (0.0%) samples
+  Instructions: 1211859 -> 1211853 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :   933398 (31.1%)
+    CONTROL_FLOW        :  1193808 (39.8%)
+    SPEC_CONDITIONAL    :   468042 (15.6%)
+    SPEC_INDIRECT       :    83594 (2.8%)
+    SPEC_RETURN         :   184468 (6.1%)
+    MEMORY_ORDER        :   109502 (3.6%)
+    CACHE_TEMPORAL      :     7117 (0.2%)
+    FENCE_BOUNDARY      :     5187 (0.2%)
+    RSB_CHAIN           :    15349 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 2186/2187
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 158415 -> 158415 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :   122523 (32.0%)
+    CONTROL_FLOW        :   155989 (40.7%)
+    SPEC_CONDITIONAL    :    59800 (15.6%)
+    SPEC_INDIRECT       :     8553 (2.2%)
+    SPEC_RETURN         :    21608 (5.6%)
+    MEMORY_ORDER        :    11909 (3.1%)
+    CACHE_TEMPORAL      :      538 (0.1%)
+    FENCE_BOUNDARY      :      667 (0.2%)
+    RSB_CHAIN           :     1701 (0.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1669/1670
+  Boilerplate stripped: 1 (0.1%) samples
+  Instructions: 50215 -> 50214 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23013 (25.9%)
+    CONTROL_FLOW        :    46413 (52.2%)
+    SPEC_CONDITIONAL    :     9030 (10.1%)
+    SPEC_INDIRECT       :     1725 (1.9%)
+    SPEC_RETURN         :     4594 (5.2%)
+    MEMORY_ORDER        :     1947 (2.2%)
+    CACHE_TEMPORAL      :      599 (0.7%)
+    FENCE_BOUNDARY      :     1023 (1.1%)
+    RSB_CHAIN           :      639 (0.7%)
+Node feature mode: learned  node_feat_dim=129
+
+Initializing GINEClassifier v47...
+  Total parameters: 614,731
+  Edge types: 9 (RSB_CHAIN added)
+
+======================================================================
+TRAINING
+======================================================================
