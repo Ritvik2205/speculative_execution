@@ -1,0 +1,256 @@
+host=damnii07.inf.ed.ac.uk job=3657126 cond=lv4s_learned_adv seed=21 extra='--arch-mode adversarial --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1' train=v54/data/v54_train_lenmatch_v4s.jsonl
+name, memory.total [MiB]
+NVIDIA GeForce RTX 2080 Ti, 11264 MiB
+[guard] v54/data/v54_train_lenmatch_v4s.jsonl: 0 riscv64 records
+Device: cuda
+
+======================================================================
+v52_b GINE — group-aware val + stable-hash dataset
+======================================================================
+Node features: 41  Edge types: 9 (incl. RSB_CHAIN)
+Global features: 5  Arch embedding: 8-dim
+
+Loading pre-split train: v54/data/v54_train_lenmatch_v4s.jsonl
+  19053 records
+Loading pre-split test: v54/data/v54_test.jsonl
+  1670 records
+
+Label distribution:
+  BENIGN: 11991
+  BRANCH_HISTORY_INJECTION: 639
+  INCEPTION: 1192
+  L1TF: 513
+  MDS: 498
+  RETBLEED: 680
+  SPECTRE_RSB: 1378
+  SPECTRE_V1: 1697
+  SPECTRE_V2: 1354
+  SPECTRE_V4: 781
+
+Classes (10): ['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+  Hard negative: SPECTRE_V1 <-> BRANCH_HISTORY_INJECTION
+  Hard negative: INCEPTION <-> BRANCH_HISTORY_INJECTION
+  Hard negative: MDS <-> RETBLEED
+  Hard negative: INCEPTION <-> RETBLEED
+  Hard negative: L1TF <-> SPECTRE_V1
+  Hard negative: L1TF <-> SPECTRE_V4
+  Hard negative: MDS <-> SPECTRE_V4
+  Hard negative: SPECTRE_V1 <-> SPECTRE_V4
+  Hard negative: SPECTRE_V2 <-> BRANCH_HISTORY_INJECTION
+  Hard negative: SPECTRE_V2 <-> INCEPTION
+  Hard negative: RETBLEED <-> INCEPTION
+  Hard negative: MDS <-> L1TF
+  Hard negative: SPECTRE_V2 <-> RETBLEED
+Handcrafted features (inline): 9
+  Train-only augmentation (excluded from val): 900 records (fastspec)
+
+Group-aware val split: StratifiedGroupKFold(n_splits=10) → val_frac≈0.120 (target ~0.100, pool=18153 val-eligible records)
+  Distinct groups — train: 684, val: 83, train∩val groups: 0
+
+Pre-split: Train=16866, Val=2187, Test=1670
+  Val carve-out: stratified_group_kfold_n10
+  Early stopping uses VAL accuracy. Test evaluated once at end.
+
+Global feature statistics (train, mean±std):
+  nop_frac            : 0.0668 ± 0.1197
+  indirect_frac       : 0.0470 ± 0.0645
+  ret_frac            : 0.0380 ± 0.0388
+  verw_frac           : 0.0010 ± 0.0093
+  movntdqa_frac       : 0.0002 ± 0.0029
+Loaded MLM encoder (learned) dim=128 vocab=119 tokenizer=neutral from spec/mlm_neutral.pt
+
+Creating datasets...
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 16865/16866
+  Boilerplate stripped: 4 (0.0%) samples
+  Instructions: 1211859 -> 1211853 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :   933398 (31.1%)
+    CONTROL_FLOW        :  1193808 (39.8%)
+    SPEC_CONDITIONAL    :   468042 (15.6%)
+    SPEC_INDIRECT       :    83594 (2.8%)
+    SPEC_RETURN         :   184468 (6.1%)
+    MEMORY_ORDER        :   109502 (3.6%)
+    CACHE_TEMPORAL      :     7117 (0.2%)
+    FENCE_BOUNDARY      :     5187 (0.2%)
+    RSB_CHAIN           :    15349 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 2186/2187
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 158415 -> 158415 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :   122523 (32.0%)
+    CONTROL_FLOW        :   155989 (40.7%)
+    SPEC_CONDITIONAL    :    59800 (15.6%)
+    SPEC_INDIRECT       :     8553 (2.2%)
+    SPEC_RETURN         :    21608 (5.6%)
+    MEMORY_ORDER        :    11909 (3.1%)
+    CACHE_TEMPORAL      :      538 (0.1%)
+    FENCE_BOUNDARY      :      667 (0.2%)
+    RSB_CHAIN           :     1701 (0.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1669/1670
+  Boilerplate stripped: 1 (0.1%) samples
+  Instructions: 50215 -> 50214 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23013 (25.9%)
+    CONTROL_FLOW        :    46413 (52.2%)
+    SPEC_CONDITIONAL    :     9030 (10.1%)
+    SPEC_INDIRECT       :     1725 (1.9%)
+    SPEC_RETURN         :     4594 (5.2%)
+    MEMORY_ORDER        :     1947 (2.2%)
+    CACHE_TEMPORAL      :      599 (0.7%)
+    FENCE_BOUNDARY      :     1023 (1.1%)
+    RSB_CHAIN           :      639 (0.7%)
+Node feature mode: learned  node_feat_dim=129
+
+Initializing GINEClassifier v47...
+  Total parameters: 649,936
+  Edge types: 9 (RSB_CHAIN added)
+
+======================================================================
+TRAINING
+======================================================================
+Epoch   1/60 | CE: 1.1712 | Con: 2.7774 | Train: 0.712 | Val: 0.833 | LR: 9.99e-04 | 58.8s *BEST*
+  Edge scales: CACHE_TE=1.14 | CONTROL_=0.99 | DATA_DEP=0.99 | FENCE_BO=0.99 | MEMORY_O=1.03 | RSB_CHAI=1.00 | SPEC_CON=1.06 | SPEC_IND=1.20 | SPEC_RET=1.03
+Epoch   2/60 | CE: 0.6962 | Con: 2.5304 | Train: 0.822 | Val: 0.833 | LR: 9.97e-04 | 54.5s
+Epoch   3/60 | CE: 0.5478 | Con: 2.4177 | Train: 0.856 | Val: 0.855 | LR: 9.94e-04 | 52.7s *BEST*
+  Edge scales: CACHE_TE=1.25 | CONTROL_=0.92 | DATA_DEP=0.93 | FENCE_BO=1.05 | MEMORY_O=1.07 | RSB_CHAI=0.98 | SPEC_CON=1.10 | SPEC_IND=1.32 | SPEC_RET=1.06
+Epoch   4/60 | CE: 0.4556 | Con: 2.3511 | Train: 0.880 | Val: 0.875 | LR: 9.89e-04 | 50.5s *BEST*
+  Edge scales: CACHE_TE=1.29 | CONTROL_=0.89 | DATA_DEP=0.93 | FENCE_BO=1.07 | MEMORY_O=1.07 | RSB_CHAI=0.94 | SPEC_CON=1.11 | SPEC_IND=1.33 | SPEC_RET=1.07
+Epoch   5/60 | CE: 0.3851 | Con: 2.2920 | Train: 0.897 | Val: 0.830 | LR: 9.83e-04 | 43.3s
+Epoch   6/60 | CE: 0.3545 | Con: 2.2467 | Train: 0.907 | Val: 0.854 | LR: 9.76e-04 | 53.1s
+Epoch   7/60 | CE: 0.3263 | Con: 2.2169 | Train: 0.915 | Val: 0.866 | LR: 9.67e-04 | 56.3s
+Epoch   8/60 | CE: 0.3065 | Con: 2.2023 | Train: 0.919 | Val: 0.833 | LR: 9.57e-04 | 56.3s
+Epoch   9/60 | CE: 0.2862 | Con: 2.1834 | Train: 0.920 | Val: 0.822 | LR: 9.46e-04 | 53.8s
+Epoch  10/60 | CE: 0.2785 | Con: 2.1788 | Train: 0.921 | Val: 0.869 | LR: 9.33e-04 | 56.5s
+  Edge scales: CACHE_TE=1.32 | CONTROL_=0.80 | DATA_DEP=0.82 | FENCE_BO=1.17 | MEMORY_O=1.08 | RSB_CHAI=0.94 | SPEC_CON=1.10 | SPEC_IND=1.38 | SPEC_RET=1.11
+Epoch  11/60 | CE: 0.2805 | Con: 2.1629 | Train: 0.923 | Val: 0.850 | LR: 9.19e-04 | 42.6s
+Epoch  12/60 | CE: 0.2398 | Con: 2.1337 | Train: 0.935 | Val: 0.834 | LR: 9.05e-04 | 45.6s
+Epoch  13/60 | CE: 0.2238 | Con: 2.1060 | Train: 0.935 | Val: 0.825 | LR: 8.89e-04 | 55.7s
+Epoch  14/60 | CE: 0.2192 | Con: 2.1073 | Train: 0.941 | Val: 0.822 | LR: 8.72e-04 | 54.5s
+
+Early stop at epoch 14
+
+======================================================================
+FINAL EVALUATION
+======================================================================
+Best model from epoch 4 (val_acc=0.8751)
+Test accuracy: 0.9311
+Val/Test gap: -5.60pp
+
+Final edge-type scales:
+  CACHE_TEMPORAL      : 1.2904  (UP)
+  CONTROL_FLOW        : 0.8939  (DOWN)
+  DATA_DEP            : 0.9319  (DOWN)
+  FENCE_BOUNDARY      : 1.0656  (UP)
+  MEMORY_ORDER        : 1.0715  (UP)
+  RSB_CHAIN           : 0.9425  (DOWN)
+  SPEC_CONDITIONAL    : 1.1139  (UP)
+  SPEC_INDIRECT       : 1.3332  (UP)
+  SPEC_RETURN         : 1.0658  (UP)
+
+Classification Report:
+                          precision    recall  f1-score   support
+
+                  BENIGN       0.99      0.96      0.98      1031
+BRANCH_HISTORY_INJECTION       0.63      0.97      0.76        67
+               INCEPTION       0.79      0.83      0.81        93
+                    L1TF       0.83      0.65      0.73        37
+                     MDS       0.81      0.93      0.87        45
+                RETBLEED       0.83      1.00      0.91        75
+             SPECTRE_RSB       0.50      1.00      0.67         1
+              SPECTRE_V1       0.85      0.93      0.89        42
+              SPECTRE_V2       0.98      0.75      0.85       154
+              SPECTRE_V4       0.92      0.98      0.95       124
+
+                accuracy                           0.93      1669
+               macro avg       0.81      0.90      0.84      1669
+            weighted avg       0.94      0.93      0.93      1669
+
+
+Results saved to eval/cluster_out/rv_lv4s_learned_adv_v4s_s21/gine_metrics.json
+Best val accuracy:  87.51%  (epoch 4)
+Final test accuracy: 93.11%
+riscv64 held-out: 267 records, 19 stubs (<= 10 instr) excluded -> 248; labels {'SPECTRE_V1': 12, 'SPECTRE_RSB': 6, 'SPECTRE_V4': 5, 'BRANCH_HISTORY_INJECTION': 4, 'BENIGN': 221}
+  MLM mlm_neutral.pt: tokenizer=neutral vocab=119  riscv64 OOV=0.0% of 32198 tokens
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 248/248
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 32185 -> 32185 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    19170 (38.3%)
+    CONTROL_FLOW        :    20625 (41.2%)
+    SPEC_CONDITIONAL    :     8402 (16.8%)
+    SPEC_INDIRECT       :      340 (0.7%)
+    SPEC_RETURN         :      723 (1.4%)
+    MEMORY_ORDER        :      640 (1.3%)
+    FENCE_BOUNDARY      :       10 (0.0%)
+    RSB_CHAIN           :      175 (0.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 456/456
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 50304 -> 50304 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    38185 (35.5%)
+    CONTROL_FLOW        :    49848 (46.3%)
+    SPEC_CONDITIONAL    :    16313 (15.2%)
+    SPEC_INDIRECT       :      806 (0.7%)
+    SPEC_RETURN         :      841 (0.8%)
+    MEMORY_ORDER        :     1457 (1.4%)
+    FENCE_BOUNDARY      :       14 (0.0%)
+    RSB_CHAIN           :      198 (0.2%)
+
+eval/cluster_out/rv_lv4s_learned_adv_v4s_s21/gine_best.pt
+  mode=learned arch_mode=adversarial no_handcrafted=False train_archs={'arm64': 11553, 'x86_64': 7485, 'arm32': 15}
+  macroF1=47.1  acc=84.7 (always-BENIGN 89.1)  benignFP=8.1  attack-detect=66.7
+  recall: BENIGN=0.92(n=221)  BRANCH_HISTORY_INJECTION=0.50(n=4)  SPECTRE_RSB=0.67(n=6)  SPECTRE_V1=0.08(n=12)  SPECTRE_V4=0.00(n=5)
+  windowed(len=156, k=0.5): macroF1=42.1  benignFP=5.9  attack-detect=48.1
+  windowed(len=156, k=0.7): macroF1=37.2  benignFP=2.3  attack-detect=25.9
+  windowed(len=156, k=0.9): macroF1=26.8  benignFP=0.9  attack-detect=3.7
+
+-> eval/cluster_out/rv_lv4s_learned_adv_v4s_s21/riscv_holdout.json
+riscv64 held-out: 50 records, 0 stubs (<= 10 instr) excluded -> 50; labels {'SPECTRE_V4': 16, 'BENIGN': 34}
+  MLM mlm_neutral.pt: tokenizer=neutral vocab=119  riscv64 OOV=0.0% of 1252 tokens
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 50/50
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 1234 -> 1234 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :     1160 (47.3%)
+    CONTROL_FLOW        :     1184 (48.3%)
+    MEMORY_ORDER        :       90 (3.7%)
+    FENCE_BOUNDARY      :       16 (0.7%)
+
+eval/cluster_out/rv_lv4s_learned_adv_v4s_s21/gine_best.pt
+  mode=learned arch_mode=adversarial no_handcrafted=False train_archs={'arm64': 11553, 'x86_64': 7485, 'arm32': 15}
+  macroF1=32.4  acc=48.0 (always-BENIGN 68.0)  benignFP=29.4  attack-detect=0.0
+  recall: BENIGN=0.71(n=34)  SPECTRE_V4=0.00(n=16)
+  v4 family [all]: vuln->V4 0% (n=16)  safe->V4 22% (n=18)  fenced->V4 0% (n=16)  separation -22pp
+  v4 family [riscv64/gcc]: vuln->V4 0% (n=10)  safe->V4 0% (n=10)  fenced->V4 0% (n=10)  separation +0pp
+  v4 family [riscv64/clang]: vuln->V4 0% (n=6)  safe->V4 50% (n=8)  fenced->V4 0% (n=6)  separation -50pp
+
+-> eval/cluster_out/rv_lv4s_learned_adv_v4s_s21/v4fam_riscv64.json
+riscv64 held-out: 52 records, 6 stubs (<= 10 instr) excluded -> 46; labels {'SPECTRE_V4': 14, 'BENIGN': 32}
+  MLM mlm_neutral.pt: tokenizer=neutral vocab=119  riscv64 OOV=28.3% of 1264 tokens
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 46/46
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 1264 -> 1264 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :     1182 (46.3%)
+    CONTROL_FLOW        :     1218 (47.7%)
+    MEMORY_ORDER        :      130 (5.1%)
+    FENCE_BOUNDARY      :       24 (0.9%)
+
+eval/cluster_out/rv_lv4s_learned_adv_v4s_s21/gine_best.pt
+  mode=learned arch_mode=adversarial no_handcrafted=False train_archs={'arm64': 11553, 'x86_64': 7485, 'arm32': 15}
+  macroF1=62.7  acc=60.9 (always-BENIGN 69.6)  benignFP=43.8  attack-detect=71.4
+  recall: BENIGN=0.56(n=32)  SPECTRE_V4=0.71(n=14)
+  v4 family [all]: vuln->V4 71% (n=14)  safe->V4 50% (n=16)  fenced->V4 12% (n=16)  separation +21pp
+  v4 family [x86_64/clang]: vuln->V4 33% (n=6)  safe->V4 33% (n=6)  fenced->V4 25% (n=8)  separation +0pp
+  v4 family [arm64/clang]: vuln->V4 100% (n=8)  safe->V4 60% (n=10)  fenced->V4 0% (n=8)  separation +40pp
+
+-> eval/cluster_out/rv_lv4s_learned_adv_v4s_s21/v4fam_x86arm.json
+results -> /home/s2473583/speculative_execution/eval/cluster_out/rv_lv4s_learned_adv_v4s_s21
+done cond=lv4s_learned_adv seed=21 rc=0

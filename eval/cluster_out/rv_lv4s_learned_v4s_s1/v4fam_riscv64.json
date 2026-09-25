@@ -1,0 +1,578 @@
+{
+ "ckpt": "eval/cluster_out/rv_lv4s_learned_v4s_s1/gine_best.pt",
+ "train_data": "v54/data/v54_train_lenmatch_v4s.jsonl",
+ "train_archs": {
+  "arm64": 11553,
+  "x86_64": 7485,
+  "arm32": 15
+ },
+ "seed": 1,
+ "node_feature_mode": "learned",
+ "mlm_path": "spec/mlm_neutral.pt",
+ "riscv_oov_rate": 0.0,
+ "arch_mode": "drop",
+ "no_handcrafted": false,
+ "handcrafted_subset": "neutral",
+ "n": 50,
+ "n_groups": 6,
+ "effective_n": 4.41696113074205,
+ "always_benign_baseline": 0.68,
+ "accuracy": {
+  "value": 0.56,
+  "ci_lo": 0.5405405405405406,
+  "ci_hi": 0.6153846153846154,
+  "n": 50
+ },
+ "benign_fp_rate": {
+  "value": 0.23529411764705882,
+  "ci_lo": 0.1111111111111111,
+  "ci_hi": 0.28,
+  "n": 34
+ },
+ "attack_detection_rate": {
+  "value": 0.125,
+  "ci_lo": 0.0,
+  "ci_hi": 0.18181818181818182,
+  "n": 16
+ },
+ "per_class": {
+  "BENIGN": {
+   "recall": {
+    "value": 0.7647058823529411,
+    "ci_lo": 0.72,
+    "ci_hi": 0.8888888888888888,
+    "n": 34
+   },
+   "precision": 0.65,
+   "f1": 0.7027027027027027,
+   "support": 34,
+   "low_support": false
+  },
+  "SPECTRE_V4": {
+   "recall": {
+    "value": 0.125,
+    "ci_lo": 0.0,
+    "ci_hi": 0.18181818181818182,
+    "n": 16
+   },
+   "precision": 0.25,
+   "f1": 0.16666666666666666,
+   "support": 16,
+   "low_support": false
+  }
+ },
+ "pred_distribution": {
+  "BENIGN": 40,
+  "SPECTRE_V4": 8,
+  "SPECTRE_V1": 2
+ },
+ "records": [
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O2",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "SPECTRE_V4",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O2",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V4",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O2",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V4",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d1",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V4",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st11_ind0_d2",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O2",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "SPECTRE_V4",
+   "pred": "SPECTRE_V4",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O2",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V4",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V1",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O2",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d0",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V4",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d1",
+   "true": "BENIGN",
+   "pred": "SPECTRE_V4",
+   "arch": "riscv64",
+   "opt": "O1",
+   "compiler": "clang",
+   "v4_variant": "safe"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "SPECTRE_V4",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "vuln"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "fenced"
+  },
+  {
+   "group": "v4fam_st12_ind0_d2",
+   "true": "BENIGN",
+   "pred": "BENIGN",
+   "arch": "riscv64",
+   "opt": "O0",
+   "compiler": "gcc",
+   "v4_variant": "safe"
+  }
+ ],
+ "macro_f1": 0.4346846846846847,
+ "v4_family": {
+  "all": {
+   "vuln": {
+    "n": 16,
+    "pred_v4": 0.125,
+    "pred_attack": 0.125
+   },
+   "fenced": {
+    "n": 16,
+    "pred_v4": 0.125,
+    "pred_attack": 0.125
+   },
+   "safe": {
+    "n": 18,
+    "pred_v4": 0.2222222222222222,
+    "pred_attack": 0.3333333333333333
+   },
+   "v4_separation": -0.09722222222222221
+  },
+  "riscv64/gcc": {
+   "vuln": {
+    "n": 10,
+    "pred_v4": 0.0,
+    "pred_attack": 0.0
+   },
+   "fenced": {
+    "n": 10,
+    "pred_v4": 0.0,
+    "pred_attack": 0.0
+   },
+   "safe": {
+    "n": 10,
+    "pred_v4": 0.0,
+    "pred_attack": 0.2
+   },
+   "v4_separation": 0.0
+  },
+  "riscv64/clang": {
+   "vuln": {
+    "n": 6,
+    "pred_v4": 0.3333333333333333,
+    "pred_attack": 0.3333333333333333
+   },
+   "fenced": {
+    "n": 6,
+    "pred_v4": 0.3333333333333333,
+    "pred_attack": 0.3333333333333333
+   },
+   "safe": {
+    "n": 8,
+    "pred_v4": 0.5,
+    "pred_attack": 0.5
+   },
+   "v4_separation": -0.16666666666666669
+  }
+ }
+}
