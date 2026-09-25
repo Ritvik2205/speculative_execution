@@ -7,9 +7,8 @@
 #
 # Slurm job ARRAY: one task per (condition, seed). Index i maps to
 #   COND = CONDS[i / nSEEDS],  SEED = SEEDS[i % nSEEDS]
-# Default grid = lv4_* x3 + embed (B1 reference) x 5 seeds = tasks 0-19. Graph
-# construction changed (address-based MEMORY_ORDER), so submit with
-# TAG_SUFFIX=_addrmo to keep earlier runs' results. (Earlier grids:
+# Default grid = lv4s_* x3 + embed (B1 reference) x 5 seeds = tasks 0-19,
+# submit with TAG_SUFFIX=_v4s. (Earlier grids: lv4_* + embed as _addrmo;
 #   --array=0-29 --export=ALL,CONDS="len_embed len_neutral len_neutral_adv len_learned len_learned_adv len_both"):
 #   sbatch eval/cluster/riscv_holdout.sbatch
 # then aggregate once every task has finished (any exit status):
@@ -51,7 +50,7 @@
 set -euo pipefail
 
 REPO="${REPO:-$HOME/speculative_execution}"
-CONDS="${CONDS:-lv4_embed lv4_learned lv4_learned_adv embed}"
+CONDS="${CONDS:-lv4s_embed lv4s_learned lv4s_learned_adv embed}"
 SEEDS="${SEEDS:-42 1 7 13 21}"
 read -r -a _C <<< "$CONDS"
 read -r -a _S <<< "$SEEDS"
@@ -87,6 +86,13 @@ case "$COND" in
     lv4_embed)         TRAIN_C=v54/data/v54_train_lenmatch_v4.jsonl; EXTRA="" ;;
     lv4_learned)       TRAIN_C=v54/data/v54_train_lenmatch_v4.jsonl; EXTRA="--arch-mode drop --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
     lv4_learned_adv)   TRAIN_C=v54/data/v54_train_lenmatch_v4.jsonl; EXTRA="--arch-mode adversarial --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
+    # --- V4 family restricted to strides 9-10 (build_v4_train_family.py --split
+    #     train) so strides 11-12 are a held-out structure test on riscv64 AND
+    #     x86/arm (spec/data/v4fam_test_*.jsonl); evaluator refuses any
+    #     train/test source-family overlap.
+    lv4s_embed)        TRAIN_C=v54/data/v54_train_lenmatch_v4s.jsonl; EXTRA="" ;;
+    lv4s_learned)      TRAIN_C=v54/data/v54_train_lenmatch_v4s.jsonl; EXTRA="--arch-mode drop --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
+    lv4s_learned_adv)  TRAIN_C=v54/data/v54_train_lenmatch_v4s.jsonl; EXTRA="--arch-mode adversarial --handcrafted-subset neutral --drop-nops --node-feature-mode learned --mlm-path spec/mlm_neutral.pt --node-drop 0.1" ;;
     *) echo "unknown condition $COND" >&2; exit 1 ;;
 esac
 TRAIN="${TRAIN:-${TRAIN_C:-v54/data/v54_train.jsonl}}"
@@ -129,6 +135,15 @@ TQDM_DISABLE=1 python3 -u v54/train_gine_v38.py \
 TQDM_DISABLE=1 python3 -u eval/gine_riscv_holdout_eval.py \
     --ckpt "$OUT/gine_best.pt" --records "$RISCV" --window-len auto \
     --out "$OUT/riscv_holdout.json"
+# Matched V4 family, held-out strides 11-12: riscv64 (gcc + clang) and the
+# in-ISA x86/arm control. Skipped (not failed) if the run trained on those
+# structures — the evaluator's overlap guard exits non-zero then.
+TQDM_DISABLE=1 python3 -u eval/gine_riscv_holdout_eval.py \
+    --ckpt "$OUT/gine_best.pt" --records spec/data/v4fam_test_riscv64.jsonl \
+    --out "$OUT/v4fam_riscv64.json" || echo "[v4fam riscv64] skipped"
+TQDM_DISABLE=1 python3 -u eval/gine_riscv_holdout_eval.py --any-arch \
+    --ckpt "$OUT/gine_best.pt" --records spec/data/v4fam_test_x86arm.jsonl \
+    --out "$OUT/v4fam_x86arm.json" || echo "[v4fam x86arm] skipped"
 
 echo "results -> $REPO/$OUT"
 echo "done cond=$COND seed=$SEED rc=0"

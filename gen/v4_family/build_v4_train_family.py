@@ -30,14 +30,28 @@ store-bypass (0/40 recovery even for the reference PoC). Store-bypass itself is
 hardware-confirmed on the i5-8300H (Revizor, oracle/revizor/results/
 v4_ssb_260907: 15 violations with SSBD off, 0 with it on).
 
-Out: gen/v4_family/out/v4_train_family_records.jsonl
-Run: python3 gen/v4_family/build_v4_train_family.py
+Held-out structure split (2026-09-25): training uses strides 9-10 only;
+strides 11-12 are the held-out V4 test — built for riscv64 with gcc AND LLVM
+clang (spec/data/v4fam_test_riscv64.jsonl) and for x86/arm as the in-ISA
+control (spec/data/v4fam_test_x86arm.jsonl). NOTE: with `slot` volatile the
+indirection knob compiles identically either way and dead ops vanish above
+-O0, so the effective holdout is the shift constant — the riscv set measures
+ISA/compiler transfer of the same gadget, not new gadget structure. Global
+names (slot/array2/...) are replaced by <fn> so they can't mark the family.
+
+Run:
+  python3 gen/v4_family/build_v4_train_family.py --split train      # -> out/ (gitignored)
+  python3 gen/v4_family/build_v4_train_family.py --split test --archs riscv64 \
+      --compilers gcc clang --out spec/data/v4fam_test_riscv64.jsonl
+  python3 gen/v4_family/build_v4_train_family.py --split test --out spec/data/v4fam_test_x86arm.jsonl
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import itertools
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -66,14 +80,36 @@ def extract_victim(spath):
     return clean_seq(_neutralize(body))
 
 OUT = HERE / "out" / "v4_train_family_records.jsonl"
-TRIPLE = {"x86_64": "x86_64-linux-gnu", "arm64": "aarch64-linux-gnu"}
+# (arch, compiler) -> clang/gcc command prefix. x86_64/arm64 use the same Apple
+# clang as the held-out-clean benign filler; riscv64 is built with BOTH gcc
+# (the toolchain of the existing riscv held-out corpus) and LLVM clang (the
+# training toolchain), so ISA shift and compiler shift can be told apart.
+LLVM_CLANG = "/opt/homebrew/opt/llvm/bin/clang"
+COMPILE = {
+    ("x86_64", "clang"): ["clang", "--target=x86_64-linux-gnu"],
+    ("arm64", "clang"): ["clang", "--target=aarch64-linux-gnu"],
+    ("riscv64", "gcc"): ["riscv64-elf-gcc", "-march=rv64gc", "-mabi=lp64d", "-ffreestanding"],
+    ("riscv64", "clang"): [LLVM_CLANG, "--target=riscv64-linux-gnu", "-march=rv64gc",
+                           "-ffreestanding"],
+}
+TRAIN_STRIDES = (9, 10)       # training structures
+TEST_STRIDES = (11, 12)       # held-out structures: never in any training file
 OPTS = ("O0", "O1", "O2")
+# The family's globals survive in every ISA's asm (`slot@GOTPCREL`, `:got:slot`,
+# `%hi(slot)`) and would mark "this is the V4 family" identically in train and
+# test; replace them with the corpus-wide <fn> placeholder.
+_GLOBALS = re.compile(r"\b(slot|array2|temp|public_byte)\b")
 HEADER = (
     "#include <stdint.h>\n"
     "#if defined(__x86_64__)\n"
     "  #define SPEC_FENCE() __asm__ __volatile__(\"lfence\" ::: \"memory\")\n"
     "#elif defined(__aarch64__)\n"
     "  #define SPEC_FENCE() __asm__ __volatile__(\"dsb sy\\n\\tisb\" ::: \"memory\")\n"
+    # riscv has no architectural speculation barrier; `fence rw,rw` is the
+    # nearest ordering instruction. Without this branch the riscv "fenced"
+    # variant compiled to an empty compiler barrier == vuln.
+    "#elif defined(__riscv)\n"
+    "  #define SPEC_FENCE() __asm__ __volatile__(\"fence rw,rw\" ::: \"memory\")\n"
     "#else\n"
     "  #define SPEC_FENCE() __asm__ __volatile__(\"\" ::: \"memory\")\n"
     "#endif\n"
@@ -96,45 +132,67 @@ def victim_src(stride, indir, dead, variant):
     }
 
 
-def main():
+def build(archs, compilers, strides, opts):
     recs, seen, failed = [], set(), 0
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        for stride, indir, dead in itertools.product([9, 10, 11, 12], [0, 1], [0, 1, 2]):
+        for stride, indir, dead in itertools.product(strides, [0, 1], [0, 1, 2]):
             structure = f"st{stride}_ind{indir}_d{dead}"
             for variant in ("vuln", "fenced", "safe"):
                 c = tmp / f"{structure}_{variant}.c"
                 c.write_text(victim_src(stride, indir, dead, variant))
-                for arch, triple in TRIPLE.items():
-                    for opt in OPTS:
-                        s = tmp / f"{structure}_{variant}.{arch}.{opt}.s"
-                        r = subprocess.run(["clang", "-S", f"-{opt}", f"--target={triple}",
-                                            "-o", str(s), str(c)], capture_output=True, text=True)
+                for (arch, comp), cmd in COMPILE.items():
+                    if arch not in archs or comp not in compilers:
+                        continue
+                    for opt in opts:
+                        s = tmp / f"{structure}_{variant}.{arch}.{comp}.{opt}.s"
+                        r = subprocess.run(cmd + ["-S", f"-{opt}", "-o", str(s), str(c)],
+                                           capture_output=True, text=True)
                         if r.returncode != 0:
                             failed += 1
                             continue
-                        seq = extract_victim(str(s))
+                        seq = [_GLOBALS.sub("<fn>", l) for l in extract_victim(str(s))]
                         if len(seq) < 3:
                             failed += 1
                             continue
-                        h = hashlib.sha256("\n".join(seq).encode()).hexdigest()
+                        h = hashlib.sha256((arch + "\n".join(seq)).encode()).hexdigest()
                         if h in seen:          # e.g. -O1 == -O2 for a structure
                             continue
                         seen.add(h)
                         recs.append({
                             "label": LABEL[variant], "sequence": seq, "arch": arch,
                             # one group per STRUCTURE: its vuln/fenced/safe twins,
-                            # ISAs and opt levels stay on one side of any split
+                            # ISAs, compilers and opt levels share it
                             "group": f"v4fam_{structure}",
                             "source_file": f"gen/v4_family/v4fam_{structure}_{variant}.c",
-                            "opt": opt, "v4_variant": variant,
+                            "opt": opt, "compiler": comp, "v4_variant": variant,
+                            "v4_stride": stride,
                             "provenance": "v4_family_construction",
                             "augmentation": "none",
                         })
-    OUT.write_text("".join(json.dumps(r) + "\n" for r in recs))
-    print(f"{len(recs)} records ({failed} compile/extract failures) -> {OUT.relative_to(ROOT)}")
+    return recs, failed
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--split", choices=["train", "test"], default="train",
+                    help=f"train: strides {TRAIN_STRIDES}; test: held-out strides {TEST_STRIDES}")
+    ap.add_argument("--archs", nargs="+", default=["x86_64", "arm64"])
+    ap.add_argument("--compilers", nargs="+", default=["clang"])
+    ap.add_argument("--out", default=str(OUT))
+    args = ap.parse_args()
+    strides = TRAIN_STRIDES if args.split == "train" else TEST_STRIDES
+    if args.split == "train" and "riscv64" in args.archs:
+        raise SystemExit("riscv64 is the held-out ISA — never build it for training")
+    recs, failed = build(args.archs, args.compilers, strides, OPTS)
+    assert {r["v4_stride"] for r in recs} <= set(strides)
+    out = Path(args.out)
+    out.write_text("".join(json.dumps(r) + "\n" for r in recs))
+    print(f"{args.split}: strides {strides} -> {len(recs)} records "
+          f"({failed} compile/extract failures) -> {out}")
     print("by variant/label:", dict(Counter((r["v4_variant"], r["label"]) for r in recs)))
-    print("by arch/opt:", dict(Counter((r["arch"], r["opt"]) for r in recs)))
+    print("by arch/compiler/opt:", dict(Counter((r["arch"], r["compiler"], r["opt"]) for r in recs)))
 
 
 if __name__ == "__main__":

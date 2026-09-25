@@ -86,10 +86,11 @@ def _parse_mem_operand(instr: str) -> Tuple[Optional[str], Optional[int], bool]:
         base, imm, reg_off = m.groups()
         offset = int(imm) if imm else 0
         return base.lower(), offset, reg_off is None
-    # RISC-V: `off(base)` or `%lo(sym)(base)` — always the LAST operand of a
-    # load/store. A relocation displacement (%lo(sym)) is a link-time constant
-    # we can't compare numerically, so it can't prove no-alias.
-    m = re.search(r'(%lo\([^)]*\)|-?\d+)?\(\s*([A-Za-z][A-Za-z0-9]*)\s*\)\s*$', instr.strip())
+    # RISC-V: `off(base)`, or a relocation `%lo(sym)(base)` (gcc) /
+    # `%pcrel_lo(.Lpcrel_hi0)(base)` (clang) — always the LAST operand of a
+    # load/store. A relocation displacement is a link-time constant we can't
+    # compare numerically, so it can't prove no-alias.
+    m = re.search(r'(%\w+\([^)]*\)|-?\d+)?\(\s*([A-Za-z][A-Za-z0-9]*)\s*\)\s*$', instr.strip())
     if m:
         disp, base = m.groups()
         if disp and disp.startswith('%'):

@@ -93,6 +93,28 @@ def n_instructions(seq) -> int:
     return sum(1 for l in lines if l.strip())
 
 
+def _train_file(ckpt_args: dict):
+    p = Path(ckpt_args.get("train_data", ""))
+    for cand in (p, ROOT / p, ROOT / "v54" / p):
+        if cand.is_file():
+            return cand
+    return None
+
+
+_TRAIN_GROUPS = {}
+
+
+def train_groups(ckpt_args: dict) -> set:
+    """Source families (group_stats.group_of) in the checkpoint's training
+    file — cached per path."""
+    f = _train_file(ckpt_args)
+    if f is None:
+        return set()
+    if f not in _TRAIN_GROUPS:
+        _TRAIN_GROUPS[f] = {group_of(json.loads(l)) for l in open(f) if l.strip()}
+    return _TRAIN_GROUPS[f]
+
+
 def train_archs(ckpt_args: dict) -> Counter:
     """Arch composition of the checkpoint's training file (relative to v54/
     or repo root, whichever exists)."""
@@ -132,7 +154,7 @@ def train_len_p90(ckpt_args: dict) -> int:
     raise SystemExit(f"can't find train_data {p} to size windows; pass --window-len")
 
 
-def metrics(y, p, groups) -> dict:
+def metrics(y, p, groups, recs=None) -> dict:
     benign = y == "BENIGN"
     attack = ~benign
     out = {
@@ -141,7 +163,11 @@ def metrics(y, p, groups) -> dict:
         "attack_detection_rate": ci((p[attack] != "BENIGN").astype(float), groups[attack]),
         "per_class": {},
         "pred_distribution": dict(Counter(p.tolist())),
-        "records": [{"group": g, "true": t, "pred": q} for g, t, q in zip(groups, y, p)],
+        "records": [
+            {"group": g, "true": t, "pred": q,
+             **({k: r[k] for k in ("arch", "opt", "compiler", "v4_variant") if k in r}
+                if recs is not None else {})}
+            for g, t, q, r in zip(groups, y, p, recs if recs is not None else [None] * len(y))],
     }
     f1s = []
     for c in sorted(set(y)):
@@ -165,13 +191,20 @@ def ci(values, groups):
 
 
 def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool,
-          window_len=None, ks=(0.5,)) -> dict:
+          window_len=None, ks=(0.5,), allow_group_overlap: bool = False) -> dict:
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     a = ckpt["args"]
     label_to_id = ckpt["label_to_id"]
     id_to_label = {i: l for l, i in label_to_id.items()}
 
     archs = train_archs(a)
+    # A test record whose source family is also in training measures program
+    # recognition, not generalisation (eval/riscv_family_holdout.py).
+    overlap = {group_of(r) for r in records} & train_groups(a)
+    if overlap and not allow_group_overlap:
+        raise SystemExit(f"{ckpt_path}: {len(overlap)} test source families also in training "
+                         f"data {a.get('train_data')}: {sorted(overlap)[:8]} — pass "
+                         f"--allow-group-overlap to score anyway")
     if archs.get("riscv64", 0) and not allow_riscv_train:
         raise SystemExit(f"{ckpt_path}: training data {a.get('train_data')} contains "
                          f"{archs['riscv64']} riscv64 records — not a held-out-ISA "
@@ -271,8 +304,10 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool,
         "n_groups": int(len(set(groups))),
         "effective_n": effective_n(groups),
         "always_benign_baseline": float((y == "BENIGN").mean()),
-        **metrics(y, p, groups),
+        **metrics(y, p, groups, recs),
     }
+    if any("v4_variant" in r for r in recs):
+        out["v4_family"] = v4_family_summary(out["records"])
 
     # Inference-time windowing (eval/isa_windowing.predict_windowed): slice each
     # record into training-size windows, vote among confident windows, abstain
@@ -310,6 +345,34 @@ def score(ckpt_path: Path, records: list, device, allow_riscv_train: bool,
     return out
 
 
+def v4_family_summary(records) -> dict:
+    """For the matched V4 family test (build_v4_train_family.py --split test):
+    per variant x (arch, compiler) the fraction predicted SPECTRE_V4 and the
+    fraction predicted as ANY attack. The headline V4 number is
+    vuln->V4 minus safe->V4: the only difference between the two is whether
+    the stored slot is reloaded, so that gap is what the model understands
+    about store-bypass (fenced is reported separately; riscv has no
+    architectural speculation barrier)."""
+    from collections import defaultdict
+    cells = defaultdict(lambda: defaultdict(list))
+    for x in records:
+        if "v4_variant" not in x:
+            continue
+        for key in ("all", f"{x.get('arch')}/{x.get('compiler', '?')}"):
+            cells[key][x["v4_variant"]].append(x)
+    out = {}
+    for key, by_var in cells.items():
+        row = {}
+        for var, xs in by_var.items():
+            row[var] = {"n": len(xs),
+                        "pred_v4": float(np.mean([x["pred"] == "SPECTRE_V4" for x in xs])),
+                        "pred_attack": float(np.mean([x["pred"] != "BENIGN" for x in xs]))}
+        if "vuln" in row and "safe" in row:
+            row["v4_separation"] = row["vuln"]["pred_v4"] - row["safe"]["pred_v4"]
+        out[key] = row
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -318,6 +381,11 @@ def main(argv=None) -> int:
     ap.add_argument("--stub-max", type=int, default=10)
     ap.add_argument("--out", help="JSON output (one object, or a list if several ckpts)")
     ap.add_argument("--allow-riscv-train", action="store_true")
+    ap.add_argument("--any-arch", action="store_true",
+                    help="score a non-riscv test set (e.g. spec/data/v4fam_test_x86arm.jsonl, "
+                         "the in-ISA held-out-structure control)")
+    ap.add_argument("--allow-group-overlap", action="store_true",
+                    help="score even if test source families appear in training")
     ap.add_argument("--window-len", default=None,
                     help="also score with inference-time windowing: an int, or 'auto' "
                          "for the checkpoint's training-set p90 length")
@@ -330,7 +398,8 @@ def main(argv=None) -> int:
     # eval/build_riscv_heldout_v2.py); everything else keeps the stub rule.
     records = [r for r in raw
                if r.get("keep_short") or n_instructions(r["sequence"]) > args.stub_max]
-    assert all(r.get("arch") == "riscv64" for r in records), "non-riscv64 record in held-out set"
+    if not args.any_arch:
+        assert all(r.get("arch") == "riscv64" for r in records), "non-riscv64 record in held-out set"
     print(f"riscv64 held-out: {len(raw)} records, {len(raw) - len(records)} stubs "
           f"(<= {args.stub_max} instr) excluded -> {len(records)}; "
           f"labels {dict(Counter(r['label'] for r in records))}")
@@ -340,7 +409,8 @@ def main(argv=None) -> int:
     results = []
     for c in args.ckpt:
         r = score(Path(c), records, device, args.allow_riscv_train,
-                  window_len=args.window_len, ks=tuple(args.k))
+                  window_len=args.window_len, ks=tuple(args.k),
+                  allow_group_overlap=args.allow_group_overlap)
         results.append(r)
         pc = "  ".join(f"{k}={v['recall']['value']:.2f}(n={v['support']})"
                        for k, v in r["per_class"].items())
@@ -350,6 +420,11 @@ def main(argv=None) -> int:
               f"(always-BENIGN {100*r['always_benign_baseline']:.1f})  "
               f"benignFP={100*r['benign_fp_rate']['value']:.1f}  "
               f"attack-detect={100*r['attack_detection_rate']['value']:.1f}\n  recall: {pc}")
+        for key, row in r.get("v4_family", {}).items():
+            print(f"  v4 family [{key}]: " + "  ".join(
+                f"{v}->V4 {100*row[v]['pred_v4']:.0f}% (n={row[v]['n']})"
+                for v in ("vuln", "safe", "fenced") if v in row)
+                + (f"  separation {100*row['v4_separation']:+.0f}pp" if "v4_separation" in row else ""))
         for k, m in r.get("windowed", {}).get("by_k", {}).items():
             print(f"  windowed(len={r['windowed']['window_len']}, k={k}): "
                   f"macroF1={100*m['macro_f1']:.1f}  benignFP={100*m['benign_fp_rate']['value']:.1f}  "

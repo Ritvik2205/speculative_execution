@@ -167,3 +167,11 @@ def test_rmw_different_base_no_edge():
 def test_rmw_edge_present_by_default():
     seq = ["addl %ebx, (%r14,%rdi)", "movl (%r14,%rdi), %ecx"]
     assert _pairs(_memory_order_edges(_build(seq, mem_order_edges=False))) == [(0, 1)]
+
+
+def test_riscv_clang_pcrel_relocation_parses():
+    """clang riscv: `ld a0, %pcrel_lo(.Lpcrel_hi0)(a1)` has base a1 and a
+    non-numeric (relocation) displacement — not a constant 0 offset."""
+    from spec_pdg_builder import _parse_mem_operand
+    assert _parse_mem_operand("ld a0, %pcrel_lo(.Lpcrel_hi0)(a1)") == ("a1", 0, False)
+    assert _parse_mem_operand("ld a4,-40(s0)") == ("s0", -40, True)

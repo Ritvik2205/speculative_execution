@@ -19,3 +19,4 @@ cd "$REPO"
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
 conda activate specexec
 python3 eval/aggregate_gine_riscv_holdout.py
+python3 eval/aggregate_v4_family.py
