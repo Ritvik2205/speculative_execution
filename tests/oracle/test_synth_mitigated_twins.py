@@ -33,7 +33,8 @@ REAL_PATHS = {
 # campaign only) -- NOT revizor_spectre_v4_real.jsonl, which the multiclass
 # campaign grows; the two use different `group` schemas on purpose.
 # +mc_260925_100840: SPECTRE_V1 3->40, L1TF 6->80, MDS 3->22.
-REAL_COUNTS = {"SPECTRE_V4": 16, "SPECTRE_V1": 40, "L1TF": 80, "MDS": 22}
+# +mc_260918_104145: SPECTRE_V1 40->130, L1TF 80->155, MDS 22->83.
+REAL_COUNTS = {"SPECTRE_V4": 16, "SPECTRE_V1": 130, "L1TF": 155, "MDS": 83}
 
 
 def load_jsonl(path):
