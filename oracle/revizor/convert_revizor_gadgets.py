@@ -158,10 +158,7 @@ def convert_for_classes(
         dir_name = p.parent.name
         campaign = p.parent.parent.name if p.parent.parent != p.parent else ""
         group = f"revizor_{cls.lower()}_{dir_name}"
-        try:
-            src_path = str(p.resolve().relative_to(repo_root))
-        except ValueError:
-            src_path = str(p)
+        src_path = _provenance_path(p, repo_root)
         records[cls].append({
             "label": cls,
             "arch": "x86_64",
@@ -174,6 +171,28 @@ def convert_for_classes(
         stats[cls]["deduped"] += 1
 
     return records, stats
+
+
+def _provenance_path(p: Path, repo_root: Path) -> str:
+    """Stable, machine-independent `src_path` for a program.asm.
+
+    Repo-relative when the file lives under the repo (the original
+    behavior). Campaign roots, though, live OUTSIDE the repo -- the
+    multiclass driver writes to $HOME/rvzr_runs, not repo/rvzr_runs -- and
+    the old `except ValueError: str(p)` fallback baked the operator's
+    absolute home path into a committed corpus file. Fall back to a
+    `~/`-prefixed path so the provenance stays readable and portable, and
+    only to a raw absolute path when the file is outside $HOME too.
+    """
+    rp = p.resolve()
+    try:
+        return str(rp.relative_to(repo_root))
+    except ValueError:
+        pass
+    try:
+        return "~/" + str(rp.relative_to(Path.home()))
+    except ValueError:
+        return str(rp)
 
 
 def write_jsonl(path: Path, records: List[dict]) -> None:

@@ -108,18 +108,46 @@ def write_jsonl(path: Path, records: List[dict]) -> None:
             f.write(json.dumps(r) + "\n")
 
 
+def split_unit(record: dict) -> str:
+    """The atomic unit this record may NOT be split away from.
+
+    `group` is one violation directory, which used to be the best available
+    unit: the original baseline/smt_off campaign carried no generator-seed
+    metadata, so "there is no generator-seed hierarchy to group by" was
+    literally true. It is no longer true. `run_multiclass_campaign.sh` runs
+    one program_generator_seed per directory and
+    `convert_revizor_gadgets.py` records it in `campaign`, and a seed
+    regenerates a BYTE-IDENTICAL program -- so the 8 L1TF violations from
+    seed 1102518044 are 8 observations of one program family. With one
+    group per record (74 L1TF records, 74 groups), splitting on `group`
+    would degrade to a record-level random split and leak that family
+    across train/heldout, inflating held-out recall.
+
+    So: split on `campaign` when present, falling back to `group` for
+    records carrying no campaign at all. `campaign` is the program.asm's
+    grandparent directory, which makes the unit exactly right for
+    multiclass-campaign records (`mc_<ts>/<class>/<seed>/violation-*/` ->
+    the seed) and coarser than necessary for the older baseline/smt_off
+    ones (`baseline/<CLASS>/violation-*/` -> the class name, so all 6 old
+    L1TF gadgets collapse into one unit). Coarser never leaks, so the
+    fallback is safe; it only costs a little split granularity.
+    """
+    return record.get("campaign") or record["group"]
+
+
 def split_by_group(
     records: List[dict], seed: int = 0, heldout_fraction: float = HELDOUT_TARGET_FRACTION
 ) -> Tuple[List[dict], List[dict], List[str], List[str]]:
-    """Group-split `records` by their `group` field (each record's group is
-    already the atomic split unit for this campaign -- there is no
-    generator-seed hierarchy to group by, unlike build_hwv4_dataset's V4
-    split). Deterministic per `seed`. Returns
-    (train_add_records, heldout_records, train_groups, heldout_groups).
+    """Split `records` into train-add/heldout along `split_unit` boundaries
+    (see that function for why the unit is the generator seed, not the
+    individual violation directory). Deterministic per `seed`. Returns
+    (train_add_records, heldout_records, train_groups, heldout_groups) --
+    the two group lists are still `group` values, since twin records key
+    off `<group>_fenced` and callers report them.
     """
     by_group: dict = {}
     for r in records:
-        by_group.setdefault(r["group"], []).append(r)
+        by_group.setdefault(split_unit(r), []).append(r)
 
     distinct_groups = sorted(by_group.keys())
     rng = random.Random(seed)
@@ -132,9 +160,9 @@ def split_by_group(
     if n == 0:
         return [], [], [], []
     if n == 1:
-        # Nothing to hold out without losing the only group's train data
+        # Nothing to hold out without losing the only unit's train data
         # entirely: keep everything in train-add, nothing held out.
-        return list(records), [], distinct_groups, []
+        return list(records), [], sorted({r["group"] for r in records}), []
 
     if n <= 20:
         best_mask = None
@@ -164,13 +192,20 @@ def split_by_group(
         if not heldout_groups:
             heldout_groups.append(train_groups.pop(0))
 
-    train_groups_set = set(train_groups)
-    heldout_groups_set = set(heldout_groups)
+    train_units = set(train_groups)
+    heldout_units = set(heldout_groups)
 
-    train_add = [r for r in records if r["group"] in train_groups_set]
-    heldout = [r for r in records if r["group"] in heldout_groups_set]
+    train_add = [r for r in records if split_unit(r) in train_units]
+    heldout = [r for r in records if split_unit(r) in heldout_units]
 
-    return train_add, heldout, sorted(train_groups), sorted(heldout_groups)
+    # Report `group` values, not unit names: twins key off `<group>_fenced`
+    # and build_one_class asserts twin origins against these lists.
+    return (
+        train_add,
+        heldout,
+        sorted({r["group"] for r in train_add}),
+        sorted({r["group"] for r in heldout}),
+    )
 
 
 def _origin_group(twin_group: str) -> str:
@@ -190,9 +225,16 @@ def build_one_class(
     v55h_train_path: Path = DEFAULT_V55H_TRAIN_PATH,
     repo_root: Path = REPO_ROOT,
     with_synth_twins: bool = False,
+    out_root: Optional[Path] = None,
 ) -> dict:
     """Build the train-add/heldout split for one class and write both
     output files. Returns a summary dict for reporting.
+
+    `out_root` (default: `repo_root`) is where the two outputs are written.
+    Inputs and outputs are separable on purpose: the tests read the real
+    corpus under `repo_root` but must not write the repo's committed
+    heldout/train files as a side effect of running the suite, so they pass
+    a tmp_path here.
 
     `with_synth_twins=False` (default): positives-only, byte-identical to
     this module's original behavior.
@@ -263,8 +305,9 @@ def build_one_class(
 
     heldout_all = heldout + heldout_twins
 
-    hp = heldout_path(cls, repo_root)
-    tp = train_out_path(cls, repo_root)
+    out_root = out_root if out_root is not None else repo_root
+    hp = heldout_path(cls, out_root)
+    tp = train_out_path(cls, out_root)
     write_jsonl(hp, heldout_all)
     write_jsonl(tp, merged_train)
 
@@ -292,6 +335,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--v55h-train-path", type=Path, default=DEFAULT_V55H_TRAIN_PATH)
     p.add_argument("--repo-root", type=Path, default=REPO_ROOT,
                     help="repo root to resolve real/heldout/train-out paths against (default: this repo)")
+    p.add_argument("--out-root", type=Path, default=None,
+                    help="root to write heldout/train outputs under (default: --repo-root)")
     p.add_argument("--with-synth-twins", action="store_true", default=False,
                     help="also generate a fenced BENIGN twin per positive on each side of "
                          "the split (synth_v4_benign.make_benign_variant), so a "
@@ -315,6 +360,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         summary = build_one_class(
             cls, seed=args.seed, v55h_train_path=args.v55h_train_path,
             repo_root=repo_root, with_synth_twins=args.with_synth_twins,
+            out_root=args.out_root,
         )
         print(f"{cls}: total={summary['total']} "
               f"train-add={summary['train_add']} (groups: {summary['train_groups']}) "

@@ -68,8 +68,9 @@ Usage: run_multiclass_campaign.sh [--classes "C1 C2 ..."]
               if any seed is already in used_seeds.txt.
   --n-seeds   generate this many FRESH seeds (guaranteed absent from
               used_seeds.txt) instead of an explicit list.
-  --n         rvzr fuzz -n (test cases per campaign; default 1000)
-  --inputs    rvzr fuzz -i (inputs per test case; default 100)
+  --n, -n     rvzr fuzz -n (test cases per campaign; default 1000)
+  --inputs, -i
+              rvzr fuzz -i (inputs per test case; default 100)
   --timeout   rvzr fuzz --timeout in seconds (default 900)
 
 --seeds and --n-seeds are mutually exclusive; exactly one is required.
@@ -82,8 +83,8 @@ while [ $# -gt 0 ]; do
     --classes) CLASSES="$2"; shift 2;;
     --seeds) SEEDS="$2"; shift 2;;
     --n-seeds) N_SEEDS="$2"; shift 2;;
-    --n) N="$2"; shift 2;;
-    --inputs) I="$2"; shift 2;;
+    --n|-n) N="$2"; shift 2;;
+    --inputs|-i) I="$2"; shift 2;;
     --timeout) TIMEOUT="$2"; shift 2;;
     -h|--help) usage; exit 0;;
     *) echo "FATAL: unknown argument '$1'"; usage; exit 1;;
@@ -131,7 +132,12 @@ if [ "$OS" != "Linux" ]; then
 fi
 
 if [ "$HOST_OK" -eq 1 ]; then
-  if ! lsmod | grep -q rvzr_executor; then
+  # Read /proc/modules directly rather than `lsmod | grep -q`: under
+  # `set -o pipefail` grep -q exits on first match, lsmod takes SIGPIPE
+  # writing the remaining ~200 lines, and the pipeline reports 141 --
+  # so a freshly loaded module (near the top of lsmod's output) makes
+  # this guard fail precisely because the module IS loaded.
+  if ! grep -q '^rvzr_executor ' /proc/modules; then
     echo "FATAL: the rvzr_executor kernel module is not loaded."
     echo "       Build and load it:"
     echo "         cd /home/ritvik/sca-fuzzer/rvzr/executor_km"
