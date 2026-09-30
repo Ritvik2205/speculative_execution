@@ -47,6 +47,7 @@ import argparse
 import glob
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -97,18 +98,85 @@ _DROP_MNEMONIC_PREFIXES = ("nop",)  # measurement markers + harness exit nop
 
 
 class ToolchainUnavailable(RuntimeError):
-    """Raised when neither clang nor objdump is on PATH."""
+    """Raised when clang or an LLVM objdump is not on PATH."""
+
+
+_LLVM_OBJDUMP_CACHE: Optional[str] = None
+
+
+def find_llvm_objdump() -> Optional[str]:
+    """Locate a disassembler that actually understands --x86-asm-syntax=att.
+
+    That flag is LLVM's, not GNU binutils'. The committed corpus was produced
+    with LLVM's objdump (on macOS `objdump` IS llvm-objdump), so requiring it
+    is what reproduces those sequences byte for byte.
+
+    GNU objdump must NOT be accepted as a substitute: it rejects the flag, and
+    even with `-M att` its section-header format doesn't match
+    _extract_section, so it yields zero instructions *without* raising. That
+    silent-empty path has corrupted the eval corpus before -- see
+    docs/RESULTS_2026-09-10.md, where the cluster's aggregate.sbatch rewrote
+    revizor_v4_real.jsonl as an empty file. So probe --version and demand LLVM.
+    """
+    global _LLVM_OBJDUMP_CACHE
+    if _LLVM_OBJDUMP_CACHE is not None:
+        return _LLVM_OBJDUMP_CACHE or None
+
+    candidates = ["llvm-objdump"]
+    seen = set()
+    for d in os.environ.get("PATH", "").split(os.pathsep):
+        if not d or d in seen:
+            continue
+        seen.add(d)
+        try:
+            versioned = [e.name for e in Path(d).iterdir()
+                         if e.name.startswith("llvm-objdump-")]
+        except OSError:
+            continue
+        # Highest version first: llvm-objdump-21 before llvm-objdump-9.
+        candidates.extend(sorted(versioned, key=_objdump_version_key, reverse=True))
+    # Plain `objdump` last: on macOS it is llvm-objdump, on Linux it is GNU's
+    # (which the --version probe below rejects).
+    candidates.append("objdump")
+
+    for cand in candidates:
+        exe = shutil.which(cand)
+        if exe is None:
+            continue
+        try:
+            probe = subprocess.run([exe, "--version"], capture_output=True,
+                                   text=True, timeout=10)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if probe.returncode == 0 and "LLVM" in (probe.stdout + probe.stderr):
+            _LLVM_OBJDUMP_CACHE = exe
+            return exe
+
+    _LLVM_OBJDUMP_CACHE = ""
+    return None
+
+
+def _objdump_version_key(name: str) -> tuple:
+    suffix = name.rsplit("-", 1)[-1]
+    try:
+        return (1, int(suffix))
+    except ValueError:
+        return (0, 0)
 
 
 def toolchain_available() -> bool:
-    return shutil.which("clang") is not None and shutil.which("objdump") is not None
+    return shutil.which("clang") is not None and find_llvm_objdump() is not None
 
 
 def _assemble_and_disassemble(path: str) -> str:
-    """Assemble `path` (Intel syntax) with clang, disassemble with objdump
-    in AT&T mode. Returns the raw objdump -D text output."""
-    if not toolchain_available():
-        raise ToolchainUnavailable("clang and/or objdump not found on PATH")
+    """Assemble `path` (Intel syntax) with clang, disassemble with LLVM's
+    objdump in AT&T mode. Returns the raw objdump -D text output."""
+    objdump = find_llvm_objdump()
+    if shutil.which("clang") is None or objdump is None:
+        raise ToolchainUnavailable(
+            "need clang and an LLVM objdump (llvm-objdump) on PATH; "
+            "GNU binutils objdump is not a substitute"
+        )
 
     with tempfile.TemporaryDirectory() as td:
         obj_path = str(Path(td) / "gadget.o")
@@ -121,12 +189,12 @@ def _assemble_and_disassemble(path: str) -> str:
                 f"clang failed to assemble {path}:\n{asm_proc.stderr}"
             )
         dis_proc = subprocess.run(
-            ["objdump", "-D", "--x86-asm-syntax=att", obj_path],
+            [objdump, "-D", "--x86-asm-syntax=att", obj_path],
             capture_output=True, text=True,
         )
         if dis_proc.returncode != 0:
             raise RuntimeError(
-                f"objdump failed to disassemble {obj_path} (from {path}):\n"
+                f"{objdump} failed to disassemble {obj_path} (from {path}):\n"
                 f"{dis_proc.stderr}"
             )
         return dis_proc.stdout

@@ -114,7 +114,7 @@ def test_build_one_class_train_add_plus_v55h_equals_output(tmp_path, cls):
     real = load_jsonl(REAL_PATHS[cls])
 
     summary = build_hw_transfer.build_one_class(
-        cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT
+        cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT, out_root=tmp_path
     )
 
     merged = load_jsonl(summary["train_out"])
@@ -130,10 +130,10 @@ def test_build_one_class_train_add_plus_v55h_equals_output(tmp_path, cls):
 
 
 @pytest.mark.skipif(not HAS_REAL_DATA, reason="run convert_revizor_gadgets.py first")
-def test_build_one_class_group_disjoint_end_to_end():
+def test_build_one_class_group_disjoint_end_to_end(tmp_path):
     for cls in ["MDS", "L1TF", "SPECTRE_V1"]:
         summary = build_hw_transfer.build_one_class(
-            cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT
+            cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT, out_root=tmp_path
         )
         assert set(summary["train_groups"]).isdisjoint(set(summary["heldout_groups"]))
 
@@ -146,7 +146,7 @@ def test_main_is_deterministic_across_runs(tmp_path):
     r1 = {}
     r2 = {}
     for cls in ["MDS", "L1TF", "SPECTRE_V1"]:
-        r1[cls] = build_hw_transfer.build_one_class(cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT)
-        r2[cls] = build_hw_transfer.build_one_class(cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT)
+        r1[cls] = build_hw_transfer.build_one_class(cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT, out_root=tmp_path)
+        r2[cls] = build_hw_transfer.build_one_class(cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT, out_root=tmp_path)
         assert load_jsonl(r1[cls]["heldout_out"]) == load_jsonl(r2[cls]["heldout_out"])
         assert load_jsonl(r1[cls]["train_out"]) == load_jsonl(r2[cls]["train_out"])
