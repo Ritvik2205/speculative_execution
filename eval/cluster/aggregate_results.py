@@ -31,14 +31,15 @@ REAL_V4_HELDOUT = str(ROOT / "eval" / "data" / "revizor_v4_heldout.jsonl")
 # a fenced BENIGN twin (oracle/revizor/synth_v4_benign.py's
 # `make_benign_variant`, source `synth_mitigated_twin`) of each held-out
 # positive, which lets a false-positive rate be measured for these three
-# classes too -- BUT, unlike V4's `revizor_hw_mitigated` twins (hardware-
-# confirmed by Revizor's SSBP-on control), these twins are STRUCTURAL ONLY:
-# an `lfence` placed at the textbook speculation boundary with no hardware
-# or symbolic verification that it actually kills the leak. Any FP number
-# reported below for MDS/L1TF/SPECTRE_V1 is therefore SYNTHETIC/UNVERIFIED
-# and must never be conflated with V4's HW-CONFIRMED number in
-# real_v4_p3.md. If the held-out file has no BENIGN twins (the flag was
-# off when it was built), the FP cell prints "n/a (positives-only)" instead
+# classes too. ALL such twins (every class, including V4 now) carry source
+# `synth_mitigated_twin` and are STRUCTURAL: an `lfence` placed at the
+# textbook speculation boundary, not a hardware-run mitigated gadget. The
+# DIFFERENCE is validation of the MECHANISM: V4's fence is backed by a real
+# Revizor SSBP-off->on control (15 leaks -> 0, HARDWARE_VALIDATION_RESULTS.md),
+# so its synthetic twin models a HW-validated mitigation; MDS/L1TF/SPECTRE_V1
+# have NO such control, so their FP numbers are SYNTHETIC/UNVERIFIED and must
+# be reported as exploratory. If the held-out file has no BENIGN twins (the
+# flag was off when it was built), the FP cell prints "n/a (positives-only)" instead
 # of a fabricated number.
 #
 # SPECTRE_V4 appears here as the SCALED group-split view (n=55 hardware
@@ -148,8 +149,9 @@ def main():
     # ---- P3: does folding real V4 into training fix real-V4 recall? ----
     # Both scored on the SEED-DISJOINT held-out gadgets (revizor_v4_heldout.jsonl),
     # which (Step 2, docs/NEXT_STEPS_PLAN_2026-09-10.md) now carries BOTH the
-    # real SPECTRE_V4 positives AND fenced (SSBP-mitigated) V4-shaped BENIGN
-    # negatives (source=revizor_hw_mitigated) — still seed-disjoint from
+    # real SPECTRE_V4 positives AND fenced V4-shaped BENIGN negatives
+    # (source=synth_mitigated_twin; the fence MECHANISM is HW-validated by the
+    # SSBP-off->on control, 15->0) — still seed-disjoint from
     # training, including the fenced twins. That lets us report not just
     # held-out recall but a V4 false-positive rate: the fraction of the
     # held-out V4-shaped BENIGN the model predicts as something other than
