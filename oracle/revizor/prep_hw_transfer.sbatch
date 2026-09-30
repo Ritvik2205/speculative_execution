@@ -25,13 +25,14 @@ cd "$REPO"
 [ -f .venv/bin/activate ] && source .venv/bin/activate
 mkdir -p eval/cluster_out
 
-echo "host=$(hostname) -- synth mitigated twins (4 classes)"
+echo "host=$(hostname) -- synth mitigated twins (5 twin sets)"
 python3 oracle/revizor/synth_v4_benign.py --in eval/data/revizor_v4_real.jsonl        --out eval/data/revizor_v4_benign.jsonl        --vuln-class SPECTRE_V4
+python3 oracle/revizor/synth_v4_benign.py --in eval/data/revizor_spectre_v4_real.jsonl --out eval/data/revizor_spectre_v4_benign.jsonl --vuln-class SPECTRE_V4
 python3 oracle/revizor/synth_v4_benign.py --in eval/data/revizor_spectre_v1_real.jsonl --out eval/data/revizor_spectre_v1_benign.jsonl --vuln-class SPECTRE_V1
 python3 oracle/revizor/synth_v4_benign.py --in eval/data/revizor_l1tf_real.jsonl       --out eval/data/revizor_l1tf_benign.jsonl       --vuln-class L1TF
 python3 oracle/revizor/synth_v4_benign.py --in eval/data/revizor_mds_real.jsonl        --out eval/data/revizor_mds_benign.jsonl        --vuln-class MDS
 
-echo "-- rebuild transfer split WITH twins (MDS/L1TF/SPECTRE_V1)"
-python3 oracle/revizor/build_hw_transfer.py --classes MDS L1TF SPECTRE_V1 --seed 0 --with-synth-twins
+echo "-- rebuild transfer split WITH twins (MDS/L1TF/SPECTRE_V1/SPECTRE_V4)"
+python3 oracle/revizor/build_hw_transfer.py --classes MDS L1TF SPECTRE_V1 SPECTRE_V4 --seed 0 --with-synth-twins
 
 echo "done rc=0 -- next: submit the _hw trainings + aggregate (eval/cluster/) for real_transfer.md"

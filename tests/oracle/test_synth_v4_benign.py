@@ -155,7 +155,7 @@ def test_make_benign_variant_shape():
     assert out["label"] == "BENIGN"
     assert out["arch"] == "x86_64"
     assert out["group"] == "revizor_v4_1000000_deadbeef00_fenced"
-    assert out["source"] == "revizor_hw_mitigated"
+    assert out["source"] == "synth_mitigated_twin"
     assert "lfence" in out["sequence"]
 
 
@@ -179,7 +179,7 @@ def test_convert_all_real_v4_produces_16_benign_records():
     assert len(benign) == len(real_v4) == 16
     for r in benign:
         assert r["label"] == "BENIGN"
-        assert r["source"] == "revizor_hw_mitigated"
+        assert r["source"] == "synth_mitigated_twin"
         assert r["group"].endswith("_fenced")
 
 

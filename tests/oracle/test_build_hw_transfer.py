@@ -150,3 +150,45 @@ def test_main_is_deterministic_across_runs(tmp_path):
         r2[cls] = build_hw_transfer.build_one_class(cls, seed=0, v55h_train_path=V55H_TRAIN_PATH, repo_root=REPO_ROOT, out_root=tmp_path)
         assert load_jsonl(r1[cls]["heldout_out"]) == load_jsonl(r2[cls]["heldout_out"])
         assert load_jsonl(r1[cls]["train_out"]) == load_jsonl(r2[cls]["train_out"])
+
+
+# ---------------------------------------------------------------------------
+# SPECTRE_V4 scaled group-split view (55-gadget general-converter corpus)
+# ---------------------------------------------------------------------------
+
+def test_spectre_v4_in_default_classes():
+    assert "SPECTRE_V4" in build_hw_transfer.DEFAULT_CLASSES
+
+
+def test_spectre_v4_paths_distinct_from_specialized_v4():
+    assert build_hw_transfer.real_path("SPECTRE_V4").name == "revizor_spectre_v4_real.jsonl"
+    assert build_hw_transfer.heldout_path("SPECTRE_V4").name == "revizor_spectre_v4_heldout.jsonl"
+    assert build_hw_transfer.train_out_path("SPECTRE_V4").name == "v55h_spectre_v4hw_train.jsonl"
+
+
+def test_spectre_v4_group_split_with_twins_same_side(tmp_path):
+    (tmp_path / "eval" / "data").mkdir(parents=True)
+    recs = [
+        {"label": "SPECTRE_V4", "arch": "x86_64",
+         "sequence": ["movq $1, (%r14,%rdi)", "movq (%r14,%rdi), %rax"],
+         "group": f"revizor_spectre_v4_violation-{i}", "source": "revizor_hw_i5_8300h"}
+        for i in range(10)
+    ]
+    with open(build_hw_transfer.real_path("SPECTRE_V4", tmp_path), "w") as f:
+        for r in recs:
+            f.write(json.dumps(r) + "\n")
+    v55h = tmp_path / "v55h.jsonl"
+    v55h.write_text("")
+
+    s = build_hw_transfer.build_one_class(
+        "SPECTRE_V4", seed=0, v55h_train_path=v55h, repo_root=tmp_path,
+        with_synth_twins=True,
+    )
+    heldout = load_jsonl(build_hw_transfer.heldout_path("SPECTRE_V4", tmp_path))
+    pos = [r for r in heldout if r["label"] == "SPECTRE_V4"]
+    ben = [r for r in heldout if r["label"] == "BENIGN"]
+    assert pos and len(pos) == len(ben) == s["heldout"]
+    assert all(r["group"].endswith("_fenced") for r in ben)
+    assert all(r["source"] == "synth_mitigated_twin" for r in ben)
+    assert {r["group"] + "_fenced" for r in pos} == {r["group"] for r in ben}
+    assert set(s["train_groups"]).isdisjoint(s["heldout_groups"])

@@ -40,7 +40,12 @@ REAL_V4_HELDOUT = str(ROOT / "eval" / "data" / "revizor_v4_heldout.jsonl")
 # real_v4_p3.md. If the held-out file has no BENIGN twins (the flag was
 # off when it was built), the FP cell prints "n/a (positives-only)" instead
 # of a fabricated number.
-REAL_HW_CLASSES = ["MDS", "L1TF", "SPECTRE_V1"]
+#
+# SPECTRE_V4 appears here as the SCALED group-split view (n=55 hardware
+# positives from the general converter, synthetic fenced twins) AND
+# separately in the real_v4_p3 block (seed-disjoint 16, its own twins).
+# The two are complementary views, not duplicates.
+REAL_HW_CLASSES = ["MDS", "L1TF", "SPECTRE_V1", "SPECTRE_V4"]
 REAL_HW_HELDOUT = {
     c: str(ROOT / "eval" / "data" / f"revizor_{c.lower()}_heldout.jsonl")
     for c in REAL_HW_CLASSES

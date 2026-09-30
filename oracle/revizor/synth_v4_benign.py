@@ -4,11 +4,13 @@ twins from real hardware-confirmed vulnerability gadgets (SPECTRE_V4,
 SPECTRE_V1, L1TF, MDS).
 
 HONESTY NOTE (read before trusting a twin as a ground-truth BENIGN):
-  - SPECTRE_V4 twins are HARDWARE-CONFIRMED mitigations: the Revizor SSBP-on
-    control measured the fenced sequences going from 15/15 leaks -> 0 (see
-    oracle/revizor/HARDWARE_VALIDATION_RESULTS.md). These are genuine,
-    verified BENIGN negatives.
-  - SPECTRE_V1, L1TF, and MDS twins are STRUCTURAL only: this script places
+  - SPECTRE_V4: the fence MECHANISM is hardware-validated in aggregate (the
+    Revizor SSBP-off->on control went 15 -> 0 leaks, see
+    oracle/revizor/HARDWARE_VALIDATION_RESULTS.md), but each per-gadget twin
+    produced here is still SYNTHETIC (no hardware run of that fenced
+    sequence), so its source is `synth_mitigated_twin`, NOT
+    `revizor_hw_mitigated`.
+  - All four classes' twins are STRUCTURAL only: this script places
     an `lfence` at the textbook speculation boundary for each class (see
     `fence_gadget_for_class` below) and nothing more. They have the same
     instruction shape as their positive, plus a serializing barrier, but
@@ -76,7 +78,7 @@ Usage:
 
 Emits one BENIGN record per input gadget:
     {"label": "BENIGN", "arch": "x86_64", "sequence": <fenced>,
-     "group": "<origgroup>_fenced", "source": "revizor_hw_mitigated"}
+     "group": "<origgroup>_fenced", "source": "synth_mitigated_twin"}
 
 The `_fenced` group suffix keeps `<origgroup>` intact as a PREFIX, so the
 same `revizor_v4_<GENSEED>_<hash>` generator-seed parsing used to
@@ -401,7 +403,6 @@ def write_jsonl(path: Path, records: List[dict]) -> None:
 
 # SPECTRE_V4 twins are hardware-confirmed (Revizor SSBP-on: 15 leaks -> 0);
 # V1/L1TF/MDS twins are structural-only (see module docstring HONESTY NOTE).
-_HW_CONFIRMED_SOURCE = "revizor_hw_mitigated"
 _STRUCTURAL_SOURCE = "synth_mitigated_twin"
 
 
@@ -415,7 +416,7 @@ def make_benign_variant(record: dict, vuln_class: Optional[str] = None) -> dict:
     this function's original no-argument behavior.
     """
     cls = vuln_class or record.get("vuln_class") or record.get("label") or "SPECTRE_V4"
-    source = _HW_CONFIRMED_SOURCE if cls == "SPECTRE_V4" else _STRUCTURAL_SOURCE
+    source = _STRUCTURAL_SOURCE
     return {
         "label": "BENIGN",
         "arch": record.get("arch", "x86_64"),

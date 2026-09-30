@@ -186,7 +186,7 @@ def test_make_benign_variant_v4_source_and_default_unchanged():
            "group": "revizor_v4_1000000_deadbeef00", "source": "revizor_hw_i5_8300h"}
     out = synth_v4_benign.make_benign_variant(rec)
     assert out["label"] == "BENIGN"
-    assert out["source"] == "revizor_hw_mitigated"
+    assert out["source"] == "synth_mitigated_twin"
     assert out["group"] == "revizor_v4_1000000_deadbeef00_fenced"
     assert out["arch"] == "x86_64"
 
@@ -253,4 +253,4 @@ def test_cli_default_vuln_class_is_spectre_v4_backward_compatible(tmp_path):
     synth_v4_benign.main(["--in", str(REAL_PATHS["SPECTRE_V4"]), "--out", str(out_path)])
     written = load_jsonl(out_path)
     assert len(written) == 16
-    assert all(r["source"] == "revizor_hw_mitigated" for r in written)
+    assert all(r["source"] == "synth_mitigated_twin" for r in written)

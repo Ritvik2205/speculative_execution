@@ -44,13 +44,23 @@ recall percentage.
 UPDATE (task B3): `oracle/revizor/synth_v4_benign.py` now provides
 `fence_gadget_for_class`/`make_benign_variant` for MDS/L1TF/SPECTRE_V1 too
 (source `synth_mitigated_twin` -- STRUCTURAL, NOT hardware-verified, unlike
-V4's `revizor_hw_mitigated` twins). Passing `--with-synth-twins` (default
+the old V4 `revizor_hw_mitigated` label, now retired). Passing `--with-synth-twins` (default
 OFF, so all prior output stays byte-identical) generates one fenced twin per
 positive on EACH side of the split and folds it in as BENIGN, mirroring
 `build_hwv4_dataset.py`'s V4 treatment -- so a `benign_fp_rate` can finally
 be measured for these three classes too. Each twin's group is
 `<origgroup>_fenced` (from `make_benign_variant`), which keeps it on the
 SAME side of the split as its positive; this is asserted at build time.
+
+SPECTRE_V4 now has TWO complementary views:
+  (a) the specialized, generator-seed-disjoint 16 (`build_hwv4_dataset.py`
+      -> `revizor_v4_heldout.jsonl`, the clean headline), and
+  (b) this SCALED group-split view over the full 55 hardware positives from
+      the general converter (`revizor_spectre_v4_real.jsonl` -> 
+      `revizor_spectre_v4_heldout.jsonl` + `v55h_spectre_v4hw_train.jsonl`).
+      Those 55 carry no generator-seed structure, so they use the group
+      split here. Output files are distinct from (a); no collision. The V4
+      twins here are SYNTHETIC fences (`synth_mitigated_twin`).
 
 Usage:
     python3 oracle/revizor/build_hw_transfer.py --seed 0
@@ -71,7 +81,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from synth_v4_benign import make_benign_variant  # noqa: E402
 
-DEFAULT_CLASSES = ["MDS", "L1TF", "SPECTRE_V1"]
+DEFAULT_CLASSES = ["MDS", "L1TF", "SPECTRE_V1", "SPECTRE_V4"]
 DEFAULT_V55H_TRAIN_PATH = REPO_ROOT / "v54" / "data" / "v55h_train.jsonl"
 
 # Target fraction of a class's real gadgets to hold out (~40%, aiming for a

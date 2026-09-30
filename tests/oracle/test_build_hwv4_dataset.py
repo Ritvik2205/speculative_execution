@@ -162,7 +162,7 @@ def test_merged_train_file_preserves_v55h_and_appends_train_add(tmp_path):
     for r in tail_benign + heldout_benign:
         assert r["group"].startswith("revizor_v4_")
         assert r["group"].endswith("_fenced")
-        assert r["source"] == "revizor_hw_mitigated"
+        assert r["source"] == "synth_mitigated_twin"
         assert "lfence" in r["sequence"]
 
 
