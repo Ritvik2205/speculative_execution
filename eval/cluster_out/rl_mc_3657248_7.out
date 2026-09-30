@@ -1,0 +1,21 @@
+task=7 class=SPECTRE_V4 seed=2 gen=gen/generator.pt -> gen/rl_mc/SPECTRE_V4_s2
+[rl] seed=2 gen=gen/generator.pt arch=x86_64
+  [train] device=cpu records=9 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.4660
+  epoch 1/1  lm_loss=0.4660
+  [train] device=cpu records=10 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.6772
+  epoch 1/1  lm_loss=0.6772
+  [train] device=cpu records=29 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.2747
+  epoch 1/1  lm_loss=0.2747
+  [train] device=cpu records=16 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.1486
+  epoch 1/1  lm_loss=0.1486
+  [train] device=cpu records=23 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.2871
+  epoch 1/1  lm_loss=0.2871
+[SPECTRE_V4] yield per round: {0: 0.225, 1: 0.25, 2: 0.725, 3: 0.4, 4: 0.575}
+wrote gen/rl_mc/SPECTRE_V4_s2/yield.md
+wrote gen/rl_mc/SPECTRE_V4_s2/samples.jsonl
+done rc=0 -> gen/rl_mc/SPECTRE_V4_s2

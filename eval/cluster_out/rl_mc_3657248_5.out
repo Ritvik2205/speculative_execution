@@ -1,0 +1,6 @@
+task=5 class=SPECTRE_V2 seed=3 gen=gen/generator.pt -> gen/rl_mc/SPECTRE_V2_s3
+[rl] seed=3 gen=gen/generator.pt arch=x86_64
+[SPECTRE_V2] yield per round: {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0}
+wrote gen/rl_mc/SPECTRE_V2_s3/yield.md
+wrote gen/rl_mc/SPECTRE_V2_s3/samples.jsonl
+done rc=0 -> gen/rl_mc/SPECTRE_V2_s3
