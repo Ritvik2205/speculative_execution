@@ -46,3 +46,24 @@ def test_mc_gives_non_negative_sigma():
     mu, sigma = r.predict_mc(recs, passes=10)
     assert mu.shape == sigma.shape == (16,)
     assert (sigma >= 0).all()
+
+def test_predict_mc_does_not_change_predict():
+    from rank.regressor import LeakRanker
+    recs, sig = _data(32)
+    r = LeakRanker(FakeHook())
+    r.fit(recs, sig, epochs=50)
+    p1 = r.predict(recs)
+    # calling predict_mc should not drift BatchNorm stats
+    r.predict_mc(recs, passes=10)
+    p2 = r.predict(recs)
+    # predictions must remain stable (no BN stat drift)
+    assert np.allclose(p1, p2, atol=1e-5)
+
+def test_predict_mc_single_row():
+    from rank.regressor import LeakRanker
+    recs, sig = _data(32)
+    r = LeakRanker(FakeHook())
+    r.fit(recs, sig, epochs=50)
+    # predict_mc on single row must not crash (BN in eval mode, only Dropout stochastic)
+    mu, sigma = r.predict_mc(recs[:1], passes=5)
+    assert mu.shape == sigma.shape == (1,)

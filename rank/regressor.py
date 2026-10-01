@@ -54,7 +54,10 @@ class LeakRanker:
 
     @torch.no_grad()
     def predict_mc(self, records, passes: int = 20):
-        self.head.train()                           # keep dropout on
+        self.head.eval()                            # keep BN deterministic + running stats frozen
+        for m in self.head.modules():
+            if isinstance(m, torch.nn.Dropout):
+                m.train()                           # only Dropout on for stochasticity
         X = self._X(records)
         preds = np.stack([self.head(X).squeeze(1).cpu().numpy() for _ in range(passes)])
         preds = preds * self._sd + self._mu
