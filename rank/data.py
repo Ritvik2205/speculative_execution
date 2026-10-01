@@ -3,8 +3,6 @@ import json, sys
 from pathlib import Path
 import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "eval"))
-from group_stats import group_of  # noqa: E402
 
 
 def load_rows(paths, arch: str = "x86_64") -> list:
@@ -15,12 +13,15 @@ def load_rows(paths, arch: str = "x86_64") -> list:
                 continue
             r = json.loads(line)
             asm = r.get("realized_asm")
-            if not asm or "signal" not in r:
+            sig = r.get("signal")
+            if not asm or sig is None or not isinstance(sig, (int, float)):
                 continue
-            rows.append({"sequence": asm, "arch": arch, "signal": float(r["signal"]),
+            gid = r.get("gadget_id", "")
+            group = gid.rsplit("_", 1)[-1] if gid else gid
+            rows.append({"sequence": asm, "arch": arch, "signal": float(sig),
                          "verdict": r.get("verdict"),
-                         "group": group_of({"group": r.get("gadget_id", "")}),
-                         "gadget_id": r.get("gadget_id")})
+                         "group": group,
+                         "gadget_id": gid})
     return rows
 
 

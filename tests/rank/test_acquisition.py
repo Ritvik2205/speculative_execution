@@ -16,3 +16,7 @@ def test_mask_excludes_candidates():
     mu = np.array([9.0, 0.1]); sigma = np.zeros(2)
     mask = np.array([False, True])
     assert select_topk(mu, sigma, k=1, mask=mask) == [1]
+
+def test_nan_score_not_selected():
+    mu = np.array([np.nan, 1.0]); sigma = np.zeros(2)
+    assert select_topk(mu, sigma, k=1) == [1]
