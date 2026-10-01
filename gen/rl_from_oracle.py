@@ -248,6 +248,7 @@ def rejection_sample_finetune(
                     "realized_asm": gadget.get("_realized_asm"),
                     "verdict": result.verdict,
                     "reward": gadget["_reward"],
+                    "signal": float(result.signal),
                 })
             if result.verdict == LEAK:
                 kept.append(gadget)
