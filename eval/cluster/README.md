@@ -62,6 +62,7 @@ conda activate specexec
 # GPU PyTorch (the cluster GPUs are CUDA; requirements.txt is missing torch/scipy/matplotlib):
 pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install numpy scipy scikit-learn pandas tqdm networkx matplotlib
+pip install capstone   # needed by the feature gate's oracle half (scripts/run_feature_gate.sh crashes without it)
 ```
 `v54/train_gine_v38.py` auto-selects the GPU (`torch.cuda.is_available()`), so no code change is needed.
 

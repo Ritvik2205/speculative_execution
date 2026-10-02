@@ -34,5 +34,11 @@ python3 oracle/revizor/synth_v4_benign.py --in eval/data/revizor_mds_real.jsonl 
 
 echo "-- rebuild transfer split WITH twins (MDS/L1TF/SPECTRE_V1/SPECTRE_V4)"
 python3 oracle/revizor/build_hw_transfer.py --classes MDS L1TF SPECTRE_V1 SPECTRE_V4 --seed 0 --with-synth-twins
+python3 oracle/revizor/build_hw_joint.py
+
+echo "-- misplaced-fence controls (lfences at entry, still vulnerable)"
+for c in mds l1tf spectre_v1 spectre_v4; do
+  python3 oracle/revizor/synth_v4_benign.py --misplaced-from-heldout eval/data/revizor_${c}_heldout.jsonl --out eval/data/revizor_${c}_misfenced_heldout.jsonl --vuln-class "${c^^}"
+done
 
 echo "done rc=0 -- next: submit the _hw trainings + aggregate (eval/cluster/) for real_transfer.md"

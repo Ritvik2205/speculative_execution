@@ -426,6 +426,32 @@ def make_benign_variant(record: dict, vuln_class: Optional[str] = None) -> dict:
     }
 
 
+def make_misplaced_variant(record: dict, vuln_class: Optional[str] = None) -> Optional[dict]:
+    """Misplaced-fence CONTROL: same number of lfences as the proper twin, but
+    all prepended at function entry, where they do NOT mitigate the later leak.
+
+    The record stays labelled with its ORIGINAL attack class (still
+    vulnerable). A model that predicts BENIGN here keys on "has lfence", not
+    on where the fence sits. Returns None if the proper twin inserts no
+    lfence (k == 0).
+
+    STRUCTURAL control: assumes fences at entry don't mitigate (same honesty
+    level as the synthetic twins; no hardware verification).
+    """
+    cls = vuln_class or record.get("vuln_class") or record.get("label") or "SPECTRE_V4"
+    seq = record["sequence"]
+    k = len(fence_gadget_for_class(seq, cls)) - len(seq)
+    if k <= 0:
+        return None
+    return {
+        "label": record.get("label", cls),
+        "arch": record.get("arch", "x86_64"),
+        "sequence": ["lfence"] * k + list(seq),
+        "group": f"{record['group']}_misfenced",
+        "source": "synth_misplaced_fence_control",
+    }
+
+
 def convert_all(records: List[dict], vuln_class: Optional[str] = None) -> List[dict]:
     return [make_benign_variant(r, vuln_class) for r in records]
 
@@ -441,11 +467,26 @@ def build_parser() -> argparse.ArgumentParser:
                     default="SPECTRE_V4",
                     help="which class's speculation boundary to fence "
                          "(default: SPECTRE_V4, preserving prior no-arg behavior)")
+    p.add_argument("--misplaced-from-heldout", dest="misplaced_from", type=Path,
+                    default=None,
+                    help="misplaced-fence control mode: read this held-out JSONL, "
+                         "keep only records with label == --vuln-class, write "
+                         "their misplaced-fence variants to --out")
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> None:
     args = build_parser().parse_args(argv)
+
+    if args.misplaced_from is not None:
+        pos = [r for r in load_jsonl(args.misplaced_from)
+               if r.get("label") == args.vuln_class]
+        out = [m for m in (make_misplaced_variant(r, args.vuln_class) for r in pos)
+               if m is not None]
+        write_jsonl(args.out_path, out)
+        print(f"Wrote {len(out)}/{len(pos)} misplaced-fence {args.vuln_class} "
+              f"variants to {args.out_path}")
+        return
 
     real = load_jsonl(args.in_path)
     benign = convert_all(real, args.vuln_class)

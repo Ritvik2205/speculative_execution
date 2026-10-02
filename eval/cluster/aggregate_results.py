@@ -10,7 +10,7 @@ robustness suite's evaluate_checkpoint (dict API), and writes:
 Everything mean +/- 95% CI over whatever seeds are present.
 """
 from __future__ import annotations
-import sys, glob, json, re, statistics as st
+import sys, glob, json, re, tempfile, statistics as st
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -102,6 +102,85 @@ def metric(tag, key, cond=None, cls=None, perturb=None, arch=None):
         else:
             vals.append(d.get(key))
     return ci(vals)
+
+CONF_LABELS = ["MDS", "L1TF", "SPECTRE_V1", "SPECTRE_V4", "BENIGN"]
+CONF_TAGS = ["w3_embed_on", "mds_hw", "l1tf_hw", "spectre_v1_hw", "spectre_v4_hw", "allhw"]
+
+def _relabelled(recs, label):
+    """Copy of recs with every label replaced by `label` (so per_class_recall[label]
+    == fraction predicted as `label`)."""
+    return [{**r, "label": label} for r in recs]
+
+def _load_pos(path, label):
+    p = Path(path)
+    if not p.exists():
+        return []
+    with open(p) as fh:
+        return [r for r in (json.loads(l) for l in fh if l.strip()) if r.get("label") == label]
+
+def pred_fraction(tag, recs, target_label, tmpdir=None):
+    """mean±CI over seeds of the fraction of `recs` predicted as target_label."""
+    if not recs:
+        return (float("nan"), float("nan"))
+    tmpdir = tmpdir or tempfile.mkdtemp()
+    path = Path(tmpdir) / f"relabel_{target_label}_{len(recs)}.jsonl"
+    with open(path, "w") as fh:
+        for r in _relabelled(recs, target_label):
+            fh.write(json.dumps(r) + "\n")
+    vals = []
+    for ck in seeds_for(tag):
+        try:
+            d = evaluate_checkpoint(ck, str(path))
+            vals.append(d.get("per_class_recall", {}).get(target_label))
+        except Exception as e:
+            print(f"[warn] {ck}: {e}")
+    return ci(vals)
+
+def write_confusion_report():
+    tmp = tempfile.mkdtemp()
+    tags = [t for t in CONF_TAGS if seeds_for(t)]
+    L = ["# Real-transfer confusion / shortcut controls (mean±95%CI over seeds)\n",
+         "- Per-class `_hw` rows test the STYLE SHORTCUT: off-diagonal mass on the model's own "
+         "class (e.g. `l1tf_hw` calling real MDS gadgets L1TF) means it learned "
+         "\"Revizor-generated program -> my class\", not the vulnerability.\n"
+         "- The `allhw` diagonal (trained on all four classes jointly) is the VALID transfer number.\n"
+         "- Misplaced-fence control: lfences at function entry (same count as the proper twin) "
+         "do not mitigate the leak; BENIGN mass there = lfence-presence shortcut. "
+         "Structural control, no hardware verification.\n"]
+    L.append("## 1. Confusion: held-out positives of class H, fraction predicted as each class\n")
+    for tag in tags:
+        L += [f"### {tag}\n", "| held-out class | " + " | ".join(CONF_LABELS) + " |",
+              "|---|" + "---|" * len(CONF_LABELS)]
+        for h in REAL_HW_CLASSES:
+            recs = _load_pos(REAL_HW_HELDOUT[h], h)
+            if not recs:
+                L.append(f"| {h} (n/a) | " + " | ".join("n/a" for _ in CONF_LABELS) + " |"); continue
+            L.append(f"| {h} (n={len(recs)}) | " +
+                     " | ".join(f(pred_fraction(tag, recs, t, tmp)) for t in CONF_LABELS) + " |")
+        L.append("")
+    L.append("## 2. Misplaced-fence control (still-vulnerable, fences at entry)\n")
+    L += ["| tag | class | n | predicted as true class | predicted BENIGN |", "|---|---|---|---|---|"]
+    for tag in tags:
+        for c in REAL_HW_CLASSES:
+            mp = ROOT / "eval" / "data" / f"revizor_{c.lower()}_misfenced_heldout.jsonl"
+            recs = _load_pos(mp, c)
+            if not recs:
+                continue
+            L.append(f"| {tag} | {c} | {len(recs)} | {f(pred_fraction(tag, recs, c, tmp))} | "
+                     f"{f(pred_fraction(tag, recs, 'BENIGN', tmp))} |")
+    L.append("\n## 3. allhw: real recall (diagonal) and synthetic-twin FP\n")
+    if seeds_for("allhw"):
+        L += ["| class | real recall | twin FP [SYNTHETIC/UNVERIFIED] |", "|---|---|---|"]
+        for c in REAL_HW_CLASSES:
+            hp = REAL_HW_HELDOUT[c]
+            if not Path(hp).exists():
+                L.append(f"| {c} | n/a | n/a |"); continue
+            fp = f(metric("allhw", "benign_fp_rate", cond=c)) if heldout_has_benign(hp) else "n/a (positives-only)"
+            L.append(f"| {c} | {f(metric('allhw', 'recall', cond=c, cls=c))} | {fp} |")
+    else:
+        L.append("n/a (no allhw seeds)")
+    (OUT / "real_transfer_confusion.md").write_text("\n".join(L) + "\n")
+    print("wrote real_transfer_confusion.md")
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
@@ -217,6 +296,8 @@ def main():
             L.append(f"| {cls} | {f(before)} | {f(after)} | {fp_cell} |")
         (OUT / "real_transfer.md").write_text("\n".join(L) + "\n")
         print("wrote real_transfer.md")
+
+    write_confusion_report()
 
     print("wrote W3_grid.md, W4_ablation.md, real_v4.md, real_v4_p3.md under eval/cluster_out/")
 
