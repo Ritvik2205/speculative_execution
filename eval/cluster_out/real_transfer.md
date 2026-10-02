@@ -4,6 +4,7 @@ Generalizes P3 (SPECTRE_V4) to MDS/L1TF/SPECTRE_V1. Held-out sets are POSITIVES 
 
 | class | BEFORE (w3_embed_on) | AFTER (<class>_hw) | synthetic-twin FP (heldout twins predicted non-BENIGN) [SYNTHETIC/UNVERIFIED] |
 |---|---|---|---|
-| MDS | 0.200±0.392 | 0.170±0.304 | 0.170±0.211 |
-| L1TF | 0.000±0.000 | 0.000±0.000 | 0.362±0.293 |
-| SPECTRE_V1 | 0.285±0.281 | 0.026±0.019 | 0.407±0.236 |
+| MDS | 0.097±0.190 | 1.000±0.000 | 0.000±0.000 |
+| L1TF | 0.263±0.276 | 1.000±0.000 | 0.000±0.000 |
+| SPECTRE_V1 | 0.685±0.258 | 1.000±0.000 | 0.074±0.000 |
+| SPECTRE_V4 | 0.000±0.000 | 1.000±0.000 | 0.000±0.000 |
