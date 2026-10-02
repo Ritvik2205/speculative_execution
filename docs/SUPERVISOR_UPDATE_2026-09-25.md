@@ -18,38 +18,33 @@ one to cite). New baseline is the ISA-independent `embed, no-handcrafted` config
 - **Hand features were an x86 crutch.** Dropping them improves every axis; arm64
   **+13.4pp** (0.618 → 0.752), locked 0.869, x86 0.910. The DANN arch-adversary
   was tried and **retired** (backfired: arm64 0.752 → 0.456).
-- **Real-silicon transfer (headline arc).** *[Corrected 2026-10-02, cluster
-  run 4: the numbers originally here came from checkpoints trained before the
-  09-24 ISA-normalisation change (`3945792`), which current code cannot score,
-  and from 1–5 held-out gadgets/class. All of it was retrained on current code,
-  5 seeds, at the full held-out sizes. See `eval/cluster_out/real_transfer.md`
-  and `real_v4_p3.md`.]* The synthetically-trained model detects real hardware
-  gadgets poorly, and worst for the microarchitectural classes. Folding real
-  gadgets into training takes held-out recall to **1.00** for all four classes
-  (mean ± 95% CI over 5 seeds):
+- **Real-silicon transfer.** *[Corrected 2026-10-02: retrained on current
+  code, 5 seeds, at the full held-out sizes, plus a cross-class check. See
+  `eval/cluster_out/real_transfer.md`.]* A detector trained only on synthetic
+  data **does not recognise real hardware gadgets**. Held-out recall
+  (mean ± 95% CI):
 
-  | class | held-out n (real HW) | BEFORE | AFTER | FP on fenced twins (AFTER) |
-  |---|---|---|---|---|
-  | SPECTRE_V4 | 22 | 0.00 ± 0.00 | 1.00 ± 0.00 | 0.00 |
-  | MDS | 33 | 0.10 ± 0.19 | 1.00 ± 0.00 | 0.00 |
-  | L1TF | 64 | 0.26 ± 0.28 | 1.00 ± 0.00 | 0.00 |
-  | SPECTRE_V1 | 54 | 0.69 ± 0.26 | 1.00 ± 0.00 | 0.07 |
+  | class | held-out n (real HW) | synthetic-trained recall |
+  |---|---|---|
+  | SPECTRE_V4 | 22 | 0.00 ± 0.00 |
+  | MDS | 33 | 0.10 ± 0.19 |
+  | L1TF | 64 | 0.26 ± 0.28 |
+  | SPECTRE_V1 | 54 | 0.69 ± 0.26 |
 
-  The FP column uses *synthetic* `lfence`-mitigated twins, not hardware-confirmed
-  ones. On the separate seed-disjoint V4 set with **hardware-confirmed**
-  SSBP-mitigated negatives (5 + 5), V4 recall goes **0 → 1.00** and the
-  false-positive rate goes **1.00 → 0.00**. The earlier "100% → 16%" figure is
-  superseded.
+  Models with real gadgets folded in score 1.00 recall. **That does not show
+  transfer.** Each per-class model saw real gadgets of only its own class. A
+  cross-class check shows each one labels real gadgets of *every* class as its
+  own (e.g. the L1TF model calls 100% of real MDS, V1 and V4 gadgets L1TF). It
+  learned "Revizor-generated program → my class". The fenced negatives are
+  synthetic (`lfence` at the speculation boundary). Only the fence mechanism is
+  hardware-validated (SSBP on: 15 leaks → 0). The valid follow-up is built and
+  queued: one joint model trained on all four classes' real gadgets, scored as
+  a 4×4 confusion matrix, plus a misplaced-fence control.
 
 **Honest caveats:**
-- **Held-out is now 22–64 real gadgets per class**, and no gadget appears in its
-  training file. It is still one CPU (i5-8300H) and one fuzzer (Revizor).
-  AFTER = 1.00 ± 0.00 everywhere is a ceiling. Each `<class>_hw` model has
-  seen real gadgets of only its own class, plus a fenced twin for every one. So
-  this shows the model separates *real class-C gadgets from their fenced twins*.
-  It has not yet been shown that the model tells real classes apart. A
-  cross-class check (score each `_hw` model on the other classes' held-out
-  sets) is the next step.
+- **Held-out is 22–64 real gadgets per class.** Leakage is ruled out: no
+  duplicates, low nearest-neighbour similarity, disjoint generator seeds. It is
+  still one CPU (i5-8300H) and one fuzzer (Revizor).
 - **The "structural edge alone is 0%" claim is not re-verified.** `real_v4.md`
   still scores pre-09-24 W4 checkpoints, so it is withdrawn until W4 is
   retrained on current code.

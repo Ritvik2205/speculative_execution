@@ -69,6 +69,15 @@ Corrected held-out labels: `spec/data/riscv_loio_corpus_v2.jsonl` (built by
 `eval/build_riscv_heldout_v2.py`; RETBLEED dropped as having no riscv analogue,
 short V4 gadgets restored).
 
+### 1b. Real-hardware transfer (detector on real Revizor gadgets) — CONFOUNDED, redesign queued
+
+Real gadgets from the i5-8300H: V1 130, L1TF 155, MDS 83, V4 55. Held-out: 54 / 64 / 33 / 22, each with fenced BENIGN twins.
+- **Valid:** a detector trained only on synthetic data does not recognise real gadgets. Held-out recall: V4 0.00, MDS 0.10, L1TF 0.26, V1 0.69. Most real gadgets get called V1 or some other class.
+- **Invalid:** the per-class `<class>_hw` models score 1.00 recall. Each saw only its own class's real gadgets, and a cross-class check shows each labels real gadgets of **every** class as its own. It learned "Revizor-style program → my class". This is not leakage: no duplicates, NN opcode similarity median 0.40–0.47, disjoint generator seeds. The V4 seed-disjoint P3 result has the same flaw.
+- Pre-09-24 checkpoints cannot be scored with current code (`3945792` rewrote the data-dependence graph; V4 1.0 → 0.36). Everything was retrained (run 4).
+- **Queued:** a joint `allhw` model (all four classes' real gadgets together), scored as a 4×4 confusion matrix (`real_transfer_confusion.md`), plus a misplaced-`lfence` control. Built by `oracle/revizor/build_hw_joint.py` and `synth_v4_benign.py --misplaced-from-heldout`.
+- Details: `docs/PIPELINE_STATUS_2026-09-15.md` and memory note `[[real-transfer-stale-checkpoints]]`.
+
 ---
 
 ## 2. Ranker — BUILT this session, needs the cluster for a real number
@@ -120,8 +129,11 @@ Full detail: `docs/GENERATION_MODEL_2026-09-24.md`. Totals (from `gen/` reports)
 ~1,594 distinct leaking gadgets (within-run). Verified scope = **SPECTRE_V1,
 x86_64 only** (all oracles are x86). Pretraining significantly improves
 diversity at a yield cost (n=5 powered). arm64/riscv64 are generated but
-**unverified** (no non-x86 oracle). Multi-class RL job exists
-(`gen/rl_multiclass.sbatch`) but has no results in-tree yet.
+**unverified** (no non-x86 oracle). **Multi-class x86 RL** (`gen/rl_multiclass.sbatch`, 3 seeds;
+logs `eval/cluster_out/rl_mc_3657248_*.out`): validated-leak yield rises 0.49→1.0 for SPECTRE_V1
+and 0.15→0.6–1.0 for SPECTRE_V4. It stays **0.0** in every round and seed for SPECTRE_V2 and RETBLEED,
+because Spectector cannot adjudicate them (they need the Revizor hardware path). The per-class
+aggregate (`gen/aggregate_rl_multiclass.py`) has not been run on those samples yet.
 
 **Important negative result (this session, `gen/classifier_vs_oracle.py`):** the
 locked classifier does **not** track the oracle on generated x86 gadgets
@@ -135,6 +147,7 @@ classifier — which is exactly what the brief asked for.
 
 ## 4. Open blockers / next steps (ranked)
 
+0. **Run the real-HW joint model** (`allhw`, 5 seeds) and the confusion report. Until it lands, cite only the synthetic-trained BEFORE recall for real silicon, never the per-class 1.00.
 1. **Run the ranker on real labels** (cluster, commands above). This is the
    first real test of the brief's "filter" stage. Cheap; do first.
 2. **ARM speculation oracle** (`docs/ARM_ORACLE_SPIKE_PLAN.md`) — the gating
@@ -149,7 +162,8 @@ classifier — which is exactly what the brief asked for.
    help off-x86, train it on realized full sequences (or fold generated
    oracle-labelled gadgets into its training), then re-check
    `gen/classifier_vs_oracle.py` AUC.
-6. **Decision owed:** `tests/eval/test_idiomatic_riscv_independence.py` fails
+6. **Infra:** the cluster `specexec` env lacks `capstone`, so the oracle half of `run_feature_gate.sh` crashes on import (not a regression). Fix: `pip install capstone`. Also owed: a decision on whether `e3a541e`'s always-on MEMORY_ORDER edges are intended.
+7. **Decision owed:** `tests/eval/test_idiomatic_riscv_independence.py` fails
    (the only repo red) — ISA-normalisation deliberately removed the category-
    bigram signal it measures. Retire it or replace the measure.
 
