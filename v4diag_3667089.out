@@ -1,0 +1,105 @@
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  80%|████████  | 8/10 [00:00<00:00, 74.64it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 71.38it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      828 (47.7%)
+    CONTROL_FLOW        :      844 (48.6%)
+    FENCE_BOUNDARY      :       65 (3.7%)
+OLD_0911 s1 V4_recall= 1.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  90%|█████████ | 9/10 [00:00<00:00, 82.95it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 80.24it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      828 (47.7%)
+    CONTROL_FLOW        :      844 (48.6%)
+    FENCE_BOUNDARY      :       65 (3.7%)
+OLD_0911 s7 V4_recall= 1.0 FP= 0.8
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  90%|█████████ | 9/10 [00:00<00:00, 83.72it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 81.65it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      828 (47.7%)
+    CONTROL_FLOW        :      844 (48.6%)
+    FENCE_BOUNDARY      :       65 (3.7%)
+OLD_0911 s13 V4_recall= 1.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  90%|█████████ | 9/10 [00:00<00:00, 83.29it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 81.30it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      828 (47.7%)
+    CONTROL_FLOW        :      844 (48.6%)
+    FENCE_BOUNDARY      :       65 (3.7%)
+OLD_0911 s21 V4_recall= 1.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  90%|█████████ | 9/10 [00:00<00:00, 83.75it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 81.67it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      828 (47.7%)
+    CONTROL_FLOW        :      844 (48.6%)
+    FENCE_BOUNDARY      :       65 (3.7%)
+OLD_0911 s42 V4_recall= 1.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  40%|████      | 4/10 [00:00<00:00, 36.23it/s]Building PDGs:  80%|████████  | 8/10 [00:00<00:00, 37.77it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 36.89it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (42.6%)
+    CONTROL_FLOW        :      844 (45.9%)
+    MEMORY_ORDER        :      146 (7.9%)
+    FENCE_BOUNDARY      :       65 (3.5%)
+NEW_now s1 V4_recall= 0.8 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  50%|█████     | 5/10 [00:00<00:00, 43.69it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 39.79it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 40.29it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (42.6%)
+    CONTROL_FLOW        :      844 (45.9%)
+    MEMORY_ORDER        :      146 (7.9%)
+    FENCE_BOUNDARY      :       65 (3.5%)
+NEW_now s7 V4_recall= 0.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  50%|█████     | 5/10 [00:00<00:00, 43.46it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 39.63it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 40.12it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (42.6%)
+    CONTROL_FLOW        :      844 (45.9%)
+    MEMORY_ORDER        :      146 (7.9%)
+    FENCE_BOUNDARY      :       65 (3.5%)
+NEW_now s13 V4_recall= 1.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  50%|█████     | 5/10 [00:00<00:00, 43.57it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 39.62it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 40.12it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (42.6%)
+    CONTROL_FLOW        :      844 (45.9%)
+    MEMORY_ORDER        :      146 (7.9%)
+    FENCE_BOUNDARY      :       65 (3.5%)
+NEW_now s21 V4_recall= 0.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs:  50%|█████     | 5/10 [00:00<00:00, 43.52it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 39.78it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 40.26it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (42.6%)
+    CONTROL_FLOW        :      844 (45.9%)
+    MEMORY_ORDER        :      146 (7.9%)
+    FENCE_BOUNDARY      :       65 (3.5%)
+NEW_now s42 V4_recall= 0.0 FP= 0.0

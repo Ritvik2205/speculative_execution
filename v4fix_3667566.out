@@ -1,0 +1,50 @@
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 203.72it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (46.2%)
+    CONTROL_FLOW        :      844 (49.9%)
+    FENCE_BOUNDARY      :       65 (3.8%)
+FIXED s1 V4_recall= 0.2 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 132.15it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (46.2%)
+    CONTROL_FLOW        :      844 (49.9%)
+    FENCE_BOUNDARY      :       65 (3.8%)
+FIXED s7 V4_recall= 0.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 218.10it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (46.2%)
+    CONTROL_FLOW        :      844 (49.9%)
+    FENCE_BOUNDARY      :       65 (3.8%)
+FIXED s13 V4_recall= 1.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 255.65it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (46.2%)
+    CONTROL_FLOW        :      844 (49.9%)
+    FENCE_BOUNDARY      :       65 (3.8%)
+FIXED s21 V4_recall= 0.0 FP= 0.0
+Pre-computing PDGs (strip_boilerplate=True) ...
+Building PDGs:   0%|          | 0/10 [00:00<?, ?it/s]Building PDGs: 100%|██████████| 10/10 [00:00<00:00, 255.48it/s]
+  Valid samples: 10/10
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 854 -> 854 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :      782 (46.2%)
+    CONTROL_FLOW        :      844 (49.9%)
+    FENCE_BOUNDARY      :       65 (3.8%)
+FIXED s42 V4_recall= 0.0 FP= 0.0

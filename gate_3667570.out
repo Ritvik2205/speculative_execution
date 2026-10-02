@@ -1,0 +1,32 @@
+=== 1/2: oracle agreement gate ===
+Traceback (most recent call last):
+  File "/home/s2473583/speculative_execution/spec/gate_oracle_check.py", line 106, in <module>
+    main()
+  File "/home/s2473583/speculative_execution/spec/gate_oracle_check.py", line 69, in main
+    current = compute_agreement()
+              ^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/spec/validate_external.py", line 63, in compute_agreement
+    oracle = ExternalOracle()
+             ^^^^^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/spec/external_oracle.py", line 97, in __init__
+    raise RuntimeError("capstone not installed (pip install capstone)")
+RuntimeError: capstone not installed (pip install capstone)
+
+=== 2/2: per-class recall lift (reads cached eval/full_tost/ results) ===
+per-class recall lift: both vs hand (eval/full_tost, seeds=[42, 1, 7, 13, 21])
+
+class                              hand     both     diff             95% CI  sig?
+L1TF                              0.638    0.757   +0.119 [+0.068,+0.170]   YES
+SPECTRE_V2                        0.877    0.758   -0.118 [-0.229,-0.007]   YES
+INCEPTION                         0.864    0.823   -0.040 [-0.134,+0.053]    no
+SPECTRE_V1                        0.995    0.957   -0.038 [-0.063,-0.013]   YES
+MDS                               0.956    0.920   -0.036 [-0.099,+0.028]    no
+RETBLEED                          0.923    0.955   +0.032 [+0.012,+0.052]   YES
+BRANCH_HISTORY_INJECTION          0.919    0.946   +0.027 [-0.037,+0.091]    no
+BENIGN                            0.996    0.973   -0.023 [-0.028,-0.017]   YES
+SPECTRE_V4                        0.992    0.987   -0.005 [-0.010,+0.001]    no
+SPECTRE_RSB                       0.400    0.400   +0.000 [-0.799,+0.799]    no
+
+written -> eval/per_class_lift_results.json
+
+gate summary -> eval/gate_summary.json: {'oracle_gate': 'FAIL', 'oracle_current_agreement_pct': 99.86407681852063, 'oracle_baseline_agreement_pct': 99.86407681852063, 'per_class_lift_computed': True, 'per_class_lift_other_mode': 'both', 'timestamp_utc': '2026-10-01T21:47:17.746708+00:00'}

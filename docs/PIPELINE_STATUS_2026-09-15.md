@@ -10,17 +10,26 @@
 | — arm64 vs old hand-fused | 0.618 → **0.752** (+13.4pp) |
 
 ### Real-hardware transfer — now FOUR classes (the strengthened headline)
-Held-out real-silicon recall, BEFORE (synthetic-trained) → AFTER (real gadgets folded in):
+> **Corrected 2026-10-02 (cluster run 4).** The table originally here came from checkpoints trained before `3945792` (09-24, ISA surface-form normalisation), which current featurization cannot score, and from 1–5 held-out gadgets per class. Everything below was retrained on current code: 5 seeds × {`w3_embed_on`, `<class>_hw` ×4, `p3_hwv4`}. Sources: `eval/cluster_out/real_transfer.md`, `eval/cluster_out/real_v4_p3.md`.
 
-| class | BEFORE | AFTER | held-out n |
-|---|---|---|---|
-| SPECTRE_V4 | **0.000** | **1.000** (FP on mitigated 100%→16%) | 5 |
-| MDS | **0.000** | 0.800 ±0.392 | 1 |
-| L1TF | 0.700 ±0.240 | **1.000** | 2 |
-| SPECTRE_V1 | 0.400 ±0.480 | **1.000** | 1 |
+Held-out real-silicon recall (mean ±95% CI), BEFORE (`w3_embed_on`, synthetic-trained) → AFTER (`<class>_hw`, real gadgets + fenced twins folded in):
 
-**Interpretation:** the microarchitecture-defined classes (V4, MDS) transfer at **0%** from synthetic training — they need real hardware data. The more statically-visible classes (L1TF page-probe, V1 bounds-check+indexed-load) partially transfer (70%, 40%) and go to 100% with real data. Real data helps universally; it is *necessary* for V4/MDS.
-**Caveat:** held-out n is 1–5 per class — directionally consistent across four independent classes, but not per-class powered. No false-positive metric for MDS/L1TF/V1 (positives-only sets).
+| class | BEFORE | AFTER | FP on synthetic fenced twins (AFTER) | held-out n |
+|---|---|---|---|---|
+| SPECTRE_V4 | **0.000** ±0.000 | **1.000** ±0.000 | 0.000 | 22 (+22 twins) |
+| MDS | **0.097** ±0.190 | **1.000** ±0.000 | 0.000 | 33 (+33) |
+| L1TF | 0.263 ±0.276 | **1.000** ±0.000 | 0.000 | 64 (+64) |
+| SPECTRE_V1 | 0.685 ±0.258 | **1.000** ±0.000 | 0.074 | 54 (+54) |
+
+Seed-disjoint V4 with **hardware-confirmed** SSBP-mitigated negatives (`p3_hwv4`, 5 + 5): recall 0.000 → **1.000**, false-positive rate 1.000 → **0.000**. This supersedes the old "100% → 16%".
+
+**Interpretation:** the pattern survives retraining and larger held-out sets. The microarchitecture-defined classes (V4, MDS) barely transfer from synthetic training (0–10%). The statically-visible ones partially transfer (L1TF 26%, V1 69%). All go to 100% with real data.
+**Caveats:**
+- The twin false-positive rate here is **synthetic/unverified** (`lfence` at the textbook boundary). Only the V4 seed-disjoint set has hardware-confirmed negatives.
+- AFTER = 1.000 ± 0.000 is a ceiling. No held-out gadget is an exact duplicate of a training record, but each `_hw` model saw real gadgets of only its own class (paired with fenced twins). A cross-class check is still to do: does `mds_hw` call real L1TF gadgets MDS?
+- One CPU (i5-8300H), one fuzzer (Revizor).
+- `real_v4.md` ("structural edge alone = 0%") still uses pre-09-24 W4 checkpoints. Treat it as unverified until W4 is retrained.
+- **Open decision:** `e3a541e` (always-on store→load edges, 2 → 146 MEMORY_ORDER edges) is a separate spec change. It is *in* the committed code, so run 4 and every rv_* run used it. The uncommitted one-line revert (`if self.mem_order_edges or addr_mo:` → `if self.mem_order_edges:`) was dropped to keep the cluster tree identical to the branch. Whether always-on is intended needs confirming with the RISC-V work owner. If it is not, all of the above needs another retrain.
 
 ### Cross-ISA (mixed, honest)
 - RISC-V held out: **77% accuracy but attack macro-F1 ~15** — benign transfers, attacks don't. Corpus is 90% benign (162/181) with 2–6 records per attack class, so the accuracy is largely base-rate.
