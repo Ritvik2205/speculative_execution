@@ -1,0 +1,187 @@
+host=saxa.inf.ed.ac.uk job=3668195 tag=l1tf_hw seed=13 extra=''
+name, memory.total [MiB]
+NVIDIA H200, 143771 MiB
+Device: cuda
+
+======================================================================
+v52_b GINE — group-aware val + stable-hash dataset
+======================================================================
+Node features: 41  Edge types: 9 (incl. RSB_CHAIN)
+Global features: 5  Arch embedding: 8-dim
+
+Loading pre-split train: v54/data/v55h_l1tfhw_train.jsonl
+  6797 records
+Loading pre-split test: v54/data/v54_test.jsonl
+  1670 records
+
+Label distribution:
+  BENIGN: 3942
+  BRANCH_HISTORY_INJECTION: 305
+  INCEPTION: 582
+  L1TF: 448
+  MDS: 367
+  RETBLEED: 451
+  SPECTRE_RSB: 460
+  SPECTRE_V1: 780
+  SPECTRE_V2: 669
+  SPECTRE_V4: 463
+
+Classes (10): ['BENIGN', 'BRANCH_HISTORY_INJECTION', 'INCEPTION', 'L1TF', 'MDS', 'RETBLEED', 'SPECTRE_RSB', 'SPECTRE_V1', 'SPECTRE_V2', 'SPECTRE_V4']
+  Hard negative: SPECTRE_V1 <-> BRANCH_HISTORY_INJECTION
+  Hard negative: INCEPTION <-> BRANCH_HISTORY_INJECTION
+  Hard negative: MDS <-> RETBLEED
+  Hard negative: INCEPTION <-> RETBLEED
+  Hard negative: L1TF <-> SPECTRE_V1
+  Hard negative: L1TF <-> SPECTRE_V4
+  Hard negative: MDS <-> SPECTRE_V4
+  Hard negative: SPECTRE_V1 <-> SPECTRE_V4
+  Hard negative: SPECTRE_V2 <-> BRANCH_HISTORY_INJECTION
+  Hard negative: SPECTRE_V2 <-> INCEPTION
+  Hard negative: RETBLEED <-> INCEPTION
+  Hard negative: MDS <-> L1TF
+  Hard negative: SPECTRE_V2 <-> RETBLEED
+Handcrafted features (inline): 58
+  Train-only augmentation (excluded from val): 347 records (fastspec)
+
+Group-aware val split: StratifiedGroupKFold(n_splits=10) → val_frac≈0.129 (target ~0.100, pool=6450 val-eligible records)
+  Distinct groups — train: 824, val: 93, train∩val groups: 0
+
+Pre-split: Train=5967, Val=830, Test=1670
+  Val carve-out: stratified_group_kfold_n10
+  Early stopping uses VAL accuracy. Test evaluated once at end.
+
+Global feature statistics (train, mean±std):
+  nop_frac            : 0.0980 ± 0.1358
+  indirect_frac       : 0.0423 ± 0.0612
+  ret_frac            : 0.0471 ± 0.0420
+  verw_frac           : 0.0006 ± 0.0081
+  movntdqa_frac       : 0.0000 ± 0.0000
+
+Creating datasets...
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 5967/5967
+  Boilerplate stripped: 194 (3.3%) samples
+  Instructions: 177983 -> 177761 (0.1% reduction)
+  Edge type distribution:
+    DATA_DEP            :    91026 (26.9%)
+    CONTROL_FLOW        :   168812 (49.9%)
+    SPEC_CONDITIONAL    :    31951 (9.4%)
+    SPEC_INDIRECT       :    10909 (3.2%)
+    SPEC_RETURN         :    17532 (5.2%)
+    MEMORY_ORDER        :    10485 (3.1%)
+    CACHE_TEMPORAL      :     2364 (0.7%)
+    FENCE_BOUNDARY      :     2862 (0.8%)
+    RSB_CHAIN           :     2544 (0.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 830/830
+  Boilerplate stripped: 17 (2.0%) samples
+  Instructions: 24887 -> 24868 (0.1% reduction)
+  Edge type distribution:
+    DATA_DEP            :    13065 (28.2%)
+    CONTROL_FLOW        :    23754 (51.2%)
+    SPEC_CONDITIONAL    :     5659 (12.2%)
+    SPEC_INDIRECT       :      892 (1.9%)
+    SPEC_RETURN         :     1375 (3.0%)
+    MEMORY_ORDER        :      941 (2.0%)
+    CACHE_TEMPORAL      :      300 (0.6%)
+    FENCE_BOUNDARY      :      204 (0.4%)
+    RSB_CHAIN           :      213 (0.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23013 (25.2%)
+    CONTROL_FLOW        :    48834 (53.4%)
+    SPEC_CONDITIONAL    :     8986 (9.8%)
+    SPEC_INDIRECT       :     2152 (2.4%)
+    SPEC_RETURN         :     4380 (4.8%)
+    MEMORY_ORDER        :     1943 (2.1%)
+    CACHE_TEMPORAL      :      588 (0.6%)
+    FENCE_BOUNDARY      :     1023 (1.1%)
+    RSB_CHAIN           :      544 (0.6%)
+Node feature mode: hand  node_feat_dim=41
+
+Initializing GINEClassifier v47...
+  Total parameters: 618,059
+  Edge types: 9 (RSB_CHAIN added)
+
+======================================================================
+TRAINING
+======================================================================
+Epoch   1/60 | CE: 1.0724 | Con: 2.4460 | Train: 0.724 | Val: 0.898 | LR: 9.99e-04 | 19.7s *BEST*
+  Edge scales: CACHE_TE=1.02 | CONTROL_=0.98 | DATA_DEP=1.01 | FENCE_BO=0.99 | MEMORY_O=1.02 | RSB_CHAI=1.02 | SPEC_CON=1.04 | SPEC_IND=1.01 | SPEC_RET=1.01
+Epoch   2/60 | CE: 0.4709 | Con: 1.9742 | Train: 0.883 | Val: 0.922 | LR: 9.97e-04 | 8.1s *BEST*
+  Edge scales: CACHE_TE=1.05 | CONTROL_=0.96 | DATA_DEP=0.99 | FENCE_BO=0.99 | MEMORY_O=1.02 | RSB_CHAI=1.04 | SPEC_CON=1.05 | SPEC_IND=1.03 | SPEC_RET=1.00
+Epoch   3/60 | CE: 0.3444 | Con: 1.8374 | Train: 0.915 | Val: 0.949 | LR: 9.94e-04 | 8.1s *BEST*
+  Edge scales: CACHE_TE=1.07 | CONTROL_=0.93 | DATA_DEP=0.98 | FENCE_BO=0.98 | MEMORY_O=1.01 | RSB_CHAI=1.05 | SPEC_CON=1.09 | SPEC_IND=1.05 | SPEC_RET=1.01
+Epoch   4/60 | CE: 0.2663 | Con: 1.7517 | Train: 0.934 | Val: 0.952 | LR: 9.89e-04 | 8.1s *BEST*
+  Edge scales: CACHE_TE=1.06 | CONTROL_=0.90 | DATA_DEP=0.96 | FENCE_BO=0.96 | MEMORY_O=1.02 | RSB_CHAI=1.05 | SPEC_CON=1.09 | SPEC_IND=1.06 | SPEC_RET=1.01
+Epoch   5/60 | CE: 0.2260 | Con: 1.6829 | Train: 0.944 | Val: 0.969 | LR: 9.83e-04 | 8.1s *BEST*
+  Edge scales: CACHE_TE=1.07 | CONTROL_=0.88 | DATA_DEP=0.96 | FENCE_BO=0.96 | MEMORY_O=1.04 | RSB_CHAI=1.06 | SPEC_CON=1.11 | SPEC_IND=1.07 | SPEC_RET=1.02
+Epoch   6/60 | CE: 0.2141 | Con: 1.6719 | Train: 0.947 | Val: 0.955 | LR: 9.76e-04 | 8.2s
+Epoch   7/60 | CE: 0.1759 | Con: 1.6146 | Train: 0.956 | Val: 0.966 | LR: 9.67e-04 | 8.1s
+Epoch   8/60 | CE: 0.1508 | Con: 1.6108 | Train: 0.962 | Val: 0.958 | LR: 9.57e-04 | 8.1s
+Epoch   9/60 | CE: 0.1509 | Con: 1.5809 | Train: 0.961 | Val: 0.958 | LR: 9.46e-04 | 8.1s
+Epoch  10/60 | CE: 0.1362 | Con: 1.5829 | Train: 0.965 | Val: 0.971 | LR: 9.33e-04 | 8.2s *BEST*
+  Edge scales: CACHE_TE=1.06 | CONTROL_=0.81 | DATA_DEP=0.92 | FENCE_BO=0.95 | MEMORY_O=1.07 | RSB_CHAI=1.08 | SPEC_CON=1.22 | SPEC_IND=1.09 | SPEC_RET=1.08
+Epoch  11/60 | CE: 0.1126 | Con: 1.5485 | Train: 0.970 | Val: 0.972 | LR: 9.19e-04 | 8.2s *BEST*
+  Edge scales: CACHE_TE=1.06 | CONTROL_=0.81 | DATA_DEP=0.90 | FENCE_BO=0.94 | MEMORY_O=1.07 | RSB_CHAI=1.10 | SPEC_CON=1.23 | SPEC_IND=1.09 | SPEC_RET=1.11
+Epoch  12/60 | CE: 0.1148 | Con: 1.5352 | Train: 0.971 | Val: 0.989 | LR: 9.05e-04 | 8.2s *BEST*
+  Edge scales: CACHE_TE=1.06 | CONTROL_=0.79 | DATA_DEP=0.88 | FENCE_BO=0.94 | MEMORY_O=1.09 | RSB_CHAI=1.09 | SPEC_CON=1.25 | SPEC_IND=1.08 | SPEC_RET=1.12
+Epoch  13/60 | CE: 0.1092 | Con: 1.5407 | Train: 0.972 | Val: 0.976 | LR: 8.89e-04 | 8.2s
+Epoch  14/60 | CE: 0.1046 | Con: 1.5346 | Train: 0.975 | Val: 0.972 | LR: 8.72e-04 | 8.2s
+Epoch  15/60 | CE: 0.0881 | Con: 1.5233 | Train: 0.978 | Val: 0.975 | LR: 8.54e-04 | 8.2s
+Epoch  16/60 | CE: 0.0824 | Con: 1.5179 | Train: 0.981 | Val: 0.982 | LR: 8.35e-04 | 8.2s
+Epoch  17/60 | CE: 0.0757 | Con: 1.5148 | Train: 0.981 | Val: 0.976 | LR: 8.15e-04 | 8.2s
+Epoch  18/60 | CE: 0.0727 | Con: 1.5119 | Train: 0.981 | Val: 0.976 | LR: 7.94e-04 | 8.2s
+Epoch  19/60 | CE: 0.0802 | Con: 1.5018 | Train: 0.980 | Val: 0.970 | LR: 7.72e-04 | 8.2s
+Epoch  20/60 | CE: 0.0780 | Con: 1.5030 | Train: 0.980 | Val: 0.972 | LR: 7.50e-04 | 8.2s
+  Edge scales: CACHE_TE=1.06 | CONTROL_=0.75 | DATA_DEP=0.85 | FENCE_BO=0.94 | MEMORY_O=1.14 | RSB_CHAI=1.12 | SPEC_CON=1.31 | SPEC_IND=1.08 | SPEC_RET=1.17
+Epoch  21/60 | CE: 0.0618 | Con: 1.4978 | Train: 0.985 | Val: 0.977 | LR: 7.27e-04 | 8.2s
+Epoch  22/60 | CE: 0.0621 | Con: 1.4736 | Train: 0.984 | Val: 0.988 | LR: 7.03e-04 | 8.2s
+
+Early stop at epoch 22
+
+======================================================================
+FINAL EVALUATION
+======================================================================
+Best model from epoch 12 (val_acc=0.9892)
+Test accuracy: 0.9575
+Val/Test gap: +3.17pp
+
+Final edge-type scales:
+  CACHE_TEMPORAL      : 1.0624  (UP)
+  CONTROL_FLOW        : 0.7912  (DOWN)
+  DATA_DEP            : 0.8827  (DOWN)
+  FENCE_BOUNDARY      : 0.9414  (DOWN)
+  MEMORY_ORDER        : 1.0863  (UP)
+  RSB_CHAIN           : 1.0918  (UP)
+  SPEC_CONDITIONAL    : 1.2503  (UP)
+  SPEC_INDIRECT       : 1.0839  (UP)
+  SPEC_RETURN         : 1.1161  (UP)
+
+Classification Report:
+                          precision    recall  f1-score   support
+
+                  BENIGN       0.99      1.00      0.99      1031
+BRANCH_HISTORY_INJECTION       0.79      0.97      0.87        67
+               INCEPTION       0.83      0.83      0.83        94
+                    L1TF       0.84      0.73      0.78        37
+                     MDS       0.96      0.96      0.96        45
+                RETBLEED       0.96      1.00      0.98        75
+             SPECTRE_RSB       0.00      0.00      0.00         1
+              SPECTRE_V1       0.79      1.00      0.88        42
+              SPECTRE_V2       0.98      0.78      0.87       154
+              SPECTRE_V4       1.00      0.98      0.99       124
+
+                accuracy                           0.96      1670
+               macro avg       0.81      0.82      0.82      1670
+            weighted avg       0.96      0.96      0.96      1670
+
+
+Results saved to eval/cluster_out/l1tf_hw_s13/gine_metrics.json
+Best val accuracy:  98.92%  (epoch 12)
+Final test accuracy: 95.75%
+results -> /home/s2473583/speculative_execution/eval/cluster_out/l1tf_hw_s13
+done tag=l1tf_hw seed=13 rc=0
