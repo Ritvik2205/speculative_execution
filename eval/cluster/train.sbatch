@@ -39,7 +39,7 @@ nvidia-smi --query-gpu=name,memory.total --format=csv || true
 # ---- stage code+data to node-local scratch (distributed FS is slow) --------
 SCRATCH="/disk/scratch/${USER}/gine_${SLURM_JOB_ID}"
 mkdir -p "$SCRATCH"
-rsync -a --exclude '.git' "$REPO/" "$SCRATCH/repo/"
+rsync -a --exclude '.git' --exclude '/.venv*' --exclude '/venv/' --exclude '/data/' --exclude '/githubCrawl/' --exclude '/gen/data/' --exclude '/cluster_out/' --exclude '/eval/cluster_out/' --exclude '/oracle/build/' --exclude '/oracle/apptainer/' --exclude '/oracle/revizor/' --exclude '/rvzr_runs/' --exclude '__pycache__' --exclude '*.out' "$REPO/" "$SCRATCH/repo/"
 cd "$SCRATCH/repo"
 
 # ---- environment -----------------------------------------------------------
