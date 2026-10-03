@@ -45,7 +45,10 @@ def _synth():
     return m
 
 
-def make_misfenced_for_tails(tails, seed=0):
+SHIFTED_CLASSES = {"spectre_v1", "spectre_v4"}
+
+
+def make_misfenced_for_tails(tails, seed=0, shifted=True):
     """{class: [misfenced "mixed" variant of every train-add positive]}.
     Deterministic given `seed` and the tail order. Positive = label == class.upper()."""
     synth = _synth()
@@ -60,11 +63,18 @@ def make_misfenced_for_tails(tails, seed=0):
             m = synth.make_misplaced_variant(r, cls, "mixed", rng)
             if m is not None:
                 mis.append(m)
+        if shifted and c in SHIFTED_CLASSES:
+            # fence BEFORE the twin's boundary: still vulnerable, mid-sequence like the twin
+            for r in tail:
+                if r.get("label") == cls:
+                    m = synth.make_misplaced_variant(r, cls, "shifted")
+                    if m is not None:
+                        mis.append(m)
         out[c] = mis
     return out
 
 
-def build_joint(base, class_files, heldout_files, with_misfenced=False, seed=0):
+def build_joint(base, class_files, heldout_files, with_misfenced=False, seed=0, shifted=True):
     """base: list of records; class_files/heldout_files: {class: list of records}.
     Returns (joint, {class: tail}). Raises ValueError on a bad head or a leak."""
     n = len(base)
@@ -84,7 +94,7 @@ def build_joint(base, class_files, heldout_files, with_misfenced=False, seed=0):
     for tail in tails.values():
         joint.extend(tail)
     if with_misfenced:
-        mis = make_misfenced_for_tails(tails, seed)
+        mis = make_misfenced_for_tails(tails, seed, shifted)
         for c, ms in mis.items():
             leak = {_strip_fenced(r.get("group")) for r in ms} & held
             if leak:
@@ -102,6 +112,8 @@ def main(argv=None):
                     help="also add a seeded 'mixed'-placement misfenced variant (attack label) "
                          "per train-add positive -> v55h_allhw2_train.jsonl")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--no-shifted", action="store_true",
+                    help="(diagnostic) omit the V1/V4 shifted-fence variants")
     ap.add_argument("--data-dir", type=Path, default=None,
                     help="override v54/data (class train files) location")
     ap.add_argument("--heldout-dir", type=Path, default=None,
@@ -114,7 +126,7 @@ def main(argv=None):
     base = load_jsonl(ddir / "v55h_train.jsonl")
     cf = {c: load_jsonl(ddir / f"v55h_{c}hw_train.jsonl") for c in a.classes}
     hf = {c: load_jsonl(edir / f"revizor_{c}_heldout.jsonl") for c in a.classes}
-    joint, tails = build_joint(base, cf, hf, a.with_misfenced, a.seed)
+    joint, tails = build_joint(base, cf, hf, a.with_misfenced, a.seed, not a.no_shifted)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     with open(a.out, "w") as f:
         for r in joint:

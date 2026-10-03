@@ -124,8 +124,11 @@ def test_with_misfenced_one_per_positive():
     cf = {"spectre_v1": base + pos + twins}
     out, tails = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0)
     mis = [r for r in out if r["group"].endswith("_misfenced")]
-    assert len(mis) == 4 and all(r["label"] == "SPECTRE_V1" for r in mis)
-    assert sorted(r["group"] for r in mis) == sorted(f"p{i}_misfenced" for i in range(4))
+    # SPECTRE_V1: one mixed + one shifted per positive
+    assert len(mis) == 8 and all(r["label"] == "SPECTRE_V1" for r in mis)
+    assert sorted(r["group"] for r in mis) == sorted(f"p{i}_misfenced" for i in range(4) for _ in range(2))
+    one, _ = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0, shifted=False)
+    assert len([r for r in one if r["group"].endswith("_misfenced")]) == 4
     out2, _ = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0)
     assert out == out2
     plain, _ = joint.build_joint(base, cf, {"spectre_v1": []})
@@ -139,3 +142,42 @@ def test_guard_strips_misfenced_suffix():
     cf = {"mds": base + [R("m1", "MDS")]}
     with pytest.raises(ValueError, match="leak"):
         joint.build_joint(base, cf, {"mds": [R("m1_misfenced", "MDS")]})
+
+
+V4S = ["mov %rax, (%rbx)", "mov (%rcx), %rdx", "mov %rdx, 8(%rbx)", "mov (%rdx), %rsi"]
+
+def test_shifted_v1_before_branch():
+    m = synth.make_misplaced_variant(_rec(), "SPECTRE_V1", "shifted")
+    twin = synth.make_benign_variant(_rec(), "SPECTRE_V1")
+    assert m["sequence"] == ["cmp rax, 1", "lfence", "jne .L", "mov rbx, [rax]", "mov rcx, [rbx]", "add rax, 1", "xor rcx, rcx"] \
+        or m["sequence"].index("lfence") == m["sequence"].index("jne .L") - 1
+    assert len(m["sequence"]) == len(twin["sequence"]) and m["sequence"].count("lfence") == twin["sequence"].count("lfence")
+    assert m["sequence"] != twin["sequence"]
+    assert m["label"] == "SPECTRE_V1" and m["group"] == "g_misfenced" and m["source"] == "synth_misplaced_fence_control"
+
+def test_shifted_v4_before_store():
+    rec = _rec(label="SPECTRE_V4", sequence=V4S)
+    m = synth.make_misplaced_variant(rec, "SPECTRE_V4", "shifted")["sequence"]
+    twin = synth.make_benign_variant(rec, "SPECTRE_V4")["sequence"]
+    assert m == ["lfence", V4S[0], V4S[1], "lfence", V4S[2], V4S[3]]
+    assert len(m) == len(twin) and m != twin
+
+def test_shifted_rejected_for_mds_l1tf():
+    for c in ("MDS", "L1TF"):
+        rec = _rec(label=c, sequence=["mov (%rax), %rbx", "mov (%rbx), %rcx"])
+        with pytest.raises(ValueError, match="SPECTRE_V1/SPECTRE_V4"):
+            synth.make_misplaced_variant(rec, c, "shifted")
+
+def test_cli_shifted(tmp_path):
+    src, out = tmp_path / "h.jsonl", tmp_path / "o.jsonl"
+    src.write_text(json.dumps(_rec(group="p")) + "\n")
+    synth.main(["--misplaced-from-heldout", str(src), "--out", str(out), "--vuln-class", "SPECTRE_V1", "--placement", "shifted"])
+    got = json.loads(out.read_text().splitlines()[0])
+    assert got["sequence"][got["sequence"].index("jne .L") - 1] == "lfence"
+
+def test_mds_mixed_only_in_joint():
+    base = [R("b1")]
+    pos = [_rec(label="MDS", group=f"m{i}", sequence=["mov (%rax), %rbx", "mov (%rbx), %rcx"]) for i in range(3)]
+    cf = {"mds": base + pos}
+    out, _ = joint.build_joint(base, cf, {"mds": []}, with_misfenced=True)
+    assert len([r for r in out if r["group"].endswith("_misfenced")]) == 3

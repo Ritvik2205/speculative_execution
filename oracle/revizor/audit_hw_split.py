@@ -182,6 +182,9 @@ def four_class_bars(train_pos, held_pos):
     return out
 
 
+FOCUS = ("twins", "misfenced shift")
+
+
 def attack_vs_benign_bars(train_recs, held_by_subset):
     from sklearn.linear_model import LogisticRegression
     from sklearn.tree import DecisionTreeClassifier
@@ -213,18 +216,22 @@ def attack_vs_benign_bars(train_recs, held_by_subset):
         clf.fit(fn(train_recs), ytr)
         pred = clf.predict(fn(Xh_recs))
         benign_rate = {s: float((pred[subs == s] == 0).mean()) for s in held_by_subset if (subs == s).any()}
-        out[name] = (float((pred == yte).mean()), benign_rate)
+        fm = np.isin(subs, FOCUS)
+        focus = float((pred[fm] == yte[fm]).mean()) if set(FOCUS) <= set(subs) else None
+        out[name] = (float((pred == yte).mean()), benign_rate, focus)
     return out
 
 
 def construction_check(recs, label):
     """twin <-> misfenced sibling: identical length and lfence count."""
     tw = {base_group(r["group"]): r for r in recs if role(r) == "twin"}
-    mf = {base_group(r["group"]): r for r in recs if role(r) == "misfenced"}
     bad, n = [], 0
-    for g in set(tw) & set(mf):
+    for r in recs:
+        g = base_group(r["group"])
+        if role(r) != "misfenced" or g not in tw:
+            continue
         n += 1
-        a, b = tw[g]["sequence"], mf[g]["sequence"]
+        a, b = tw[g]["sequence"], r["sequence"]
         if len(a) != len(b) or nfence(a) != nfence(b):
             bad.append(g)
     return n, bad
@@ -240,17 +247,19 @@ def run(a):
         return 2
     train_add, how = split_train_add(pool, base)
 
-    held, mis_e, mis_t, real = {}, {}, {}, {}
+    held, mis_e, mis_t, mis_s, real = {}, {}, {}, {}, {}
     for c in a.classes:
         held[c] = load_jsonl(edir / f"revizor_{c}_heldout.jsonl") or []
         mis_e[c] = load_jsonl(edir / f"revizor_{c}_misfenced_heldout.jsonl") or []
         mis_t[c] = load_jsonl(edir / f"revizor_{c}_misfenced_tail_heldout.jsonl") or []
+        mis_s[c] = load_jsonl(edir / f"revizor_{c}_misfenced_shift_heldout.jsonl") or []
         real[c] = load_jsonl(edir / f"revizor_{c}_real.jsonl") or []
-    H_all = [r for c in a.classes for r in held[c] + mis_e[c] + mis_t[c]]
+    H_all = [r for c in a.classes for r in held[c] + mis_e[c] + mis_t[c] + mis_s[c]]
     H_pos = [r for c in a.classes for r in held[c] if role(r) == "positive"]
     H_twin = [r for c in a.classes for r in held[c] if role(r) == "twin"]
     H_me = [r for c in a.classes for r in mis_e[c]]
     H_mt = [r for c in a.classes for r in mis_t[c]]
+    H_ms = [r for c in a.classes for r in mis_s[c]]
     T_pos = [r for r in train_add if role(r) == "positive"]
     T_twin = [r for r in train_add if role(r) == "twin"]
     T_mis = [r for r in train_add if role(r) == "misfenced"]
@@ -308,7 +317,8 @@ def run(a):
     # construction
     cons = {}
     for nm, recs in [("train-add", train_add), ("held-out entry", [r for c in a.classes for r in held[c] + mis_e[c]]),
-                     ("held-out tail", [r for c in a.classes for r in held[c] + mis_t[c]])]:
+                     ("held-out tail", [r for c in a.classes for r in held[c] + mis_t[c]]),
+                     ("held-out shift", [r for c in a.classes for r in held[c] + mis_s[c]])]:
         n, bad = construction_check(recs, nm)
         cons[nm] = (n, bad)
         if bad:
@@ -319,6 +329,7 @@ def run(a):
     held_sub = {"positives": H_pos, "twins": H_twin}
     if H_me: held_sub["misfenced entry"] = H_me
     if H_mt: held_sub["misfenced tail"] = H_mt
+    if H_ms: held_sub["misfenced shift"] = H_ms
     ab = attack_vs_benign_bars(T_pos + T_twin + T_mis, {k: v for k, v in held_sub.items() if v})
     flagged = []
 
@@ -335,7 +346,7 @@ def run(a):
              "boundary (structural control, not hardware verified).\n")
     L.append(f"- pool: `{a.pool}` ({len(pool)} records; base={len(base)}, train-add={len(train_add)} via {how}: "
              f"{len(T_pos)} positives / {len(T_twin)} twins / {len(T_mis)} misfenced)")
-    L.append(f"- held-out: {len(H_pos)} positives, {len(H_twin)} twins, {len(H_me)} misfenced-entry, {len(H_mt)} misfenced-tail\n")
+    L.append(f"- held-out: {len(H_pos)} positives, {len(H_twin)} twins, {len(H_me)} misfenced-entry, {len(H_mt)} misfenced-tail, {len(H_ms)} misfenced-shift\n")
     L.append(f"## Verdict: {'**LEAK DETECTED -- FAIL**' if leaks else 'NO LEAK (PASS)'}\n")
     for m in leaks:
         L.append(f"- LEAK: {m}")
@@ -376,10 +387,21 @@ def run(a):
         L.append("accuracy over all held-out slices; per-subset column = fraction predicted BENIGN "
                  "(want ~0 for positives/misfenced, ~1 for twins).\n")
         L.append("| cue | accuracy | " + " | ".join(f"BENIGN rate: {s}" for s in subs) + " |\n|---|---|" + "---|" * len(subs))
-        for nm, (acc, br) in ab.items():
+        for nm, (acc, br, _fa) in ab.items():
             flag = " **SHORTCUT AVAILABLE**" if acc >= BAR else ""
             if acc >= BAR: flagged.append(f"attack-vs-BENIGN / {nm}: {acc:.3f}")
             L.append(f"| {nm} | {acc:.3f}{flag} | " + " | ".join(f"{br.get(s, float('nan')):.2f}" for s in subs) + " |")
+        L.append("\n### 7b. Fence-position cue on twins + shifted siblings only\n")
+        L.append("Twins fence mid-sequence at the boundary; shifted siblings (V1/V4) also fence mid-sequence "
+                 "but BEFORE the boundary, so position/count/presence cues should fall to ~0.5 here.\n")
+        if ab and next(iter(ab.values()))[2] is not None:
+            L.append("| cue | accuracy (twins + shifted only) |\n|---|---|")
+            for nm, (_a, _b, fa) in ab.items():
+                flag = " **SHORTCUT AVAILABLE**" if fa >= BAR else ""
+                if fa >= BAR: flagged.append(f"twins-vs-shifted / {nm}: {fa:.3f}")
+                L.append(f"| {nm} | {fa:.3f}{flag} |")
+        else:
+            L.append("n/a (no shifted held-out files)")
     else:
         L.append("n/a (insufficient data)")
     L.append("\n## Flagged shortcuts\n")

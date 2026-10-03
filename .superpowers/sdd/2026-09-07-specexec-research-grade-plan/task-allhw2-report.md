@@ -73,3 +73,61 @@ accuracy over all held-out slices; per-subset column = fraction predicted BENIGN
 
 - **SHORTCUT AVAILABLE**: 4-class / opcode presence bag: 0.954
 - **SHORTCUT AVAILABLE**: 4-class / opcode count bag: 0.965
+
+# Follow-up: shifted placement (V1/V4)
+
+Tests: 346 passed, 1 skipped, 1 known failure. No LEAK before or after. Pool 7360 -> 7464 (+104 shifted V1/V4 variants).
+Twins+shifted subset is 173 twins vs 72 shifted, so the majority-class rate is 0.706; a bar near 0.69 means the cue carries no signal.
+
+## BEFORE (no shifted in train; shifted held-out present)
+## 7. SHORTCUT bars: attack-vs-BENIGN (train-add positives+twins+misfenced -> held-out slices)
+
+accuracy over all held-out slices; per-subset column = fraction predicted BENIGN (want ~0 for positives/misfenced, ~1 for twins).
+
+| cue | accuracy | BENIGN rate: positives | BENIGN rate: twins | BENIGN rate: misfenced entry | BENIGN rate: misfenced tail | BENIGN rate: misfenced shift |
+|---|---|---|---|---|---|---|
+| (a) length | 0.771 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| (b) lfence count | 0.452 | 0.00 | 0.98 | 1.00 | 1.00 | 1.00 |
+| (c) lfence present | 0.452 | 0.00 | 0.98 | 1.00 | 1.00 | 1.00 |
+| (d) first-lfence position | 0.758 | 0.00 | 0.98 | 0.00 | 0.63 | 1.00 |
+| (e) opcode bag incl. lfence | 0.644 | 0.01 | 0.42 | 0.43 | 0.43 | 0.33 |
+
+### 7b. Fence-position cue on twins + shifted siblings only
+
+Twins fence mid-sequence at the boundary; shifted siblings (V1/V4) also fence mid-sequence but BEFORE the boundary, so position/count/presence cues should fall to ~0.5 here.
+
+| cue | accuracy (twins + shifted only) |
+|---|---|
+| (a) length | 0.294 |
+| (b) lfence count | 0.690 |
+| (c) lfence present | 0.690 |
+| (d) first-lfence position | 0.690 |
+| (e) opcode bag incl. lfence | 0.494 |
+
+## Flagged shortcuts
+## AFTER
+## 7. SHORTCUT bars: attack-vs-BENIGN (train-add positives+twins+misfenced -> held-out slices)
+
+accuracy over all held-out slices; per-subset column = fraction predicted BENIGN (want ~0 for positives/misfenced, ~1 for twins).
+
+| cue | accuracy | BENIGN rate: positives | BENIGN rate: twins | BENIGN rate: misfenced entry | BENIGN rate: misfenced tail | BENIGN rate: misfenced shift |
+|---|---|---|---|---|---|---|
+| (a) length | 0.771 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| (b) lfence count | 0.771 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| (c) lfence present | 0.771 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| (d) first-lfence position | 0.758 | 0.00 | 0.98 | 0.00 | 0.63 | 1.00 |
+| (e) opcode bag incl. lfence | 0.700 | 0.00 | 0.29 | 0.30 | 0.30 | 0.06 |
+
+### 7b. Fence-position cue on twins + shifted siblings only
+
+Twins fence mid-sequence at the boundary; shifted siblings (V1/V4) also fence mid-sequence but BEFORE the boundary, so position/count/presence cues should fall to ~0.5 here.
+
+| cue | accuracy (twins + shifted only) |
+|---|---|
+| (a) length | 0.294 |
+| (b) lfence count | 0.294 |
+| (c) lfence present | 0.294 |
+| (d) first-lfence position | 0.690 |
+| (e) opcode bag incl. lfence | 0.482 |
+
+## Flagged shortcuts

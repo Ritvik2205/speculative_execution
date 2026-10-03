@@ -96,3 +96,27 @@ def test_lfence_shortcut_flagged(tmp_path):
     assert "SHORTCUT AVAILABLE" in txt
     row = [l for l in txt.splitlines() if l.startswith("| (c) lfence present")][0]
     assert "SHORTCUT AVAILABLE" in row
+
+
+def test_shift_held_out_included_and_focus_bar(tmp_path):
+    args = fixture(tmp_path, range(1, 9), range(20, 26))
+    d = Path(args[3])
+    # shifted sibling: lfence mid-sequence, same length/count as the twin
+    held = [json.loads(l) for l in (d / "revizor_mds_heldout.jsonl").read_text().splitlines()]
+    sh = [rec(CLS, r["group"] + "_misfenced", list(r["sequence"]), source="synth_misplaced_fence_control")
+          for r in held if r["label"] == "BENIGN" for r in [{**r, "group": r["group"][:-len("_fenced")]}]]
+    for r, t in zip(sh, [h for h in held if h["label"] == "BENIGN"]):
+        r["sequence"] = list(t["sequence"])
+        r["sequence"].remove("lfence"); r["sequence"].insert(len(r["sequence"]) // 2 - 1, "lfence")
+    write(d / "revizor_mds_misfenced_shift_heldout.jsonl", sh)
+    assert audit.main(args) == 0
+    txt = (tmp_path / "audit.md").read_text()
+    assert "misfenced shift" in txt and "7b" in txt
+    assert any(l.startswith("| held-out shift | 6 | 0 |") for l in txt.splitlines())
+
+def test_shift_length_mismatch_fails(tmp_path):
+    args = fixture(tmp_path, range(1, 9), range(20, 26))
+    d = Path(args[3])
+    sh = [rec(CLS, "g20_misfenced", seq(20, fence="twin") + ["nop"], source="synth_misplaced_fence_control")]
+    write(d / "revizor_mds_misfenced_shift_heldout.jsonl", sh)
+    assert audit.main(args) == 1

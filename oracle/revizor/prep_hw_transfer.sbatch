@@ -46,6 +46,11 @@ for c in mds l1tf spectre_v1 spectre_v4; do
   python3 oracle/revizor/synth_v4_benign.py --misplaced-from-heldout eval/data/revizor_${c}_heldout.jsonl --out eval/data/revizor_${c}_misfenced_tail_heldout.jsonl --vuln-class "${c^^}" --placement tail
 done
 
+echo "-- misplaced-fence SHIFTED controls (V1/V4: lfence just BEFORE the boundary; still vulnerable)"
+for c in spectre_v1 spectre_v4; do
+  python3 oracle/revizor/synth_v4_benign.py --misplaced-from-heldout eval/data/revizor_${c}_heldout.jsonl --out eval/data/revizor_${c}_misfenced_shift_heldout.jsonl --vuln-class "${c^^}" --placement shifted
+done
+
 echo "-- allhw2 pool (base + train-add + mixed-placement misfenced variants of train positives)"
 python3 oracle/revizor/build_hw_joint.py --with-misfenced
 

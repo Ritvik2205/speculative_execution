@@ -427,7 +427,8 @@ def make_benign_variant(record: dict, vuln_class: Optional[str] = None) -> dict:
     }
 
 
-PLACEMENTS = ("entry", "tail", "mixed")
+PLACEMENTS = ("entry", "tail", "mixed", "shifted")
+_SHIFTED_BOUNDARY = {"SPECTRE_V1": "_is_cond_branch", "SPECTRE_V4": "instr_writes_mem"}
 
 
 def make_misplaced_variant(record: dict, vuln_class: Optional[str] = None,
@@ -456,6 +457,25 @@ def make_misplaced_variant(record: dict, vuln_class: Optional[str] = None,
         return None
     if placement not in PLACEMENTS:
         raise ValueError(f"placement must be one of {PLACEMENTS}, got {placement!r}")
+    if placement == "shifted":
+        if cls not in _SHIFTED_BOUNDARY:
+            raise ValueError(f"placement 'shifted' is only defined for SPECTRE_V1/SPECTRE_V4, not {cls} "
+                             "(a fence after the transient load may still mitigate MDS/L1TF)")
+        is_b = _is_cond_branch if cls == "SPECTRE_V1" else instr_writes_mem
+        new_seq = []
+        for ins in seq:
+            if is_b(ins):
+                new_seq.append(FENCE_INSTR)
+            new_seq.append(ins)
+        assert len(new_seq) == len(seq) + k, "shifted variant must match twin length"
+        assert new_seq.count(FENCE_INSTR) - list(seq).count(FENCE_INSTR) == k
+        return {
+            "label": record.get("label", cls),
+            "arch": record.get("arch", "x86_64"),
+            "sequence": new_seq,
+            "group": f"{record['group']}_misfenced",
+            "source": "synth_misplaced_fence_control",
+        }
     if placement == "entry":
         n_entry = k
     elif placement == "tail":
@@ -496,7 +516,7 @@ def build_parser() -> argparse.ArgumentParser:
                          "keep only records with label == --vuln-class, write "
                          "their misplaced-fence variants to --out")
     p.add_argument("--placement", choices=list(PLACEMENTS), default="entry",
-                    help="misplaced-fence placement (default entry)")
+                    help="misplaced-fence placement (default entry; shifted = V1/V4 only)")
     p.add_argument("--seed", type=int, default=0,
                     help="RNG seed for --placement mixed")
     return p

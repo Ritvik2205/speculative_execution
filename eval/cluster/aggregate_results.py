@@ -163,7 +163,8 @@ def write_confusion_report():
           "|---|---|---|---|---|---|"]
     for tag in tags:
         for c in REAL_HW_CLASSES:
-            for plc, stem in (("entry", "misfenced_heldout"), ("tail", "misfenced_tail_heldout")):
+            for plc, stem in (("entry", "misfenced_heldout"), ("tail", "misfenced_tail_heldout"),
+                              ("shift", "misfenced_shift_heldout")):
                 mp = ROOT / "eval" / "data" / f"revizor_{c.lower()}_{stem}.jsonl"
                 recs = _load_pos(mp, c)
                 if not recs:
