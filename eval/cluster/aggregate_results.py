@@ -104,7 +104,7 @@ def metric(tag, key, cond=None, cls=None, perturb=None, arch=None):
     return ci(vals)
 
 CONF_LABELS = ["MDS", "L1TF", "SPECTRE_V1", "SPECTRE_V4", "BENIGN"]
-CONF_TAGS = ["w3_embed_on", "mds_hw", "l1tf_hw", "spectre_v1_hw", "spectre_v4_hw", "allhw"]
+CONF_TAGS = ["w3_embed_on", "mds_hw", "l1tf_hw", "spectre_v1_hw", "spectre_v4_hw", "allhw", "allhw2"]
 
 def _relabelled(recs, label):
     """Copy of recs with every label replaced by `label` (so per_class_recall[label]
@@ -159,15 +159,17 @@ def write_confusion_report():
                      " | ".join(f(pred_fraction(tag, recs, t, tmp)) for t in CONF_LABELS) + " |")
         L.append("")
     L.append("## 2. Misplaced-fence control (still-vulnerable, fences at entry)\n")
-    L += ["| tag | class | n | predicted as true class | predicted BENIGN |", "|---|---|---|---|---|"]
+    L += ["| tag | placement | class | n | predicted as true class | predicted BENIGN |",
+          "|---|---|---|---|---|---|"]
     for tag in tags:
         for c in REAL_HW_CLASSES:
-            mp = ROOT / "eval" / "data" / f"revizor_{c.lower()}_misfenced_heldout.jsonl"
-            recs = _load_pos(mp, c)
-            if not recs:
-                continue
-            L.append(f"| {tag} | {c} | {len(recs)} | {f(pred_fraction(tag, recs, c, tmp))} | "
-                     f"{f(pred_fraction(tag, recs, 'BENIGN', tmp))} |")
+            for plc, stem in (("entry", "misfenced_heldout"), ("tail", "misfenced_tail_heldout")):
+                mp = ROOT / "eval" / "data" / f"revizor_{c.lower()}_{stem}.jsonl"
+                recs = _load_pos(mp, c)
+                if not recs:
+                    continue
+                L.append(f"| {tag} | {plc} | {c} | {len(recs)} | {f(pred_fraction(tag, recs, c, tmp))} | "
+                         f"{f(pred_fraction(tag, recs, 'BENIGN', tmp))} |")
     L.append("\n## 3. allhw: real recall (diagonal) and synthetic-twin FP\n")
     if seeds_for("allhw"):
         L += ["| class | real recall | twin FP [SYNTHETIC/UNVERIFIED] |", "|---|---|---|"]

@@ -41,4 +41,15 @@ for c in mds l1tf spectre_v1 spectre_v4; do
   python3 oracle/revizor/synth_v4_benign.py --misplaced-from-heldout eval/data/revizor_${c}_heldout.jsonl --out eval/data/revizor_${c}_misfenced_heldout.jsonl --vuln-class "${c^^}"
 done
 
+echo "-- misplaced-fence TAIL controls (lfences appended after the leak, cannot mitigate)"
+for c in mds l1tf spectre_v1 spectre_v4; do
+  python3 oracle/revizor/synth_v4_benign.py --misplaced-from-heldout eval/data/revizor_${c}_heldout.jsonl --out eval/data/revizor_${c}_misfenced_tail_heldout.jsonl --vuln-class "${c^^}" --placement tail
+done
+
+echo "-- allhw2 pool (base + train-add + mixed-placement misfenced variants of train positives)"
+python3 oracle/revizor/build_hw_joint.py --with-misfenced
+
+echo "-- leakage + shortcut audit (exits 1 on any LEAK -> fails this job)"
+python3 oracle/revizor/audit_hw_split.py
+
 echo "done rc=0 -- next: submit the _hw trainings + aggregate (eval/cluster/) for real_transfer.md"

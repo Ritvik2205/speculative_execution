@@ -90,6 +90,7 @@ the train/heldout split.
 from __future__ import annotations
 
 import argparse
+import random
 import json
 import re
 import sys
@@ -426,9 +427,19 @@ def make_benign_variant(record: dict, vuln_class: Optional[str] = None) -> dict:
     }
 
 
-def make_misplaced_variant(record: dict, vuln_class: Optional[str] = None) -> Optional[dict]:
+PLACEMENTS = ("entry", "tail", "mixed")
+
+
+def make_misplaced_variant(record: dict, vuln_class: Optional[str] = None,
+                           placement: str = "entry",
+                           rng: Optional[random.Random] = None) -> Optional[dict]:
     """Misplaced-fence CONTROL: same number of lfences as the proper twin, but
-    all prepended at function entry, where they do NOT mitigate the later leak.
+    placed where they do NOT mitigate the leak.
+
+    placement: "entry" (default; all k prepended), "tail" (all k appended after
+    the last instruction, i.e. after the transmit), "mixed" (k split between
+    entry and tail with `rng`; >=1 at each end when k >= 2). Count and total
+    length always equal the proper twin's.
 
     The record stays labelled with its ORIGINAL attack class (still
     vulnerable). A model that predicts BENIGN here keys on "has lfence", not
@@ -443,10 +454,22 @@ def make_misplaced_variant(record: dict, vuln_class: Optional[str] = None) -> Op
     k = len(fence_gadget_for_class(seq, cls)) - len(seq)
     if k <= 0:
         return None
+    if placement not in PLACEMENTS:
+        raise ValueError(f"placement must be one of {PLACEMENTS}, got {placement!r}")
+    if placement == "entry":
+        n_entry = k
+    elif placement == "tail":
+        n_entry = 0
+    else:
+        rng = rng if rng is not None else random.Random(0)
+        n_entry = rng.randint(1, k - 1) if k >= 2 else rng.randint(0, 1)
+    new_seq = ["lfence"] * n_entry + list(seq) + ["lfence"] * (k - n_entry)
+    assert len(new_seq) == len(seq) + k, "misplaced variant must match twin length"
+    assert new_seq.count("lfence") - list(seq).count("lfence") == k
     return {
         "label": record.get("label", cls),
         "arch": record.get("arch", "x86_64"),
-        "sequence": ["lfence"] * k + list(seq),
+        "sequence": new_seq,
         "group": f"{record['group']}_misfenced",
         "source": "synth_misplaced_fence_control",
     }
@@ -472,6 +495,10 @@ def build_parser() -> argparse.ArgumentParser:
                     help="misplaced-fence control mode: read this held-out JSONL, "
                          "keep only records with label == --vuln-class, write "
                          "their misplaced-fence variants to --out")
+    p.add_argument("--placement", choices=list(PLACEMENTS), default="entry",
+                    help="misplaced-fence placement (default entry)")
+    p.add_argument("--seed", type=int, default=0,
+                    help="RNG seed for --placement mixed")
     return p
 
 
@@ -481,7 +508,9 @@ def main(argv: Optional[List[str]] = None) -> None:
     if args.misplaced_from is not None:
         pos = [r for r in load_jsonl(args.misplaced_from)
                if r.get("label") == args.vuln_class]
-        out = [m for m in (make_misplaced_variant(r, args.vuln_class) for r in pos)
+        rng = random.Random(args.seed)
+        out = [m for m in (make_misplaced_variant(r, args.vuln_class, args.placement, rng)
+                           for r in pos)
                if m is not None]
         write_jsonl(args.out_path, out)
         print(f"Wrote {len(out)}/{len(pos)} misplaced-fence {args.vuln_class} "

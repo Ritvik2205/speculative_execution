@@ -58,3 +58,84 @@ def test_misplaced_cli_positives_only(tmp_path):
     synth.main(["--misplaced-from-heldout", str(src), "--out", str(out), "--vuln-class", "SPECTRE_V1"])
     got = [json.loads(l) for l in out.read_text().splitlines()]
     assert [g["group"] for g in got] == ["p_misfenced"]
+
+
+# ---------------------------------------------------------------- allhw2
+import random
+
+V1L = ["cmp rax, 1", "jne .L", "mov rbx, [rax]", "mov rcx, [rbx]", "add rax, 1", "xor rcx, rcx"]
+
+def _rec(**kw):
+    d = {"label": "SPECTRE_V1", "group": "g", "arch": "x86_64", "sequence": V1L}; d.update(kw); return d
+
+def _k(seq=V1L, cls="SPECTRE_V1"):
+    return len(synth.fence_gadget_for_class(seq, cls)) - len(seq)
+
+def test_placements_count_and_length():
+    twin = synth.make_benign_variant(_rec(), "SPECTRE_V1")
+    for pl in ("entry", "tail", "mixed"):
+        m = synth.make_misplaced_variant(_rec(), "SPECTRE_V1", pl, random.Random(3))
+        assert len(m["sequence"]) == len(twin["sequence"])
+        assert m["sequence"].count("lfence") == twin["sequence"].count("lfence")
+        assert m["label"] == "SPECTRE_V1" and m["group"] == "g_misfenced"
+        assert m["source"] == "synth_misplaced_fence_control"
+    t = synth.make_misplaced_variant(_rec(), "SPECTRE_V1", "tail")
+    assert t["sequence"] == V1L + ["lfence"] * _k()
+
+def test_entry_default_byte_identical():
+    a = synth.make_misplaced_variant(_rec(), "SPECTRE_V1")
+    b = synth.make_misplaced_variant(_rec(), "SPECTRE_V1", "entry")
+    assert json.dumps(a) == json.dumps(b)
+    assert a["sequence"] == ["lfence"] * _k() + V1L
+
+def test_mixed_both_ends_and_deterministic():
+    seq = ["cmp rax, 1", "jne .L", "mov rbx, [rax]", "cmp rbx, 1", "jne .M", "mov rcx, [rbx]"]
+    k = _k(seq)
+    assert k >= 2
+    for s in range(10):
+        m = synth.make_misplaced_variant(_rec(sequence=seq), "SPECTRE_V1", "mixed", random.Random(s))["sequence"]
+        assert m[0] == "lfence" and m[-1] == "lfence" and len(m) == len(seq) + k
+    r1 = [synth.make_misplaced_variant(_rec(sequence=seq), "SPECTRE_V1", "mixed", random.Random(5))["sequence"] for _ in range(3)]
+    assert r1[0] == r1[1] == r1[2]
+
+def test_bad_placement():
+    with pytest.raises(ValueError):
+        synth.make_misplaced_variant(_rec(), "SPECTRE_V1", "middle")
+
+def test_cli_placement_tail(tmp_path):
+    src, out = tmp_path / "h.jsonl", tmp_path / "o.jsonl"
+    src.write_text(json.dumps(_rec(group="p")) + "\n")
+    synth.main(["--misplaced-from-heldout", str(src), "--out", str(out), "--vuln-class", "SPECTRE_V1",
+                "--placement", "tail", "--seed", "1"])
+    got = json.loads(out.read_text().splitlines()[0])
+    assert got["sequence"][-1] == "lfence" and got["sequence"][0] != "lfence"
+
+def _pool(tmp_path):
+    base = [R("b1")]
+    pos = [_rec(group=f"p{i}", source="revizor_hw_i5_8300h") for i in range(4)]
+    twins = [synth.make_benign_variant(p, "SPECTRE_V1") for p in pos]
+    cf = {"spectre_v1": base + pos + twins}
+    return base, cf, pos
+
+def test_with_misfenced_one_per_positive():
+    base = [R("b1")]
+    pos = [_rec(group=f"p{i}") for i in range(4)]
+    twins = [synth.make_benign_variant(p, "SPECTRE_V1") for p in pos]
+    cf = {"spectre_v1": base + pos + twins}
+    out, tails = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0)
+    mis = [r for r in out if r["group"].endswith("_misfenced")]
+    assert len(mis) == 4 and all(r["label"] == "SPECTRE_V1" for r in mis)
+    assert sorted(r["group"] for r in mis) == sorted(f"p{i}_misfenced" for i in range(4))
+    out2, _ = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0)
+    assert out == out2
+    plain, _ = joint.build_joint(base, cf, {"spectre_v1": []})
+    assert plain == base + cf["spectre_v1"][1:] and out[:len(plain)] == plain
+
+def test_guard_strips_misfenced_suffix():
+    base = [R("b1")]
+    cf = {"mds": base + [R("m1_misfenced", "MDS")]}
+    with pytest.raises(ValueError, match="leak"):
+        joint.build_joint(base, cf, {"mds": [R("m1", "MDS")]})
+    cf = {"mds": base + [R("m1", "MDS")]}
+    with pytest.raises(ValueError, match="leak"):
+        joint.build_joint(base, cf, {"mds": [R("m1_misfenced", "MDS")]})
