@@ -9,13 +9,15 @@ HONESTY NOTE (read before trusting a twin as a ground-truth BENIGN):
     toggled the MSR-level speculative-store-bypass disable
     (`x86_executor_enable_ssbp_patch`). It validated SSBD, NOT an `lfence`
     inserted into the program. Every twin's source is `synth_mitigated_twin`.
-  - SPECTRE_V1 twins are likely WRONG for Revizor's layout. Each V1 gadget is
-    `jcc <.bb_0.1>` then `jmp <.macro.measurement_end>`, and the leaking code
-    is the taken target block (.bb_0.1, which starts right after that jmp).
-    An lfence right after the jcc sits on the fall-through, which only
-    exits, so it cannot block speculation into .bb_0.1. Treat V1 twins as
-    still vulnerable until a Revizor reproduce run of the fenced program
-    says otherwise (2026-10-03).
+  - SPECTRE_V1 twins were WRONG for Revizor's layout before 2026-10-03.
+    Each V1 gadget is `jcc <.bb_0.1>` then `jmp <.macro.measurement_end>`,
+    and the leaking code is the taken target block (.bb_0.1, which starts
+    right after that jmp). The old twin put the lfence right after the jcc,
+    on the fall-through, which only exits, so it could not block speculation
+    into .bb_0.1. `fence_v1_guarded_block` now fences the start of the taken
+    block in that layout; the old placement survives as the "fallthrough"
+    misplaced control. Still structural: hardware labels come from
+    oracle/revizor/scripts/hw_label_variants.py.
   - All four classes' twins are STRUCTURAL only: this script places
     an `lfence` at the textbook speculation boundary for each class (see
     `fence_gadget_for_class` below) and nothing more. They have the same
@@ -34,9 +36,11 @@ Per-class speculation boundary (why each fence goes where it does):
     fix is `lfence` AFTER every memory WRITE (see `fence_gadget` below,
     unchanged from before this file grew multi-class support).
   - SPECTRE_V1 (bounds-check bypass): leaks by speculating past a
-    conditional guard branch, so the fix is `lfence` AFTER every Jcc
-    (conditional branch) -- the textbook V1 mitigation serializes
-    speculation right at the guard.
+    conditional guard branch into the guarded block, so the fix is an
+    `lfence` at the START of the guarded block (see
+    `fence_v1_guarded_block`): the jcc's taken target when the jcc is
+    followed by an unconditional jmp (Revizor layout), else its
+    fall-through (compiler `jae skip; <body>` layout).
   - L1TF / MDS (faulting / sampling transient LOAD): leaks through a
     transient load itself (a faulting load for L1TF, a stale
     fill-buffer/store-buffer/load-port sample for MDS), so the fix is
@@ -226,14 +230,15 @@ def fence_gadget(sequence: List[str]) -> List[str]:
 # ---------------------------------------------------------------------------
 
 # x86 Jcc mnemonics (AT&T), including synonyms of the same condition code
-# under a different mnemonic (jz==je, jnb==jae, etc.). Deliberately excludes
-# `jmp`/`jmpq` (unconditional) and `jrcxz`/`loop*` (not guard-branch idioms
-# this corpus uses). Jcc mnemonics never take x86 size suffixes, so no
+# under a different mnemonic (jz==je, jnb==jae, etc.), and the rcx-zero
+# branches (`jrcxz` guards one real V1 gadget, violation-260918-193827).
+# Deliberately excludes `jmp`/`jmpq` (unconditional) and `loop*`. Jcc mnemonics never take x86 size suffixes, so no
 # suffix-stripping is needed here (unlike `_mnemonic_root`).
 _JCC_MNEMONICS = {
     "je", "jne", "jg", "jge", "jl", "jle", "ja", "jae", "jb", "jbe",
     "jc", "jnc", "jo", "jno", "js", "jns", "jp", "jnp",
     "jz", "jnz", "jnb", "jnbe", "jna", "jnae", "jng", "jnge", "jnl", "jnle",
+    "jpe", "jpo", "jcxz", "jecxz", "jrcxz",
 }
 
 
@@ -248,12 +253,76 @@ def _is_cond_branch(instr: str) -> bool:
     return mnemonic in _JCC_MNEMONICS
 
 
+_TARGET_RE = re.compile(r"<([^>]+)>")
+
+
+def _is_uncond_jmp(instr: str) -> bool:
+    parts = instr.strip().split(None, 1)
+    return bool(parts) and parts[0].lower() in ("jmp", "jmpq")
+
+
+def _branch_target(instr: str) -> Optional[str]:
+    m = _TARGET_RE.search(instr)
+    return m.group(1) if m else None
+
+
+def fence_v1_guarded_block(sequence: List[str]) -> List[str]:
+    """SPECTRE_V1 twin primitive: insert an `lfence` at the START of the
+    block each conditional branch guards.
+
+    - `jcc <T>` directly followed by an unconditional `jmp <M>` (M != T):
+      Revizor's layout. The fall-through is just the jmp out, and the block
+      laid out right after the jmp is the taken target T (all 122 jccs in
+      eval/data/revizor_spectre_v1_real.jsonl are `jcc <.bb_0.1>; jmp
+      <.macro.measurement_end>`). Fence goes after the jmp.
+    - otherwise: compiler layout (`jae skip; <body>`), the guarded body is
+      the fall-through. Fence goes right after the jcc.
+
+    Returns a NEW list; `sequence` is not mutated.
+    """
+    seq = list(sequence)
+    fence_before = set()
+    fence_after = set()
+    for i, instr in enumerate(seq):
+        if not _is_cond_branch(instr):
+            continue
+        nxt = seq[i + 1] if i + 1 < len(seq) else None
+        if nxt is not None and _is_uncond_jmp(nxt) and \
+                _branch_target(nxt) != _branch_target(instr):
+            if i + 2 < len(seq):
+                fence_before.add(i + 2)
+            else:
+                fence_after.add(i + 1)
+        else:
+            fence_after.add(i)
+    out: List[str] = []
+    for i, instr in enumerate(seq):
+        if i in fence_before:
+            out.append(FENCE_INSTR)
+        out.append(instr)
+        if i in fence_after:
+            out.append(FENCE_INSTR)
+    return out
+
+
+def _append_fence_before(out: List[str]) -> None:
+    """Append an lfence to `out` so it lands BEFORE the instruction about to
+    be appended. objdump prints a `lock` prefix on its own line, so if `out`
+    ends with a bare `lock` the fence must go before it -- `lock; lfence;
+    negb (...)` would make the prefix apply to lfence (#UD) and leave the RMW
+    unlocked."""
+    if out and out[-1].strip().lower() == "lock":
+        out.insert(len(out) - 1, FENCE_INSTR)
+    else:
+        out.append(FENCE_INSTR)
+
+
 def fence_after_cond_branch(sequence: List[str]) -> List[str]:
-    """SPECTRE_V1 twin primitive: insert an `lfence` immediately after
-    every conditional branch in `sequence`. This is the textbook V1
-    (bounds-check-bypass) mitigation: it serializes execution right at the
-    guard branch so the CPU cannot speculate past a mispredicted bounds
-    check into the code that reads out-of-bounds.
+    """OLD SPECTRE_V1 twin primitive (pre-2026-10-03): an `lfence`
+    immediately after every conditional branch. Correct only when the
+    fall-through is the guarded block; in Revizor's `jcc; jmp` layout it
+    fences the exit path and leaves the taken block unfenced. Kept as the
+    "fallthrough" misplaced-fence control (see `make_misplaced_variant`).
 
     Returns a NEW list; `sequence` is not mutated.
     """
@@ -354,7 +423,7 @@ def fence_before_mem_read(sequence: List[str]) -> List[str]:
     out: List[str] = []
     for instr in sequence:
         if _reads_mem(instr):
-            out.append(FENCE_INSTR)
+            _append_fence_before(out)
         out.append(instr)
     return out
 
@@ -365,7 +434,7 @@ def fence_before_mem_read(sequence: List[str]) -> List[str]:
 
 _VULN_CLASS_FENCERS = {
     "SPECTRE_V4": fence_gadget,
-    "SPECTRE_V1": fence_after_cond_branch,
+    "SPECTRE_V1": fence_v1_guarded_block,
     "L1TF": fence_before_mem_read,
     "MDS": fence_before_mem_read,
 }
@@ -436,7 +505,7 @@ def make_benign_variant(record: dict, vuln_class: Optional[str] = None) -> dict:
     }
 
 
-PLACEMENTS = ("entry", "tail", "mixed", "shifted")
+PLACEMENTS = ("entry", "tail", "mixed", "shifted", "fallthrough")
 _SHIFTED_BOUNDARY = {"SPECTRE_V1": "_is_cond_branch", "SPECTRE_V4": "instr_writes_mem"}
 
 
@@ -448,7 +517,10 @@ def make_misplaced_variant(record: dict, vuln_class: Optional[str] = None,
 
     placement: "entry" (default; all k prepended), "tail" (all k appended after
     the last instruction, i.e. after the transmit), "mixed" (k split between
-    entry and tail with `rng`; >=1 at each end when k >= 2). Count and total
+    entry and tail with `rng`; >=1 at each end when k >= 2), "shifted" (V1/V4:
+    fence just before each boundary), "fallthrough" (V1 only: the pre-10-03
+    twin's lfence right after the jcc, on the exit path in Revizor's layout;
+    None when the fall-through is the guarded block). Count and total
     length always equal the proper twin's.
 
     The record stays labelled with its ORIGINAL attack class (still
@@ -474,10 +546,24 @@ def make_misplaced_variant(record: dict, vuln_class: Optional[str] = None,
         new_seq = []
         for ins in seq:
             if is_b(ins):
-                new_seq.append(FENCE_INSTR)
+                _append_fence_before(new_seq)
             new_seq.append(ins)
         assert len(new_seq) == len(seq) + k, "shifted variant must match twin length"
         assert new_seq.count(FENCE_INSTR) - list(seq).count(FENCE_INSTR) == k
+        return {
+            "label": record.get("label", cls),
+            "arch": record.get("arch", "x86_64"),
+            "sequence": new_seq,
+            "group": f"{record['group']}_misfenced",
+            "source": "synth_misplaced_fence_control",
+        }
+    if placement == "fallthrough":
+        if cls != "SPECTRE_V1":
+            raise ValueError(f"placement 'fallthrough' is only defined for SPECTRE_V1, not {cls}")
+        new_seq = fence_after_cond_branch(seq)
+        if new_seq == fence_gadget_for_class(seq, cls):
+            return None  # fall-through IS the guarded block here; not a misplacement
+        assert len(new_seq) == len(seq) + k
         return {
             "label": record.get("label", cls),
             "arch": record.get("arch", "x86_64"),
@@ -525,7 +611,7 @@ def build_parser() -> argparse.ArgumentParser:
                          "keep only records with label == --vuln-class, write "
                          "their misplaced-fence variants to --out")
     p.add_argument("--placement", choices=list(PLACEMENTS), default="entry",
-                    help="misplaced-fence placement (default entry; shifted = V1/V4 only)")
+                    help="misplaced-fence placement (default entry; shifted = V1/V4 only; fallthrough = V1 only)")
     p.add_argument("--seed", type=int, default=0,
                     help="RNG seed for --placement mixed")
     return p

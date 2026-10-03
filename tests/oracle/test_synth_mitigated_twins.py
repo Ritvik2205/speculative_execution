@@ -254,3 +254,62 @@ def test_cli_default_vuln_class_is_spectre_v4_backward_compatible(tmp_path):
     written = load_jsonl(out_path)
     assert len(written) == 16
     assert all(r["source"] == "synth_mitigated_twin" for r in written)
+
+
+# ---------------------------------------------------------------------------
+# SPECTRE_V1 guarded-block fence (2026-10-03 fix): in Revizor's
+# `jcc <.bb_0.1>; jmp <.macro.measurement_end>` layout the leak is the taken
+# block laid out after the jmp, so the fence goes there, not after the jcc.
+# ---------------------------------------------------------------------------
+
+REVIZOR_V1 = ["subq %rsi, %rcx", "jae 0x24 <.bb_0.1>", "jmp 0x7f <.macro.measurement_end>",
+              "addb $0x2c, %cl", "movw (%r14,%rsi), %ax"]
+
+
+def test_v1_revizor_layout_fences_taken_block_not_fallthrough():
+    fenced = synth_v4_benign.fence_gadget_for_class(REVIZOR_V1, "SPECTRE_V1")
+    assert fenced == ["subq %rsi, %rcx", "jae 0x24 <.bb_0.1>", "jmp 0x7f <.macro.measurement_end>",
+                      "lfence", "addb $0x2c, %cl", "movw (%r14,%rsi), %ax"]
+
+
+def test_v1_jrcxz_is_a_guard_branch():
+    assert synth_v4_benign._is_cond_branch("jrcxz 0x6d <.bb_0.1>") is True
+
+
+def test_v1_real_corpus_twins_fence_after_the_jmp():
+    recs = load_jsonl(REAL_PATHS["SPECTRE_V1"])
+    checked = 0
+    for r in recs:
+        seq = r["sequence"]
+        fenced = synth_v4_benign.fence_gadget_for_class(seq, "SPECTRE_V1")
+        for i, ins in enumerate(fenced):
+            if ins == "lfence" and ins not in seq:
+                assert fenced[i - 1].startswith("jmp"), (r["group"], fenced[i - 2:i + 2])
+                checked += 1
+    assert checked == 122  # 121 single-jcc gadgets + the jrcxz one
+
+
+def test_v1_fallthrough_placement_is_old_twin_and_keeps_attack_label():
+    rec = {"label": "SPECTRE_V1", "group": "g", "arch": "x86_64", "sequence": REVIZOR_V1}
+    m = synth_v4_benign.make_misplaced_variant(rec, "SPECTRE_V1", placement="fallthrough")
+    assert m["sequence"] == synth_v4_benign.fence_after_cond_branch(REVIZOR_V1)
+    assert m["sequence"][2] == "lfence"
+    assert m["label"] == "SPECTRE_V1" and m["group"] == "g_misfenced"
+
+
+def test_v1_fallthrough_placement_none_for_compiler_layout():
+    rec = {"label": "SPECTRE_V1", "group": "g", "sequence": ["jae 0x24 <.L>", "movq (%r14,%rdi), %rax"]}
+    assert synth_v4_benign.make_misplaced_variant(rec, "SPECTRE_V1", placement="fallthrough") is None
+
+
+def test_fence_before_load_does_not_split_lock_prefix():
+    seq = ["andq $0x1ff8, %rdx", "lock", "negb (%r14,%rdx)"]
+    for cls in ("MDS", "L1TF"):
+        assert synth_v4_benign.fence_gadget_for_class(seq, cls) == \
+            ["andq $0x1ff8, %rdx", "lfence", "lock", "negb (%r14,%rdx)"]
+
+
+def test_v4_shifted_does_not_split_lock_prefix():
+    rec = {"label": "SPECTRE_V4", "group": "g", "sequence": ["lock", "incl (%r14,%rsi)", "movq (%r14,%rdi), %rax"]}
+    m = synth_v4_benign.make_misplaced_variant(rec, "SPECTRE_V4", placement="shifted")
+    assert m["sequence"] == ["lfence", "lock", "incl (%r14,%rsi)", "movq (%r14,%rdi), %rax"]
