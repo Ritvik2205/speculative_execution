@@ -31,6 +31,12 @@ Only the L1TF/V1 gain over opcodes is evidence of structure. Even that may partl
 
 **Fix in progress:** `allhw2` adds misplaced-fence copies of the training positives (labelled as attacks; fences split between entry and tail, matched in count and length to the proper twin). `oracle/revizor/audit_hw_split.py` fails the prep job on any leak and reports trivial-cue baselines (length, lfence count/presence/position, opcode bag) as the bars every table must beat.
 
+**How to read `allhw2` when it lands** (built `69de2e1`, `8cbb52e`):
+- `oracle/revizor/audit_hw_split.py` runs in the prep job and fails it on any leak (group, exact-sequence, seed or near-duplicate overlap). The local run found none; the max held-out-to-train similarity was 0.76.
+- **Class identity (MDS/L1TF/V1/V4):** the opcode bag alone scores 0.95–0.97. Quote a diagonal only as a gain over that bar. MDS/V4 will be at ceiling regardless.
+- **Mitigation, V1/V4 "shift" rows** (fence one instruction before the boundary instead of after; same count and length): the only placement test with no position cue left (position bar = majority rate). These rows are the evidence for "learned where the fence must go".
+- **Mitigation, MDS/L1TF "entry/tail" rows:** position still separates them (overall position bar 0.76). They only test the weaker "has lfence ⇒ BENIGN" shortcut. A fence just after the transient load arguably still mitigates, so no clean shifted counterexample exists. Same-config non-violating Revizor programs (i5) would be the fix.
+
 **Other caveats:**
 - One CPU (i5-8300H), one fuzzer (Revizor).
 - `real_v4.md` still uses pre-09-24 W4 checkpoints; withdrawn.
