@@ -18,28 +18,18 @@ one to cite). New baseline is the ISA-independent `embed, no-handcrafted` config
 - **Hand features were an x86 crutch.** Dropping them improves every axis; arm64
   **+13.4pp** (0.618 → 0.752), locked 0.869, x86 0.910. The DANN arch-adversary
   was tried and **retired** (backfired: arm64 0.752 → 0.456).
-- **Real-silicon transfer.** *[Corrected 2026-10-02: retrained on current
-  code, 5 seeds, at the full held-out sizes, plus a cross-class check. See
-  `eval/cluster_out/real_transfer.md`.]* A detector trained only on synthetic
-  data **does not recognise real hardware gadgets**. Held-out recall
-  (mean ± 95% CI):
-
-  | class | held-out n (real HW) | synthetic-trained recall |
-  |---|---|---|
-  | SPECTRE_V4 | 22 | 0.00 ± 0.00 |
-  | MDS | 33 | 0.10 ± 0.19 |
-  | L1TF | 64 | 0.26 ± 0.28 |
-  | SPECTRE_V1 | 54 | 0.69 ± 0.26 |
-
-  Models with real gadgets folded in score 1.00 recall. **That does not show
-  transfer.** Each per-class model saw real gadgets of only its own class. A
-  cross-class check shows each one labels real gadgets of *every* class as its
-  own (e.g. the L1TF model calls 100% of real MDS, V1 and V4 gadgets L1TF). It
-  learned "Revizor-generated program → my class". The fenced negatives are
-  synthetic (`lfence` at the speculation boundary). Only the fence mechanism is
-  hardware-validated (SSBP on: 15 leaks → 0). The valid follow-up is built and
-  queued: one joint model trained on all four classes' real gadgets, scored as
-  a 4×4 confusion matrix, plus a misplaced-fence control.
+- **Real-silicon transfer.** *[Updated 2026-10-03 with shortcut controls; see
+  `eval/cluster_out/real_transfer_confusion.md`, 5 seeds.]*
+  - A detector trained only on synthetic data **does not recognise real hardware
+    gadgets**. It calls most of them SPECTRE_V1, whatever their class.
+  - Training one model on all four classes' real gadgets separates the classes
+    on held-out data (0.98–1.00). But a plain bag-of-opcodes classifier does just
+    as well on MDS and V4: each Revizor config's instruction set gives the class
+    away. Only on **L1TF vs V1** does the graph model beat opcodes (~+0.25–0.30).
+  - The model has **not** learned what mitigation looks like. If the `lfence`s
+    are moved to where they don't mitigate, it still calls the gadget safe. A
+    retrain with "misplaced-fence" counterexamples, plus an automatic
+    leak/shortcut audit, is built and queued.
 
 **Honest caveats:**
 - **Held-out is 22–64 real gadgets per class.** Leakage is ruled out: no

@@ -9,41 +9,32 @@
 | baseline `embed, no-hand`: locked / arm64 / x86 / masked | **0.869 / 0.752 / 0.910 / 0.859** |
 | — arm64 vs old hand-fused | 0.618 → **0.752** (+13.4pp) |
 
-### Real-hardware transfer — BEFORE is a result; AFTER is confounded (corrected 2026-10-02)
-> **Corrected 2026-10-02 (cluster run 4 + cross-class check).** These models were retrained on current code: 5 seeds × {`w3_embed_on`, `<class>_hw` ×4, `p3_hwv4`}. Older numbers came from pre-`3945792` checkpoints scored on 1–5 gadgets, and are withdrawn. Sources: `eval/cluster_out/real_transfer.md`, `real_v4_p3.md`.
+### Real-hardware transfer — what holds after the shortcut controls (updated 2026-10-03, runs 4–5)
+Sources: `eval/cluster_out/real_transfer_confusion.md` (5 seeds), `real_transfer.md`, and the opcode baseline below. Real gadgets come from Revizor on the i5-8300H. Held-out: V1 54, L1TF 64, MDS 33, V4 22, plus fenced twins. Leakage is ruled out: no duplicates, nearest-neighbour opcode similarity median 0.40–0.47, disjoint generator seeds.
 
-**Valid result: a detector trained only on synthetic data does not recognise real-silicon gadgets.** Held-out real-HW recall of `w3_embed_on` (mean ±95% CI, 5 seeds):
+**1. A detector trained on synthetic data does not recognise real gadgets. It defaults to SPECTRE_V1.** `w3_embed_on` calls 74% of real MDS, 56% of L1TF and 73% of V4 gadgets V1. Its "V1 recall 0.69" is that default, not recognition.
 
-| class | BEFORE (synthetic-trained) | held-out n (real HW, i5-8300H) |
-|---|---|---|
-| SPECTRE_V4 | **0.000** ±0.000 | 22 |
-| MDS | **0.097** ±0.190 | 33 |
-| L1TF | 0.263 ±0.276 | 64 |
-| SPECTRE_V1 | 0.685 ±0.258 | 54 |
+**2. Per-class models (`<class>_hw`) learned the Revizor style, not the class.** Each labels real gadgets of every class as its own (`l1tf_hw` → 100% L1TF on all four). Their 1.00 recall is withdrawn.
 
-Most real gadgets are called SPECTRE_V1 or some other class, whatever their true class.
+**3. A joint model (`allhw`, all four classes' real gadgets) separates the classes, but MDS/V4 separation is just the config's instruction mix.**
 
-**Not valid: "folding real gadgets in takes recall to 1.00".** Each `<class>_hw` scores 1.000 ±0.000 recall with ~0 twin FP. A cross-class check on the committed checkpoints (seed 1) shows each per-class model labels real gadgets of **every** class as its own:
+| real class | `allhw` recall | bag-of-opcodes LR (no graph) | gain over opcodes |
+|---|---|---|---|
+| MDS | 1.00 | 0.97–1.00 | none (byte/bit ops identify the config) |
+| SPECTRE_V4 | 1.00 | 1.00 | none (`adcb`/`imull` identify the config, not store→load) |
+| L1TF | 0.99 | 0.67–0.69 | **+0.30** |
+| SPECTRE_V1 | 0.98 | 0.70–0.74 | **+0.25** |
 
-| model | real MDS → | real L1TF → | real V1 → | real V4 → |
-|---|---|---|---|---|
-| `l1tf_hw` | L1TF 1.00 | L1TF 1.00 | L1TF 1.00 | L1TF 1.00 |
-| `spectre_v1_hw` | V1 1.00 | V1 1.00 | V1 1.00 | V1 0.95 |
-| `spectre_v4_hw` | V4 1.00 | V4 1.00 | V4 1.00 | V4 1.00 |
-| `mds_hw` | MDS 1.00 | MDS 0.86 | MDS 0.70 | MDS 1.00 |
+Only the L1TF/V1 gain over opcodes is evidence of structure. Even that may partly be config (the V1 config enables branches). Each class came from its own Revizor config, so instruction mix and class are entangled until classes are collected under a shared instruction set.
 
-Each model saw real (Revizor-generated) programs of only its own class, so it learned **"Revizor-style program → my class"**, not the vulnerability. This is not leakage: there are no exact duplicates, nearest-neighbour opcode similarity has a median of only 0.40–0.47, and no generator seed appears in both train and held-out. The seed-disjoint V4 result (`p3_hwv4`, 0 → 1.00, FP 1.00 → 0.00) uses the same per-class design and is confounded the same way. Its negatives are *synthetic* `lfence` twins. Only the fence *mechanism* is hardware-validated (the SSBP-off→on control took 15 leaks to 0), not each twin.
+**4. Mitigation is not learned: "has an lfence" ⇒ BENIGN.** For the misplaced-fence control (same number of lfences, at function entry, gadget still vulnerable), `allhw` predicts BENIGN for MDS 1.00, L1TF 1.00, V4 0.86, V1 0.68. So the ~0 false-positive rate on fenced twins does not show mitigation detection. The control is structural; that entry fences don't mitigate is assumed, not hardware-verified.
 
-**Redesign (built 2026-10-02, to run on the cluster):**
-- one **joint** model `allhw`, trained with all four classes' real gadgets. Style can no longer name a class, so its 4×4 confusion matrix on real held-out data is the valid transfer number;
-- a **misplaced-fence control**: the same number of `lfence`s, placed at function entry where they don't mitigate. If the model calls these BENIGN, it is keying on lfence presence rather than placement.
-
-Report: `eval/cluster_out/real_transfer_confusion.md`.
+**Fix in progress:** `allhw2` adds misplaced-fence copies of the training positives (labelled as attacks; fences split between entry and tail, matched in count and length to the proper twin). `oracle/revizor/audit_hw_split.py` fails the prep job on any leak and reports trivial-cue baselines (length, lfence count/presence/position, opcode bag) as the bars every table must beat.
 
 **Other caveats:**
 - One CPU (i5-8300H), one fuzzer (Revizor).
-- `real_v4.md` ("structural edge alone = 0%") still uses pre-09-24 W4 checkpoints. Withdrawn until W4 is retrained.
-- **Open decision:** `e3a541e` makes store→load MEMORY_ORDER edges always-on (2 → 146 edges). It is in the committed code that run 4 and every `rv_*` run used. Whether that is intended needs confirming with the RISC-V work owner.
+- `real_v4.md` still uses pre-09-24 W4 checkpoints; withdrawn.
+- **Open decision:** `e3a541e` makes store→load MEMORY_ORDER edges always-on. Is that intended?
 
 ### Cross-ISA (mixed, honest)
 - RISC-V held out: **77% accuracy but attack macro-F1 ~15** — benign transfers, attacks don't. Corpus is 90% benign (162/181) with 2–6 records per attack class, so the accuracy is largely base-rate.

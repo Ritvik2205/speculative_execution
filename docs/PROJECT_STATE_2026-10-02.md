@@ -69,14 +69,14 @@ Corrected held-out labels: `spec/data/riscv_loio_corpus_v2.jsonl` (built by
 `eval/build_riscv_heldout_v2.py`; RETBLEED dropped as having no riscv analogue,
 short V4 gadgets restored).
 
-### 1b. Real-hardware transfer (detector on real Revizor gadgets) — CONFOUNDED, redesign queued
+### 1b. Real-hardware transfer (detector on real Revizor gadgets) — partial, shortcut controls in place
 
-Real gadgets from the i5-8300H: V1 130, L1TF 155, MDS 83, V4 55. Held-out: 54 / 64 / 33 / 22, each with fenced BENIGN twins.
-- **Valid:** a detector trained only on synthetic data does not recognise real gadgets. Held-out recall: V4 0.00, MDS 0.10, L1TF 0.26, V1 0.69. Most real gadgets get called V1 or some other class.
-- **Invalid:** the per-class `<class>_hw` models score 1.00 recall. Each saw only its own class's real gadgets, and a cross-class check shows each labels real gadgets of **every** class as its own. It learned "Revizor-style program → my class". This is not leakage: no duplicates, NN opcode similarity median 0.40–0.47, disjoint generator seeds. The V4 seed-disjoint P3 result has the same flaw.
-- Pre-09-24 checkpoints cannot be scored with current code (`3945792` rewrote the data-dependence graph; V4 1.0 → 0.36). Everything was retrained (run 4).
-- **Queued:** a joint `allhw` model (all four classes' real gadgets together), scored as a 4×4 confusion matrix (`real_transfer_confusion.md`), plus a misplaced-`lfence` control. Built by `oracle/revizor/build_hw_joint.py` and `synth_v4_benign.py --misplaced-from-heldout`.
-- Details: `docs/PIPELINE_STATUS_2026-09-15.md` and memory note `[[real-transfer-stale-checkpoints]]`.
+Real gadgets from the i5-8300H: V1 130, L1TF 155, MDS 83, V4 55. Held-out: 54 / 64 / 33 / 22, plus fenced twins. Leakage ruled out. Details: `docs/PIPELINE_STATUS_2026-09-15.md`, `eval/cluster_out/real_transfer_confusion.md`.
+- **Holds:** a detector trained on synthetic data does not recognise real gadgets. It defaults to SPECTRE_V1.
+- **Holds, narrowly:** a joint model (`allhw`) trained on all four classes' real gadgets separates **L1TF from V1** about 0.25–0.30 better than a bag-of-opcodes baseline.
+- **Does not hold:** per-class 1.00 recall (Revizor-style shortcut); MDS/V4 separation (the config's instruction mix alone gets 0.97–1.00); twin false-positive rate as mitigation detection (misplaced lfences are still called BENIGN, so the model learned "has lfence ⇒ safe").
+- **Queued:** `allhw2` (misplaced-fence counterexamples in training) + `oracle/revizor/audit_hw_split.py` (fails on leaks; reports trivial-cue bars).
+- **Structural limit:** each class came from its own Revizor config, so instruction mix and class stay entangled until classes are collected under a shared instruction set. Same-config non-violating programs would make the strongest negatives (i5).
 
 ---
 
@@ -103,7 +103,12 @@ Supporting (committed this session):
   `signal:null, oracle_ran:false` for gadgets it cannot adjudicate (never a
   fabricated 0.0).
 
-**Status:** all `rank/` logic is tested on synthetic/stub labels (15 tests;
+**Status — target must change before the ranker can be judged** (`docs/SURROGATE_FILTER_RESEARCH_2026-10-02.md`, `gen/v4_leak_vs_safe.md`):
+- V1 generated samples contain **zero** oracle-SAFE (adjudicated yield 0.998). The old "classifier AUC 0.44" was leak vs unrunnable. V1 has nothing to rank on.
+- On **V4** (273 leak / 187 safe, unique, deduped), RL round confounds everything. Within-round AUCs: length 0.59, opcode bag 0.45, lfence count ~0.5. **Locked classifier inverted** (0.27 within round; 0.14 overall), because it tracks length (r = −0.66).
+- `trace_length` (current `leak_signal` target) is a formula-size statistic, not severity.
+- **Do instead:** rank by P(runnable) × P(leak | runnable), behind a cheap non-learned pre-filter (assembles + Spectector-supported instructions). Train on V4 plus early RL rounds, where round-0 leak rate is 0.18 (up to ~5× headroom). Compare a 5-model ensemble and a GBT opcode baseline against **within-round length (0.59) as the bar**.
+- All `rank/` logic is tested on synthetic/stub labels (15 tests;
 `tests/rank/`). The *real* result — does the ranker beat random ordering —
 needs real labels, which only the cluster can produce (Spectector via
 Apptainer, x86 only). Not yet run. Bar to clear: `mean_auc_gain_over_random`
@@ -132,8 +137,8 @@ diversity at a yield cost (n=5 powered). arm64/riscv64 are generated but
 **unverified** (no non-x86 oracle). **Multi-class x86 RL** (`gen/rl_multiclass.sbatch`, 3 seeds;
 logs `eval/cluster_out/rl_mc_3657248_*.out`): validated-leak yield rises 0.49→1.0 for SPECTRE_V1
 and 0.15→0.6–1.0 for SPECTRE_V4. It stays **0.0** in every round and seed for SPECTRE_V2 and RETBLEED,
-because Spectector cannot adjudicate them (they need the Revizor hardware path). The per-class
-aggregate (`gen/aggregate_rl_multiclass.py`) has not been run on those samples yet.
+because Spectector cannot adjudicate them (they need the Revizor hardware path). Per-class
+table: `gen/rl_multiclass.md`. Adjudicated yield: V1 0.998 (82% adjudicable), V4 0.65 (87%), V2 0.00 (15%), RETBLEED none (0.2%).
 
 **Important negative result (this session, `gen/classifier_vs_oracle.py`):** the
 locked classifier does **not** track the oracle on generated x86 gadgets
@@ -147,21 +152,25 @@ classifier — which is exactly what the brief asked for.
 
 ## 4. Open blockers / next steps (ranked)
 
-0. **Run the real-HW joint model** (`allhw`, 5 seeds) and the confusion report. Until it lands, cite only the synthetic-trained BEFORE recall for real silicon, never the per-class 1.00.
-1. **Run the ranker on real labels** (cluster, commands above). This is the
-   first real test of the brief's "filter" stage. Cheap; do first.
+0. **Run `allhw2`** (misplaced-fence counterexamples) and the leak/shortcut audit. Success: misplaced-fence BENIGN rate ≈ 0 while twin false positives stay ≈ 0, and L1TF/V1 still beat the opcode bar. Cite only rows that beat the audit's trivial bars.
+1. **Re-target the ranker** to P(runnable) × P(leak | runnable), with the pre-filter, trained on V4 and early rounds. Bar to beat: within-round length AUC 0.59. Then run it on relabelled samples (`gen/relabel_signal.sbatch`). This is the
+   first real test of the brief's "filter" stage.
 2. **ARM speculation oracle** (`docs/ARM_ORACLE_SPIKE_PLAN.md`) — the gating
    dependency for any verified non-x86 generation or ranking. Highest
    strategic value.
 3. **Minimality subsystem** — "smallest leaking sequences" from the brief is
-   unbuilt. Needs its own plan (delta-debloat a confirmed gadget, re-verify the
-   leak survives each removal). Depends on ranker+oracle being cheap to call.
-4. **Multi-class x86 RL** — run/pull `gen/rl_multiclass.sbatch` for a per-class
-   yield/diversity table (turns "one class" into a result).
-5. **Classifier↔generator distribution gap** — if the classifier is ever to
-   help off-x86, train it on realized full sequences (or fold generated
-   oracle-labelled gadgets into its training), then re-check
-   `gen/classifier_vs_oracle.py` AUC.
+   unbuilt. Recommended: Revizor-style backward one-instruction removal (re-verify
+   the leak after each removal), then lfence-insertion localisation. Order the
+   removals by a learned P(still leaks), as ProbDD (FSE 2021) does, to save oracle
+   calls. Depends on the re-targeted ranker.
+4. **Multi-class x86 RL — done** (`gen/rl_multiclass.md`). V1 and V4 verified on
+   Spectector. V2/RETBLEED can't be adjudicated symbolically, so they move to the
+   Revizor batch path (Phase 2 of `docs/GENERATION_EXTENSION_PLAN.md`).
+5. **Classifier on generated gadgets** — on V4 it is *inverted* (AUC 0.14; 0.27
+   within round) and length-driven (r = −0.66). It cannot be a reward or filter.
+   If the classifier is ever needed on generated code, fine-tune it on
+   oracle-labelled generated gadgets (frozen first, then fine-tuned) and re-check
+   with `gen/v4_leak_vs_safe.py` against the within-round length bar.
 6. **Infra:** the cluster `specexec` env lacks `capstone`, so the oracle half of `run_feature_gate.sh` crashes on import (not a regression). Fix: `pip install capstone`. Also owed: a decision on whether `e3a541e`'s always-on MEMORY_ORDER edges are intended.
 7. **Decision owed:** `tests/eval/test_idiomatic_riscv_independence.py` fails
    (the only repo red) — ISA-normalisation deliberately removed the category-
