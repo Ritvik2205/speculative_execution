@@ -73,9 +73,9 @@ short V4 gadgets restored).
 
 Real gadgets from the i5-8300H: V1 130, L1TF 155, MDS 83, V4 55. Held-out: 54 / 64 / 33 / 22, plus fenced twins. Leakage ruled out. Details: `docs/PIPELINE_STATUS_2026-09-15.md`, `eval/cluster_out/real_transfer_confusion.md`.
 - **Holds:** a detector trained on synthetic data does not recognise real gadgets. It defaults to SPECTRE_V1.
-- **Holds, narrowly:** a joint model (`allhw`) trained on all four classes' real gadgets separates **L1TF from V1** about 0.25–0.30 better than a bag-of-opcodes baseline.
+- **Does not hold beyond opcodes:** the joint models (`allhw`/`allhw2`) separate the 4 real classes (0.97–1.00), but a tuned bag-of-opcodes classifier gets 0.97 (L1TF 0.98, V1 0.93). The GNN adds about +0.01 / +0.05. The earlier "+0.25–0.30" came from an untuned baseline and is withdrawn.
 - **Does not hold:** per-class 1.00 recall (Revizor-style shortcut); MDS/V4 separation (the config's instruction mix alone gets 0.97–1.00); twin false-positive rate as mitigation detection (misplaced lfences are still called BENIGN, so the model learned "has lfence ⇒ safe").
-- **Queued:** `allhw2` (misplaced-fence counterexamples in training) + `oracle/revizor/audit_hw_split.py` (fails on leaks; reports trivial-cue bars).
+- **`allhw2` (run 6):** the audit passes (no leak). Misplaced-fence counterexamples remove the "has lfence ⇒ safe" shortcut (misplaced → attack 1.00, twins → BENIGN). But a bigram rule matches it, and **the twin labels are not hardware-validated**: V1 twins fence the non-leaking fall-through (`jcc` then `jmp .macro.measurement_end`; the leak is in `.bb_0.1`), and the V4 "15→0" control was the SSBP MSR toggle, not an `lfence`. Next: Revizor `reproduce` of fenced variants on the i5 to get real labels.
 - **Structural limit:** each class came from its own Revizor config, so instruction mix and class stay entangled until classes are collected under a shared instruction set. Same-config non-violating programs would make the strongest negatives (i5).
 
 ---
@@ -152,7 +152,7 @@ classifier — which is exactly what the brief asked for.
 
 ## 4. Open blockers / next steps (ranked)
 
-0. **Run `allhw2`** (misplaced-fence counterexamples) and the leak/shortcut audit. Success: misplaced-fence BENIGN rate ≈ 0 while twin false positives stay ≈ 0, and L1TF/V1 still beat the opcode bar. Cite only rows that beat the audit's trivial bars.
+0. **Hardware-label the mitigation counterfactuals (i5, Revizor).** For each held-out violation, re-run `rvzr reproduce` on its `program.asm` + inputs with fenced variants: target-block fence (proper V1 fix), fall-through fence (the current V1 "twin"), shifted, misplaced. Persists = vulnerable, disappears = mitigated. Then fix V1 twins and retrain on validated labels. Until then, no mitigation claim, and class-identity numbers only as gains over the opcode bar (0.97).
 1. **Re-target the ranker** to P(runnable) × P(leak | runnable), with the pre-filter, trained on V4 and early rounds. Bar to beat: within-round length AUC 0.59. Then run it on relabelled samples (`gen/relabel_signal.sbatch`). This is the
    first real test of the brief's "filter" stage.
 2. **ARM speculation oracle** (`docs/ARM_ORACLE_SPIKE_PLAN.md`) — the gating

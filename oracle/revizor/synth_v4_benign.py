@@ -4,12 +4,18 @@ twins from real hardware-confirmed vulnerability gadgets (SPECTRE_V4,
 SPECTRE_V1, L1TF, MDS).
 
 HONESTY NOTE (read before trusting a twin as a ground-truth BENIGN):
-  - SPECTRE_V4: the fence MECHANISM is hardware-validated in aggregate (the
-    Revizor SSBP-off->on control went 15 -> 0 leaks, see
-    oracle/revizor/HARDWARE_VALIDATION_RESULTS.md), but each per-gadget twin
-    produced here is still SYNTHETIC (no hardware run of that fenced
-    sequence), so its source is `synth_mitigated_twin`, NOT
-    `revizor_hw_mitigated`.
+  - NO twin from this module is hardware-validated, V4 included. The Revizor
+    "SSBP-off->on, 15 -> 0" control (oracle/revizor/HARDWARE_VALIDATION_RESULTS.md)
+    toggled the MSR-level speculative-store-bypass disable
+    (`x86_executor_enable_ssbp_patch`). It validated SSBD, NOT an `lfence`
+    inserted into the program. Every twin's source is `synth_mitigated_twin`.
+  - SPECTRE_V1 twins are likely WRONG for Revizor's layout. Each V1 gadget is
+    `jcc <.bb_0.1>` then `jmp <.macro.measurement_end>`, and the leaking code
+    is the taken target block (.bb_0.1, which starts right after that jmp).
+    An lfence right after the jcc sits on the fall-through, which only
+    exits, so it cannot block speculation into .bb_0.1. Treat V1 twins as
+    still vulnerable until a Revizor reproduce run of the fenced program
+    says otherwise (2026-10-03).
   - All four classes' twins are STRUCTURAL only: this script places
     an `lfence` at the textbook speculation boundary for each class (see
     `fence_gadget_for_class` below) and nothing more. They have the same
@@ -41,8 +47,10 @@ Per-class speculation boundary (why each fence goes where it does):
     the other three classes; it is not the literal MDS fix.
 
 Background (docs/NEXT_STEPS_PLAN_2026-09-10.md, Step 2): the Revizor SSBP-on
-control confirmed that fencing the store->load pair in a real V4 gadget
-turns 15/15 leaks -> 0 (see oracle/revizor/HARDWARE_VALIDATION_RESULTS.md).
+control (MSR-level store-bypass disable, not lfence insertion) turned 15/15
+V4 leaks -> 0 (see oracle/revizor/HARDWARE_VALIDATION_RESULTS.md). The lfence
+twins below assume lfence-after-store is an equivalent software mitigation.
+That has NOT been hardware-verified on this CPU.
 So a fenced (mitigated) version of a real leak gadget is a genuine V4-shaped
 BENIGN negative: same instruction mix, same sandbox-masking idiom, same
 structural shape as the positives -- the ONLY difference is the serializing
@@ -197,8 +205,8 @@ def instr_writes_mem(instr: str) -> bool:
 
 def fence_gadget(sequence: List[str]) -> List[str]:
     """Insert an `lfence` immediately after every memory-writing instruction
-    in `sequence` -- the textbook SSBP mitigation the Revizor SSBP-on
-    control validated (fencing the store->load pair: 15 leaks -> 0). This
+    in `sequence` -- an ASSUMED software equivalent of SSBD (the Revizor
+    SSBP-on control validated the MSR toggle, not this fence). This
     serializes every store (and every memory-destination RMW op) against
     whatever follows, so no store->load forwarding can be sped past.
 
@@ -402,8 +410,9 @@ def write_jsonl(path: Path, records: List[dict]) -> None:
             f.write(json.dumps(r) + "\n")
 
 
-# SPECTRE_V4 twins are hardware-confirmed (Revizor SSBP-on: 15 leaks -> 0);
-# V1/L1TF/MDS twins are structural-only (see module docstring HONESTY NOTE).
+# NO twin is hardware-confirmed. The Revizor SSBP-on 15->0 control validated
+# the MSR toggle, not lfence insertion; V1 twins are likely still vulnerable
+# (see module docstring HONESTY NOTE).
 _STRUCTURAL_SOURCE = "synth_mitigated_twin"
 
 

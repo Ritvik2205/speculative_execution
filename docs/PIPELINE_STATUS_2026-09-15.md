@@ -9,33 +9,19 @@
 | baseline `embed, no-hand`: locked / arm64 / x86 / masked | **0.869 / 0.752 / 0.910 / 0.859** |
 | — arm64 vs old hand-fused | 0.618 → **0.752** (+13.4pp) |
 
-### Real-hardware transfer — what holds after the shortcut controls (updated 2026-10-03, runs 4–5)
-Sources: `eval/cluster_out/real_transfer_confusion.md` (5 seeds), `real_transfer.md`, and the opcode baseline below. Real gadgets come from Revizor on the i5-8300H. Held-out: V1 54, L1TF 64, MDS 33, V4 22, plus fenced twins. Leakage is ruled out: no duplicates, nearest-neighbour opcode similarity median 0.40–0.47, disjoint generator seeds.
+### Real-hardware transfer — what holds after the shortcut controls (updated 2026-10-03, runs 4–6)
+Sources: `eval/cluster_out/real_transfer_confusion.md`, `eval/cluster_out/hw_split_audit.md` (5 seeds). Real gadgets come from Revizor on the i5-8300H. Held-out: V1 54, L1TF 64, MDS 33, V4 22. **The leakage audit passes** (no group, sequence or seed overlap; max held-out-to-train similarity 0.76).
 
-**1. A detector trained on synthetic data does not recognise real gadgets. It defaults to SPECTRE_V1.** `w3_embed_on` calls 74% of real MDS, 56% of L1TF and 73% of V4 gadgets V1. Its "V1 recall 0.69" is that default, not recognition.
+**1. A detector trained on synthetic data does not recognise real gadgets. It defaults to SPECTRE_V1.** `w3_embed_on` calls 74% of real MDS, 56% of L1TF and 73% of V4 gadgets V1. This is the one clean, citable real-silicon result.
 
-**2. Per-class models (`<class>_hw`) learned the Revizor style, not the class.** Each labels real gadgets of every class as its own (`l1tf_hw` → 100% L1TF on all four). Their 1.00 recall is withdrawn.
+**2. Class identity on real gadgets is explained by the Revizor config's instruction mix.** A standard-scaled bag-of-opcodes logistic regression (the audit's bar) gets 0.97 overall: MDS 1.00, L1TF 0.98, V1 0.93, V4 1.00. The joint GNNs (`allhw`/`allhw2`) get 1.00 / 0.99 / 0.97–0.98 / 1.00, so they add about **+0.01 on L1TF and +0.05 on V1**. *(The earlier "+0.25–0.30" claim came from an unscaled, under-tuned opcode baseline. Withdrawn.)* Per-class `<class>_hw` models learned "Revizor style → my class". Their 1.00 is withdrawn.
 
-**3. A joint model (`allhw`, all four classes' real gadgets) separates the classes, but MDS/V4 separation is just the config's instruction mix.**
+**3. Mitigation: the presence shortcut is fixed, but the labels are not trustworthy.** `allhw2` (trained with misplaced-fence counterexamples) calls every still-vulnerable misplaced-fence gadget the attack class (entry, tail and shift placements: 0.99–1.00), and keeps fenced twins BENIGN (false-positive rate ~0; V1 0.06). However:
+- **A bigram model does the same.** "The instruction next to the `lfence`" separates twin from shifted at 0.91–1.00. So `allhw2` learned the local rule "`lfence` right after the branch/store = safe", nothing deeper.
+- **The twin labels are not hardware-validated, and V1's are likely wrong.** In Revizor's V1 layout, `jcc <.bb_0.1>` is followed by `jmp <.macro.measurement_end>`. The leaking code is the taken target block (`.bb_0.1`). The twin's `lfence` after `jcc` sits on the fall-through, which only exits, so it **cannot mitigate**. Those "BENIGN" twins are probably still vulnerable. The V4 "15 → 0" hardware control toggled the SSBP MSR (`x86_executor_enable_ssbp_patch`), **not** an inserted `lfence`. So V4/MDS/L1TF twin mitigation is assumed, not measured.
+- So the model faithfully learned our labels, and some of those labels are wrong. No mitigation-detection claim stands until the twins are checked by running them through Revizor.
 
-| real class | `allhw` recall | bag-of-opcodes LR (no graph) | gain over opcodes |
-|---|---|---|---|
-| MDS | 1.00 | 0.97–1.00 | none (byte/bit ops identify the config) |
-| SPECTRE_V4 | 1.00 | 1.00 | none (`adcb`/`imull` identify the config, not store→load) |
-| L1TF | 0.99 | 0.67–0.69 | **+0.30** |
-| SPECTRE_V1 | 0.98 | 0.70–0.74 | **+0.25** |
-
-Only the L1TF/V1 gain over opcodes is evidence of structure. Even that may partly be config (the V1 config enables branches). Each class came from its own Revizor config, so instruction mix and class are entangled until classes are collected under a shared instruction set.
-
-**4. Mitigation is not learned: "has an lfence" ⇒ BENIGN.** For the misplaced-fence control (same number of lfences, at function entry, gadget still vulnerable), `allhw` predicts BENIGN for MDS 1.00, L1TF 1.00, V4 0.86, V1 0.68. So the ~0 false-positive rate on fenced twins does not show mitigation detection. The control is structural; that entry fences don't mitigate is assumed, not hardware-verified.
-
-**Fix in progress:** `allhw2` adds misplaced-fence copies of the training positives (labelled as attacks; fences split between entry and tail, matched in count and length to the proper twin). `oracle/revizor/audit_hw_split.py` fails the prep job on any leak and reports trivial-cue baselines (length, lfence count/presence/position, opcode bag) as the bars every table must beat.
-
-**How to read `allhw2` when it lands** (built `69de2e1`, `8cbb52e`):
-- `oracle/revizor/audit_hw_split.py` runs in the prep job and fails it on any leak (group, exact-sequence, seed or near-duplicate overlap). The local run found none; the max held-out-to-train similarity was 0.76.
-- **Class identity (MDS/L1TF/V1/V4):** the opcode bag alone scores 0.95–0.97. Quote a diagonal only as a gain over that bar. MDS/V4 will be at ceiling regardless.
-- **Mitigation, V1/V4 "shift" rows** (fence one instruction before the boundary instead of after; same count and length): the only placement test with no position cue left (position bar = majority rate). These rows are the evidence for "learned where the fence must go".
-- **Mitigation, MDS/L1TF "entry/tail" rows:** position still separates them (overall position bar 0.76). They only test the weaker "has lfence ⇒ BENIGN" shortcut. A fence just after the transient load arguably still mitigates, so no clean shifted counterexample exists. Same-config non-violating Revizor programs (i5) would be the fix.
+**Next (needs the i5):** for each held-out violation, take its `program.asm` and inputs and make fenced variants: target-block fence, fall-through fence, shifted, misplaced. Re-run `rvzr reproduce` on the same inputs. A violation that persists means vulnerable; one that disappears means mitigated. That gives hardware labels for every counterfactual. Then fix the V1 twin (fence at the start of `.bb_0.1`) and retrain on the validated labels.
 
 **Other caveats:**
 - One CPU (i5-8300H), one fuzzer (Revizor).

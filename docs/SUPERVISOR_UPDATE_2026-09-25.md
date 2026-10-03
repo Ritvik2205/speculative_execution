@@ -22,14 +22,16 @@ one to cite). New baseline is the ISA-independent `embed, no-handcrafted` config
   `eval/cluster_out/real_transfer_confusion.md`, 5 seeds.]*
   - A detector trained only on synthetic data **does not recognise real hardware
     gadgets**. It calls most of them SPECTRE_V1, whatever their class.
-  - Training one model on all four classes' real gadgets separates the classes
-    on held-out data (0.98–1.00). But a plain bag-of-opcodes classifier does just
-    as well on MDS and V4: each Revizor config's instruction set gives the class
-    away. Only on **L1TF vs V1** does the graph model beat opcodes (~+0.25–0.30).
-  - The model has **not** learned what mitigation looks like. If the `lfence`s
-    are moved to where they don't mitigate, it still calls the gadget safe. A
-    retrain with "misplaced-fence" counterexamples, plus an automatic
-    leak/shortcut audit, is built and queued.
+  - Training one model on all four classes' real gadgets separates them on
+    held-out data (0.97–1.00), but a well-tuned bag-of-opcodes classifier gets
+    0.97 too: each Revizor config's instruction set gives the class away. The
+    graph model adds at most ~+0.05 (V1).
+  - Mitigation is **not** established. With counterexamples the model stops
+    treating "has an `lfence`" as safe, but a bigram rule ("instruction next to
+    the fence") explains it. More importantly, the "mitigated" twins we trained
+    on are not hardware-validated: the V1 twins put the fence on a path that
+    can't leak, so they are probably still vulnerable. The next step is to re-run
+    the fenced programs through Revizor on the i5 to get real labels.
 
 **Honest caveats:**
 - **Held-out is 22–64 real gadgets per class.** Leakage is ruled out: no

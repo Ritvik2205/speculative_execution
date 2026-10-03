@@ -35,7 +35,7 @@ REAL_V4_HELDOUT = str(ROOT / "eval" / "data" / "revizor_v4_heldout.jsonl")
 # `synth_mitigated_twin` and are STRUCTURAL: an `lfence` placed at the
 # textbook speculation boundary, not a hardware-run mitigated gadget. The
 # DIFFERENCE is validation of the MECHANISM: V4's fence is backed by a real
-# Revizor SSBP-off->on control (15 leaks -> 0, HARDWARE_VALIDATION_RESULTS.md),
+# Revizor SSBP-off->on MSR control (15 leaks -> 0; validated SSBD, NOT lfence insertion),
 # so its synthetic twin models a HW-validated mitigation; MDS/L1TF/SPECTRE_V1
 # have NO such control, so their FP numbers are SYNTHETIC/UNVERIFIED and must
 # be reported as exploratory. If the held-out file has no BENIGN twins (the
@@ -233,7 +233,7 @@ def main():
     # which (Step 2, docs/NEXT_STEPS_PLAN_2026-09-10.md) now carries BOTH the
     # real SPECTRE_V4 positives AND fenced V4-shaped BENIGN negatives
     # (source=synth_mitigated_twin; the fence MECHANISM is HW-validated by the
-    # SSBP-off->on control, 15->0) — still seed-disjoint from
+    # only the SSBP MSR toggle was HW-validated, not lfence) — still seed-disjoint from
     # training, including the fenced twins. That lets us report not just
     # held-out recall but a V4 false-positive rate: the fraction of the
     # held-out V4-shaped BENIGN the model predicts as something other than
@@ -253,7 +253,7 @@ def main():
         (OUT / "real_v4_p3.md").write_text(
             "# P3 — held-out real-V4 recall + V4 false-positive rate: baseline vs trained-with-real-V4 (mean±95%CI)\n\n"
             "Both scored on the seed-disjoint held-out set (eval/data/revizor_v4_heldout.jsonl), "
-            "which contains BOTH real SPECTRE_V4 positives and fenced (SSBP-mitigated) "
+            "which contains BOTH real SPECTRE_V4 positives and lfence-fenced (synthetic, not HW-validated) "
             "V4-shaped BENIGN negatives, seed-disjoint from training for both classes.\n\n"
             "| metric | BEFORE (v55h, no real V4 in train) | AFTER (v55h + 11 real V4 + 11 fenced BENIGN in train) |\n"
             "|---|---|---|\n"
