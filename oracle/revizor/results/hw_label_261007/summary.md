@@ -30,4 +30,4 @@
 | SPECTRE_V4 | tail | 21 | 0 | 0 | 0 | 1 | 0 |
 | SPECTRE_V4 | twin | 0 | 21 | 0 | 0 | 1 | 0 |
 
-806 labelled variant records -> `/home/ritvik/speculative_execution/eval/data/revizor_hwlabel_variants.jsonl`
+806 labelled variant records -> `eval/data/revizor_hwlabel_variants.jsonl`

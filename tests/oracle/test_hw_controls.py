@@ -124,11 +124,11 @@ def test_with_misfenced_one_per_positive():
     cf = {"spectre_v1": base + pos + twins}
     out, tails = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0)
     mis = [r for r in out if r["group"].endswith("_misfenced")]
-    # SPECTRE_V1: one mixed + one shifted per positive
-    assert len(mis) == 8 and all(r["label"] == "SPECTRE_V1" for r in mis)
-    assert sorted(r["group"] for r in mis) == sorted(f"p{i}_misfenced" for i in range(4) for _ in range(2))
-    one, _ = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0, shifted=False)
-    assert len([r for r in one if r["group"].endswith("_misfenced")]) == 4
+    # SPECTRE_V1: one mixed per positive; shifted is off by default (HW: mitigated)
+    assert len(mis) == 4 and all(r["label"] == "SPECTRE_V1" for r in mis)
+    assert sorted(r["group"] for r in mis) == sorted(f"p{i}_misfenced" for i in range(4))
+    two, _ = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0, shifted=True)
+    assert len([r for r in two if r["group"].endswith("_misfenced")]) == 8
     out2, _ = joint.build_joint(base, cf, {"spectre_v1": []}, with_misfenced=True, seed=0)
     assert out == out2
     plain, _ = joint.build_joint(base, cf, {"spectre_v1": []})

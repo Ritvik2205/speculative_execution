@@ -182,8 +182,48 @@ def write_confusion_report():
             L.append(f"| {c} | {f(metric('allhw', 'recall', cond=c, cls=c))} | {fp} |")
     else:
         L.append("n/a (no allhw seeds)")
+    L += _hw_label_section(tags, tmp)
     (OUT / "real_transfer_confusion.md").write_text("\n".join(L) + "\n")
     print("wrote real_transfer_confusion.md")
+
+HW_LABELS = ROOT / "eval" / "data" / "revizor_hwlabel_variants.jsonl"
+
+def _adjacent_fence_pred(r):
+    """Non-learned bar: BENIGN iff some lfence sits directly next to the class's
+    boundary instruction (jcc for V1, any memory op otherwise), skipping a
+    standalone `lock` line. Matches 702/806 HW labels (2026-10-07)."""
+    import re as _re
+    seq, cls = r["sequence"], r.get("vuln_class") or r["label"]
+    jcc = lambda x: bool(_re.match(r"j(?!mp)[a-z]+\s", x))
+    mem = lambda x: "(" in x and not x.split()[0].startswith("lea")
+    bnd = jcc if cls == "SPECTRE_V1" else mem
+    for i, x in enumerate(seq):
+        if x != "lfence":
+            continue
+        nb = [seq[j] for j in (i - 1, i + 1) if 0 <= j < len(seq) and seq[j] not in ("lfence", "lock")]
+        if i + 2 < len(seq) and seq[i + 1] == "lock":
+            nb.append(seq[i + 2])
+        if any(bnd(y) for y in nb):
+            return "BENIGN"
+    return cls
+
+def _hw_label_section(tags, tmp):
+    """Score every tag on HARDWARE-labelled fenced variants (rvzr reproduce x3 on
+    the i5; oracle/revizor/results/hw_label_*). `correct` = predicted label equals
+    the HW label (BENIGN if the fence mitigated, else the attack class)."""
+    L = ["\n## 4. Hardware-labelled fenced variants (ground truth: rvzr reproduce on the i5)\n"]
+    if not HW_LABELS.exists():
+        return L + ["n/a (no eval/data/revizor_hwlabel_variants.jsonl)"]
+    recs = [json.loads(l) for l in open(HW_LABELS) if l.strip()]
+    cells = sorted({(r["vuln_class"], r["variant"], r["label"]) for r in recs})
+    L += ["| class | variant | HW label | n | adjacent-fence bar | " + " | ".join(tags) + " |",
+          "|---|---|---|---|---|" + "---|" * len(tags)]
+    for c, v, lab in cells:
+        rs = [r for r in recs if (r["vuln_class"], r["variant"], r["label"]) == (c, v, lab)]
+        bar = sum(_adjacent_fence_pred(r) == lab for r in rs) / len(rs)
+        L.append(f"| {c} | {v} | {lab} | {len(rs)} | {bar:.3f} | " +
+                 " | ".join(f(pred_fraction(t, rs, lab, tmp)) for t in tags) + " |")
+    return L
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
