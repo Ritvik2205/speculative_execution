@@ -1,0 +1,60 @@
+.intel_syntax noprefix
+.section .data.main
+.function_0:
+.bb_0.0:
+.macro.measurement_start: nop qword ptr [rax + 0xff]
+and rsi, 0b1111111111111 # instrumentation
+lfence
+sub bl, byte ptr [r14 + rsi] 
+lfence
+and rcx, 0b1111111111000 # instrumentation
+lfence
+lock dec word ptr [r14 + rcx] 
+lfence
+lea esi, qword ptr [rcx] 
+lfence
+adc eax, -1211718481 
+lfence
+cmovno dx, dx 
+lfence
+and rsi, 0b1111111111111 # instrumentation
+lfence
+adc dword ptr [r14 + rsi], 90 
+lfence
+and rax, 0b1111111111111 # instrumentation
+lfence
+mov dl, byte ptr [r14 + rax] 
+lfence
+jmp .bb_0.1 
+.bb_0.1:
+and rdx, 0b1111111111111 # instrumentation
+lfence
+or al, byte ptr [r14 + rdx] 
+lfence
+lea ecx, qword ptr [rdi + rbx] 
+lfence
+and rdx, 0b1111111111111 # instrumentation
+lfence
+or dword ptr [r14 + rdx], esi 
+lfence
+and rbx, 0b1111111111111 # instrumentation
+lfence
+or word ptr [r14 + rbx], 0b1000000000000000 # instrumentation
+lfence
+bsf dx, word ptr [r14 + rbx] 
+lfence
+xor edx, 101 
+lfence
+bt dx, 223 
+lfence
+test eax, 1730342416 
+lfence
+xor cl, cl 
+lfence
+lea ebx, qword ptr [rsi] 
+lfence
+.exit_0:
+.macro.measurement_end: nop qword ptr [rax + 0xff]
+jmp .test_case_exit 
+.section .data.main
+.test_case_exit:nop
