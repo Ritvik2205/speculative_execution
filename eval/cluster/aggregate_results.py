@@ -214,6 +214,9 @@ def _hw_label_section(tags, tmp):
     L = ["\n## 4. Hardware-labelled fenced variants (ground truth: rvzr reproduce on the i5)\n"]
     if not HW_LABELS.exists():
         return L + ["n/a (no eval/data/revizor_hwlabel_variants.jsonl)"]
+    # joint/baseline models only: the per-class _hw tags are already shown to be
+    # style-shortcut models, and 7 tags x 25 cells x 5 seeds overruns the 2h job
+    tags = [t for t in tags if t in ("w3_embed_on", "allhw", "allhw2", "allhw3")]
     recs = [json.loads(l) for l in open(HW_LABELS) if l.strip()]
     cells = sorted({(r["vuln_class"], r["variant"], r["label"]) for r in recs})
     L += ["| class | variant | HW label | n | adjacent-fence bar | " + " | ".join(tags) + " |",
