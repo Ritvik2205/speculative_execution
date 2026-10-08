@@ -119,10 +119,20 @@ _DATA_BASE = 0x2000_0000
 _DATA_SIZE = 0x0040_0000          # 4 MiB
 _SEED_PTR = _DATA_BASE + _DATA_SIZE // 2
 _STACK_PTR = _DATA_BASE + _DATA_SIZE - 0x1000
-_EMU_TIMEOUT_US = 200_000         # 0.2 s of emulated time
-_EMU_MAX_INSNS = 20_000           # guards unbounded loops
+# Candidate sequences in this project are at most 62 instructions, so a budget
+# of 5,000 is ~80x the longest one: it cannot truncate a terminating program,
+# and it detects a loop cheaply. The wall-clock timeout is a second guard.
+_EMU_TIMEOUT_US = 50_000
+_EMU_MAX_INSNS = 5_000
 _EMU_PAGE = 0x1000
 _EMU_MAX_DEMAND_PAGES = 64        # cap on pages mapped on demand
+# Pre-mapped low region. The generator routinely clobbers a register with data
+# (a loaded byte, a small immediate) and then dereferences it, so most stray
+# pointers are small integers. Mapping that range up front is far cheaper than
+# demand-mapping it one page at a time, because every mem_map flushes
+# Unicorn's translation cache.
+_LOW_BASE = 0x0
+_LOW_SIZE = 0x0010_0000           # 1 MiB
 
 
 def elf_text_section(obj: bytes) -> Optional[bytes]:
@@ -199,6 +209,16 @@ def split_operands(operand_text: str) -> list[str]:
 # after the first of these is dead code on the straight-line path, so a
 # parse failure there does not stop Spectector adjudicating the gadget.
 _EXIT_MNEMONICS = ("ret", "retq", "jmp", "jmpq", "hlt", "ud2", "leave")
+
+# The same notion at the machine-code level, per ISA, so stage C can find the
+# exit in the disassembly of ONE assembled object instead of assembling the
+# text prefix separately. Process spawn costs ~220 ms in this environment, so
+# the second assembler call was the single largest cost in the gate.
+_EXIT_MNEMONICS_MC = {
+    "x86_64": {"ret", "retq", "jmp", "hlt", "ud2", "leave", "iret", "iretq"},
+    "arm64": {"ret", "b", "brk", "eret"},
+    "riscv64": {"ret", "j", "jr", "ebreak", "unimp"},
+}
 
 
 def live_prefix(instrs: Iterable[str]) -> list[str]:
@@ -311,6 +331,7 @@ class Emulator:
         # whole region on every run dominated this stage's cost (4 MiB per
         # candidate, measured at ~137 ms of the 145 ms per check)
         mu.mem_map(_DATA_BASE, _DATA_SIZE)
+        mu.mem_map(_LOW_BASE, _LOW_SIZE)
         for r in regs:
             try:
                 mu.reg_write(r, _SEED_PTR)
@@ -451,6 +472,27 @@ class PreCheck:
         return (obj is not None), err
 
     # -- machine code for stage C ---------------------------------------
+    def exit_offset(self, code: bytes, arch: str) -> int:
+        """Byte offset of the first instruction that unconditionally leaves the
+        body, or len(code) if there is none. Derived from the disassembly of
+        the already-assembled object, so it costs no extra assembler call."""
+        try:
+            import capstone as cs
+        except ImportError:
+            return len(code)
+        amap = {"x86_64": (cs.CS_ARCH_X86, cs.CS_MODE_64),
+                "arm64": (cs.CS_ARCH_ARM64, cs.CS_MODE_ARM),
+                "riscv64": (cs.CS_ARCH_RISCV, cs.CS_MODE_RISCV64)}
+        if arch not in amap:
+            return len(code)
+        a, m = amap[arch]
+        names = _EXIT_MNEMONICS_MC[arch]
+        md = cs.Cs(a, m)
+        for ins in md.disasm(code, 0):
+            if ins.mnemonic.lower() in names:
+                return ins.address
+        return len(code)
+
     def machine_code(self, instrs: list[str], arch: str,
                      intel_syntax: bool = False) -> tuple[Optional[bytes], Optional[str]]:
         """Assemble to an ELF object and return the `.text` bytes.
@@ -488,10 +530,12 @@ class PreCheck:
             "verdict": "pass",
             "reject_stage": None,
         }
-        ok, err = self.assembles(instrs, arch)
-        res["assembles"] = bool(ok)
+        # ONE assembler invocation for the whole candidate; stages A and C
+        # both read its output.
+        code, err = self.machine_code(instrs, arch)
+        res["assembles"] = code is not None
         res["assemble_error"] = err
-        if not ok:
+        if code is None:
             res.update(verdict="reject", reject_stage="assembles")
             return res
 
@@ -504,13 +548,15 @@ class PreCheck:
                 return res
 
         if self.emulator is not None:
-            # same reachability notion as stage B: do not run past the exit
-            code, cerr = self.machine_code(live_prefix(instrs), arch)
-            if code is None:
+            # same reachability notion as stage B, applied to the machine code:
+            # stop at the first unconditional exit rather than running into an
+            # uninitialised stack
+            body = code[: self.exit_offset(code, arch)]
+            if not body:
                 res["emulated"] = "no_code"
-                res["emulate_detail"] = cerr
+                res["emulate_detail"] = "nothing before the first exit"
             else:
-                outcome, detail, pages = self.emulator.run(code, arch)
+                outcome, detail, pages = self.emulator.run(body, arch)
                 res["emulated"] = outcome
                 res["emulate_detail"] = detail
                 res["pages_mapped"] = pages
