@@ -209,12 +209,7 @@ class SpeculativeEmulator:
             # an unconditional jump has no second successor to mispredict
             if "jump" not in groups and "branch_relative" not in groups:
                 continue
-            target = None
-            for op in ins.operands:
-                if op.type == md.arch_op_imm_type() if hasattr(md, "arch_op_imm_type") else False:
-                    target = op.imm
-            if target is None:
-                target = self._imm_operand(ins)
+            target = self._imm_operand(ins)
             if target is None or not (_CODE_BASE <= target < end):
                 continue
             fall = ins.address + ins.size
@@ -233,15 +228,23 @@ class SpeculativeEmulator:
 
     @staticmethod
     def _imm_operand(ins) -> Optional[int]:
+        """The branch target: a direct branch's immediate operand.
+
+        capstone's immediate operand type differs per architecture, so this
+        reads `.imm` from whichever operand exposes a usable one rather than
+        comparing against a per-arch type constant. A register-indirect branch
+        has no immediate and returns None, which is correct: its target is not
+        statically known, so there is no second successor to force.
+        """
         for op in getattr(ins, "operands", []):
-            # capstone's per-arch immediate op types all expose `.imm`
-            if getattr(op, "type", None) is not None and hasattr(op, "imm"):
-                try:
-                    val = int(op.imm)
-                except (TypeError, ValueError):
-                    continue
-                if val:
-                    return val
+            if not hasattr(op, "imm"):
+                continue
+            try:
+                val = int(op.imm)
+            except (TypeError, ValueError):
+                continue
+            if val:
+                return val
         return None
 
     # -- machine state ---------------------------------------------------
