@@ -145,3 +145,33 @@ def test_end_to_end_with_fake_rvzr(tmp_path, monkeypatch):
     assert got["entry"]["label"] == "SPECTRE_V1"
     assert "lfence" in got["twin"]["sequence"]
     assert "original" not in got
+
+
+def test_skip_labelled_from_results_dir_and_jsonl(tmp_path):
+    res = tmp_path / "res"
+    res.mkdir()
+    (res / "runs.jsonl").write_text(json.dumps({"group": "g1", "variant": "original", "outcome": "none"}) + "\n")
+    lab = tmp_path / "lab.jsonl"
+    lab.write_text(json.dumps({"group": "g2_fenced"}) + "\n" + json.dumps({"group": "g3_misfenced"}) + "\n")
+    assert h.labelled_groups([str(res), str(lab)]) == {"g1", "g2", "g3"}
+    with pytest.raises(FileNotFoundError):
+        h.labelled_groups([str(tmp_path / "nope")])
+
+
+def test_plan_skip_labelled(tmp_path):
+    recs = tmp_path / "recs.jsonl"
+    rows = []
+    for g in ("ga", "gb"):
+        d = tmp_path / g / "violation-x"
+        d.mkdir(parents=True)
+        (d / "program.asm").write_text(V1_ASM)
+        rows.append({"label": "SPECTRE_V1", "group": g, "source": "revizor_hw_i5_8300h",
+                     "src_path": str(d / "program.asm")})
+    recs.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    prev = tmp_path / "prev"
+    prev.mkdir()
+    (prev / "runs.jsonl").write_text(json.dumps({"group": "ga"}) + "\n")
+    out = tmp_path / "out"
+    assert h.main(["plan", "--records", str(recs), "--out", str(out), "--skip-labelled", str(prev)]) == 0
+    groups = {json.loads(l)["group"] for l in (out / "plan.jsonl").read_text().splitlines()}
+    assert groups == {"gb"}

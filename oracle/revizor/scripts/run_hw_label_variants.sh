@@ -8,6 +8,7 @@
 #   sudo bash oracle/revizor/scripts/run_hw_label_variants.sh \
 #     [--records "<jsonl ...>" (default: the 4 class held-out sets)] [--classes "SPECTRE_V1 ..."] \
 #     [--limit N] [--reps 3] [--out ~/rvzr_hwlabel]
+#     [--skip-labelled "<results dir or labelled jsonl> ..."]   (skip dirs already run)
 # Resumable: re-running with the same --out skips finished runs.
 # Afterwards (anywhere with clang + objdump):
 #   python3 oracle/revizor/scripts/hw_label_variants.py emit --out <out>
@@ -21,6 +22,7 @@ SPEC="$HOME_DIR/sca-fuzzer/base_x86.json"
 RECORDS="eval/data/revizor_spectre_v1_heldout.jsonl eval/data/revizor_spectre_v4_heldout.jsonl eval/data/revizor_mds_heldout.jsonl eval/data/revizor_l1tf_heldout.jsonl"
 CLASSES="SPECTRE_V1 SPECTRE_V4 MDS L1TF"
 LIMIT=0
+SKIP=""
 REPS=3
 OUT="$HOME_DIR/rvzr_hwlabel"
 
@@ -29,9 +31,10 @@ while [ $# -gt 0 ]; do
     --records) RECORDS="$2"; shift 2;;
     --classes) CLASSES="$2"; shift 2;;
     --limit) LIMIT="$2"; shift 2;;
+    --skip-labelled) SKIP="$2"; shift 2;;
     --reps) REPS="$2"; shift 2;;
     --out) OUT="$2"; shift 2;;
-    -h|--help) sed -n 2,13p "$0"; exit 0;;
+    -h|--help) sed -n 2,14p "$0"; exit 0;;
     *) echo "FATAL: unknown argument '$1'"; exit 1;;
   esac
 done
@@ -58,7 +61,7 @@ cd "$REPO" || exit 1
 PY="$VENV/bin/python"
 # shellcheck disable=SC2086
 "$PY" "$SCRIPT_DIR/hw_label_variants.py" plan --records $RECORDS --classes $CLASSES \
-  --limit "$LIMIT" --out "$OUT" || exit 1
+  --limit "$LIMIT" --out "$OUT" ${SKIP:+--skip-labelled $SKIP} || exit 1
 "$PY" "$SCRIPT_DIR/hw_label_variants.py" run --out "$OUT" --rvzr "$VENV/bin/rvzr" \
   --spec "$SPEC" --reps "$REPS" || exit 1
 chown -R "${SUDO_USER:-$USER}" "$OUT"

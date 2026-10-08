@@ -352,10 +352,36 @@ def _vdir(out: Path, t: dict) -> Path:
     return out / t["cls"].lower() / Path(t["src_dir"]).name
 
 
+_VARIANT_SUFFIX = re.compile(r"_(mis)?fenced$")
+
+
+def labelled_groups(sources: List[str]) -> Set[str]:
+    """Groups already run in earlier labelling passes. Each source is a results
+    dir (its runs.jsonl: every group with at least one reproduce call, whatever
+    the outcome, so unstable originals are not re-run either) or an emitted
+    labelled JSONL (group minus its _fenced/_misfenced suffix)."""
+    done: Set[str] = set()
+    for src in sources:
+        p = Path(os.path.expanduser(src))
+        if p.is_dir():
+            p = p / "runs.jsonl"
+        if not p.is_file():
+            raise FileNotFoundError(f"--skip-labelled: {src} has no runs.jsonl / is not a file")
+        for line in open(p):
+            if line.strip():
+                done.add(_VARIANT_SUFFIX.sub("", json.loads(line)["group"]))
+    return done
+
+
 def cmd_plan(a) -> int:
     out = Path(os.path.expanduser(a.out))
     out.mkdir(parents=True, exist_ok=True)
     targets, missing = load_targets(a.records, a.classes)
+    if a.skip_labelled:
+        done = labelled_groups(a.skip_labelled)
+        before = len(targets)
+        targets = [t for t in targets if t["group"] not in done]
+        print(f"--skip-labelled: {before - len(targets)} dir(s) already run, {len(targets)} left")
     if a.limit:
         per = collections.Counter()
         keep = []
@@ -562,6 +588,9 @@ def main(argv=None) -> int:
                         "eval/data/revizor_{spectre_v1,spectre_v4,mds,l1tf}_real.jsonl for the training pool")
     p.add_argument("--classes", nargs="+", default=list(CLASSES), choices=CLASSES)
     p.add_argument("--limit", type=int, default=0, help="max violation dirs per class (0 = all)")
+    p.add_argument("--skip-labelled", nargs="+", default=[], metavar="RESULTS",
+                   help="skip violation dirs already run: earlier results dir(s) (runs.jsonl) "
+                        "or emitted labelled JSONL(s), e.g. oracle/revizor/results/hw_label_261007")
     p.add_argument("--out", required=True)
     r = sub.add_parser("run")
     r.add_argument("--out", required=True)
