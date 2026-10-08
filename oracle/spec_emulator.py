@@ -110,7 +110,11 @@ LEAK, SAFE, UNRUNNABLE, ARCH_LEAK = "leak", "safe", "unrunnable", "arch_leak"
 _CODE_BASE = 0x0100_0000
 _CODE_SIZE = 0x0010_0000
 _SANDBOX_BASE = 0x2000_0000
-_SANDBOX_SIZE = 0x0040_0000           # 4 MiB of input-controlled data
+# The sandbox only has to cover what a program can address: Revizor masks
+# architectural accesses into the low 8 KiB, and the secret sits just above the
+# public region. It is written once per emulator run, so an oversized sandbox
+# is paid for on every run -- 4 MiB here cost ~137 ms per candidate.
+_SANDBOX_SIZE = 0x0004_0000           # 256 KiB of input-controlled data
 _SEED_PTR = _SANDBOX_BASE + _SANDBOX_SIZE // 2
 _STACK_PTR = _SANDBOX_BASE + _SANDBOX_SIZE - 0x1000
 _PAGE = 0x1000
@@ -356,7 +360,7 @@ class SpeculativeEmulator:
     def _input_pair(self, rng: random.Random) -> tuple[bytes, bytes]:
         """Two sandbox images identical in the public region and different in
         the secret region above it."""
-        public = bytes(rng.randrange(256) for _ in range(_PUBLIC_BYTES))
+        public = rng.randbytes(_PUBLIC_BYTES)
         tail = _SANDBOX_SIZE - _PUBLIC_BYTES
         s1 = bytes([rng.randrange(1, 128)]) * tail
         s2 = bytes([rng.randrange(128, 256)]) * tail

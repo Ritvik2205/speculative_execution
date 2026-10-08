@@ -125,6 +125,47 @@ _EMU_PAGE = 0x1000
 _EMU_MAX_DEMAND_PAGES = 64        # cap on pages mapped on demand
 
 
+def elf_text_section(obj: bytes) -> Optional[bytes]:
+    """Contents of `.text` in a little-endian ELF64 object.
+
+    Parsed here rather than shelled out to `llvm-objcopy` because process spawn
+    dominates this gate's cost: measured on macOS, a three-spawn check spent
+    108 s of system time against 1.4 s of user time over 150 candidates. One
+    spawn per candidate instead of three is a ~3x speedup for exactly the same
+    bytes.
+    """
+    import struct
+    if len(obj) < 64 or obj[:4] != b"\x7fELF" or obj[4] != 2 or obj[5] != 1:
+        return None
+    e_shoff, = struct.unpack_from("<Q", obj, 0x28)
+    e_shentsize, e_shnum, e_shstrndx = struct.unpack_from("<HHH", obj, 0x3A)
+    if not e_shoff or not e_shnum:
+        return None
+
+    def sh(i):
+        off = e_shoff + i * e_shentsize
+        if off + 40 > len(obj):
+            return None
+        name, _typ = struct.unpack_from("<II", obj, off)
+        sh_offset, sh_size = struct.unpack_from("<QQ", obj, off + 24)
+        return name, sh_offset, sh_size
+
+    strtab = sh(e_shstrndx)
+    if strtab is None:
+        return None
+    _n, str_off, str_size = strtab
+    names = obj[str_off:str_off + str_size]
+    for i in range(e_shnum):
+        ent = sh(i)
+        if ent is None:
+            continue
+        name_off, off, size = ent
+        end = names.find(b"\x00", name_off)
+        if names[name_off:end if end >= 0 else None] == b".text":
+            return obj[off:off + size]
+    return None
+
+
 def _strip_comment(instr: str) -> str:
     """Drop a trailing assembler comment. `#` only: `;` and `//` are not
     comment markers in the AT&T text our pipeline produces, and `/` can appear
@@ -266,8 +307,10 @@ class Emulator:
             raise ValueError(f"no emulator mapping for arch {arch!r}")
 
         mu.mem_map(_CODE_BASE, _CODE_SIZE)
+        # no explicit zero-fill: Unicorn maps zeroed pages, and writing the
+        # whole region on every run dominated this stage's cost (4 MiB per
+        # candidate, measured at ~137 ms of the 145 ms per check)
         mu.mem_map(_DATA_BASE, _DATA_SIZE)
-        mu.mem_write(_DATA_BASE, b"\x00" * _DATA_SIZE)
         for r in regs:
             try:
                 mu.reg_write(r, _SEED_PTR)
@@ -339,6 +382,7 @@ class PreCheck:
         self.mc = llvm_mc or find_llvm_mc()
         self.objcopy = objcopy or self._find_objcopy()
         self.oracle = ExternalOracle(self.mc)
+        self._obj_cache: dict = {}
         self.front_end = SpectectorFrontEnd(table_path) if Path(table_path).is_file() else None
         self.emulator = Emulator() if (emulate and Emulator.available()) else None
 
@@ -355,9 +399,56 @@ class PreCheck:
                 return p
         return None
 
+    # -- one assembler invocation, shared by stages A and C --------------
+    def _assemble_obj(self, instrs: list[str], arch: str,
+                      intel_syntax: bool = False) -> tuple[Optional[bytes], Optional[str]]:
+        """Assemble to an ELF object. Memoised on (text, arch, syntax) so that
+        a single `check()` spawns the assembler once rather than once per
+        stage."""
+        if arch not in _ELF_TRIPLE:
+            return None, f"no ELF triple for {arch}"
+        if not self.mc:
+            return None, "llvm-mc not found"
+        src = "\n".join(instrs) + "\n"
+        key = (src, arch, intel_syntax)
+        hit = self._obj_cache.get(key)
+        if hit is not None:
+            return hit
+        triple, flags = _ELF_TRIPLE[arch]
+        if intel_syntax and arch == "x86_64":
+            flags = ["--x86-asm-syntax=intel"]
+        with tempfile.TemporaryDirectory() as d:
+            obj = os.path.join(d, "a.o")
+            try:
+                r = subprocess.run(
+                    [self.mc, f"--triple={triple}", "--assemble", *flags,
+                     "-filetype=obj", "-o", obj],
+                    input=src, capture_output=True, text=True, timeout=30)
+            except (subprocess.TimeoutExpired, OSError) as e:
+                out = (None, f"llvm-mc did not run: {e}")
+            else:
+                if r.returncode != 0:
+                    out = (None, r.stderr.strip()[:200])
+                else:
+                    out = (Path(obj).read_bytes(), None)
+        if len(self._obj_cache) > 64:
+            self._obj_cache.clear()
+        self._obj_cache[key] = out
+        return out
+
     # -- stage A ---------------------------------------------------------
-    def assembles(self, instrs: list[str], arch: str) -> tuple[bool, Optional[str]]:
-        return self.oracle.assemble_sequence(instrs, arch)
+    def assembles(self, instrs: list[str], arch: str,
+                  intel_syntax: bool = False) -> tuple[bool, Optional[str]]:
+        """Does the whole sequence assemble as one unit?
+
+        Uses the object-producing path so stage C can reuse the same
+        invocation. `ExternalOracle.assemble_sequence` remains the reference
+        implementation and is used when no ELF triple exists for the arch.
+        """
+        if arch not in _ELF_TRIPLE:
+            return self.oracle.assemble_sequence(instrs, arch)
+        obj, err = self._assemble_obj(instrs, arch, intel_syntax)
+        return (obj is not None), err
 
     # -- machine code for stage C ---------------------------------------
     def machine_code(self, instrs: list[str], arch: str,
@@ -367,31 +458,13 @@ class PreCheck:
         `intel_syntax` is for Revizor's own program text (see
         oracle/revizor_asm.py); the pipeline's own sequences are AT&T.
         """
-        if arch not in _ELF_TRIPLE:
-            return None, f"no ELF triple for {arch}"
-        if not self.mc or not self.objcopy:
-            return None, "llvm-mc or llvm-objcopy not found"
-        triple, flags = _ELF_TRIPLE[arch]
-        if intel_syntax and arch == "x86_64":
-            flags = ["--x86-asm-syntax=intel"]
-        src = "\n".join(instrs) + "\n"
-        with tempfile.TemporaryDirectory() as d:
-            obj, bin_ = os.path.join(d, "a.o"), os.path.join(d, "a.bin")
-            try:
-                r = subprocess.run(
-                    [self.mc, f"--triple={triple}", "--assemble", *flags,
-                     "-filetype=obj", "-o", obj],
-                    input=src, capture_output=True, text=True, timeout=30)
-                if r.returncode != 0:
-                    return None, r.stderr.strip()[:200]
-                r = subprocess.run(
-                    [self.objcopy, "-O", "binary", "--only-section=.text", obj, bin_],
-                    capture_output=True, text=True, timeout=30)
-                if r.returncode != 0:
-                    return None, r.stderr.strip()[:200]
-                return Path(bin_).read_bytes(), None
-            except (subprocess.TimeoutExpired, OSError) as e:
-                return None, f"toolchain did not run: {e}"
+        obj, err = self._assemble_obj(instrs, arch, intel_syntax)
+        if obj is None:
+            return None, err
+        text = elf_text_section(obj)
+        if text is None:
+            return None, "no .text section in the assembled object"
+        return text, None
 
     # -- all stages ------------------------------------------------------
     def check(self, instrs: list[str], arch: str, *,
