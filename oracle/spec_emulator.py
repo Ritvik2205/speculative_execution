@@ -125,8 +125,16 @@ _PAGE = 0x1000
 _PUBLIC_BYTES = 0x4000                # 16 KiB, twice Revizor's mask window
 _MAX_DEMAND_PAGES = 64
 _DEFAULT_WINDOW = 40                  # instructions of speculative execution
-_MAX_INSNS = 20_000
-_TIMEOUT_US = 200_000
+# See gen/precheck.py: sequences here are at most 62 instructions, so 5,000 is
+# ~80x the longest and cannot truncate a terminating program.
+_MAX_INSNS = 5_000
+_TIMEOUT_US = 50_000
+# Pre-mapped low region, zeroed and therefore identical between the two inputs,
+# so it can never manufacture an observable difference. It exists so a stray
+# small-integer pointer does not demand-map a page and flush the translation
+# cache on every access.
+_LOW_BASE = 0x0
+_LOW_SIZE = 0x0010_0000
 _LINE_BITS = 6                        # 64-byte cache line
 
 # Mnemonics that serialize speculation, per ISA. A forced speculative window
@@ -254,6 +262,7 @@ class SpeculativeEmulator:
         mu = uc.Uc(a.uc_arch, a.uc_mode)
         mu.mem_map(_CODE_BASE, _CODE_SIZE)
         mu.mem_map(_SANDBOX_BASE, _SANDBOX_SIZE)
+        mu.mem_map(_LOW_BASE, _LOW_SIZE)
         mu.mem_write(_CODE_BASE, code)
         mu.mem_write(_SANDBOX_BASE, sandbox)
         for r in a.gp:
