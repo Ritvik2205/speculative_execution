@@ -86,8 +86,25 @@ On x86, oracle-in-the-loop rejection sampling raises the generator's
 confirmed-leak rate from about 0.50 to 0.97 for Spectre~V1 and from 0.15 to
 0.6--1.0 for Spectre~V4. It produces about 1,600 distinct leaking gadgets, and
 self-supervised pretraining increases their diversity at a measured cost in
-yield. The learned filter and the minimality stage are built but not yet
-evaluated on real labels (\todo{ranker and minimality results}).
+yield.
+
+We then try two ways to reduce the dependence on scarce oracle capacity, and
+report what each is actually worth. A non-learned gate, built from
+Spectector's own instruction table and applied only to a candidate's reachable
+path, removes 18.2\% of the candidates the oracle cannot adjudicate while
+losing 1.3\% of the leaks---a real but modest gain against the 80\% we set as
+the target, because most unadjudicated candidates assemble and execute
+perfectly well and fail inside the oracle instead. Measuring the generator per
+ISA with the same machinery exposes a plainer problem: its ARM64 output
+assembles 28\% of the time against x86's 99\%, so the ARM64 arm is limited by
+the generator, not by the missing oracle. Finally, since every leak oracle here
+is x86, we drive speculation inside a CPU emulator by rolling state back to a
+conditional branch and forcing the other path. It gives correct textbook
+answers on two ISAs, including which fence placements mitigate, but it finds no
+leak in any of 806 hardware-labelled real violations, because those programs
+mask every address into their sandbox even speculatively; we therefore do not
+claim it as validated. The learned filter and the minimality stage are built
+but not yet evaluated on real labels (\todo{ranker and minimality results}).
 \end{abstract}
 
 %% =========================================================================
@@ -124,9 +141,13 @@ ISA description (DSL) & Built: declarative per-ISA specs drive graph
 Generator & Built; class/arch-conditioned; three ISAs generated, x86
   validated (Sec.~\ref{sec:gen}). \\
 Oracles & Spectector (x86, V1/V4), InvisiSpec (x86, V1), Revizor on
-  i5-8300H (x86, V1/V4/MDS/L1TF) (Sec.~\ref{sec:oracles}). \\
-Filter / ranker & Built (\texttt{rank/}); retargeted after the
-  classifier failed as a filter; \todo{real-label result} (Sec.~\ref{sec:rank}). \\
+  i5-8300H (x86, V1/V4/MDS/L1TF). Emulator-driven speculation covers ARM64 and
+  riscv64 but is NOT validated against silicon
+  (Sec.~\ref{sec:specemu}). \\
+Filter / ranker & Non-learned pre-oracle gate measured: 18.2\% of
+  unadjudicable removed, below the 80\% target (Sec.~\ref{sec:precheck});
+  learned head built (\texttt{rank/}) and retargeted after the classifier
+  failed as a filter; \todo{learned-filter result} (Sec.~\ref{sec:rank}). \\
 Loop & RL loop runs with Spectector; filter not yet in the loop. \\
 Minimality & Revizor-minimize step built; \todo{results} (Sec.~\ref{sec:min}). \\
 Detector & GINE, locked cross-ISA version (Sec.~\ref{sec:detector}). \\
@@ -360,6 +381,153 @@ inputs that a speculation contract says are equivalent. Controls used:
 \end{itemize}
 Revizor runs in batches and only on the bare-metal machine, so it is the most
 expensive oracle per candidate.
+
+\subsection{Emulator-driven speculation, where no oracle exists}
+\label{sec:specemu}
+
+Every oracle above is x86. The generator emits ARM64, and the ISA
+specification, tokeniser and realiser also cover riscv64, so ``the generator
+cannot write a leaking ARM64 gadget'' and ``we have no ARM64 oracle'' were
+indistinguishable. A CPU emulator does not by itself fix this: Unicorn, like
+the QEMU it derives from, reproduces only the architectural effect of each
+instruction and has no branch predictor and no caches, so it can never be
+\emph{asked} whether a sequence leaks.
+
+We therefore drive the speculation rather than observe it
+(\texttt{oracle/spec\_emulator.py}). For each conditional branch, the emulator
+runs to the branch, snapshots the CPU, executes the branch alone to learn the
+resolved successor, restores the snapshot, sets the program counter to the
+\emph{other} successor, and runs a bounded window of instructions while
+recording the cache lines touched by loads and stores and the instruction
+addresses fetched. The verdict follows the same property Spectector checks
+symbolically and Revizor checks against hardware, evaluated concretely:
+
+\begin{quote}
+Given two inputs that differ \emph{only} in a designated secret region, if
+their non-speculative observations are identical but their speculative
+observations differ, the sequence leaks the secret through speculative
+execution.
+\end{quote}
+
+Three details carry the result.
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{Inputs differ only in the secret.} Two independently random
+    memory images essentially never produce identical architectural
+    observations; an earlier version compared full random inputs and returned
+    ``no architecturally equivalent pair'' for 20 of 25 real violations,
+    measuring nothing. The public region is therefore byte-identical across
+    the pair and only a secret region varies. That region sits above the
+    8\,KiB window Revizor's generated programs mask their addresses into
+    (\texttt{and reg, 0b1111111111111}), so an architectural access cannot
+    reach it while a misspeculated, unmasked one can---the standard
+    Spectre-V1 arrangement.
+  \item \textbf{Architectural equality is required}, which is what separates a
+    speculative leak from an ordinary architectural data flow. When it fails,
+    the secret is observable with no speculation at all; that is reported as a
+    distinct \textsc{arch\_leak} outcome and never counted as a speculative
+    leak.
+  \item \textbf{Barriers are modelled explicitly.} Unicorn executes
+    \texttt{lfence} as a no-op, because it has no speculation to serialise, so
+    a forced window runs straight through a fence and reports a mitigated
+    gadget as leaking---we observed exactly that. A speculative window now
+    stops at the first serialising instruction, which is the defining
+    semantics of a fence under a speculation contract and matches Spectector's
+    translation of \texttt{lfence} to its \texttt{spbarr} barrier. Per ISA:
+    x86 \texttt{lfence}/\texttt{mfence}/\texttt{sfence}/\texttt{cpuid},
+    ARM64 \texttt{dsb}/\texttt{isb}/\texttt{csdb}, riscv64 \texttt{fence}.
+\end{itemize}
+
+\paragraph{Scope, which is narrow.}
+Only conditional-branch (PHT) misprediction is modelled. Store-to-load
+forwarding (V4), return prediction (Retbleed, Inception), indirect prediction
+(V2, BHI) and faulting or assisted loads (L1TF, MDS) are not, so a
+\textsc{safe} verdict means ``no conditional-branch speculative leak'', never
+``no leak''. Only the first execution of each branch is explored, and inputs
+are concrete, so the check under-approximates: a \textsc{leak} verdict is worth
+considerably more than a \textsc{safe} one.
+
+\paragraph{Known-answer behaviour.}
+On hand-written gadgets the emulator gives the textbook answers on
+\emph{both} x86\_64 and ARM64: a Spectre-V1 shape leaks; the same shape with a
+barrier between the guard branch and the secret read is safe; and a barrier
+placed after the transmitter still leaks. That last discrimination is the one a
+position-based rule cannot make, and it is the one the hardware labels of
+Section~\ref{sec:hwlabel} establish on silicon. ARM64 uses
+\texttt{dsb sy; isb}, the same barrier Revizor's own fence pass emits for that
+ISA.
+
+\paragraph{Validation against evidence it did not produce.}
+A model is worth nothing on its own word, so the emulator is scored against the
+806 hardware-labelled fenced variants (Section~\ref{sec:hwlabel}), whose labels
+are a measured property of a real CPU, and against Spectector's verdicts on
+generated x86 gadgets. Because it is executed rather than pattern-matched, the
+emulator runs each variant's committed Intel-syntax \texttt{program.asm}: the
+corpus's AT\&T \texttt{sequence} field lost its branch labels in the
+assemble/disassemble round trip (they survive only as objdump annotations such
+as \texttt{jnp 0x7e <.bb\_0.1>}, which no assembler accepts), so control flow
+has to come from the original program text
+(\texttt{oracle/revizor\_asm.py}). Of the four hardware-labelled classes only
+Spectre~V1 is within the modelled mechanism; the other three are reported
+separately rather than folded into an accuracy figure.
+\textbf{The result is negative, and the reason is structural.} The emulator
+returns \textsc{safe} for all 806 hardware-labelled variants: it finds not one
+speculative leak. Its apparent 0.580 agreement on the in-scope class is
+therefore an artefact of 58\% of those labels being \textsc{benign}---it is a
+constant predictor, and the interior-fence rule beats it at 0.987
+(Table~\ref{tab:specemu}).
+
+The cause is not a missing mechanism but a mismatch of threat model.
+Revizor's generated programs mask \emph{every} address into their sandbox
+(\texttt{and reg, 0b1111111111111}), and that instrumentation is on the
+mispredicted path too, so such a program never reads outside its sandbox even
+speculatively. There is consequently no out-of-bounds secret for a
+secret-versus-public comparison to find, and the construction that makes the
+check work on a textbook Spectre gadget cannot express what Revizor's
+violations actually are: a difference in \emph{which in-sandbox addresses} are
+touched under speculation, relative to what the contract permits. Detecting
+those requires Revizor's own method---many inputs, grouped into equivalence
+classes by the model's contract trace---rather than a secret/public split. Of
+the 806 variants, the 224 Spectre~V1 ones are exactly those containing a
+conditional branch at all; the other 582 are straight-line, so for them a PHT
+model has nothing to mispredict and \textsc{safe} is a scope statement, not a
+finding.
+
+\paragraph{What the emulator is therefore good for, and not.}
+It is \emph{not} validated against silicon, and no ARM64 or riscv64 number from
+it should be presented as hardware-grade. What survives is narrower and still
+useful: on textbook-shaped gadgets it gives the right answers on two ISAs,
+including the fence-placement discrimination that the hardware labels confirm
+and that no trained model has yet beaten a positional rule on. That makes it a
+usable check on \emph{generator} output of that shape---though
+Table~\ref{tab:isavalid} shows ARM64 generation must be fixed first---and a
+starting point for the Revizor-style contract comparison it would take to
+reproduce the hardware labels.
+
+\begin{table}[t]
+\centering
+\caption{Speculative emulator against ground truth it did not produce.
+  In-scope = the class whose mechanism it models. Bars are the non-learned
+  rules of Table~\ref{tab:hwscore}. The emulator returns \textsc{safe} for
+  every one of the 806 variants, so its ``agreement'' is just the
+  \textsc{benign} base rate and it loses to both bars.
+  $^\dagger$ not a like-for-like comparison: Spectector adjudicates the whole
+  spliced victim program, the emulator sees only the generated body, and all
+  300 bodies are branch-free. Source:
+  \texttt{oracle/spec\_emulator\_validation.md}.}
+\label{tab:specemu}
+\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Reference & $n$ & emulator & interior bar & adjacent bar \\
+\midrule
+HW labels, V1 (in scope)   & 224 & 0.580 & \textbf{0.987} & 0.786 \\
+HW labels, L1TF (out of scope) & 314 & 0.602 & 1.000 & 0.908 \\
+HW labels, MDS (out of scope)  & 165 & 0.612 & 0.988 & 0.903 \\
+HW labels, V4 (out of scope)   & 103 & 0.631 & 0.981 & 0.893 \\
+Spectector, generated x86  & 300 & n/a$^\dagger$ & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Hardware labels for fenced variants}
 \label{sec:hwlabel}
@@ -818,6 +986,7 @@ to ARM load/store mnemonics (\texttt{ldr}, \texttt{str}, \ldots) appearing in
 x86 output.
 
 \subsection{Syntactic validity}
+\label{sec:gensyntax}
 Initially only 2.3\% of generated sequences were fully valid (71.1\% of
 instructions). The first oracle-splice run gave 3 leaks, 4 safe and 73
 unrunnable out of 80. A triage by assembler diagnostic found realiser bugs,
@@ -908,8 +1077,49 @@ Unique leaking gadgets & 106 $\pm$ 51 & 76 $\pm$ 47 & 0 & 0 \\
 \end{table}
 
 \paragraph{Other ISAs.}
-The generator conditions on and emits ARM64 and riscv64, but no oracle checks
-them yet. All verified generation results are x86.
+No \emph{leak} oracle covers ARM64 or riscv64, so every leak number in this
+work is x86. What can be measured on any ISA is whether the generator's output
+is real, executable machine code, which is a necessary condition for a leak and
+was previously unmeasured outside x86: the only ARM64 quality figure was a
+classifier-judged ``looks like class X'' hit rate, and the ISA-purity figure of
+96--98\% is known to be optimistic because the purity metric was blind to ARM
+load/store mnemonics appearing in x86 output. Table~\ref{tab:isavalid} reports
+per-ISA architectural validity through the gate of
+Section~\ref{sec:precheck}: realised, assembles, and executes under emulation.
+It is deliberately \emph{not} a leak rate.
+
+The answer is unambiguous and it is bad news for the ARM64 arm: ARM64 output
+assembles \textbf{28\%} of the time against x86's 99\%. The generator writes
+valid x86 almost always and valid ARM64 rarely, and no amount of oracle work
+changes that. So the previously indistinguishable pair of explanations resolves
+in favour of the generator being at fault, not the missing oracle: before any
+ARM64 leak claim is worth pursuing, the realiser's ARM64 path needs the same
+treatment its x86 path got (Section~\ref{sec:gensyntax}). Conditional on being
+parseable by the oracle front end, x86 bodies execute almost always (224 of
+228).
+
+The committed checkpoint was conditioned on x86\_64 and ARM64 only, so riscv64
+cannot be sampled from it even though the specification, realiser, tokeniser and
+emulator all cover riscv64; that needs a generator retrained with the riscv
+corpus.
+
+\begin{table}[t]
+\centering
+\caption{Generator output, per-ISA architectural validity (rates over sampled
+  candidates, Wilson 95\% intervals). \textbf{Not a leak measurement:}
+  ``emulates'' means the sequence executes as machine code. Source:
+  \texttt{gen/isa\_runnability.md}.}
+\label{tab:isavalid}
+\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ISA & sampled & realised & assembles & emulates \\
+\midrule
+x86\_64 & 360 & 0.99 & 0.99 & 0.62 \\
+arm64   & 360 & 1.00 & \textbf{0.28} & 0.25 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 %% =========================================================================
 \section{Filter / Ranker}
@@ -936,6 +1146,104 @@ Two findings came from checking the classifier against the oracle data.
 RL round confounds everything here: the V4 leak rate rises from 0.18 to 0.85
 across rounds, so we report within-round AUC.
 
+\subsection{A non-learned gate in front of the oracle}
+\label{sec:precheck}
+
+Before any learned filter, most of what the generator emits is not a
+safe-or-leaking gadget at all: it is a gadget the oracle \emph{cannot run}.
+Spectector returned \textsc{unrunnable} for 456 of 1,987 generated Spectre~V1
+samples and 511 of 600 Spectre~V2 samples, each costing a full oracle call (up
+to 300\,s of symbolic execution) to learn nothing about speculation. We
+therefore gate candidates with three fixed, non-learned stages
+(\texttt{gen/precheck.py}), cheapest first.
+
+\begin{description}[itemsep=1pt,leftmargin=0.9em]
+  \item[A. Assembles.] The whole sequence is assembled as one unit by
+    \texttt{llvm-mc}, through the same independent assembler oracle used
+    elsewhere in this work. Available on all three ISAs.
+  \item[B. Oracle front end.] x86 only: can Spectector's x86 parser accept
+    every instruction it \emph{reaches}? This reimplements Spectector's own
+    acceptance rule from its own source. Its table of 124 \texttt{ins/4} facts
+    is extracted from the pinned container with provenance recorded
+    (\texttt{oracle/extract\_spectector\_table.py}), and a mnemonic resolves as
+    a stem plus up to two size-suffix characters from
+    $\{$b,d,l,q,s,t,w$\}$ whose arity must match the operand count. Nothing
+    here is fitted to the verdicts the stage is later measured against.
+  \item[C. Emulates.] The sequence executes in Unicorn without an unhandled
+    fault.
+\end{description}
+
+\paragraph{Reachability is what makes stage B work.}
+Spectector reports unsupported instructions \emph{per analysed path}, and our
+oracle wrapper treats a nonzero count as unrunnable. Generated sequences are
+full of mid-sequence \texttt{ret}s, so an instruction Spectector cannot parse
+is usually in dead code and never counted. Over the 4,379 committed RL
+samples, an unparseable instruction appears \emph{anywhere} in 176 of 2,355
+leaks (7.5\%) but on the straight-line reachable prefix in only 15 (0.6\%),
+while still appearing on that prefix in 303 of 1,746 unrunnables (17.4\%).
+Inspecting the whole sequence would have discarded two thirds of the leaks;
+inspecting the reachable prefix is what makes the stage usable. Stage C
+emulates the same prefix, for the same reason: a mid-sequence \texttt{ret} pops
+an uninitialised stack and jumps to a garbage address, which is not a defect of
+the generated code.
+
+\paragraph{Two concessions in stage C, both recorded.}
+Pages are mapped on demand, because the generator routinely clobbers a register
+with data and then dereferences it; a fixed map would fail almost everything on
+an address a real harness would have made valid, and Revizor solves the same
+problem by masking addresses into its sandbox. The count of demand-mapped pages
+is reported per candidate so the concession is visible. Consequently
+\textsc{ok} means ``decodes and executes as machine code'', not ``would run
+usefully in a harness''.
+
+\paragraph{Result.}
+Table~\ref{tab:precheck} measures each stage against the target we fixed
+before measuring: remove at least 80\% of \textsc{unrunnable} while losing at
+most 2\% of \textsc{leak}. \textbf{The target is not met.} The full gate removes
+18.2\% of unrunnable candidates for a 1.3\% loss of leaks, raising the share of
+oracle calls that return a verdict from 0.574 to 0.618. The leak cost is well
+inside budget; the benefit is a quarter of what we asked for.
+
+The diagnosis is specific. Stage B is accurate but narrow: it accounts for
+essentially all of the gain (17.4\% of unrunnable at 0.8\% of leaks), and what
+it rejects is a short list of instructions genuinely absent from Spectector's
+table---\texttt{endbr64} (241 occurrences), \texttt{rdtsc} (77),
+\texttt{clflush} (45), \texttt{syscall} (23), \texttt{cpuid},
+\texttt{prefetch*}. Stage A removes nothing at all, which is the ceiling we
+predicted: the sidecars are \emph{post-realiser} and the realiser already drops
+instructions that do not assemble, so stage A's measured contribution here is a
+lower bound on its value for raw generator output. Stage C removes 0.8\% and is
+not worth its cost on this data.
+
+What this says is that 1,366 of the 1,670 unadjudicated candidates assemble,
+parse on their reachable path, and execute---so their unrunnability comes from
+something no static gate can see: a Spectector timeout, a translation failure
+after a successful parse (\texttt{x86\_to\_muasm.pl} can still throw
+\texttt{could\_not\_translate}), or an unsupported instruction on a path other
+than the straight-line prefix. Reaching 80\% would require predicting those,
+which is a learned-filter problem, not a parsing one.
+
+\begin{table}[t]
+\centering
+\caption{Pre-oracle gate over unique generated gadgets carrying a Spectector
+  verdict. Target fixed before measurement: $\geq$80\% of \textsc{unrunnable}
+  removed, $\leq$2\% of \textsc{leak} lost; the target is NOT met.
+  $n$ = 3{,}921 unique sequences (1{,}974 leak, 277 safe, 1{,}670 unrunnable).
+  Wilson intervals in the source. Source: \texttt{gen/precheck\_eval.md}.}
+\label{tab:precheck}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Rule & unrunnable removed & leak lost & calls saved \\
+\midrule
+A: assembles        & 0.000 & 0.000 & 0.000 \\
+B: oracle front end & 0.174 & 0.008 & 0.082 \\
+C: emulates         & 0.008 & 0.006 & 0.006 \\
+A+B+C (full gate)   & \textbf{0.182} & \textbf{0.013} & 0.088 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Design}
 The \texttt{rank/} package reuses the locked classifier as a frozen encoder,
 with a forward hook on the fused representation. A regression head with
@@ -950,8 +1258,7 @@ call, against random ordering and against the within-round length bar
 ordering is about $1/\text{leak rate}$, about 5$\times$ for V4 round 0 and
 about 1.14$\times$ for V1 by round 3.
 
-\todo{pre-check removal rate (target: $\geq$80\% of unrunnable removed,
-$\leq$2\% of leaks lost); V4 filter result vs.\ length and opcode bars;
+\todo{V4 filter result vs.\ length and opcode bars;
 filter-in-the-loop leaks-per-call curve.}
 
 %% =========================================================================
@@ -993,8 +1300,21 @@ generated V1/V4 leaks with Spectector-checked delta debugging.}
   \item \textbf{One CPU, one fuzzer.} Hardware results come from one Coffee
     Lake part and Revizor. BHI likely needs a newer Intel part, and
     Inception affects only AMD Zen.
-  \item \textbf{x86-only verification.} Spectector and our hardware are x86.
-    ARM64/RISC-V generation is unverified.
+  \item \textbf{x86-only hardware verification.} Spectector and our hardware
+    are x86. ARM64 and riscv64 have only the emulator-driven check of
+    Section~\ref{sec:specemu}, which models conditional-branch speculation
+    alone, uses concrete inputs, and is a model: its agreement with silicon is
+    measured on x86 and assumed, not shown, elsewhere.
+  \item \textbf{An emulator cannot see a leak by itself.} Unicorn and QEMU
+    model no speculation, so every emulator result here is either a
+    \emph{runnability} statement or the output of a speculation model we drive
+    ourselves---and that model reproduces none of the 806 hardware labels, so
+    it is not a substitute for the hardware oracle.
+  \item \textbf{Threat models do not transfer between oracles.} A
+    secret-versus-public comparison expresses a textbook Spectre gadget and
+    cannot express a Revizor contract violation, whose programs never leave
+    their sandbox. An oracle has to be matched to the shape of the programs it
+    will judge.
   \item \textbf{Class--configuration confound} in the real corpus
     (Section~\ref{sec:hw-transfer}).
   \item \textbf{Small held-out sets.} Real held-out sets have 22--64 gadgets
@@ -1014,8 +1334,15 @@ generated V1/V4 leaks with Spectector-checked delta debugging.}
   \item Hardware-label the mid-sequence counterexamples and the training
     pool; train allhw3 on hardware labels only; report it against the three
     bars (\todo{in progress on the i5}).
-  \item Pre-check plus the V4 filter experiment; V1 near-miss negatives
-    labelled by Spectector; put the filter in the RL loop.
+  \item The V4 learned filter on top of the measured pre-oracle gate; V1
+    near-miss negatives labelled by Spectector; put the filter in the RL loop.
+  \item Fix the generator's ARM64 realiser path (28\% assemble rate) before
+    any further ARM64 oracle work; the same triage that took x86 per-sequence
+    validity from 3.5\% to 24\% applies.
+  \item Re-pose the speculative emulator as a Revizor-style contract check
+    (many inputs, grouped by model contract trace) so it can be scored against
+    the hardware labels at all, and only then extend it beyond conditional
+    branches.
   \item Generator output in Revizor's format, so MDS and L1TF are labelled by
     hardware, then V2 and Retbleed if the i5 exhibits them.
   \item Minimality: tabulate Revizor minimisation; delta debugging for
