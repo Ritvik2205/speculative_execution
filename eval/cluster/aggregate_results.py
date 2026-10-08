@@ -207,6 +207,18 @@ def _adjacent_fence_pred(r):
             return "BENIGN"
     return cls
 
+def _interior_fence_pred(r):
+    """Non-learned bar: BENIGN iff some lfence is NOT in the leading/trailing
+    lfence run, i.e. sits inside the sequence. Matches 799/806 HW labels
+    (2026-10-08): the current variant set cannot tell structure from position."""
+    seq = r["sequence"]
+    i, j = 0, len(seq)
+    while i < j and seq[i] == "lfence":
+        i += 1
+    while j > i and seq[j - 1] == "lfence":
+        j -= 1
+    return "BENIGN" if "lfence" in seq[i:j] else (r.get("vuln_class") or r["label"])
+
 def _hw_label_section(tags, tmp):
     """Score every tag on HARDWARE-labelled fenced variants (rvzr reproduce x3 on
     the i5; oracle/revizor/results/hw_label_*). `correct` = predicted label equals
@@ -219,12 +231,13 @@ def _hw_label_section(tags, tmp):
     tags = [t for t in tags if t in ("w3_embed_on", "allhw", "allhw2", "allhw3")]
     recs = [json.loads(l) for l in open(HW_LABELS) if l.strip()]
     cells = sorted({(r["vuln_class"], r["variant"], r["label"]) for r in recs})
-    L += ["| class | variant | HW label | n | adjacent-fence bar | " + " | ".join(tags) + " |",
-          "|---|---|---|---|---|" + "---|" * len(tags)]
+    L += ["| class | variant | HW label | n | adjacent-fence bar | interior-fence bar | " + " | ".join(tags) + " |",
+          "|---|---|---|---|---|---|" + "---|" * len(tags)]
     for c, v, lab in cells:
         rs = [r for r in recs if (r["vuln_class"], r["variant"], r["label"]) == (c, v, lab)]
         bar = sum(_adjacent_fence_pred(r) == lab for r in rs) / len(rs)
-        L.append(f"| {c} | {v} | {lab} | {len(rs)} | {bar:.3f} | " +
+        ibar = sum(_interior_fence_pred(r) == lab for r in rs) / len(rs)
+        L.append(f"| {c} | {v} | {lab} | {len(rs)} | {bar:.3f} | {ibar:.3f} | " +
                  " | ".join(f(pred_fraction(t, rs, lab, tmp)) for t in tags) + " |")
     return L
 

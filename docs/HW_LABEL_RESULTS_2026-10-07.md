@@ -86,3 +86,35 @@ it per cell (added to `eval/cluster/aggregate_results.py`).
    label them by reproduce or fuzz, in the same way Spectector labels V1 and V4.
 6. **Still open:** the class and Revizor config remain entangled (a shared-instruction-set
    campaign is needed), the ranker retarget on V4, minimality, and an arm64 oracle.
+
+## Models scored against hardware labels (aggregate, 2026-10-08)
+
+`eval/cluster_out/real_transfer_confusion.md` section 4. Accuracy is weighted over all 806
+records (321 vulnerable / 485 mitigated):
+
+| scorer | overall | on vulnerable | on mitigated |
+|---|---|---|---|
+| interior-fence rule (BENIGN iff an lfence sits inside the sequence) | **0.991** | 1.000 | 0.986 |
+| adjacent-fence rule | 0.871 | 0.835 | 0.895 |
+| allhw2 (5 seeds) | 0.851 | 0.996 | 0.755 |
+| allhw (5 seeds) | 0.619 | 0.083 | 0.974 |
+| w3_embed_on (synthetic-trained) | 0.154 | 0.354 | 0.022 |
+
+- **allhw = "has lfence ⇒ BENIGN".** It gets the mitigated cases right and calls almost
+  every misplaced fence BENIGN.
+- **allhw2 learned its training labels exactly, including the wrong ones.** It fails only where
+  those labels were wrong: the fixed V1 twin (0.000; it was trained on the fall-through twin
+  as BENIGN) and the shifted variants (V1 0.000, V4 0.010; trained as attacks). It is right
+  everywhere else, including tail fences (0.99 against the adjacency rule's 0.53). The
+  bottleneck was label correctness, not model capacity.
+- **No model beats either non-learned bar.** And the interior-fence rule shows the current
+  variant set **cannot test structure at all**: every misplaced variant puts its fences at the
+  start or end of the sequence, and every mitigating variant puts one in the middle. allhw2's
+  win on the tail cells is the same position cue: its "mixed" training fences also sat at the
+  sequence ends.
+- **Consequence for allhw3.** Training on hardware labels will fix the V1 twin and shifted
+  cells, but a high score on this set would still only match the interior-fence rule. The
+  adjacency-breaking counterfactuals (next-step 3) are now a **requirement** for any
+  structure claim, not an extra. They need mid-sequence fences that do NOT mitigate (next to
+  a non-leaking op, on the jcc's other path, after the bypassing load), and they have to be
+  hardware-labelled. Report the interior-fence bar next to every result.
