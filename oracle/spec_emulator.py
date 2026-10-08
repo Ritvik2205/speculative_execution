@@ -38,9 +38,11 @@ All three parts matter.
 
 The secret region sits ABOVE the sandbox window that Revizor's generated
 programs mask their addresses into (`and rdx, 0b1111111111111` confines an
-architectural access to the low 8 KiB), so an architectural access cannot
-reach the secret while a misspeculated, unmasked one can. That is the standard
-Spectre-V1 arrangement.
+architectural access to the low 8 KiB *relative to the sandbox base*, which is
+where every register is seeded), so an architectural access cannot reach the
+secret while a misspeculated, unmasked one can. That is the standard
+Spectre-V1 arrangement. The stack is mapped outside the sandbox so that stack
+traffic cannot read secret bytes either.
 
 Observation clause: the cache lines touched by loads and stores, plus the
 sequence of executed branch outcomes -- Revizor's `loads+stores+pc`, at
@@ -115,8 +117,19 @@ _SANDBOX_BASE = 0x2000_0000
 # public region. It is written once per emulator run, so an oversized sandbox
 # is paid for on every run -- 4 MiB here cost ~137 ms per candidate.
 _SANDBOX_SIZE = 0x0004_0000           # 256 KiB of input-controlled data
-_SEED_PTR = _SANDBOX_BASE + _SANDBOX_SIZE // 2
-_STACK_PTR = _SANDBOX_BASE + _SANDBOX_SIZE - 0x1000
+# Registers point at the sandbox BASE, matching Revizor's convention: its
+# programs mask an offset (`and reg, 0b1111111111111`) and access
+# `[r14 + offset]`, so the reachable architectural window is [base, base+8KiB).
+# Seeding registers to the middle of the sandbox instead put that window inside
+# the secret region, which made architectural accesses read the secret and
+# reported 150 of 224 real SPECTRE_V1 variants as arch_leak.
+_SEED_PTR = _SANDBOX_BASE
+# The stack lives OUTSIDE the input-controlled sandbox. Inside it, a `pop`
+# before any `push` would read secret-region bytes and manufacture an
+# architectural difference that has nothing to do with the program's dataflow.
+_STACK_BASE = 0x3000_0000
+_STACK_SIZE = 0x0001_0000
+_STACK_PTR = _STACK_BASE + _STACK_SIZE // 2
 _PAGE = 0x1000
 # Revizor masks architectural addresses into the low 8 KiB of its sandbox
 # (`and reg, 0b1111111111111`). The public region must cover at least that, so
@@ -263,6 +276,7 @@ class SpeculativeEmulator:
         mu.mem_map(_CODE_BASE, _CODE_SIZE)
         mu.mem_map(_SANDBOX_BASE, _SANDBOX_SIZE)
         mu.mem_map(_LOW_BASE, _LOW_SIZE)
+        mu.mem_map(_STACK_BASE, _STACK_SIZE)
         mu.mem_write(_CODE_BASE, code)
         mu.mem_write(_SANDBOX_BASE, sandbox)
         for r in a.gp:

@@ -54,7 +54,8 @@ sys.path.insert(0, str(ROOT / "oracle"))
 sys.path.insert(0, str(ROOT / "gen"))
 sys.path.insert(0, str(ROOT / "eval"))
 
-from spec_emulator import SpeculativeEmulator, LEAK, SAFE, UNRUNNABLE  # noqa: E402
+from spec_emulator import (ARCH_LEAK, LEAK, SAFE, UNRUNNABLE,  # noqa: E402
+                           SpeculativeEmulator)
 from revizor_asm import load_program, variant_program  # noqa: E402
 
 HW_LABELS = ROOT / "eval" / "data" / "revizor_hwlabel_variants.jsonl"
@@ -143,7 +144,11 @@ def main(argv=None) -> int:
     # (see oracle/revizor_asm.py), so execute the committed Intel-syntax
     # program.asm instead. A record with no program on disk is skipped rather
     # than scored on a sequence whose control flow cannot be assembled.
+    # Two instances: Revizor's own program text is Intel syntax, the
+    # generator's realized sequences are AT&T. Reusing one instance for both
+    # made every generated gadget fail to assemble and read as `unrunnable`.
     se = SpeculativeEmulator("x86_64", window=a.window, intel_syntax=True)
+    se_att = SpeculativeEmulator("x86_64", window=a.window)
     kept, missing = [], 0
     for r in recs:
         vdir = Path(r["src_path"]).parent.name
@@ -186,7 +191,9 @@ def main(argv=None) -> int:
             return
         agree = sum(1 for r in rows
                     if emu_to_label(r["emu"]["verdict"], r["vuln_class"]) == r["label"])
-        none = sum(1 for r in rows if r["emu"]["verdict"] == UNRUNNABLE)
+        # arch_leak yields no class prediction either, so it belongs here
+        none = sum(1 for r in rows
+                   if r["emu"]["verdict"] in (UNRUNNABLE, ARCH_LEAK))
         ib = sum(1 for r in rows
                  if interior_fence_pred(r["sequence"], r["vuln_class"]) == r["label"])
         ab = sum(1 for r in rows
@@ -220,10 +227,10 @@ def main(argv=None) -> int:
         L.append(f"| {v} | {lab} | {n} | {rate(agree, n)} | {rate(ib, n)} |")
 
     L += ["", "### Verdict distribution (all classes)", "",
-          "| class | leak | safe | unrunnable |", "|---|---|---|---|"]
+          "| class | leak | safe | arch\\_leak | unrunnable |", "|---|---|---|---|---|"]
     for c in sorted(by_cls):
         d = collections.Counter(r["emu"]["verdict"] for r in by_cls[c])
-        L.append(f"| {c} | {d[LEAK]} | {d[SAFE]} | {d[UNRUNNABLE]} |")
+        L.append(f"| {c} | {d[LEAK]} | {d[SAFE]} | {d[ARCH_LEAK]} | {d[UNRUNNABLE]} |")
     nb = collections.Counter(r["emu"]["n_branches"] == 0 for r in recs)
     L += ["", f"Gadgets with no conditional branch to mispredict: {nb[True]}/{len(recs)}. "
           "For those the emulator can only return `safe`, which for a store-bypass or "
@@ -244,25 +251,32 @@ def main(argv=None) -> int:
             uniq.append(r)
         uniq = uniq[: a.spectector_limit]
         for n, r in enumerate(uniq):
-            r["emu"] = se.check(r["seq"], n_pairs=a.pairs)
+            r["emu"] = se_att.check(r["seq"], n_pairs=a.pairs)
             if n % 50 == 0:
                 print(f"  spectector {n}/{len(uniq)}", file=sys.stderr, flush=True)
+        nobranch = sum(1 for r in uniq if r["emu"]["n_branches"] == 0)
         L += ["## 2. Against the symbolic oracle (Spectector, generated x86 gadgets)", "",
-              f"{len(uniq)} unique generated gadgets with a Spectector leak/safe verdict. "
-              "Spectector is symbolic over all inputs; the emulator is concrete over "
-              f"{a.pairs} input pairs, so the emulator should MISS leaks "
-              "(under-approximate) and should rarely invent them.", "",
-              "| Spectector | n | emulator leak | emulator safe | emulator unrunnable |",
-              "|---|---|---|---|---|"]
+              f"{len(uniq)} unique generated gadgets with a Spectector leak/safe verdict.", "",
+              "**This is not a like-for-like comparison, and the counts below should "
+              "not be read as agreement.** Spectector adjudicates the whole spliced "
+              "victim program: the generated body is inserted into a hand-written, "
+              "class-specific misdirection template (a bounds-check bypass and a "
+              "probe write) and compiled, and the leak Spectector reports may belong "
+              "to that scaffold. The emulator is given only the generated body. "
+              f"{nobranch} of {len(uniq)} bodies contain no conditional branch at "
+              "all, so for those there is nothing for a PHT model to mispredict and "
+              "`safe` is a statement about the body, not about the program Spectector "
+              "judged. Making this comparable requires running the emulator on the "
+              "same compiled victim, which needs the cross-compiler in the oracle "
+              "container.", "",
+              "| Spectector | n | emulator leak | safe | arch\\_leak | unrunnable |",
+              "|---|---|---|---|---|---|"]
         for v in ("leak", "safe"):
             gr = [r for r in uniq if r["verdict"] == v]
             d = collections.Counter(r["emu"]["verdict"] for r in gr)
-            L.append(f"| {v} | {len(gr)} | {d[LEAK]} | {d[SAFE]} | {d[UNRUNNABLE]} |")
-        agree = sum(1 for r in uniq if r["emu"]["verdict"] == r["verdict"])
-        decided = [r for r in uniq if r["emu"]["verdict"] in (LEAK, SAFE)]
-        dagree = sum(1 for r in decided if r["emu"]["verdict"] == r["verdict"])
-        L += ["", f"Agreement over all: {rate(agree, len(uniq))}. "
-              f"Over gadgets the emulator decided: {rate(dagree, len(decided))}.", ""]
+            L.append(f"| {v} | {len(gr)} | {d[LEAK]} | {d[SAFE]} | {d[ARCH_LEAK]} "
+                     f"| {d[UNRUNNABLE]} |")
+        L.append("")
 
     L += ["## How to read this", "",
           "The emulator is a model. Where it agrees with real silicon on the "
