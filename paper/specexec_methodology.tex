@@ -382,6 +382,81 @@ inputs that a speculation contract says are equivalent. Controls used:
 Revizor runs in batches and only on the bare-metal machine, so it is the most
 expensive oracle per candidate.
 
+\subsection{Which mechanisms any oracle here can model}
+\label{sec:oraclecoverage}
+
+Verification coverage, not data, is what bounds this work per class, so it is
+worth stating exactly where the boundary falls and why.
+
+\paragraph{Revizor cannot be configured for indirect-branch or return
+speculation.} Its contract-execution clauses are conditional-branch
+misprediction, store bypass, and fault or assist transients
+(\texttt{seq}, \texttt{cond}, \texttt{bpas}, \texttt{meltdown},
+\texttt{nullinj-*}, \texttt{seq-assist}, \texttt{vspec-*}). There is no
+indirect-branch clause and no return-prediction clause, and our four demo
+configurations map one-to-one onto the four usable clauses---so the four
+missing classes are not an oversight in our configurations but outside the
+tool's contract model. The limitation is deeper than a missing clause: the x86
+configuration also comments out \texttt{BASE-CALL}, \texttt{BASE-RET} and
+\texttt{BASE-UNCOND\_BR} as ``Not supported: Complex control flow'', so calls
+and returns are excluded from the generated instruction pool as well. No CPU
+purchase changes this.
+
+\paragraph{Upstream Spectector models conditional branches only.} Our oracle
+invokes it as \texttt{run-spectector -a noninter}, which is why it rules on
+about 82\% of SPECTRE\_V1 candidates and 87\% of SPECTRE\_V4 but only about
+15\% of SPECTRE\_V2 and 0.2\% of RETBLEED.
+
+\paragraph{A published extension covers part of the gap.}
+Spectector-Combined~\cite{fabian2022} extends the analysis with further
+mechanisms selected per run by a \texttt{--version} flag: conditional branch,
+indirect branch, store forwarding, return speculation, and straight-line
+speculation, combinable except where two mechanisms speculate on the same
+instructions. This makes SPECTRE\_V2 symbolically adjudicable with no hardware
+at all, which is the single largest coverage gain available to this project.
+We have integrated our side of it---the flag, a per-class mechanism map that
+deliberately omits MDS, L1TF and BHI because it models none of their
+mechanisms, and a separate container image so existing V1/V4 results remain
+reproducible against the oracle that produced them---but the image is not yet
+built, so no number in this paper comes from it.
+\todo{build the image and report V2 adjudicability and yield}
+
+One question must be settled before it is used for RETBLEED: whether its
+return model covers the return-buffer-underflow fallback to the branch target
+buffer that defines that attack on Intel, or only plain return speculation.
+Until that is answered, a RETBLEED verdict from it would be unsupported.
+
+\paragraph{What remains genuinely unreachable.} INCEPTION is an AMD~Zen
+mechanism and BHI needs a part with enhanced IBRS; on the Coffee~Lake machine
+used here, branch-history injection falls under ordinary branch-target
+injection and is not separately testable. Those two are hardware-blocked and
+are scoped out of this paper's verification claims rather than left looking
+unfinished. Table~\ref{tab:coverage} summarises the resulting position.
+
+\begin{table}[t]
+\centering
+\caption{Leak-verification coverage by class. ``Detection only'' means the
+  classifier assigns the class but no oracle confirms a leak---a tooling
+  limit, not a property of the data.}
+\label{tab:coverage}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\columnwidth}{@{}lX@{}}
+\toprule
+Class & Verification available (x86) \\
+\midrule
+SPECTRE\_V1 & Spectector + Revizor \texttt{cond} \\
+SPECTRE\_V4 & Spectector + Revizor \texttt{bpas} (SSBD control) \\
+MDS & Revizor \texttt{seq-assist} \\
+L1TF & Revizor delayed-exception \\
+SPECTRE\_V2 & Spectector-Combined (integrated, image unbuilt) \\
+RETBLEED & Spectector-Combined return model, pending the question above \\
+INCEPTION & none: AMD~Zen hardware \\
+BHI & none: needs enhanced-IBRS silicon \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \subsection{Emulator-driven speculation, where no oracle exists}
 \label{sec:specemu}
 
@@ -1076,50 +1151,108 @@ Unique leaking gadgets & 106 $\pm$ 51 & 76 $\pm$ 47 & 0 & 0 \\
 \end{tabular}
 \end{table}
 
-\paragraph{Other ISAs.}
+\paragraph{Other ISAs: what was broken, and what fixed it.}
+\label{sec:otherisa}
 No \emph{leak} oracle covers ARM64 or riscv64, so every leak number in this
 work is x86. What can be measured on any ISA is whether the generator's output
-is real, executable machine code, which is a necessary condition for a leak and
-was previously unmeasured outside x86: the only ARM64 quality figure was a
+is real, executable machine code---a necessary condition for a leak, and
+previously unmeasured outside x86: the only ARM64 quality figure was a
 classifier-judged ``looks like class X'' hit rate, and the ISA-purity figure of
 96--98\% is known to be optimistic because the purity metric was blind to ARM
-load/store mnemonics appearing in x86 output. Table~\ref{tab:isavalid} reports
-per-ISA architectural validity through the gate of
-Section~\ref{sec:precheck}: realised, assembles, and executes under emulation.
-It is deliberately \emph{not} a leak rate.
+load/store mnemonics appearing in x86 output. Measuring it through the gate of
+Section~\ref{sec:precheck} (realised, assembles, executes; deliberately
+\emph{not} a leak rate) showed that the non-x86 arms were limited by the
+generator rather than by the missing oracle, and in both cases the cause was
+mechanical.
 
-The answer is unambiguous and it is bad news for the ARM64 arm: ARM64 output
-assembles \textbf{28\%} of the time against x86's 99\%. The generator writes
-valid x86 almost always and valid ARM64 rarely, and no amount of oracle work
-changes that. So the previously indistinguishable pair of explanations resolves
-in favour of the generator being at fault, not the missing oracle: before any
-ARM64 leak claim is worth pursuing, the realiser's ARM64 path needs the same
-treatment its x86 path got (Section~\ref{sec:gensyntax}). Conditional on being
-parseable by the oracle front end, x86 bodies execute almost always (224 of
-228).
+\paragraph{ARM64: a mask that existed but was never connected.}
+ARM64 sequences assembled 15\% of the time. The failures sorted into three
+buckets: symbol-name tokens emitted as mnemonics (\texttt{main\_func}),
+x86 mnemonics leaking into ARM64 output (\texttt{pushq}, \texttt{movq},
+\texttt{leave}), and genuine operand-form errors (\texttt{mrs x0, \#1}). Most
+of it was a tool the project already had: a sampling mask that admits a token
+only if the target ISA's specification recognises its opcode. It was wired into
+one batch-generation script but \emph{not} into the RL loop that produces our
+actual results, nor into the decoder. Connecting it gives 0.75.
 
+What survived the specification rule was precisely what a specification cannot
+know---what one assembler accepts. \texttt{bne} is an \textbf{ARM32} spelling
+that reached the ARM64 vocabulary because the pipeline folds arm32 records into
+arm64, and aarch64 spells it \texttt{b.ne}; \texttt{add.4s}, \texttt{movi.4s}
+and \texttt{and.16b} are Apple-style NEON syntax that the GNU aarch64 assembler
+rejects. Adding a second rule---keep a token only if it \emph{realises into
+text the target assembler accepts}, at one assembler call per token per ISA,
+cached---reaches \textbf{0.96}. The honest cost, reported in
+Table~\ref{tab:isavalid} as a unique-sequence rate rather than hidden: the mask
+leaves 99 admissible ARM64 tokens against 234 for x86, so validity is bought
+partly by restricting the generator.
+
+\paragraph{riscv64: two blockers, found by round-tripping rather than assumed.}
 The committed checkpoint was conditioned on x86\_64 and ARM64 only, so riscv64
-cannot be sampled from it even though the specification, realiser, tokeniser and
-emulator all cover riscv64; that needs a generator retrained with the riscv
-corpus.
+could not be sampled at all, although the specification, realiser, tokeniser,
+mask and emulator nominally covered it. Running the real riscv corpus through
+realise-then-assemble showed the path was broken end to end, and fixing it
+exposed a second problem that would have silently wasted the retrain.
+
+The realiser produced \emph{nothing} assemblable (0/80 records). RISC-V encodes
+immediates in narrow fields---I-type takes $[-2048, 2047]$, \texttt{lui} a
+20-bit value, shifts $0$--$63$---while the attack-critical constant pool is
+4096, 256 and \texttt{0xff}, so almost every instruction was out of range.
+Three further causes followed: \texttt{call}/\texttt{tail}/\texttt{jal} take a
+bare symbol, not a PC-relative expression; a branch's last operand is its
+\emph{target}, so an immediate there must be the self-relative form; and
+normalisation maps riscv's \texttt{\%hi(sym)} relocation syntax to a memory
+operand because it looks like \texttt{X(Y)}, yielding the invalid
+\texttt{lui s3, 0(t2)}. Finally \texttt{cbo.inval} requires the Zicbom
+extension---which matters beyond syntax, since it is riscv's cache-maintenance
+instruction and therefore the corpus's cache-flush primitive for the
+timing classes. With all five addressed through new specification keys (so no
+ISA literal enters the code, and x86/ARM64 are untouched by construction),
+\textbf{120/120} corpus records realise into assemblable riscv64.
+
+The second blocker was in the trainer: it tokenised \emph{every} record with
+the shared base specification, whose addressing grammar does not match riscv.
+Measured on the riscv training slice, 0/100 realised sequences assemble under
+the base grammar against 100/100 under riscv's own. A retrain would have built
+a malformed riscv vocabulary and every downstream riscv number would have
+failed for the wrong reason. Per-record tokenisation is therefore now an
+explicit option rather than a silent default, because it also changes about
+8.5\% of x86 records and hence the vocabulary. Retraining with the riscv
+corpus---group-split, with the evaluation holdout structurally excluded---puts
+riscv64 in the vocabulary for the first time.
 
 \begin{table}[t]
 \centering
 \caption{Generator output, per-ISA architectural validity (rates over sampled
-  candidates, Wilson 95\% intervals). \textbf{Not a leak measurement:}
-  ``emulates'' means the sequence executes as machine code. Source:
-  \texttt{gen/isa\_runnability.md}.}
+  candidates). \textbf{Not a leak measurement:} ``assembles'' and
+  ``executes'' are necessary conditions for a leak, nothing more. The mask
+  conditions are the sampling rule of Section~\ref{sec:otherisa}: none, the
+  specification rule, and the specification rule plus an assembler check.
+  Source: \texttt{gen/isa\_runnability\_\{off,spec,assembler\}.md},
+  \texttt{gen/isa\_runnability\_riscv.md}.}
 \label{tab:isavalid}
 \footnotesize
-\begin{tabular}{@{}lrrrr@{}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
-ISA & sampled & realised & assembles & emulates \\
+ISA & mask & realised & assembles & executes \\
 \midrule
-x86\_64 & 360 & 0.99 & 0.99 & 0.62 \\
-arm64   & 360 & 1.00 & \textbf{0.28} & 0.25 \\
+x86\_64 & none          & 0.99 & 0.99 & 0.62 \\
+x86\_64 & specification  & \tbd & \tbd & \tbd \\
+x86\_64 & + assembler    & \tbd & \tbd & \tbd \\
+\addlinespace
+arm64   & none          & 1.00 & \textbf{0.15} & 0.25 \\
+arm64   & specification  & \tbd & 0.75 & \tbd \\
+arm64   & + assembler    & \tbd & \textbf{0.96} & \tbd \\
+\addlinespace
+riscv64 & + assembler    & \tbd & \tbd & \tbd \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\todo{fill Table~\ref{tab:isavalid} from the three mask runs and the riscv
+checkpoint; the 0.15/0.75/0.96 ARM64 figures are from a separate
+600-sample measurement and should be replaced by the matching run}
 
 %% =========================================================================
 \section{Filter / Ranker}
@@ -1330,29 +1463,62 @@ generated V1/V4 leaks with Spectector-checked delta debugging.}
 %% =========================================================================
 \section{Next Steps}
 \label{sec:future}
+
+Ordered by coverage gained per unit of effort, and separated by what each
+actually needs.
+
+\paragraph{No new hardware.}
 \begin{enumerate}[itemsep=1pt,leftmargin=1.4em]
-  \item Hardware-label the mid-sequence counterexamples and the training
-    pool; train allhw3 on hardware labels only; report it against the three
-    bars (\todo{in progress on the i5}).
-  \item The V4 learned filter on top of the measured pre-oracle gate; V1
-    near-miss negatives labelled by Spectector; put the filter in the RL loop.
-  \item Fix the generator's ARM64 realiser path (28\% assemble rate) before
-    any further ARM64 oracle work; the same triage that took x86 per-sequence
-    validity from 3.5\% to 24\% applies.
-  \item Re-pose the speculative emulator as a Revizor-style contract check
-    (many inputs, grouped by model contract trace) so it can be scored against
-    the hardware labels at all, and only then extend it beyond conditional
-    branches.
-  \item Generator output in Revizor's format, so MDS and L1TF are labelled by
-    hardware, then V2 and Retbleed if the i5 exhibits them.
-  \item Minimality: tabulate Revizor minimisation; delta debugging for
-    generated leaks.
-  \item An ARM64 oracle via Revizor's arm64 backend on an out-of-order ARM
-    board; a feasibility spike for RISC-V (BOOM in simulation, or
-    out-of-order silicon such as T-Head C910).
-  \item A shared-instruction-set Revizor campaign, to break the class--config
-    confound.
+  \item \textbf{Build the Spectector-Combined image} and report SPECTRE\_V2
+    adjudicability and RL yield through it. Our side is integrated
+    (Section~\ref{sec:oraclecoverage}); this is the largest single coverage
+    gain available and costs nothing but build time. Settle the return-model
+    question before extending it to RETBLEED.
+  \item \textbf{Hardware-label the mid-sequence counterexamples and the
+    training pool}, then train the hardware-label-only detector and report it
+    against all three non-learned bars (in progress on the i5).
+  \item \textbf{Re-pose the speculative emulator as a contract check}
+    (many inputs grouped by model contract trace). Until this is done it finds
+    zero leaks on real Revizor programs and \emph{no} mechanism added to it can
+    be validated against the one ground truth we hold, so it gates the next
+    item.
+  \item \textbf{Extend the emulator to indirect-branch and return
+    misprediction.} The rollback mechanism already exists; only the notion of
+    ``other successor'' changes. This is the one route to V2, BHI, RETBLEED and
+    INCEPTION that needs no hardware and covers all three ISAs, but every
+    verdict stays model-level until item~3 makes validation possible.
+  \item \textbf{The V4 learned filter} on top of the measured pre-oracle gate,
+    plus V1 near-miss negatives, then the filter inside the RL loop measured as
+    confirmed leaks per oracle call.
+  \item \textbf{Minimality}: tabulate the Revizor instruction-removal results
+    already produced, and delta-debug generated leaks against the oracle.
+  \item \textbf{A shared-instruction-set Revizor campaign}, to break the
+    class--configuration confound that currently lets a bag-of-opcodes model
+    match the graph model on real gadgets.
 \end{enumerate}
+
+\paragraph{Needs hardware we do not have.}
+The machine used here (Coffee~Lake, no enhanced IBRS) is itself an affected
+part for SPECTRE\_V2 and for Intel RETBLEED, so for those two the missing piece
+is test tooling rather than silicon. What cannot be reached on it:
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{INCEPTION} needs AMD~Zen~3 or Zen~4, and the AMD variant of
+    RETBLEED needs Zen~2---both satisfiable by one commodity AM4 desktop.
+  \item \textbf{BHI as its own mechanism} needs an enhanced-IBRS-era Intel
+    part; on older silicon it is not separately testable. We note that no
+    automated oracle for it exists to run on such a part either, so the CPU
+    alone would not produce a result.
+  \item \textbf{A second ISA with real-silicon ground truth} needs a
+    bare-metal out-of-order Arm Linux host for Revizor's arm64 backend, which
+    supports only the conditional-branch, store-bypass and
+    delayed-exception clauses there.
+  \item \textbf{Out-of-order RISC-V} is reachable either in RTL simulation,
+    where published fuzzers already detect several classes on open cores, or on
+    out-of-order RISC-V silicon. Simulation is free and should be tried first.
+\end{itemize}
+Full tool-by-tool and part-by-part detail, with citations and prices, is in
+\texttt{docs/ORACLE\_TOOLING\_SURVEY\_2026-10-09.md}; the coverage reasoning is
+in \texttt{docs/COVERAGE\_AND\_NEXT\_STEPS\_2026-10-09.md}.
 
 %% =========================================================================
 \section{Conclusions}
@@ -1489,6 +1655,11 @@ M.\ C.\ Tol, B.\ Gulmezoglu, K.\ Yurtseven, and B.\ Sunar,
 \textit{FastSpec: Scalable Generation and Detection of Spectre Gadgets Using
 Neural Embeddings.}
 IEEE EuroS\&P, 2021.
+
+\bibitem{fabian2022}
+X.\ Fabian, M.\ Guarnieri, and M.\ Patrignani,
+\textit{Automatic Detection of Speculative Execution Combinations.}
+ACM CCS, 2022.
 
 \bibitem{revizor}
 O.\ Oleksenko, C.\ Fetzer, B.\ K\"opf, and M.\ Silberstein,
