@@ -579,22 +579,43 @@ check work on a textbook Spectre gadget cannot express what Revizor's
 violations actually are: a difference in \emph{which in-sandbox addresses} are
 touched under speculation, relative to what the contract permits. Detecting
 those requires Revizor's own method---many inputs, grouped into equivalence
-classes by the model's contract trace---rather than a secret/public split. Of
-the 806 variants, the 224 Spectre~V1 ones are exactly those containing a
-conditional branch at all; the other 582 are straight-line, so for them a PHT
-model has nothing to mispredict and \textsc{safe} is a scope statement, not a
-finding.
+classes by the model's contract trace---rather than a secret/public split.
+
+\paragraph{Re-posing as a contract check: better framing, still not
+validated.} We then built exactly that (\texttt{check\_contract}): run many
+random inputs, group them by their non-speculative trace, and flag a leak when
+forced speculation distinguishes inputs the contract calls equivalent. This is
+the framing the hardware labels were produced under, and it does apply to the
+address-masked programs the secret/public mode was blind to---only 13 of 120
+Spectre~V1 variants now go unadjudicated, against essentially all of them
+before. But it still does \emph{not} reproduce the labels: agreement on the
+in-scope class is \textbf{0.61}, against the interior-fence rule's 0.98
+(Table~\ref{tab:specemu}). The per-variant breakdown says why, and it is
+informative rather than random: the emulator agrees with hardware on the
+boundary-fence twins (0.90) and on \texttt{fence\_all} (0.88)---it correctly
+sees a fence in the taken block stop the forced speculation---but it misses the
+\texttt{shifted} mitigation (0.48; the fence sits \emph{before} the branch,
+and real silicon mitigates because it serialises the loads feeding the branch
+condition, which a model that forces the branch regardless cannot represent)
+and it calls most genuinely vulnerable \texttt{entry}/\texttt{tail}/fall-through
+variants safe (0.39--0.44; forcing the other path produces no distinguishable
+observation for them). So the contract re-posing fixed the applicability
+problem and left a fidelity problem: the emulator's unconditional
+force-the-other-path model is too coarse to match what the predictor and the
+branch's data dependence actually do.
 
 \paragraph{What the emulator is therefore good for, and not.}
-It is \emph{not} validated against silicon, and no ARM64 or riscv64 number from
-it should be presented as hardware-grade. What survives is narrower and still
-useful: on textbook-shaped gadgets it gives the right answers on two ISAs,
-including the fence-placement discrimination that the hardware labels confirm
-and that no trained model has yet beaten a positional rule on. That makes it a
-usable check on \emph{generator} output of that shape---though
-Table~\ref{tab:isavalid} shows ARM64 generation must be fixed first---and a
-starting point for the Revizor-style contract comparison it would take to
-reproduce the hardware labels.
+It is \emph{not} validated against silicon---neither the secret/public mode
+(0.58, a constant predictor) nor the contract mode (0.61) beats a positional
+rule---so no ARM64 or riscv64 leak verdict from it is hardware-grade, and the
+paper claims none. What survives is narrower: on textbook-shaped gadgets it
+gives the right answers on two ISAs, including the fence-placement
+discrimination the hardware labels confirm, and the indirect-branch and return
+mechanisms added for V2/RETBLEED are unit-tested on hand gadgets
+(Section~\ref{sec:future}). That makes it a usable sanity check on
+\emph{generator} output of those shapes, and the contract-mode machinery is the
+right scaffold for a higher-fidelity predictor model, but it is not a
+substitute for the hardware oracle.
 
 \begin{table}[t]
 \centering
@@ -1256,21 +1277,27 @@ riscv64 in the vocabulary for the first time.
 ISA & mask & realised & assembles & executes \\
 \midrule
 x86\_64 & none          & 0.99 & 0.99 & 0.62 \\
-x86\_64 & specification  & \tbd & \tbd & \tbd \\
-x86\_64 & + assembler    & \tbd & \tbd & \tbd \\
+x86\_64 & specification  & 0.99 & 0.99 & 0.65 \\
+x86\_64 & + assembler    & 1.00 & 1.00 & 0.52 \\
 \addlinespace
 arm64   & none          & 1.00 & \textbf{0.15} & 0.25 \\
-arm64   & specification  & \tbd & 0.75 & \tbd \\
-arm64   & + assembler    & \tbd & \textbf{0.96} & \tbd \\
+arm64   & specification  & 1.00 & 0.77 & 0.72 \\
+arm64   & + assembler    & 0.99 & \textbf{0.95} & 0.84 \\
 \addlinespace
-riscv64 & + assembler    & \tbd & \tbd & \tbd \\
+riscv64 & + assembler    & 1.00 & \textbf{1.00} & 0.02 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\todo{fill Table~\ref{tab:isavalid} from the three mask runs and the riscv
-checkpoint; the 0.15/0.75/0.96 ARM64 figures are from a separate
-600-sample measurement and should be replaced by the matching run}
+The riscv64 row is from a generator retrained with the riscv corpus; it is
+the first riscv64 generation this project has. Its \emph{executes} rate of
+0.02 is a real and separate finding: riscv64 output assembles perfectly yet
+almost never runs under emulation, because the realiser emits architecturally
+valid but faulting sequences (loads through uninitialised pointers that the
+riscv addressing modes do not sandbox the way the x86/ARM corpora do). So the
+riscv arm has reached ``assembles'' but not yet ``executes'', and the next
+realiser work on it is semantic, not syntactic.
+\todo{raise riscv64 executes rate; it is 0.02 against 0.52 (x86) / 0.84 (arm64)}
 
 %% =========================================================================
 \section{Filter / Ranker}
