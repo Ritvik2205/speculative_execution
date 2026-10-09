@@ -201,11 +201,33 @@ def run_spec_gadget(row, repo_root, versions=None, image=None):
 
     # Compile with GCC then run spectector. rm the stats file first —
     # Spectector's --stats appends, so a stale file would accumulate objects.
+    # The combined (`-v`) path needs the flags Spectector-Combined's own test
+    # scripts use, and the upstream path must NOT get them (they change its
+    # behaviour and the V1/V4 numbers were produced without them):
+    #   -e [<entry>]        an explicit entry point. Upstream auto-detects it,
+    #                       but the extended analyses need it named, and without
+    #                       it an indirect-branch gadget blows up (observed:
+    #                       "Killed"). The entry is the first global (non-.L)
+    #                       function label in the compiled .s -- derived in-shell
+    #                       so it is correct for any victim (`gadget`, `main`, ...).
+    #   --skip-uns --parse-uns   treat instructions the model lacks as skips
+    #                       rather than aborting -- required for the extra
+    #                       mechanisms, matching v2_tests/execute_v2.sh.
+    #   -w 200 --steps ...  a wide speculative window and a high step budget,
+    #                       again matching the fork's scripts.
+    if versions:
+        extra = (f" -v {versions} -e [$ENTRY] --skip-uns --parse-uns "
+                 f"-w 200 --steps 1000000")
+        entry_cmd = (f"ENTRY=$(grep -oE '^[a-zA-Z_][a-zA-Z0-9_]*:' {out_asm} "
+                     f"| grep -v '^\\.' | head -1 | tr -d ':') && ")
+    else:
+        extra = ""
+        entry_cmd = ""
     inner_script = (
         f"mkdir -p {work_dir}/oracle/build && rm -f {out_json} && "
         f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none -o {out_asm} {work_dir}/{rel_path} "
-        f"&& run-spectector {out_asm} -a noninter"
-        + (f" -v {versions}" if versions else "")
+        f"&& {entry_cmd}run-spectector {out_asm} -a noninter"
+        + extra
         + f" --stats {out_json}"
     )
     container_cmd = _container_cmd(repo_root, work_dir, inner_script, image=image)

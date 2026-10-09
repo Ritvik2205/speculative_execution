@@ -421,23 +421,33 @@ BHI because it models none of their mechanisms, and a separate container image
 so existing V1/V4 results stay reproducible against the oracle that produced
 them.
 
-\textbf{We could not get the artifact to run, and therefore claim no coverage
-from it.} The fork compiles---its \texttt{semanticsv2.pl} is present and
-\texttt{-v 2} is accepted rather than rejected---but the resulting binary fails
-at run time on even a trivial two-line program, inside printing the initial
-configuration, with and without \texttt{-v}, and equally on the fork's own
-bundled V2 tests. The upstream image analyses the same victim correctly, so
-nothing regressed. The most likely cause, untested, is version drift: the fork
-is a 2022 artifact requiring only \texttt{core} $\geq 1.18$, while the
-container installs current Ciao. \texttt{oracle/docker/\allowbreak
-Dockerfile.spectector\_combined} records all three build attempts and their
-distinct failure modes so the next attempt starts from the diagnosis.
-\todo{pin Ciao (and the concolic bundle) to the fork's contemporaries, then
-report V2 adjudicability and yield}
+\textbf{The artifact does not run against current Ciao, and the fix was to pin
+Ciao to the fork's era.} Built FROM the base image's current Ciao, the fork
+compiles---\texttt{semanticsv2.pl} present, \texttt{-v 2} accepted---but its
+binary fails at run time on even a two-line program, with and without
+\texttt{-v} and on the fork's own bundled tests, while the upstream image
+analyses the same victim correctly. Diagnosing it as version drift (the fork is
+a 2022 artifact requiring only \texttt{core} $\geq 1.18$) and rebuilding
+against Ciao v1.22.0-m1 (2022-09-28) resolves it: the minimal program returns
+\textsc{safe} and the fork's V2 example returns a data leak with well-formed
+statistics. \texttt{Dockerfile.spectector\_combined\_pinned} records the recipe,
+and its build self-tests the V2 example so a green build is a working oracle.
 
-This is worth stating as a finding in its own right: the only published
-extension that would close our largest class gap is a research prototype that
-does not run out of the box, which is itself part of why that gap persists.
+Our oracle's call path also needed the flags the fork's own scripts use on the
+extended analyses---an explicit entry point (auto-detected from the compiled
+\texttt{.s}), \texttt{--skip-uns --parse-uns}, and a wide window---gated so the
+upstream V1/V4 path is byte-identical to before. With those, the oracle
+adjudicates V2 (verified on the fork's example end to end). The remaining gap is
+resource, not correctness: a heavyweight C-compiled indirect-call victim
+exhausts memory under the extended analysis in the local container, so the
+\emph{adjudicability rate over real generated V2 gadgets}---the number that
+turns this into coverage---must be measured where the V1/V4 rates were, on the
+cluster via Apptainer, on the smaller spliced gadget bodies.
+\todo{report V2 adjudicability and yield from the cluster run}
+
+That the only published extension closing our largest class gap is a 2022
+prototype needing an era-matched toolchain to run at all is itself a finding
+about why the gap persists.
 
 One question must be settled before it is used for RETBLEED: whether its
 return model covers the return-buffer-underflow fallback to the branch target
@@ -467,8 +477,8 @@ SPECTRE\_V1 & Spectector + Revizor \texttt{cond} \\
 SPECTRE\_V4 & Spectector + Revizor \texttt{bpas} (SSBD control) \\
 MDS & Revizor \texttt{seq-assist} \\
 L1TF & Revizor delayed-exception \\
-SPECTRE\_V2 & none working: extension integrated, artifact does not run \\
-RETBLEED & none working: same artifact, plus the return-model question \\
+SPECTRE\_V2 & Spectector-Combined (works on pinned Ciao; rate pending) \\
+RETBLEED & Spectector-Combined return model, pending the return-model question \\
 INCEPTION & none: AMD~Zen hardware \\
 BHI & none: needs enhanced-IBRS silicon \\
 \bottomrule

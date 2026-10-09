@@ -83,6 +83,22 @@ def test_version_flag_is_passed_through(captured, tmp_path):
     assert " -v 2" in captured["script"]
 
 
+def test_versioned_path_adds_the_forks_required_flags(captured, tmp_path):
+    """Spectector-Combined's extended analyses need an entry point and the
+    skip/parse-unsupported flags its own test scripts use; without them an
+    indirect-branch gadget blows up. The upstream path must NOT get them."""
+    _run(tmp_path, versions="2")
+    s = captured["script"]
+    assert "-e [$ENTRY]" in s and "ENTRY=$(grep" in s
+    assert "--skip-uns" in s and "--parse-uns" in s
+
+
+def test_upstream_path_has_none_of_the_forks_flags(captured, tmp_path):
+    _run(tmp_path)
+    s = captured["script"]
+    assert "--skip-uns" not in s and "-e [$ENTRY]" not in s and "ENTRY=" not in s
+
+
 def test_requesting_a_version_selects_the_combined_image(captured, tmp_path):
     _run(tmp_path, versions="2")
     assert captured["image"] == so._DOCKER_IMAGE_COMBINED
