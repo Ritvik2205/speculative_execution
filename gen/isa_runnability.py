@@ -79,6 +79,11 @@ def main(argv=None) -> int:
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--top-k", type=int, default=20)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--arch-purity", choices=["off", "spec", "assembler"],
+                    default="assembler",
+                    help="token mask at sampling (gen/arch_purity.py): off, the "
+                         "spec-engine rule, or the spec rule plus a check that "
+                         "the token realizes to assemblable text")
     ap.add_argument("--out", default=str(ROOT / "gen" / "isa_runnability.md"))
     ap.add_argument("--json-out", default=str(ROOT / "gen" / "isa_runnability.json"))
     a = ap.parse_args(argv)
@@ -90,6 +95,12 @@ def main(argv=None) -> int:
 
     torch.manual_seed(a.seed)
     model = CondTransformerLM.load(a.gen)
+    if a.arch_purity != "off":
+        from arch_purity import attach_arch_masks
+        spec_for_arch = {ar: f"{'riscv' if ar == 'riscv64' else ar}.json"
+                         for ar in model.vocab.archs}
+        attach_arch_masks(model, spec_for_arch,
+                          assembler_check=a.arch_purity == "assembler")
     archs = a.archs or list(model.vocab.archs)
     classes = a.classes or [c for c in model.vocab.classes if c != "BENIGN"]
 
@@ -108,6 +119,10 @@ def main(argv=None) -> int:
 
     counts: dict = collections.defaultdict(lambda: collections.Counter())
     emu_outcomes: dict = collections.defaultdict(lambda: collections.Counter())
+    # A token mask raises validity by shrinking the vocabulary, so it could buy
+    # validity with mode collapse. Track distinct realized sequences to show
+    # whether it does.
+    seen: dict = collections.defaultdict(set)
     for arch in archs:
         if arch not in realizers:
             continue
@@ -125,6 +140,7 @@ def main(argv=None) -> int:
                 if len(concrete) < 2:
                     continue
                 counts[key]["realized"] += 1
+                seen[key].add(tuple(concrete))
                 res = pc.check(concrete, arch, require_emulation=False)
                 if res["assembles"]:
                     counts[key]["assembles"] += 1
@@ -140,7 +156,8 @@ def main(argv=None) -> int:
 
     L = ["# Generator output: per-ISA architectural validity", "",
          f"{a.n} samples per (class, ISA) from `{Path(a.gen).name}` "
-         f"(temperature {a.temperature}, top-k {a.top_k}, seed {a.seed}). "
+         f"(temperature {a.temperature}, top-k {a.top_k}, seed {a.seed}, "
+         f"arch-purity mask `{a.arch_purity}`). "
          f"Rates are over SAMPLED candidates with Wilson 95% intervals.", "",
          "**This is not a leak measurement.** `emulated_ok` means Unicorn executed "
          "the sequence to completion with no unhandled fault, i.e. it is real "
@@ -165,7 +182,8 @@ def main(argv=None) -> int:
                      f"| {rate(c['emulated_ok'], n)} |")
 
     L += ["", "## Per-ISA totals", "",
-          "| ISA | sampled | realized | assembles | emulates |", "|---|---|---|---|---|"]
+          "| ISA | sampled | realized | assembles | emulates | unique realized |",
+          "|---|---|---|---|---|---|"]
     per_arch = collections.defaultdict(collections.Counter)
     for (arch, _cls), c in counts.items():
         per_arch[arch].update(c)
@@ -174,8 +192,10 @@ def main(argv=None) -> int:
         if not c:
             continue
         n = c["sampled"]
+        uniq = len({sq for (ar, _cl), sqs in seen.items() if ar == arch for sq in sqs})
         L.append(f"| {arch} | {n} | {rate(c['realized'], n)} "
-                 f"| {rate(c['assembles'], n)} | {rate(c['emulated_ok'], n)} |")
+                 f"| {rate(c['assembles'], n)} | {rate(c['emulated_ok'], n)} "
+                 f"| {uniq}/{c['realized']} = {uniq / max(c['realized'], 1):.2f} |")
 
     L += ["", "## Emulation outcomes (why a sequence did not run)", "",
           "| ISA | outcome | count |", "|---|---|---|"]
@@ -197,6 +217,8 @@ def main(argv=None) -> int:
         {"config": {"gen": a.gen, "n": a.n, "temperature": a.temperature,
                     "top_k": a.top_k, "seed": a.seed, "archs": archs,
                     "emulation": emu_on},
+         "arch_purity": a.arch_purity,
+         "unique_realized": {f"{k[0]}|{k[1]}": len(v) for k, v in seen.items()},
          "counts": {f"{k[0]}|{k[1]}": dict(v) for k, v in counts.items()},
          "emulation_outcomes": {f"{k[0]}|{k[1]}": dict(v) for k, v in emu_outcomes.items()}},
         indent=1) + "\n")

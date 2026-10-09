@@ -507,6 +507,9 @@ def main(argv=None) -> int:
     ap.add_argument("--gen", default=str(ROOT / "gen" / "generator.pt"),
                      help="trained CondTransformerLM checkpoint")
     ap.add_argument("--rounds", type=int, default=5)
+    ap.add_argument("--no-arch-purity", action="store_true",
+                    help="(diagnostic) do not mask sampling to tokens that "
+                         "realize to valid asm for the target ISA")
     ap.add_argument("--k", type=int, default=40, help="samples drawn per round")
     ap.add_argument("--class", dest="classes", action="append", default=None,
                      help="target vuln class (repeatable). Default: the "
@@ -562,6 +565,14 @@ def main(argv=None) -> int:
     print(f"[rl] seed={args.seed} gen={args.gen} arch={args.arch}")
 
     model = gen_decode.CondTransformerLM.load(args.gen)
+    if not args.no_arch_purity:
+        # Without this the loop spends oracle calls on gadgets that cannot even
+        # assemble: arm64 sequence-level validity is 0.15 unmasked against 0.96
+        # with the assembler-backed mask (gen/isa_runnability.md). x86 is
+        # unaffected (1.00 either way), so this matters most for a second ISA.
+        from arch_purity import attach_arch_masks
+        attach_arch_masks(model, {"x86_64": "x86_64.json", "arm64": "arm64.json"},
+                          assembler_check=True)
     spec = gen_decode.load_spec(f"{args.arch}.json")
     realizer = gen_decode.Realizer(spec, seed=args.seed)
     validator = SpectectorValidator(repo_root=str(repo_root))
