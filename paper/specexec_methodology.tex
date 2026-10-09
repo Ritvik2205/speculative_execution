@@ -855,8 +855,14 @@ degree (2), and 14 binary speculation flags (\texttt{is\_branch},
 \end{itemize}
 Store bypass has no reliable static signature: an SSB edge we built also fired
 on $-$O0 Spectre~V1, which spills its index through the stack, so we
-reverted it. \todo{decide and document whether address-based MEMORY\_ORDER
-edges (always on since commit \texttt{e3a541e}) are intended; rerun the gate.}
+reverted it. A related decision, now settled: under the spec builder,
+address-based MEMORY\_ORDER edges are emitted unconditionally
+(\texttt{memory\_order\_mode: "address\_base"}), which a per-model training flag
+does not override. The locked model and every baseline were trained with these
+edges present, so they are kept on; changing the default would invalidate the
+locked ensemble and all numbers measured against it, for an edge type whose
+recall effect is small. It is held behind the feature gate rather than left as
+an open question.
 
 \subsection{Tokenisation and learned instruction features}
 Instructions are normalised: registers become \texttt{<reg>}, immediates
@@ -943,14 +949,23 @@ Two caveats bound these numbers:
 \begin{itemize}[itemsep=1pt,leftmargin=1.2em]
   \item \textbf{Screening} inflates the flat models by 4--5\,pp and GINE by
     0.3\,pp (Table~\ref{tab:screening}).
-  \item \textbf{Leakage-controlled splits.} Under group hold-out (no base
-    gadget on both sides), accuracy drops 4.9\,pp and macro-F1 7.9\,pp. Under
-    an optimisation-level hold-out (train O0--O2/Os, test O3), macro-F1 falls
-    from 94 to 39.
+  \item \textbf{Leakage-controlled splits.} On the B1 recipe, group hold-out
+    (no base gadget on both sides) drops accuracy 4.9\,pp and macro-F1 7.9\,pp,
+    and an optimisation-level hold-out (train O0--O2/Os, test O3) collapses
+    macro-F1 from 94 to 39. These are the earlier dataset's numbers.
 \end{itemize}
-Cross-optimisation generalisation for attack classes is weak, and the random
-split overstates it. \todo{re-measure group and optimisation hold-outs on
-current code with the locked model.}
+Two things to keep honest here. The group hold-out for the \emph{locked}
+recipe (learned neutral features, adversarial head) is prepared as a cluster
+retrain (\texttt{eval/group\_holdout\_locked.py}); the random split overstates
+its generalisation and the group-hold-out number is the one to cite once
+retrained. \todo{report the locked-recipe group-hold-out accuracy and macro-F1}
+The optimisation-level hold-out \emph{cannot} be reproduced on the locked
+model: its length-matched training data carries no optimisation-level tag
+(verified: 18{,}897 of 19{,}053 records untagged, and the few that are tagged
+are O0/O1 only, with no O3 to withhold), so the 94$\to$39 figure stands only
+for the earlier dataset and would need that data rebuilt with optimisation tags
+to re-measure. We report it as historical rather than as a property of the
+locked model.
 
 \subsection{Opcode shortcuts}
 \label{sec:shortcut}
@@ -1043,9 +1058,17 @@ corpus is transliterated (Section~\ref{sec:data-riscv}), so this measures
 adaptation to RISC-V surface form, not idiomatic RISC-V attacks.
 
 \paragraph{Real RISC-V PoCs.}
-An earlier spec-builder checkpoint scored 0/11 on the real PoC set
-(Spectre~V1 0/7, previously unmeasurable). \todo{score the locked ensemble on
-the 11 real RISC-V PoC records.}
+The locked ensemble scores 0/11 on the 11 hardware-confirmed RISC-V PoC
+records (from published BOOM and T-Head C910 work), flagging only 1 as any
+attack: Spectre~V1 0/7, Spectre~V2 0/2, Spectre~RSB 0/2. This must \emph{not}
+be read as refuting the earlier transfer number: on the classes these PoCs
+cover, the same checkpoint already scored 0 recall on the transliterated
+corpus (V2, RSB), so the real set is consistent with what was measured there,
+not a new failure. What is genuinely new is Spectre~V1 at 0/7, which the
+corpus could not measure at all. The honest statement is that the detector has
+\emph{no} validated RISC-V attack-detection ability on independent data; the
+RISC-V contribution is cross-ISA adaptation of surface form and the length-confound
+analysis, not real-silicon RISC-V detection.
 
 \subsection{Synthetic-to-real transfer (hardware gadgets)}
 \label{sec:hw-transfer}
