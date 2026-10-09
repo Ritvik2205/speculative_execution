@@ -138,6 +138,11 @@ _PAGE = 0x1000
 _PUBLIC_BYTES = 0x4000                # 16 KiB, twice Revizor's mask window
 _MAX_DEMAND_PAGES = 64
 _DEFAULT_WINDOW = 40                  # instructions of speculative execution
+# Cap on how many destinations an indirect branch or return is forced to.
+# The true mispredicted target is a predictor state we cannot read, so the
+# program's own branch/call targets (and return sites) are enumerated and
+# each is forced; the cap keeps that bounded on a program with many targets.
+_MAX_FORCED_TARGETS = 8
 # See gen/precheck.py: sequences here are at most 62 instructions, so 5,000 is
 # ~80x the longest and cannot truncate a terminating program.
 _MAX_INSNS = 5_000
@@ -177,6 +182,7 @@ class _Arch:
             self.gp = [getattr(k, f"UC_X86_REG_{r}") for r in
                        ("RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "RBP",
                         "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15")]
+            self.cs_op_imm = cs.x86.X86_OP_IMM
         elif name == "arm64":
             from unicorn import arm64_const as k
             self.uc_arch, self.uc_mode = uc.UC_ARCH_ARM64, uc.UC_MODE_ARM
@@ -184,6 +190,7 @@ class _Arch:
             self.pc = k.UC_ARM64_REG_PC
             self.sp = k.UC_ARM64_REG_SP
             self.gp = [getattr(k, f"UC_ARM64_REG_X{i}") for i in range(31)]
+            self.cs_op_imm = cs.arm64.ARM64_OP_IMM
         elif name == "riscv64":
             from unicorn import riscv_const as k
             self.uc_arch, self.uc_mode = uc.UC_ARCH_RISCV, uc.UC_MODE_RISCV64
@@ -191,15 +198,18 @@ class _Arch:
             self.pc = k.UC_RISCV_REG_PC
             self.sp = k.UC_RISCV_REG_SP
             self.gp = [getattr(k, f"UC_RISCV_REG_X{i}") for i in range(1, 32)]
+            self.cs_op_imm = getattr(getattr(cs, "riscv", None), "RISCV_OP_IMM", None)
         else:
             raise ValueError(f"unsupported arch {name!r}")
 
 
 class Branch:
-    __slots__ = ("addr", "size", "target", "mnemonic")
+    __slots__ = ("addr", "size", "target", "mnemonic", "kind", "candidates")
 
     def __init__(self, addr: int, size: int, target: Optional[int], mnemonic: str):
         self.addr, self.size, self.target, self.mnemonic = addr, size, target, mnemonic
+        self.kind = "cond"          # cond | indirect | ret
+        self.candidates = None      # for indirect/ret: list of target addrs to force
 
     def __repr__(self):  # pragma: no cover - debugging aid
         return f"<{self.mnemonic}@{self.addr:#x}->{self.target:#x}>"
@@ -219,24 +229,93 @@ class SpeculativeEmulator:
 
     # -- static analysis -------------------------------------------------
     def conditional_branches(self, code: bytes) -> list[Branch]:
-        """Conditional branches with a resolvable in-range target."""
+        """Conditional branches with a resolvable in-range target (kept as a
+        thin wrapper for existing callers and tests; the general entry point is
+        speculation_points)."""
+        return [p for p in self.speculation_points(code) if p.kind == "cond"]
+
+    def speculation_points(self, code: bytes) -> list[Branch]:
+        """Every instruction whose predictor could send execution down a path
+        other than the architectural one, with the set of 'other' targets to
+        force. Three mechanisms:
+
+          - cond: a conditional branch -> the one path it did not take (its
+            target or its fall-through). The target is resolved statically.
+          - indirect: an indirect jump or call (`jmp *reg`, `call *rax`,
+            `blr`, `jalr`) -> every other address the program itself takes as
+            a branch/call target (the plausible BTB entries); the
+            architectural target is excluded at force time.
+          - ret: a return -> every return site in the program (the address
+            after each call), modelling a return-stack misprediction / buffer
+            underflow. The architectural return address is excluded at force
+            time.
+
+        For indirect/ret the exact mispredicted destination is a
+        microarchitectural state we cannot read, so we enumerate the program's
+        own plausible destinations and force each. That OVER-approximates a
+        real predictor (it will try targets a given run's history would never
+        reach) and is bounded (`_MAX_FORCED_TARGETS`) so cost stays finite.
+        """
         import capstone as cs
         md = cs.Cs(self.arch.cs_arch, self.arch.cs_mode)
         md.detail = True
-        out: list[Branch] = []
         end = _CODE_BASE + len(code)
-        for ins in md.disasm(code, _CODE_BASE):
+        insns = list(md.disasm(code, _CODE_BASE))
+        addrs = [ins.address for ins in insns]
+        addr_set = set(addrs)
+
+        # Basic-block leaders: a direct branch/call target, or the instruction
+        # after any control-flow instruction (a new block starts there). These
+        # are the plausible destinations a BTB or return stack could send
+        # execution to -- the program's own entry points -- and they are a
+        # naturally bounded set, unlike "every immediate in the program".
+        leaders: set = set()
+        return_sites: set = set()
+        for i, ins in enumerate(insns):
             groups = {md.group_name(g) for g in ins.groups}
-            # an unconditional jump has no second successor to mispredict
-            if "jump" not in groups and "branch_relative" not in groups:
-                continue
-            target = self._imm_operand(ins)
-            if target is None or not (_CODE_BASE <= target < end):
-                continue
-            fall = ins.address + ins.size
-            if target == fall or not (_CODE_BASE <= fall < end):
-                continue
-            out.append(Branch(ins.address, ins.size, target, ins.mnemonic))
+            imm = self._imm_operand(ins)
+            if imm is not None and imm in addr_set and \
+                    ("jump" in groups or "call" in groups or "branch_relative" in groups):
+                leaders.add(imm)
+            if groups & {"jump", "call", "ret", "branch_relative"}:
+                nxt = addrs[i + 1] if i + 1 < len(addrs) else None
+                if nxt is not None:
+                    leaders.add(nxt)          # start of the next block
+                    if "call" in groups:
+                        return_sites.add(nxt)  # and a return site
+
+        out: list[Branch] = []
+        for ins in insns:
+            groups = {md.group_name(g) for g in ins.groups}
+            is_cond = ("jump" in groups or "branch_relative" in groups) \
+                and self._imm_operand(ins) is not None
+            is_indirect = ("jump" in groups or "call" in groups) \
+                and self._imm_operand(ins) is None
+            is_ret = "ret" in groups
+
+            if is_cond:
+                target = self._imm_operand(ins)
+                fall = ins.address + ins.size
+                if target == fall or not (_CODE_BASE <= target < end) \
+                        or not (_CODE_BASE <= fall < end):
+                    continue
+                b = Branch(ins.address, ins.size, target, ins.mnemonic)
+                b.kind, b.candidates = "cond", None
+                out.append(b)
+            elif is_indirect:
+                cands = sorted(leaders)[:_MAX_FORCED_TARGETS]
+                if not cands:
+                    continue
+                b = Branch(ins.address, ins.size, None, ins.mnemonic)
+                b.kind, b.candidates = "indirect", cands
+                out.append(b)
+            elif is_ret:
+                cands = sorted(return_sites)[:_MAX_FORCED_TARGETS]
+                if not cands:
+                    continue
+                b = Branch(ins.address, ins.size, None, ins.mnemonic)
+                b.kind, b.candidates = "ret", cands
+                out.append(b)
         return out
 
     def barrier_addresses(self, code: bytes) -> set:
@@ -247,25 +326,27 @@ class SpeculativeEmulator:
         return {ins.address for ins in md.disasm(code, _CODE_BASE)
                 if ins.mnemonic.lower().split()[0] in names}
 
-    @staticmethod
-    def _imm_operand(ins) -> Optional[int]:
-        """The branch target: a direct branch's immediate operand.
+    def _imm_operand(self, ins) -> Optional[int]:
+        """The branch target: a direct branch's immediate operand, or None for
+        a register-indirect branch (whose target is not statically known, so
+        there is no second successor to force).
 
-        capstone's immediate operand type differs per architecture, so this
-        reads `.imm` from whichever operand exposes a usable one rather than
-        comparing against a per-arch type constant. A register-indirect branch
-        has no immediate and returns None, which is correct: its target is not
-        statically known, so there is no second successor to force.
+        The operand TYPE must be checked against the arch's IMM constant:
+        capstone exposes a `.imm` attribute on register and memory operands
+        too, returning a stale value, so reading `.imm` from the first operand
+        that has the attribute misclassifies `jmp rbx` as a direct branch to a
+        garbage address. That bug made every indirect branch invisible.
         """
+        imm_type = self.arch.cs_op_imm
         for op in getattr(ins, "operands", []):
+            if imm_type is not None and getattr(op, "type", None) != imm_type:
+                continue
             if not hasattr(op, "imm"):
                 continue
             try:
-                val = int(op.imm)
+                return int(op.imm)
             except (TypeError, ValueError):
                 continue
-            if val:
-                return val
         return None
 
     # -- machine state ---------------------------------------------------
@@ -352,35 +433,54 @@ class SpeculativeEmulator:
         barriers = self.barrier_addresses(code)
 
         for br in branches:
-            mu = self._new_uc(code, sandbox)
-            obs, mapped, rec = [], [0], [False]
-            self._attach_hooks(mu, obs, mapped, rec, barriers)
+            # which destinations to force past this point
+            if br.kind == "cond":
+                forced = None                 # resolved per run below
+            else:
+                forced = br.candidates or []
             try:
-                # 1. reach the branch
+                mu = self._new_uc(code, sandbox)
+                # 1. reach the point
                 mu.emu_start(_CODE_BASE, br.addr, timeout=_TIMEOUT_US, count=_MAX_INSNS)
                 if mu.reg_read(self.arch.pc) != br.addr:
-                    continue          # branch not reached on this input
-                ctx = mu.context_save()
-                # 2. resolve the branch architecturally
+                    continue          # point not reached on this input
+                # 2. resolve the architectural successor
                 mu.emu_start(br.addr, end, timeout=_TIMEOUT_US, count=1)
                 resolved = mu.reg_read(self.arch.pc)
-                # 3. force the other successor
+            except uc.UcError:
+                continue
+            if br.kind == "cond":
                 fall = br.addr + br.size
-                mispredicted = br.target if resolved == fall else fall
+                dests = [br.target if resolved == fall else fall]
+            else:
+                # force every plausible destination EXCEPT the one taken
+                # architecturally; each is a distinct mispredict to explore.
+                dests = [t for t in forced if t != resolved]
+            for mispredicted in dests:
                 if not (_CODE_BASE <= mispredicted < end):
                     continue
-                mu.context_restore(ctx)
-                rec[0] = True
-                mu.reg_write(self.arch.pc, mispredicted)
-                mu.emu_start(mispredicted, end, timeout=_TIMEOUT_US,
-                             count=self.window)
-            except uc.UcError:
-                # a fault inside the speculative window is normal: on real
-                # hardware the misspeculated path is squashed. Keep whatever
-                # it observed before faulting.
-                pass
-            rec[0] = False
-            total.extend(("s",) + o for o in obs)
+                obs, mapped, rec = [], [0], [False]
+                try:
+                    # a fresh machine re-run to the point reproduces the state
+                    # there (same code, same sandbox), so no cross-instance
+                    # context restore is needed.
+                    mu2 = self._new_uc(code, sandbox)
+                    self._attach_hooks(mu2, obs, mapped, rec, barriers)
+                    mu2.emu_start(_CODE_BASE, br.addr, timeout=_TIMEOUT_US,
+                                  count=_MAX_INSNS)
+                    rec[0] = True
+                    mu2.reg_write(self.arch.pc, mispredicted)
+                    mu2.emu_start(mispredicted, end, timeout=_TIMEOUT_US,
+                                  count=self.window)
+                except uc.UcError:
+                    # a fault inside the speculative window is normal: on real
+                    # hardware the misspeculated path is squashed. Keep what it
+                    # observed before faulting.
+                    pass
+                # tag observations with the point and destination so that a
+                # difference is attributable, and two runs are only compared
+                # window-for-window.
+                total.extend(("s", br.addr, mispredicted) + o for o in obs)
         return total, ""
 
     def _input_pair(self, rng: random.Random) -> tuple[bytes, bytes]:
@@ -392,39 +492,59 @@ class SpeculativeEmulator:
         s2 = bytes([rng.randrange(128, 256)]) * tail
         return public + s1, public + s2
 
-    # -- the check -------------------------------------------------------
-    def check(self, instrs: list[str], *, n_pairs: int = 4, seed: int = 0) -> dict:
-        """Verdict for one sequence.
+    def _random_input(self, rng: random.Random) -> bytes:
+        return rng.randbytes(_SANDBOX_SIZE)
 
-        `n_pairs` independent input pairs are tried; the first pair whose
-        architectural observations agree while its speculative observations
-        differ makes the verdict `leak`.
-        """
-        res = {
-            "arch": self.arch.name, "verdict": UNRUNNABLE, "reason": None,
-            "n_branches": 0, "pairs_tried": 0, "pairs_usable": 0,
-            "arch_leak_pairs": 0,
-            "window": self.window, "observe": self.observe,
-        }
-        # Intel-syntax Revizor programs carry their own labels and exit macro,
-        # so the live-prefix heuristic (which cuts at the first `ret`/`jmp`)
-        # would truncate real control flow; run them whole.
-        body = instrs if self.intel_syntax else live_prefix(instrs)
+    def _prepare(self, instrs):
+        """Shared front half of every check: assemble and find speculation
+        points. Returns (code, points, error) with code None on failure.
+
+        The whole body is assembled, not the straight-line prefix: the emulator
+        now handles jumps, calls and returns as speculation points explicitly,
+        so truncating at the first transfer (as the pre-oracle gate does) would
+        throw away exactly the control flow these checks exist to examine. A
+        mid-sequence transfer to an uninitialised target simply faults the
+        architectural run, which is handled."""
+        body = list(instrs)
         if len(body) < 2:
-            res["reason"] = "fewer than 2 reachable instructions"
-            return res
+            return None, None, "fewer than 2 reachable instructions"
         code, err = self.pc.machine_code(body, self.arch.name,
                                          intel_syntax=self.intel_syntax)
         if not code:
-            res["reason"] = f"did not assemble: {err}"
-            return res
+            return None, None, f"did not assemble: {err}"
+        return code, self.speculation_points(code), None
 
-        branches = self.conditional_branches(code)
-        res["n_branches"] = len(branches)
-        # With no branch to mispredict there is no conditional-branch
-        # speculative leak, but the architectural comparison below still runs:
-        # a secret that is observable WITHOUT speculation must be reported, not
-        # silently called safe.
+    # -- the secret/public check (textbook gadgets) ----------------------
+    def check(self, instrs: list[str], *, n_pairs: int = 4, seed: int = 0,
+              mode: str = "secret") -> dict:
+        """Verdict for one sequence.
+
+        mode="secret" (default): the textbook Spectre framing. Two inputs that
+        differ only in a secret region; leak if their speculative observations
+        differ while their architectural observations agree. Correct on
+        hand-written gadgets on every ISA, but blind to Revizor's generated
+        programs, which mask every address into their sandbox and so never
+        read the secret region even speculatively.
+
+        mode="contract": Revizor's framing, which is what the hardware labels
+        were produced under. Many random inputs are grouped by their
+        architectural (non-speculative) observation; within a group -- inputs
+        the contract calls equivalent -- a leak is any pair whose speculative
+        observations differ. See check_contract.
+        """
+        if mode == "contract":
+            return self.check_contract(instrs, n_inputs=max(8, n_pairs * 4), seed=seed)
+        res = {
+            "arch": self.arch.name, "verdict": UNRUNNABLE, "reason": None,
+            "mode": "secret", "n_branches": 0, "pairs_tried": 0,
+            "pairs_usable": 0, "arch_leak_pairs": 0,
+            "window": self.window, "observe": self.observe,
+        }
+        code, points, err = self._prepare(instrs)
+        if code is None:
+            res["reason"] = err
+            return res
+        res["n_branches"] = len(points)
         rng = random.Random(seed)
         n_arch_leak = 0
         for i in range(n_pairs):
@@ -436,14 +556,13 @@ class SpeculativeEmulator:
                 res["reason"] = e1 or e2
                 continue
             if a1 != a2:
-                # the secret is visible without any speculation
                 n_arch_leak += 1
                 continue
             res["pairs_usable"] += 1
-            if not branches:
+            if not points:
                 continue
-            s1, _ = self._spec_trace(code, fills[0], branches)
-            s2, _ = self._spec_trace(code, fills[1], branches)
+            s1, _ = self._spec_trace(code, fills[0], points)
+            s2, _ = self._spec_trace(code, fills[1], points)
             if s1 is None or s2 is None:
                 continue
             if s1 != s2:
@@ -460,12 +579,79 @@ class SpeculativeEmulator:
                 res.update(verdict=UNRUNNABLE,
                            reason=res["reason"] or "no usable input pair")
             return res
-        if not branches:
+        if not points:
             res.update(verdict=SAFE,
-                       reason="no conditional branch to mispredict, and the "
+                       reason="no speculation point to mispredict, and the "
                               "secret is not observable architecturally")
             return res
         res.update(verdict=SAFE, reason="no speculative difference found")
+        return res
+
+    # -- the contract check (Revizor's framing) --------------------------
+    def check_contract(self, instrs: list[str], *, n_inputs: int = 32,
+                       seed: int = 0) -> dict:
+        """Does forced speculation distinguish inputs the contract calls equal?
+
+        This is the property Revizor checks against hardware, evaluated by
+        this emulator instead of a CPU. Steps: run `n_inputs` random inputs;
+        key each by its architectural (non-speculative) observation; within
+        each equivalence class, a leak is two inputs whose speculative
+        observations differ. Unlike the secret/public mode it needs no secret
+        region and no architectural-equivalence assumption about the program,
+        so it applies to Revizor's address-masked programs, which the secret
+        mode cannot see.
+        """
+        import collections
+        res = {
+            "arch": self.arch.name, "verdict": UNRUNNABLE, "reason": None,
+            "mode": "contract", "n_branches": 0, "n_inputs": n_inputs,
+            "n_classes": 0, "largest_class": 0,
+            "window": self.window, "observe": self.observe,
+        }
+        code, points, err = self._prepare(instrs)
+        if code is None:
+            res["reason"] = err
+            return res
+        res["n_branches"] = len(points)
+        rng = random.Random(seed)
+
+        classes: dict = collections.defaultdict(list)   # arch trace -> [spec traces]
+        n_ok = 0
+        for _ in range(n_inputs):
+            fill = self._random_input(rng)
+            arch, _e = self._arch_trace(code, fill)
+            if arch is None:
+                continue
+            n_ok += 1
+            spec = None
+            if points:
+                spec, _ = self._spec_trace(code, fill, points)
+            classes[tuple(arch)].append(tuple(spec) if spec is not None else ())
+        if n_ok == 0:
+            res["reason"] = "no input executed without faulting"
+            return res
+        res["n_classes"] = len(classes)
+        res["largest_class"] = max((len(v) for v in classes.values()), default=0)
+        if not points:
+            res.update(verdict=SAFE, reason="no speculation point to mispredict")
+            return res
+        # a contract violation: one architectural class, two speculative traces
+        for arch_key, specs in classes.items():
+            if len(set(specs)) > 1:
+                res.update(verdict=LEAK,
+                           reason="speculative observations differ within a "
+                                  "contract-equivalence class")
+                return res
+        if res["largest_class"] < 2:
+            # every input landed in its own class, so no pair was ever
+            # contract-equivalent; cannot witness a violation
+            res.update(verdict=UNRUNNABLE,
+                       reason="no two inputs were contract-equivalent "
+                              f"({res['n_classes']} classes over {n_ok} inputs); "
+                              "more inputs or a coarser observation needed")
+            return res
+        res.update(verdict=SAFE,
+                   reason="no speculative difference within any contract class")
         return res
 
 

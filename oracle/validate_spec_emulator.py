@@ -122,6 +122,11 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--window", type=int, default=40)
     ap.add_argument("--pairs", type=int, default=4)
+    ap.add_argument("--mode", choices=["secret", "contract"], default="secret",
+                    help="secret: textbook secret-vs-public framing. contract: "
+                         "Revizor's framing (inputs grouped by non-spec trace; "
+                         "leak if spec traces differ within a group) -- the "
+                         "framing the hardware labels were produced under")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--spectector-samples", nargs="+",
                     default=["gen/rl_mc/SPECTRE_V1_s*/samples.jsonl",
@@ -162,7 +167,7 @@ def main(argv=None) -> int:
     print(f"  {len(recs)} variants with a program on disk, {missing} skipped",
           file=sys.stderr)
     for n, r in enumerate(recs):
-        r["emu"] = se.check(r["program"], n_pairs=a.pairs)
+        r["emu"] = se.check(r["program"], n_pairs=a.pairs, mode=a.mode)
         if n % 50 == 0:
             print(f"  hw {n}/{len(recs)}", file=sys.stderr, flush=True)
 
@@ -251,7 +256,7 @@ def main(argv=None) -> int:
             uniq.append(r)
         uniq = uniq[: a.spectector_limit]
         for n, r in enumerate(uniq):
-            r["emu"] = se_att.check(r["seq"], n_pairs=a.pairs)
+            r["emu"] = se_att.check(r["seq"], n_pairs=a.pairs, mode=a.mode)
             if n % 50 == 0:
                 print(f"  spectector {n}/{len(uniq)}", file=sys.stderr, flush=True)
         nobranch = sum(1 for r in uniq if r["emu"]["n_branches"] == 0)

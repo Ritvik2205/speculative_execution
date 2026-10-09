@@ -1,0 +1,80 @@
+# oracle/docker/Dockerfile.spectector_combined_pinned
+# Step 1 of the coverage-extension plan: build Spectector-Combined against the
+# Ciao version it was written for, instead of FROM the pinned base image
+# (whose current Ciao makes the fork compile but fail at run time on even
+# `main: skip` -- see Dockerfile.spectector_combined for that diagnosis).
+#
+# Why self-contained rather than FROM the base: pinning Ciao means the base
+# image's already-built current Ciao cannot be reused, so this rebuilds the
+# whole stack (Ciao + Z3 4.8.4 + the fork). It is slower but it is the thing
+# the diagnosis actually points at.
+#
+# Ciao version: Spectector-Combined is a CCS 2022 artifact; the nearest Ciao
+# release is v1.22.0-m1 (2022-09-28). It is a build ARG so the exact tag can be
+# moved without editing the file -- if v1.22.0-m1 still fails, the next tags to
+# try are the v1.22.0-m* milestones through mid-2023, then v1.23.0-m1.
+#
+# Build (linux/amd64: Spectector analyses x86; set the platform on arm64 hosts):
+#   docker build --platform linux/amd64 \
+#     -f oracle/docker/Dockerfile.spectector_combined_pinned \
+#     -t specdiscover-spectector-combined:pinned oracle/docker
+#
+# The build self-tests at the end: it runs the fork's own v2 example under
+# `-v 2` and fails the build unless a verdict line appears, so a build that
+# succeeds is one whose binary actually works.
+FROM --platform=linux/amd64 ubuntu:22.04
+
+ARG CIAO_REF=v1.22.0-m1
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    git build-essential gcc g++ curl python3 python3-setuptools \
+    libgmp-dev ca-certificates unzip cmake gcc-x86-64-linux-gnu \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ciao Prolog, pinned. (No --depth 1: a tag may not be the tip of its branch.)
+RUN cd /opt && git clone https://github.com/ciao-lang/ciao \
+    && cd ciao && git checkout "${CIAO_REF}" \
+    && printf '\n\n\n\n' | ./ciao-boot.sh local-install
+ENV CIAOPATH=/root/ciao
+
+# Z3 4.8.4 from source: apt's newer z3 emits a model format concolic cannot
+# parse, and the bundled z3 is x64-only. 4.8.4 matches the upstream README.
+RUN cd /opt && git clone --depth 1 --branch z3-4.8.4 https://github.com/Z3Prover/z3.git \
+    && cd z3 && mkdir build && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4 \
+    && cp z3 /usr/local/bin/z3
+
+# The fork + its dependencies. `ciao get` pulls concolic and muasm_translator;
+# then the fork replaces the spectector bundle AND the translator's src (its
+# README requires both), and `ciao build` compiles everything against the
+# pinned Ciao.
+RUN set -eux; \
+    eval "$(/opt/ciao/build/bin/ciao-env --sh)"; \
+    export PATH=/opt/ciao/build/bin:$PATH CIAOPATH=/root/ciao; \
+    ciao get github.com/spectector/spectector; \
+    rm -rf /root/ciao/spectector; \
+    git clone --depth 1 https://github.com/XFabian/Spectector-Combined \
+        /root/ciao/spectector; \
+    rm -rf /root/ciao/muasm_translator/src; \
+    cp -r /root/ciao/spectector/muasm_translator /root/ciao/muasm_translator/src; \
+    cd /root/ciao && ciao build; \
+    test -x /root/ciao/build/bin/spectector
+
+COPY run-spectector /usr/local/bin/run-spectector
+RUN chmod +x /usr/local/bin/run-spectector
+
+# Self-test: the fork's own v2 example (an indirect_jump to a secret-loading
+# block) must produce a verdict under -v 2. Fails the build otherwise, so a
+# green build is a working oracle, not just a compiled one.
+RUN set -eux; \
+    eval "$(/opt/ciao/build/bin/ciao-env --sh)"; \
+    export PATH=/usr/local/bin:/root/ciao/build/bin:/opt/ciao/build/bin:$PATH \
+           CIAOPATH=/root/ciao; \
+    out="$(spectector /root/ciao/spectector/v2_tests/examplev2.muasm \
+             -s --steps 1000000 -w 200 -v 2 -e '[main]' 2>&1 || true)"; \
+    echo "$out" | tail -20; \
+    echo "$out" | grep -qE "data leak|program is" \
+      || { echo "FATAL: v2 example produced no verdict under Ciao ${CIAO_REF}; try another tag"; exit 1; }
+
+WORKDIR /work
