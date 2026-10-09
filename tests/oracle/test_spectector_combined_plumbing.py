@@ -3,7 +3,8 @@
 Upstream Spectector models conditional-branch speculation only, which is why it
 adjudicates ~82% of our SPECTRE_V1 candidates but ~15% of SPECTRE_V2 and ~0.2%
 of RETBLEED. Spectector-Combined (Fabian, Guarnieri & Patrignani, CCS 2022)
-adds further mechanisms behind a `--version` flag.
+adds further mechanisms behind a `-v` flag (undocumented in the usage text; the fork's own
+test scripts use `-v 2`).
 
 These tests cover OUR side of the integration only: that the flag reaches the
 command line, that requesting it selects the separate image, and that the
@@ -73,13 +74,13 @@ def _run(tmp_path, **kw):
 
 def test_no_version_flag_by_default(captured, tmp_path):
     _run(tmp_path)
-    assert "--version" not in captured["script"]
+    assert " -v " not in captured["script"]
     assert captured["image"] is None          # -> the pinned upstream image
 
 
 def test_version_flag_is_passed_through(captured, tmp_path):
     _run(tmp_path, versions="2")
-    assert "--version 2" in captured["script"]
+    assert " -v 2" in captured["script"]
 
 
 def test_requesting_a_version_selects_the_combined_image(captured, tmp_path):
@@ -89,7 +90,7 @@ def test_requesting_a_version_selects_the_combined_image(captured, tmp_path):
 
 def test_combined_digits_are_passed_verbatim(captured, tmp_path):
     _run(tmp_path, versions="124")
-    assert "--version 124" in captured["script"]
+    assert " -v 124" in captured["script"]
 
 
 def test_noninter_analysis_is_still_requested(captured, tmp_path):

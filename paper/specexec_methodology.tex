@@ -412,14 +412,32 @@ Spectector-Combined~\cite{fabian2022} extends the analysis with further
 mechanisms selected per run by a \texttt{--version} flag: conditional branch,
 indirect branch, store forwarding, return speculation, and straight-line
 speculation, combinable except where two mechanisms speculate on the same
-instructions. This makes SPECTRE\_V2 symbolically adjudicable with no hardware
-at all, which is the single largest coverage gain available to this project.
-We have integrated our side of it---the flag, a per-class mechanism map that
-deliberately omits MDS, L1TF and BHI because it models none of their
-mechanisms, and a separate container image so existing V1/V4 results remain
-reproducible against the oracle that produced them---but the image is not yet
-built, so no number in this paper comes from it.
-\todo{build the image and report V2 adjudicability and yield}
+instructions. In principle this makes SPECTRE\_V2 symbolically adjudicable with no hardware
+at all, which would be the single largest coverage gain available to this
+project. Our side is integrated and tested---the flag (\texttt{-v}, which is
+undocumented in the tool's usage text and discoverable only from the fork's own
+test scripts), a per-class mechanism map that deliberately omits MDS, L1TF and
+BHI because it models none of their mechanisms, and a separate container image
+so existing V1/V4 results stay reproducible against the oracle that produced
+them.
+
+\textbf{We could not get the artifact to run, and therefore claim no coverage
+from it.} The fork compiles---its \texttt{semanticsv2.pl} is present and
+\texttt{-v 2} is accepted rather than rejected---but the resulting binary fails
+at run time on even a trivial two-line program, inside printing the initial
+configuration, with and without \texttt{-v}, and equally on the fork's own
+bundled V2 tests. The upstream image analyses the same victim correctly, so
+nothing regressed. The most likely cause, untested, is version drift: the fork
+is a 2022 artifact requiring only \texttt{core} $\geq 1.18$, while the
+container installs current Ciao. \texttt{oracle/docker/\allowbreak
+Dockerfile.spectector\_combined} records all three build attempts and their
+distinct failure modes so the next attempt starts from the diagnosis.
+\todo{pin Ciao (and the concolic bundle) to the fork's contemporaries, then
+report V2 adjudicability and yield}
+
+This is worth stating as a finding in its own right: the only published
+extension that would close our largest class gap is a research prototype that
+does not run out of the box, which is itself part of why that gap persists.
 
 One question must be settled before it is used for RETBLEED: whether its
 return model covers the return-buffer-underflow fallback to the branch target
@@ -449,8 +467,8 @@ SPECTRE\_V1 & Spectector + Revizor \texttt{cond} \\
 SPECTRE\_V4 & Spectector + Revizor \texttt{bpas} (SSBD control) \\
 MDS & Revizor \texttt{seq-assist} \\
 L1TF & Revizor delayed-exception \\
-SPECTRE\_V2 & Spectector-Combined (integrated, image unbuilt) \\
-RETBLEED & Spectector-Combined return model, pending the question above \\
+SPECTRE\_V2 & none working: extension integrated, artifact does not run \\
+RETBLEED & none working: same artifact, plus the return-model question \\
 INCEPTION & none: AMD~Zen hardware \\
 BHI & none: needs enhanced-IBRS silicon \\
 \bottomrule

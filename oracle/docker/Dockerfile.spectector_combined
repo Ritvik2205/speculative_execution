@@ -7,15 +7,17 @@
 # with `-a noninter`) adjudicates ~82% of our SPECTRE_V1 candidates and ~87% of
 # SPECTRE_V4 but only ~15% of SPECTRE_V2 and ~0.2% of RETBLEED. Fabian,
 # Guarnieri and Patrignani, "Automatic Detection of Speculative Execution
-# Combinations" (CCS 2022), extend it with further mechanisms selected by a
-# `--version` flag:
+# Combinations" (CCS 2022), extend it with further mechanisms selected per run
+# by a `-v` flag (NOT `--version`; the fork's own test scripts under
+# v2_tests/, specv5_tests/ etc. invoke it as `-v 2`):
 #     1 = Spectre v1 (conditional branch, upstream behaviour)
 #     2 = Spectre v2 (indirect branch / BTB)
 #     4 = Spectre v4 (store-to-load forwarding)
 #     5 = return speculation
 #     6 = straight-line speculation
-# Versions combine as digits (`--version 124`), except 5 with 6, which
-# "speculate on the same instructions".
+# Digits combine (`-v 124`), except 5 with 6, which "speculate on the same
+# instructions". The fork's scripts pair it with `--skip-uns --parse-uns`,
+# an entry point (`-e [main]`), a wide window (`-w 200`) and a step budget.
 #
 # This is a research artifact (github.com/XFabian/Spectector-Combined, 8
 # commits at the time of writing), not a maintained release. It is kept in a
@@ -28,22 +30,87 @@
 # ret2spec-style return speculation. Check that before trusting a RETBLEED
 # verdict from this image.
 #
-# Build (reuses the pinned image's Ciao + Z3 4.8.4, so it does not rebuild them):
-#   docker build -f oracle/docker/Dockerfile.spectector_combined \
+# Build (reuses the pinned image's Ciao + Z3 4.8.4, so it does not rebuild
+# them). The base image is linux/amd64 because Spectector analyses x86, so the
+# platform must be given explicitly on an arm64 host:
+#   docker build --platform linux/amd64 \
+#     -f oracle/docker/Dockerfile.spectector_combined \
 #     -t specdiscover-spectector-combined:pinned oracle/docker
-FROM specdiscover-spectector:pinned
+FROM --platform=linux/amd64 specdiscover-spectector:pinned
 
-# Per the upstream README: install Spectector normally, then replace the
-# spectector folder with this repository and rebuild. The base image already
-# has a built upstream Spectector at $CIAOPATH/spectector, so the replacement
-# is a checkout over that path followed by `ciao build`.
+# Per the fork's README, the install is THREE steps, and getting any of them
+# wrong silently leaves upstream Spectector in place:
+#   1. replace the spectector folder with the fork;
+#   2. replace muasm_translator/src/ with the fork's copy -- the extra
+#      mechanisms need its parser and x86 table, not upstream's;
+#   3. rebuild with a plain `ciao build` from the workspace.
+# A fourth step is ours: the base image already compiled upstream, and Ciao
+# caches per-module artifacts under build/cache. Without clearing them,
+# `ciao build` reuses the upstream objects and the resulting binary is
+# byte-identical to upstream -- which is exactly what happened on the first
+# attempt here (`spectector --help` showed no `-v` flag). The fork also
+# declares its bundle as `spectector_fork`, so building the old
+# `github.com/spectector/spectector` target is not sufficient either.
+# STATUS: THIS RECIPE DOES NOT YET PRODUCE A WORKING ORACLE. Recorded here so
+# the next attempt starts from the diagnosis rather than from scratch. Two
+# attempts, both against the pinned base image:
+#
+#   1. Replace only the spectector folder, then `ciao build
+#      github.com/spectector/spectector`. Builds, but the binary is
+#      byte-identical to upstream (`--help` output diffs clean, no `-v` flag),
+#      because Ciao reuses the per-module artifacts the base image already
+#      compiled under build/cache, and because the fork declares its bundle as
+#      `spectector_fork` rather than `spectector`.
+#   2. The recipe below: also replace muasm_translator/src with the fork's copy
+#      (its README requires this) and clear build/cache first. This COMPILES
+#      the fork -- src/semanticsv2.pl is present and `-v 2` is accepted rather
+#      than rejected as an unknown option -- but the resulting binary fails at
+#      run time on even a trivial program:
+#        $ printf 'main:\n  skip\n' > /tmp/t.muasm
+#        $ spectector /tmp/t.muasm -a noninter
+#        a=[pc=0,sp=251658240,bp=15728640ERROR: {Program ended with failure}
+#      The failure is inside printing the initial configuration, happens with
+#      AND without `-v`, and also affects the fork's own v2_tests, so it is not
+#      the flag and not our invocation. The upstream image analyses the same
+#      victim fine (leak=True), so nothing regressed.
+#
+# MOST LIKELY CAUSE, untested: Ciao version drift. The fork is a 2022 artifact
+# whose Manifest asks only for `core-[version>='1.18']`, and the base image
+# installs whatever ciao-boot.sh ships today. The next thing to try is pinning
+# Ciao (and possibly the concolic bundle) to the versions current when the fork
+# was published, rather than further rearranging the install order.
+#
+# A third attempt that deleted /root/ciao/muasm_translator before re-fetching
+# failed trivially: `ciao get` is a no-op while the bundle is still registered,
+# so the directory never came back and the copy had nowhere to land. Do not
+# delete the bundle directory; replace its src/ in place, as below.
 RUN set -eux; \
     rm -rf /root/ciao/spectector; \
     git clone --depth 1 https://github.com/XFabian/Spectector-Combined \
         /root/ciao/spectector; \
+    rm -rf /root/ciao/muasm_translator/src; \
+    cp -r /root/ciao/spectector/muasm_translator /root/ciao/muasm_translator/src; \
+    rm -rf /root/ciao/build/cache /root/ciao/build/bin/spectector; \
     eval "$(/opt/ciao/build/bin/ciao-env --sh)"; \
     export PATH=/opt/ciao/build/bin:$PATH CIAOPATH=/root/ciao; \
-    ciao build github.com/spectector/spectector
+    cd /root/ciao && ciao build; \
+    test -x /root/ciao/build/bin/spectector
+
+# Fail the build if the fork is not actually what got compiled. A help-text
+# check is not enough: `-v` is undocumented in the usage output, so this runs
+# the fork's OWN v2 example (an `indirect_jump` to a block that loads a secret)
+# under `-v 2` and requires a verdict line. Upstream cannot model indirect
+# speculation and does not accept `-v`, so this passes only with the fork.
+RUN set -eux; \
+    eval "$(/opt/ciao/build/bin/ciao-env --sh)"; \
+    export PATH=/usr/local/bin:/root/ciao/build/bin:/opt/ciao/build/bin:$PATH \
+           CIAOPATH=/root/ciao; \
+    out="$(spectector /root/ciao/spectector/v2_tests/examplev2.muasm \
+             -s --steps 1000000 -w 200 -v 2 -e '[main]' 2>&1)"; \
+    echo "$out" | tail -20; \
+    echo "$out" | grep -qE "data leak|program is" \
+      || { echo "FATAL: the fork's own v2 example produced no verdict; \
+the fork did not take"; exit 1; }
 
 COPY run-spectector /usr/local/bin/run-spectector
 RUN chmod +x /usr/local/bin/run-spectector

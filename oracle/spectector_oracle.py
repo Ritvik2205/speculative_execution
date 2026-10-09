@@ -14,7 +14,9 @@ from oracle.manifest import LeakRecord
 # dependency — so it runs anywhere x86_64 Linux does.
 _DOCKER_IMAGE = "specdiscover-spectector:pinned"
 # Spectector-Combined (Fabian, Guarnieri & Patrignani, CCS 2022) extends the
-# analysis beyond conditional branches, selected per run by `--version`:
+# analysis beyond conditional branches, selected per run by `-v` (NOT
+# `--version`: the flag is undocumented in the usage text, and the fork's own
+# test scripts under v2_tests/ invoke it as `-v 2`):
 #   1 = conditional branch (what upstream does), 2 = indirect branch,
 #   4 = store-to-load forwarding, 5 = return speculation,
 #   6 = straight-line speculation. Digits combine (`--version 124`); 5 and 6
@@ -178,7 +180,7 @@ def run_spec_gadget(row, repo_root, versions=None, image=None):
     Args:
         row: dict with gadget_id, path, vuln_class, adjudicable
         repo_root: path to SpecExec repository root
-        versions: Spectector-Combined `--version` digits (e.g. "2" for
+        versions: Spectector-Combined `-v` digits (e.g. "2" for
             indirect-branch speculation). None keeps upstream behaviour,
             which models conditional branches only. Requires `image` to be
             the combined image -- upstream Spectector has no such flag.
@@ -203,7 +205,7 @@ def run_spec_gadget(row, repo_root, versions=None, image=None):
         f"mkdir -p {work_dir}/oracle/build && rm -f {out_json} && "
         f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none -o {out_asm} {work_dir}/{rel_path} "
         f"&& run-spectector {out_asm} -a noninter"
-        + (f" --version {versions}" if versions else "")
+        + (f" -v {versions}" if versions else "")
         + f" --stats {out_json}"
     )
     container_cmd = _container_cmd(repo_root, work_dir, inner_script, image=image)
