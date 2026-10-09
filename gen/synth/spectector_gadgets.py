@@ -145,6 +145,52 @@ def render_spec(vuln_class: str, fenced: bool, gen_body: str | None = None) -> s
     return text
 
 
+# --- Spectector-Combined (`-v 2`) victims -----------------------------------
+# The templates above were written for UPSTREAM Spectector, which cannot model
+# indirect-branch speculation, so SPECTRE_V2's victim there is only a bare
+# `fp(i)` call with nothing to speculate into. The combined fork models V2 as
+# a mispredicted indirect jump landing on any `endbr` landing pad in the
+# program (its v2_tests/func_table.c). Measured on the cluster (2026-10-09):
+# the upstream V2 victim under `-v 2` exhausts 32 GB at every window tried --
+# no landing pad exists, so the target set is unbounded -- while the shape
+# below adjudicates in ~4 s / ~170 MB: unfenced -> data leak, fenced -> safe.
+#
+# Shape: `gadget` makes an architecturally benign indirect call; `leaky` is a
+# never-called function holding the transmit body ({gen_body}). An attacker
+# who mistrains the BTB redirects the call speculatively into `leaky`. The
+# fence sits at the landing pad's entry, as in the fork's func_table_barrier.c
+# -- a barrier before the call would not stop the mispredicted target.
+# Requires `endbr64` in the compiled .s (gcc -fcf-protection=branch), which
+# oracle/spectector_oracle.py's versioned path passes. Kept separate from
+# SPEC_GADGETS so the upstream V2 numbers stay reproducible.
+_V2_COMBINED = _HEADER + (
+    'void leaky(size_t i){ {fence}{gen_body} }\n'
+    'void benign(size_t i){ (void)i; }\n'
+    'void (*fp)(size_t) = benign;\n'
+    'void gadget(size_t i){ fp(i); }\n'
+)
+
+SPEC_GADGETS_COMBINED: dict[str, str] = {
+    "SPECTRE_V2": _V2_COMBINED,
+}
+
+# The default landing-pad body is a plain transmit: the speculation gate is
+# the indirect call itself, so `fp(i);` (the upstream default) no longer fits.
+_DEFAULT_GEN_BODY_COMBINED: dict[str, str] = {
+    "SPECTRE_V2": "uint8_t v=arr[i]; probe[v*64]=1;",
+}
+
+
+def render_spec_combined(vuln_class: str, fenced: bool,
+                         gen_body: str | None = None) -> str:
+    """render_spec() for the Spectector-Combined victims. Same `{fence}` /
+    `{gen_body}` contract; only classes in SPEC_GADGETS_COMBINED."""
+    fence = 'asm volatile("lfence":::"memory"); ' if fenced else ''
+    body = gen_body if gen_body is not None else _DEFAULT_GEN_BODY_COMBINED[vuln_class]
+    return (SPEC_GADGETS_COMBINED[vuln_class]
+            .replace("{fence}", fence).replace("{gen_body}", body))
+
+
 def generate_spec(out_dir: str) -> list[dict]:
     """Write baseline + fenced .c files for every class plus an index jsonl.
 

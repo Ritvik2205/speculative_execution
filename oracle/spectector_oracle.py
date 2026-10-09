@@ -187,7 +187,8 @@ def _unrunnable(row):
     )
 
 
-def run_spec_gadget(row, repo_root, versions=None, image=None):
+def run_spec_gadget(row, repo_root, versions=None, image=None,
+                    window=None, steps=None, timeout=None):
     """Run Spectector on a gadget in Docker container.
 
     Args:
@@ -198,6 +199,11 @@ def run_spec_gadget(row, repo_root, versions=None, image=None):
             which models conditional branches only. Requires `image` to be
             the combined image -- upstream Spectector has no such flag.
         image: container image to run; defaults to the pinned upstream one.
+        window, steps: speculative window (`-w`) and step budget (`--steps`)
+            for the versioned path; default 200 / 1000000 (the fork's own
+            scripts). Ignored on the upstream path.
+        timeout: seconds Spectector may run (default
+            $SPECEXEC_SPECTECTOR_TIMEOUT, else 300).
 
     Returns:
         LeakRecord with results or status="unrunnable" on failure
@@ -220,26 +226,44 @@ def run_spec_gadget(row, repo_root, versions=None, image=None):
     #   -e [<entry>]        an explicit entry point. Upstream auto-detects it,
     #                       but the extended analyses need it named, and without
     #                       it an indirect-branch gadget blows up (observed:
-    #                       "Killed"). The entry is the first global (non-.L)
-    #                       function label in the compiled .s -- derived in-shell
-    #                       so it is correct for any victim (`gadget`, `main`, ...).
+    #                       "Killed"). The entry is `gadget` when the .s
+    #                       defines it (every synth victim does, and the
+    #                       combined V2 victim defines its landing pad
+    #                       `leaky` FIRST), else the first global (non-.L)
+    #                       label -- derived in-shell so it fits any victim.
     #   --skip-uns --parse-uns   treat instructions the model lacks as skips
     #                       rather than aborting -- required for the extra
     #                       mechanisms, matching v2_tests/execute_v2.sh.
     #   -w 200 --steps ...  a wide speculative window and a high step budget,
     #                       again matching the fork's scripts.
+    #   -fcf-protection=branch   the fork models a mispredicted indirect jump
+    #                       as landing on any `endbr64`; with none in the .s
+    #                       the target set is unbounded and the analysis
+    #                       exhausts memory (32 GB measured on the cluster).
+    #                       The upstream path keeps =none, byte-identical.
     if versions:
         extra = (f" -v {versions} -e [$ENTRY] --skip-uns --parse-uns "
-                 f"-w 200 --steps 1000000")
-        entry_cmd = (f"ENTRY=$(grep -oE '^[a-zA-Z_][a-zA-Z0-9_]*:' {out_asm} "
-                     f"| grep -v '^\\.' | head -1 | tr -d ':') && ")
+                 f"-w {window or 200} --steps {steps or 1000000}")
+        cf_protection = "branch"
+        entry_cmd = (f"ENTRY=$( (grep -oE '^gadget:' {out_asm} || "
+                     f"grep -oE '^[a-zA-Z_][a-zA-Z0-9_]*:' {out_asm} "
+                     f"| grep -v '^\\.') | head -1 | tr -d ':') && ")
     else:
         extra = ""
         entry_cmd = ""
+        cf_protection = "none"
+    if timeout is None:
+        timeout = int(os.environ.get("SPECEXEC_SPECTECTOR_TIMEOUT", "300"))
+    # Kill Spectector from INSIDE the container. subprocess.run's timeout only
+    # kills the runtime client: under Apptainer (no PID namespace) and Docker
+    # alike the ciaoengine underneath survives it and keeps its memory (seen:
+    # two orphaned 12-13 GB V2 analyses on a shared cluster node). coreutils
+    # `timeout` signals the whole process group it creates, so the analysis
+    # dies with it; the outer timeout below is only a backstop.
     inner_script = (
         f"mkdir -p {work_dir}/oracle/build && rm -f {out_json} && "
-        f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none -o {out_asm} {work_dir}/{rel_path} "
-        f"&& {entry_cmd}run-spectector {out_asm} -a noninter"
+        f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection={cf_protection} -o {out_asm} {work_dir}/{rel_path} "
+        f"&& {entry_cmd}timeout -s KILL {timeout} run-spectector {out_asm} -a noninter"
         + extra
         + f" --stats {out_json}"
     )
@@ -248,12 +272,13 @@ def run_spec_gadget(row, repo_root, versions=None, image=None):
     try:
         # Run the container with a timeout. Spectector's symbolic data check on a
         # leaking gadget takes ~25-40s; container+compile add overhead. 30s flakily
-        # times out real leaks (observed on SPECTRE_V1). Allow 300s per gadget.
+        # times out real leaks (observed on SPECTRE_V1). Allow 300s per gadget
+        # by default; the outer limit adds slack for container start + compile.
         result = subprocess.run(
             container_cmd,
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=timeout + 60,
         )
 
         # Check if compilation/execution succeeded

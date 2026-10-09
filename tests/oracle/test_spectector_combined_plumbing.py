@@ -89,7 +89,7 @@ def test_versioned_path_adds_the_forks_required_flags(captured, tmp_path):
     indirect-branch gadget blows up. The upstream path must NOT get them."""
     _run(tmp_path, versions="2")
     s = captured["script"]
-    assert "-e [$ENTRY]" in s and "ENTRY=$(grep" in s
+    assert "-e [$ENTRY]" in s and "ENTRY=$(" in s
     assert "--skip-uns" in s and "--parse-uns" in s
 
 
@@ -113,6 +113,48 @@ def test_noninter_analysis_is_still_requested(captured, tmp_path):
     """The property under test is unchanged; only the mechanism set widens."""
     _run(tmp_path, versions="2")
     assert "-a noninter" in captured["script"]
+
+
+def test_versioned_path_compiles_with_endbr_landing_pads(captured, tmp_path):
+    """Without endbr64 the fork's V2 model has no bounded target set and
+    exhausts memory; the upstream path must stay at =none."""
+    _run(tmp_path, versions="2")
+    assert "-fcf-protection=branch" in captured["script"]
+    _run(tmp_path)
+    assert "-fcf-protection=none" in captured["script"]
+    assert "-fcf-protection=branch" not in captured["script"]
+
+
+def test_entry_prefers_gadget_over_the_first_label(captured, tmp_path):
+    """The combined V2 victim defines its landing pad `leaky` before `gadget`;
+    the analysis must still start at `gadget`."""
+    _run(tmp_path, versions="2")
+    assert "grep -oE '^gadget:'" in captured["script"]
+
+
+def test_spectector_is_killed_inside_the_container(captured, tmp_path):
+    """subprocess.run's timeout only kills the runtime client; the analysis
+    underneath must be bounded from inside the container, on both paths."""
+    _run(tmp_path, timeout=123)
+    assert "timeout -s KILL 123 run-spectector" in captured["script"]
+    _run(tmp_path, versions="2", timeout=45)
+    assert "timeout -s KILL 45 run-spectector" in captured["script"]
+
+
+def test_timeout_defaults_from_env(captured, tmp_path, monkeypatch):
+    monkeypatch.setenv("SPECEXEC_SPECTECTOR_TIMEOUT", "900")
+    _run(tmp_path, versions="2")
+    assert "timeout -s KILL 900 " in captured["script"]
+    monkeypatch.delenv("SPECEXEC_SPECTECTOR_TIMEOUT")
+    _run(tmp_path, versions="2")
+    assert "timeout -s KILL 300 " in captured["script"]
+
+
+def test_window_and_steps_are_tunable_on_the_versioned_path(captured, tmp_path):
+    _run(tmp_path, versions="2")
+    assert "-w 200 --steps 1000000" in captured["script"]
+    _run(tmp_path, versions="2", window=40, steps=50000)
+    assert "-w 40 --steps 50000" in captured["script"]
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +182,7 @@ def test_version_map_omits_classes_with_no_modelled_mechanism():
 def test_validator_defaults_to_upstream_behaviour(monkeypatch):
     seen = {}
     monkeypatch.setattr("oracle.validators.spectector_validator.run_spec_gadget",
-                        lambda row, root, versions=None, image=None:
+                        lambda row, root, versions=None, image=None, **kw:
                         seen.update(versions=versions, image=image)
                         or _FakeRec())
     SpectectorValidator("/repo").validate(
@@ -151,7 +193,7 @@ def test_validator_defaults_to_upstream_behaviour(monkeypatch):
 def test_validator_resolves_versions_per_class(monkeypatch):
     seen = {}
     monkeypatch.setattr("oracle.validators.spectector_validator.run_spec_gadget",
-                        lambda row, root, versions=None, image=None:
+                        lambda row, root, versions=None, image=None, **kw:
                         seen.update(versions=versions) or _FakeRec())
     v = SpectectorValidator("/repo",
                             versions_by_class=so.SPECTECTOR_VERSION_FOR_CLASS)
@@ -163,13 +205,23 @@ def test_validator_resolves_versions_per_class(monkeypatch):
 def test_validator_explicit_versions_win_over_the_map(monkeypatch):
     seen = {}
     monkeypatch.setattr("oracle.validators.spectector_validator.run_spec_gadget",
-                        lambda row, root, versions=None, image=None:
+                        lambda row, root, versions=None, image=None, **kw:
                         seen.update(versions=versions) or _FakeRec())
     v = SpectectorValidator("/repo", versions="124",
                             versions_by_class={"SPECTRE_V2": "2"})
     v.validate({"gadget_id": "g", "vuln_class": "SPECTRE_V2",
                 "spectector_source": "x.c"})
     assert seen["versions"] == "124"
+
+
+def test_validator_passes_the_budget_through(monkeypatch):
+    seen = {}
+    monkeypatch.setattr("oracle.validators.spectector_validator.run_spec_gadget",
+                        lambda row, root, **kw: seen.update(kw) or _FakeRec())
+    SpectectorValidator("/repo", versions="2", window=40, steps=50000,
+                        timeout=600).validate(
+        {"gadget_id": "g", "vuln_class": "SPECTRE_V2", "spectector_source": "x.c"})
+    assert (seen["window"], seen["steps"], seen["timeout"]) == (40, 50000, 600)
 
 
 class _FakeRec:
