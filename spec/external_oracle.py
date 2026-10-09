@@ -58,7 +58,12 @@ _ARCH = {
     "x86_64": ("x86-64", ["--x86-asm-syntax=att"], ("x86", "64")),
     "arm64":  ("aarch64", [], ("arm64", None)),
     "arm32":  ("arm", [], ("arm", None)),
-    "riscv64": ("riscv64", [], ("riscv64", None)),
+    # +zicbom: `cbo.inval` is RISC-V's cache-maintenance instruction and the
+    # corpus uses it as the cache-flush primitive for the timing classes, so
+    # without the extension every such sequence is rejected as "requires
+    # Zicbom". +a/+m/+c are the standard extensions a Linux riscv64 toolchain
+    # assumes.
+    "riscv64": ("riscv64", ["-mattr=+m,+a,+c,+zicbom"], ("riscv64", None)),
 }
 
 _ENC_RE = re.compile(r"encoding:\s*\[([^\]]*)\]")

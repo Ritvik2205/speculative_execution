@@ -106,7 +106,7 @@ SYMBOLIC_ORACLE_ARCHS = ("x86_64",)
 _ELF_TRIPLE = {
     "x86_64": ("x86_64-linux-gnu", ["--x86-asm-syntax=att"]),
     "arm64": ("aarch64-linux-gnu", []),
-    "riscv64": ("riscv64-linux-gnu", []),
+    "riscv64": ("riscv64-linux-gnu", ["-mattr=+m,+a,+c,+zicbom"]),
 }
 
 # Emulator memory map. One large scratch region, with every register pointing
