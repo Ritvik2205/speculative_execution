@@ -435,15 +435,53 @@ and its build self-tests the V2 example so a green build is a working oracle.
 
 Our oracle's call path also needed the flags the fork's own scripts use on the
 extended analyses---an explicit entry point (auto-detected from the compiled
-\texttt{.s}), \texttt{--skip-uns --parse-uns}, and a wide window---gated so the
-upstream V1/V4 path is byte-identical to before. With those, the oracle
-adjudicates V2 (verified on the fork's example end to end). The remaining gap is
-resource, not correctness: a heavyweight C-compiled indirect-call victim
-exhausts memory under the extended analysis in the local container, so the
-\emph{adjudicability rate over real generated V2 gadgets}---the number that
-turns this into coverage---must be measured where the V1/V4 rates were, on the
-cluster via Apptainer, on the smaller spliced gadget bodies.
-\todo{report V2 adjudicability and yield from the cluster run}
+\texttt{.s}), \texttt{--skip-uns --parse-uns}, and a speculative window---gated
+so the upstream V1/V4 path is byte-identical to before.
+
+\paragraph{V2 is now adjudicable at the same rate as V1.} Measured on the
+cluster over 590 generated SPECTRE\_V2 bodies (the local container OOMs on
+heavyweight victims; Table~\ref{tab:v2adj}), Spectector-Combined rules on
+\textbf{82.2\%} of them---indistinguishable from V1's 82\% and V4's 87\% under
+upstream Spectector, and a step change from the $\sim$15\% upstream manages on
+V2. That is the coverage this whole thread was for: V2 moves from no working
+oracle to symbolically adjudicable.
+
+Two controls keep the number honest, and one of them already did its job. A
+\emph{positive-control anchor}---a known-leaking V2 gadget that must return
+\textsc{leak} unfenced and \textsc{safe} fenced---is run in every shard; it is
+the guard that a \textsc{safe} verdict is a real analysis result and not a
+silent timeout. At a 50-instruction window the anchor passes in all ten shards;
+at a 200-instruction window it \emph{fails in all ten} (the wider analysis
+times the anchor out), so that run's numbers are discarded rather than reported
+--- the same timeout-masquerading-as-safe failure that produced this project's
+retracted V4 result, caught here by the control before it reached a table. The
+82.2\% is the anchor-validated window.
+
+The generated V2 bodies leak rarely even when adjudicable: 4 of 485 (0.8\%),
+and all four are turned \textsc{safe} by a landing-pad fence (the second
+control, with zero fenced-leak anomalies). So the class-conditioned generator
+emits V2-shaped code that mostly does not actually leak under the V2 contract,
+consistent with the earlier near-zero V2 RL yield---the gap there was partly
+the oracle (now closed) and partly the generator (still open).
+
+\begin{table}[t]
+\centering
+\caption{SPECTRE\_V2 adjudicability under Spectector-Combined (\texttt{-v 2}),
+  590 generated bodies, cluster. The 50-instruction window is the
+  anchor-validated one; the 200-instruction window's positive-control anchor
+  timed out in all ten shards, so it is shown only to record that it was
+  rejected. Source: \texttt{eval/v2\_combined/summary.md}.}
+\label{tab:v2adj}
+\footnotesize
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+window & adjudicable & leak (of adj.) & fence$\to$safe & anchor \\
+\midrule
+w=50  & \textbf{82.2\%} & 0.8\% (4) & 4/4 & passes \\
+w=200 & 77.8\%          & 1.1\% (5) & 5/5 & \textbf{fails: discarded} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 That the only published extension closing our largest class gap is a 2022
 prototype needing an era-matched toolchain to run at all is itself a finding
@@ -477,7 +515,7 @@ SPECTRE\_V1 & Spectector + Revizor \texttt{cond} \\
 SPECTRE\_V4 & Spectector + Revizor \texttt{bpas} (SSBD control) \\
 MDS & Revizor \texttt{seq-assist} \\
 L1TF & Revizor delayed-exception \\
-SPECTRE\_V2 & Spectector-Combined (works on pinned Ciao; rate pending) \\
+SPECTRE\_V2 & Spectector-Combined, \textbf{82.2\% adjudicable} (Tab.~\ref{tab:v2adj}) \\
 RETBLEED & Spectector-Combined return model, pending the return-model question \\
 INCEPTION & none: AMD~Zen hardware \\
 BHI & none: needs enhanced-IBRS silicon \\
