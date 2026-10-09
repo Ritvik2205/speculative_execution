@@ -13,9 +13,30 @@ from oracle.manifest import LeakRecord
 # oracle/apptainer/pull_spectector.sh). Spectector is symbolic — no hardware
 # dependency — so it runs anywhere x86_64 Linux does.
 _DOCKER_IMAGE = "specdiscover-spectector:pinned"
+# Spectector-Combined (Fabian, Guarnieri & Patrignani, CCS 2022) extends the
+# analysis beyond conditional branches, selected per run by `--version`:
+#   1 = conditional branch (what upstream does), 2 = indirect branch,
+#   4 = store-to-load forwarding, 5 = return speculation,
+#   6 = straight-line speculation. Digits combine (`--version 124`); 5 and 6
+# cannot combine, as they speculate on the same instructions.
+# Kept as a SEPARATE image so existing V1/V4 results stay reproducible against
+# the exact oracle that produced them. See
+# oracle/docker/Dockerfile.spectector_combined.
+_DOCKER_IMAGE_COMBINED = "specdiscover-spectector-combined:pinned"
+
+# Which `--version` digits to request per class, when running the combined
+# image. A class absent here has no modelled mechanism and must not be
+# adjudicated by this oracle.
+SPECTECTOR_VERSION_FOR_CLASS = {
+    "SPECTRE_V1": "1",
+    "SPECTRE_V2": "2",
+    "SPECTRE_V4": "4",
+    "RETBLEED": "5",
+    "INCEPTION": "5",
+}
 
 
-def _container_cmd(repo_root, work_dir, inner_script):
+def _container_cmd(repo_root, work_dir, inner_script, image=None):
     """Build the argv that runs `inner_script` inside the Spectector image,
     with `repo_root` bound at `work_dir`. Docker (default) and Apptainer
     produce identical in-container behaviour; the Docker path is byte-for-byte
@@ -39,7 +60,7 @@ def _container_cmd(repo_root, work_dir, inner_script):
     # Default: Docker.
     return ["docker", "run", "--rm",
             "-v", "%s:%s" % (repo_root, work_dir),
-            _DOCKER_IMAGE, "bash", "-c", inner_script]
+            image or _DOCKER_IMAGE, "bash", "-c", inner_script]
 
 # Statuses Spectector can adjudicate. Anything else (missing, unexpected,
 # or paths["0"] absent so unsupported_ins is None) means Spectector did not
@@ -151,16 +172,23 @@ def _unrunnable(row):
     )
 
 
-def run_spec_gadget(row, repo_root):
+def run_spec_gadget(row, repo_root, versions=None, image=None):
     """Run Spectector on a gadget in Docker container.
 
     Args:
         row: dict with gadget_id, path, vuln_class, adjudicable
         repo_root: path to SpecExec repository root
+        versions: Spectector-Combined `--version` digits (e.g. "2" for
+            indirect-branch speculation). None keeps upstream behaviour,
+            which models conditional branches only. Requires `image` to be
+            the combined image -- upstream Spectector has no such flag.
+        image: container image to run; defaults to the pinned upstream one.
 
     Returns:
         LeakRecord with results or status="unrunnable" on failure
     """
+    if versions and image is None:
+        image = _DOCKER_IMAGE_COMBINED
     gadget_id = row["gadget_id"]
     rel_path = row["path"]  # relative path to victim .c file
 
@@ -174,9 +202,11 @@ def run_spec_gadget(row, repo_root):
     inner_script = (
         f"mkdir -p {work_dir}/oracle/build && rm -f {out_json} && "
         f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection=none -o {out_asm} {work_dir}/{rel_path} "
-        f"&& run-spectector {out_asm} -a noninter --stats {out_json}"
+        f"&& run-spectector {out_asm} -a noninter"
+        + (f" --version {versions}" if versions else "")
+        + f" --stats {out_json}"
     )
-    container_cmd = _container_cmd(repo_root, work_dir, inner_script)
+    container_cmd = _container_cmd(repo_root, work_dir, inner_script, image=image)
 
     try:
         # Run the container with a timeout. Spectector's symbolic data check on a

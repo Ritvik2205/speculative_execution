@@ -1,0 +1,50 @@
+# oracle/docker/Dockerfile.spectector_combined
+# Spectector-Combined: the CCS 2022 extension of Spectector that models
+# speculation mechanisms beyond conditional branches.
+#
+# Why this image exists. Upstream Spectector models conditional-branch (PHT)
+# speculation only, which is why `oracle/spectector_oracle.py` (which calls it
+# with `-a noninter`) adjudicates ~82% of our SPECTRE_V1 candidates and ~87% of
+# SPECTRE_V4 but only ~15% of SPECTRE_V2 and ~0.2% of RETBLEED. Fabian,
+# Guarnieri and Patrignani, "Automatic Detection of Speculative Execution
+# Combinations" (CCS 2022), extend it with further mechanisms selected by a
+# `--version` flag:
+#     1 = Spectre v1 (conditional branch, upstream behaviour)
+#     2 = Spectre v2 (indirect branch / BTB)
+#     4 = Spectre v4 (store-to-load forwarding)
+#     5 = return speculation
+#     6 = straight-line speculation
+# Versions combine as digits (`--version 124`), except 5 with 6, which
+# "speculate on the same instructions".
+#
+# This is a research artifact (github.com/XFabian/Spectector-Combined, 8
+# commits at the time of writing), not a maintained release. It is kept in a
+# SEPARATE image from `specdiscover-spectector:pinned` so the existing V1/V4
+# results stay reproducible against the exact oracle that produced them.
+#
+# NOT CONFIRMED, and it matters before this is used to label RETBLEED: whether
+# version 5's return model covers the return-buffer-underflow fallback to the
+# branch target buffer that defines Intel RETBLEED, as opposed to plain
+# ret2spec-style return speculation. Check that before trusting a RETBLEED
+# verdict from this image.
+#
+# Build (reuses the pinned image's Ciao + Z3 4.8.4, so it does not rebuild them):
+#   docker build -f oracle/docker/Dockerfile.spectector_combined \
+#     -t specdiscover-spectector-combined:pinned oracle/docker
+FROM specdiscover-spectector:pinned
+
+# Per the upstream README: install Spectector normally, then replace the
+# spectector folder with this repository and rebuild. The base image already
+# has a built upstream Spectector at $CIAOPATH/spectector, so the replacement
+# is a checkout over that path followed by `ciao build`.
+RUN set -eux; \
+    rm -rf /root/ciao/spectector; \
+    git clone --depth 1 https://github.com/XFabian/Spectector-Combined \
+        /root/ciao/spectector; \
+    eval "$(/opt/ciao/build/bin/ciao-env --sh)"; \
+    export PATH=/opt/ciao/build/bin:$PATH CIAOPATH=/root/ciao; \
+    ciao build github.com/spectector/spectector
+
+COPY run-spectector /usr/local/bin/run-spectector
+RUN chmod +x /usr/local/bin/run-spectector
+WORKDIR /work

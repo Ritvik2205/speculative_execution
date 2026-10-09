@@ -68,6 +68,11 @@ def rate(k: int, n: int) -> str:
     return f"{k/n:.2f} [{lo:.2f},{hi:.2f}]"
 
 
+def _spec_name_static(ar: str) -> str:
+    """Spec filename for an arch: the riscv spec is riscv.json, not riscv64.json."""
+    return "riscv.json" if ar == "riscv64" else f"{ar}.json"
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -97,8 +102,7 @@ def main(argv=None) -> int:
     model = CondTransformerLM.load(a.gen)
     if a.arch_purity != "off":
         from arch_purity import attach_arch_masks
-        spec_for_arch = {ar: f"{'riscv' if ar == 'riscv64' else ar}.json"
-                         for ar in model.vocab.archs}
+        spec_for_arch = {ar: _spec_name_static(ar) for ar in model.vocab.archs}
         attach_arch_masks(model, spec_for_arch,
                           assembler_check=a.arch_purity == "assembler")
     archs = a.archs or list(model.vocab.archs)
@@ -110,10 +114,14 @@ def main(argv=None) -> int:
         return 1
     emu_on = pc.emulator is not None
 
+    # the riscv spec file is riscv.json, not riscv64.json
+    def _spec_name(ar):
+        return "riscv.json" if ar == "riscv64" else f"{ar}.json"
+
     realizers = {}
     for arch in archs:
         try:
-            realizers[arch] = Realizer(load_spec(f"{arch}.json"), seed=a.seed)
+            realizers[arch] = Realizer(load_spec(_spec_name(arch)), seed=a.seed)
         except Exception as e:  # noqa: BLE001
             print(f"WARNING: no realizer for {arch}: {e}", file=sys.stderr)
 
