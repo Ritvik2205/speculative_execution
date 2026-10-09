@@ -45,12 +45,25 @@ def _container_cmd(repo_root, work_dir, inner_script, image=None):
     what it was before this indirection was added."""
     runtime = os.environ.get("SPECEXEC_CONTAINER_RUNTIME", "docker").lower()
     if runtime in ("apptainer", "singularity"):
-        sif = os.environ.get("SPECEXEC_SPECTECTOR_SIF")
-        if not sif:
-            raise RuntimeError(
-                "SPECEXEC_CONTAINER_RUNTIME=%s requires SPECEXEC_SPECTECTOR_SIF "
-                "to point at the pulled .sif (oracle/apptainer/pull_spectector.sh)"
-                % runtime)
+        # The combined image has its own .sif; a versioned run (image set to
+        # _DOCKER_IMAGE_COMBINED) must use SPECEXEC_SPECTECTOR_COMBINED_SIF so
+        # the upstream V1/V4 runs and the extended V2/RETBLEED runs can coexist
+        # on the cluster without swapping one env var.
+        if image == _DOCKER_IMAGE_COMBINED:
+            sif = os.environ.get("SPECEXEC_SPECTECTOR_COMBINED_SIF")
+            if not sif:
+                raise RuntimeError(
+                    "a versioned (--version/-v) run requires "
+                    "SPECEXEC_SPECTECTOR_COMBINED_SIF to point at the pulled "
+                    "combined .sif (oracle/apptainer/pull_spectector.sh with "
+                    "COMBINED=1)")
+        else:
+            sif = os.environ.get("SPECEXEC_SPECTECTOR_SIF")
+            if not sif:
+                raise RuntimeError(
+                    "SPECEXEC_CONTAINER_RUNTIME=%s requires SPECEXEC_SPECTECTOR_SIF "
+                    "to point at the pulled .sif (oracle/apptainer/pull_spectector.sh)"
+                    % runtime)
         # --cleanenv: don't leak the host PATH/HOME into the container (matches
         # Docker's clean env). export HOME=/tmp: Ciao/Z3 want a writable HOME,
         # and the container FS is read-only under a non-root user; /tmp is

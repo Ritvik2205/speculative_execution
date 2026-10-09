@@ -20,11 +20,23 @@ set -euo pipefail
 : "${GHCR_OWNER:?set GHCR_OWNER=<github username or org used when publishing>}"
 # ghcr.io repository paths must be lowercase (Docker reference rules).
 GHCR_OWNER="$(printf '%s' "$GHCR_OWNER" | tr '[:upper:]' '[:lower:]')"
-REMOTE="docker://ghcr.io/${GHCR_OWNER}/specdiscover-spectector:pinned"
+# COMBINED=1 pulls the Spectector-Combined image (V2/return/SLS oracle)
+# instead of upstream. They are separate .sif files and separate env vars so
+# the V1/V4 runs and the extended runs coexist (see spectector_oracle.py).
+if [ "${COMBINED:-0}" = "1" ]; then
+  IMG=specdiscover-spectector-combined:pinned
+  SIF_DEFAULT_NAME=spectector-combined.sif
+  ENV_VAR=SPECEXEC_SPECTECTOR_COMBINED_SIF
+else
+  IMG=specdiscover-spectector:pinned
+  SIF_DEFAULT_NAME=spectector.sif
+  ENV_VAR=SPECEXEC_SPECTECTOR_SIF
+fi
+REMOTE="docker://ghcr.io/${GHCR_OWNER}/${IMG}"
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$here/../.." && pwd)"
-SIF_OUT="${SIF_OUT:-$here/spectector.sif}"
+SIF_OUT="${SIF_OUT:-$here/$SIF_DEFAULT_NAME}"
 
 if ! command -v apptainer >/dev/null 2>&1; then
   echo "ERROR: apptainer not found. On the Teaching cluster it is on the" >&2
