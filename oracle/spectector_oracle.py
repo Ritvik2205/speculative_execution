@@ -200,8 +200,11 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
             the combined image -- upstream Spectector has no such flag.
         image: container image to run; defaults to the pinned upstream one.
         window, steps: speculative window (`-w`) and step budget (`--steps`)
-            for the versioned path; default 200 / 1000000 (the fork's own
-            scripts). Ignored on the upstream path.
+            for the versioned path; default 50 / 1000000. NOTE 50, not the
+            fork's 200: the batch V2 adjudicability run (eval/v2_combined)
+            found w=200 TIMES OUT the positive-control anchor in all 10 shards
+            (every gadget reads unrunnable), while w=50 passes the anchor and
+            adjudicates 82%. Ignored on the upstream path.
         timeout: seconds Spectector may run (default
             $SPECEXEC_SPECTECTOR_TIMEOUT, else 300).
 
@@ -234,8 +237,9 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
     #   --skip-uns --parse-uns   treat instructions the model lacks as skips
     #                       rather than aborting -- required for the extra
     #                       mechanisms, matching v2_tests/execute_v2.sh.
-    #   -w 200 --steps ...  a wide speculative window and a high step budget,
-    #                       again matching the fork's scripts.
+    #   -w 50 --steps ...   a speculative window and step budget. 50 is the
+    #                       anchor-validated window; the fork's 200 times the
+    #                       positive-control anchor out (eval/v2_combined).
     #   -fcf-protection=branch   the fork models a mispredicted indirect jump
     #                       as landing on any `endbr64`; with none in the .s
     #                       the target set is unbounded and the analysis
@@ -243,7 +247,7 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
     #                       The upstream path keeps =none, byte-identical.
     if versions:
         extra = (f" -v {versions} -e [$ENTRY] --skip-uns --parse-uns "
-                 f"-w {window or 200} --steps {steps or 1000000}")
+                 f"-w {window or 50} --steps {steps or 1000000}")
         cf_protection = "branch"
         entry_cmd = (f"ENTRY=$( (grep -oE '^gadget:' {out_asm} || "
                      f"grep -oE '^[a-zA-Z_][a-zA-Z0-9_]*:' {out_asm} "

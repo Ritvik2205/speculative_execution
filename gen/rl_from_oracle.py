@@ -584,9 +584,12 @@ def main(argv=None) -> int:
     if args.combined_oracle:
         from oracle.spectector_oracle import (SPECTECTOR_VERSION_FOR_CLASS,
                                               _DOCKER_IMAGE_COMBINED)
+        # window=50: the anchor-validated setting (eval/v2_combined). The
+        # earlier bootstrap run used the old default 200 and every gadget read
+        # unrunnable because w=200 times the oracle's positive control out.
         validator = SpectectorValidator(repo_root=str(repo_root),
                                         versions_by_class=SPECTECTOR_VERSION_FOR_CLASS,
-                                        image=_DOCKER_IMAGE_COMBINED)
+                                        image=_DOCKER_IMAGE_COMBINED, window=50)
     else:
         validator = SpectectorValidator(repo_root=str(repo_root))
     out_dir = repo_root / "oracle" / "build"
