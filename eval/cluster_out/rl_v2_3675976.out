@@ -1,0 +1,6 @@
+=== V2 oracle-labelled bootstrap: Sat 10 Oct 21:01:52 BST 2026 gen=gen/generator_expanded.pt rounds=5 k=60 ===
+[rl] seed=0 gen=gen/generator_expanded.pt arch=x86_64
+[SPECTRE_V2] yield per round: {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0}
+wrote gen/rl_v2_bootstrap.md
+wrote gen/rl_v2_bootstrap_samples.jsonl
+=== done: Sat 10 Oct 21:03:37 BST 2026. Adjudicated yield + kept leaks in gen/rl_v2_bootstrap.md ===
