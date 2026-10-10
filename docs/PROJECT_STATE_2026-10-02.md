@@ -71,6 +71,8 @@ short V4 gadgets restored).
 
 ### 1b. Real-hardware transfer (detector on real Revizor gadgets) — partial, shortcut controls in place
 
+> **2026-10-07 update — hardware labels are in** (`docs/HW_LABEL_RESULTS_2026-10-07.md`). Every class-boundary twin mitigates on the i5 (L1TF 63/63, MDS 33/33, V1 41/41 with the fixed placement, V4 21/21). Entry and tail fences stay vulnerable (289/316). The old V1 fall-through twin is vulnerable. **`shifted` (fence just before the jcc or store) mitigates**, so allhw2's shift-control result is withdrawn. Non-learned bar on these labels: the adjacent-fence rule scores 702/806.
+
 Real gadgets from the i5-8300H: V1 130, L1TF 155, MDS 83, V4 55. Held-out: 54 / 64 / 33 / 22, plus fenced twins. Leakage ruled out. Details: `docs/PIPELINE_STATUS_2026-09-15.md`, `eval/cluster_out/real_transfer_confusion.md`.
 - **Holds:** a detector trained on synthetic data does not recognise real gadgets. It defaults to SPECTRE_V1.
 - **Does not hold beyond opcodes:** the joint models (`allhw`/`allhw2`) separate the 4 real classes (0.97–1.00), but a tuned bag-of-opcodes classifier gets 0.97 (L1TF 0.98, V1 0.93). The GNN adds about +0.01 / +0.05. The earlier "+0.25–0.30" came from an untuned baseline and is withdrawn.

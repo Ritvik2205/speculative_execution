@@ -70,7 +70,30 @@ class Realizer:
         self.repair_sym_operands = bool(r.get("repair_sym_operands", False))
         self.branch_self_rel = r.get("branch_self_rel")  # e.g. .+2 / .+4
         self.pc_ref_ops = set(r.get("pc_ref_ops", []))       # adrp/adr -> "."
+        # RISC-V `call`/`tail`/`jal` take a BARE SYMBOL: a PC-relative
+        # expression ("call .+4") or an integer is rejected outright
+        # ("operand must be a bare symbol name").
+        self.symbol_target_ops = set(r.get("symbol_target_ops", []))
+        # Allow-list of ops that may carry a memory operand. Normalization maps
+        # RISC-V's `%hi(sym)` relocation syntax to <mem> because it looks like
+        # `X(Y)`, so `lui <reg> <mem>` realizes to the invalid `lui s3, 0(t2)`.
+        # When this list is present, any <mem>/<mem-idx> on an op outside it is
+        # replaced by an in-range immediate. Empty (x86, arm64) disables it.
+        self.mem_ops = set(r.get("mem_ops", []))
+        # On RISC-V a branch's last operand is its TARGET, so an <imm> there is
+        # an offset that must be even and in range, not a data immediate.
+        # Gated by a spec flag so arm64's behaviour is unchanged.
+        self.branch_imm_is_target = bool(r.get("branch_imm_is_target", False))
         self.shift_imm_ops = set(r.get("shift_imm_ops", []))  # shift amt must be <64
+        # Per-mnemonic immediate bounds. RISC-V encodes immediates in narrow
+        # fields -- an I-type `addi` takes [-2048, 2047] and `lui` a 20-bit
+        # value -- so the attack-critical pool (4096, 256, 0xff) is mostly
+        # out of range and every realized sequence was rejected by the
+        # assembler. `imm_range_default` applies to any mnemonic not named in
+        # `imm_ranges`. x86 and arm64 omit both keys and are unaffected.
+        self.imm_ranges = {k: tuple(v) for k, v in r.get("imm_ranges", {}).items()}
+        self.imm_range_default = (tuple(r["imm_range_default"])
+                                  if "imm_range_default" in r else None)
         self.cond_ops = set(r.get("cond_ops", []))            # last operand = cond code
         self.cond_default = r.get("cond_default", "eq")
         self.wreg_map = dict(r.get("wreg_map", {}))     # x-reg -> 32-bit w-reg
@@ -108,6 +131,37 @@ class Realizer:
         r = self.rng.choice(choices)
         used.add(r)
         return r
+
+    @staticmethod
+    def _imm_value(text: str) -> Optional[int]:
+        """Integer value of a realized immediate, or None if unparseable."""
+        t = text.strip().lstrip("$#")
+        try:
+            return int(t, 16) if t.lower().startswith(("0x", "-0x")) else int(t)
+        except ValueError:
+            return None
+
+    def _imm_in_range(self, opcode: str, text: str) -> str:
+        """Coerce one immediate into the range `opcode` can encode.
+
+        Keeps the drawn value when it fits, so attack-relevant constants
+        survive wherever the encoding allows; otherwise takes the largest
+        constant from the same pool that does fit, and falls back to
+        `safe_imm`. Returns `text` unchanged when the spec declares no range.
+        """
+        rng = self.imm_ranges.get(opcode, self.imm_range_default)
+        if rng is None:
+            return text
+        lo, hi = rng
+        val = self._imm_value(text)
+        if val is not None and lo <= val <= hi:
+            return text
+        fitting = [c for c in CRITICAL_IMMS
+                   if (v := self._imm_value(c)) is not None and lo <= v <= hi]
+        if not fitting:
+            return self.imm_prefix + self.safe_imm
+        best = max(fitting, key=lambda c: abs(self._imm_value(c)))
+        return self.imm_prefix + best
 
     def _operand(self, kind, used):
         if kind == "<reg>":
@@ -180,9 +234,17 @@ class Realizer:
         # non-branch <sym> is a mislabel -> a valid immediate. x86 tolerates a bare
         # symbol as an absolute operand (mov %al, .L0), so it is left alone.
         if is_branch and self.branch_self_rel:
+            last = len(operands) - 1
             for j, kind in enumerate(operands):
-                if kind == "<sym>":
+                if kind == "<sym>" or (self.branch_imm_is_target
+                                       and kind == "<imm>" and j == last):
                     concrete[j] = self.branch_self_rel
+        # must come after the branch rule: `call` is in branch_ops (it is a
+        # control transfer) but its target is a symbol, not an offset.
+        if opcode in self.symbol_target_ops:
+            for j, kind in enumerate(operands):
+                if kind in ("<sym>", "<imm>", "<fn>"):
+                    concrete[j] = self.fn_sym
         if self.repair_sym_operands and not is_branch and opcode not in self.pc_ref_ops:
             for j, kind in enumerate(operands):
                 if kind in ("<sym>", "<fn>"):
@@ -198,6 +260,17 @@ class Realizer:
             for j, kind in enumerate(operands):
                 if kind == "<imm>":
                     concrete[j] = self.imm_prefix + self.safe_imm
+        if self.mem_ops and opcode not in self.mem_ops:
+            for j, kind in enumerate(operands):
+                if kind in ("<mem>", "<mem-idx>"):
+                    concrete[j] = self.imm_prefix + self.safe_imm
+        # immediates must fit the field the mnemonic encodes them in (RISC-V).
+        # Applied after the shift rule above, so a shift amount already reduced
+        # to safe_imm is simply re-checked and kept.
+        if self.imm_ranges or self.imm_range_default:
+            for j, kind in enumerate(operands):
+                if kind == "<imm>":
+                    concrete[j] = self._imm_in_range(opcode, concrete[j])
         # conditional-select/compare ops end in a condition code, not a reg/imm.
         if opcode in self.cond_ops and concrete:
             concrete[-1] = self.cond_default

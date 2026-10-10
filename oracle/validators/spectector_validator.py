@@ -8,8 +8,17 @@ from oracle.spectector_oracle import run_spec_gadget
 class SpectectorValidator(Validator):
     name = "spectector"
 
-    def __init__(self, repo_root):
+    def __init__(self, repo_root, versions=None, image=None,
+                 versions_by_class=None, window=None, steps=None, timeout=None):
+        """`versions`/`versions_by_class` select Spectector-Combined's
+        `--version` mechanisms (see oracle/spectector_oracle.py). Defaults keep
+        upstream behaviour: conditional branches only."""
         self.repo_root = repo_root
+        self.versions = versions
+        self.image = image
+        self.versions_by_class = versions_by_class
+        # Spectector budget, passed through to run_spec_gadget (None = default).
+        self.window, self.steps, self.timeout = window, steps, timeout
 
     def validate(self, gadget) -> ValidationResult:
         gid, cls = gadget["gadget_id"], gadget.get("vuln_class", "UNKNOWN")
@@ -20,7 +29,12 @@ class SpectectorValidator(Validator):
         # run_spec_gadget wants a row with gadget_id, path, vuln_class, adjudicable
         row = {"gadget_id": gid, "path": src, "vuln_class": cls,
                "adjudicable": gadget.get("adjudicable", "no")}
-        rec = run_spec_gadget(row, self.repo_root)
+        versions = self.versions
+        if versions is None and self.versions_by_class:
+            versions = self.versions_by_class.get(cls)
+        rec = run_spec_gadget(row, self.repo_root, versions=versions,
+                              image=self.image, window=self.window,
+                              steps=self.steps, timeout=self.timeout)
         if rec.status == "unrunnable":
             verdict = UNRUNNABLE
         elif rec.leak:

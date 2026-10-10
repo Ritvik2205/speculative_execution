@@ -1,0 +1,237 @@
+{
+ "config": {
+  "gen": "/Users/ritvikgupta/SpecExec/gen/generator.pt",
+  "n": 40,
+  "temperature": 0.9,
+  "top_k": 20,
+  "seed": 0,
+  "archs": [
+   "x86_64",
+   "arm64"
+  ],
+  "emulation": true
+ },
+ "arch_purity": "spec",
+ "unique_realized": {
+  "x86_64|BRANCH_HISTORY_INJECTION": 40,
+  "x86_64|INCEPTION": 40,
+  "x86_64|L1TF": 40,
+  "x86_64|MDS": 40,
+  "x86_64|RETBLEED": 40,
+  "x86_64|SPECTRE_RSB": 40,
+  "x86_64|SPECTRE_V1": 38,
+  "x86_64|SPECTRE_V2": 40,
+  "x86_64|SPECTRE_V4": 40,
+  "arm64|BRANCH_HISTORY_INJECTION": 40,
+  "arm64|INCEPTION": 40,
+  "arm64|L1TF": 40,
+  "arm64|MDS": 40,
+  "arm64|RETBLEED": 40,
+  "arm64|SPECTRE_RSB": 40,
+  "arm64|SPECTRE_V1": 40,
+  "arm64|SPECTRE_V2": 40,
+  "arm64|SPECTRE_V4": 40
+ },
+ "counts": {
+  "x86_64|BRANCH_HISTORY_INJECTION": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 32,
+   "emulated_ok": 31
+  },
+  "x86_64|INCEPTION": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 32,
+   "emulated_ok": 32
+  },
+  "x86_64|L1TF": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 2,
+   "emulated_ok": 2
+  },
+  "x86_64|MDS": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 2,
+   "emulated_ok": 2
+  },
+  "x86_64|RETBLEED": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 35,
+   "emulated_ok": 34
+  },
+  "x86_64|SPECTRE_RSB": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 31,
+   "emulated_ok": 30
+  },
+  "x86_64|SPECTRE_V1": {
+   "sampled": 40,
+   "realized": 38,
+   "assembles": 38,
+   "oracle_supported": 34,
+   "emulated_ok": 34
+  },
+  "x86_64|SPECTRE_V2": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 33,
+   "emulated_ok": 33
+  },
+  "x86_64|SPECTRE_V4": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 37,
+   "emulated_ok": 37
+  },
+  "arm64|BRANCH_HISTORY_INJECTION": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 29,
+   "emulated_ok": 24
+  },
+  "arm64|INCEPTION": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 33,
+   "emulated_ok": 30
+  },
+  "arm64|L1TF": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 32,
+   "emulated_ok": 32
+  },
+  "arm64|MDS": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 35,
+   "emulated_ok": 32
+  },
+  "arm64|RETBLEED": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 38,
+   "emulated_ok": 35
+  },
+  "arm64|SPECTRE_RSB": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 14,
+   "emulated_ok": 14
+  },
+  "arm64|SPECTRE_V1": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 32,
+   "emulated_ok": 32
+  },
+  "arm64|SPECTRE_V2": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 24,
+   "emulated_ok": 23
+  },
+  "arm64|SPECTRE_V4": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 39,
+   "emulated_ok": 39
+  }
+ },
+ "emulation_outcomes": {
+  "x86_64|BRANCH_HISTORY_INJECTION": {
+   "skipped": 8,
+   "ok": 31,
+   "fault_insn": 1
+  },
+  "x86_64|INCEPTION": {
+   "skipped": 8,
+   "ok": 32
+  },
+  "x86_64|L1TF": {
+   "skipped": 38,
+   "ok": 2
+  },
+  "x86_64|MDS": {
+   "skipped": 38,
+   "ok": 2
+  },
+  "x86_64|RETBLEED": {
+   "ok": 34,
+   "skipped": 5,
+   "error": 1
+  },
+  "x86_64|SPECTRE_RSB": {
+   "ok": 30,
+   "skipped": 9,
+   "fault_insn": 1
+  },
+  "x86_64|SPECTRE_V1": {
+   "ok": 34,
+   "skipped": 4
+  },
+  "x86_64|SPECTRE_V2": {
+   "ok": 33,
+   "skipped": 7
+  },
+  "x86_64|SPECTRE_V4": {
+   "ok": 37,
+   "skipped": 3
+  },
+  "arm64|BRANCH_HISTORY_INJECTION": {
+   "ok": 24,
+   "skipped": 11,
+   "fault_insn": 5
+  },
+  "arm64|INCEPTION": {
+   "skipped": 7,
+   "ok": 30,
+   "fault_insn": 3
+  },
+  "arm64|L1TF": {
+   "ok": 32,
+   "skipped": 8
+  },
+  "arm64|MDS": {
+   "ok": 32,
+   "fault_insn": 1,
+   "skipped": 5,
+   "no_code": 2
+  },
+  "arm64|RETBLEED": {
+   "ok": 35,
+   "skipped": 2,
+   "no_code": 3
+  },
+  "arm64|SPECTRE_RSB": {
+   "skipped": 26,
+   "ok": 14
+  },
+  "arm64|SPECTRE_V1": {
+   "ok": 32,
+   "skipped": 8
+  },
+  "arm64|SPECTRE_V2": {
+   "ok": 23,
+   "skipped": 16,
+   "fault_insn": 1
+  },
+  "arm64|SPECTRE_V4": {
+   "ok": 39,
+   "skipped": 1
+  }
+ }
+}

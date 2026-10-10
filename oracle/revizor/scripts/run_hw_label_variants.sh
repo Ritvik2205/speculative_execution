@@ -8,6 +8,10 @@
 #   sudo bash oracle/revizor/scripts/run_hw_label_variants.sh \
 #     [--records "<jsonl ...>" (default: the 4 class held-out sets)] [--classes "SPECTRE_V1 ..."] \
 #     [--limit N] [--reps 3] [--out ~/rvzr_hwlabel]
+#     [--skip-labelled "<results dir or labelled jsonl> ..."]   (skip dirs already run)
+#     [--stages "minimize plan run"] [--variants "cf_wrong_path cf_nonleak ..."]
+# minimize = rvzr minimize (instruction + fence pass) per dir; needed for the
+# cf_nonleak / cf_after_bypass / cf_fencepass counterfactuals.
 # Resumable: re-running with the same --out skips finished runs.
 # Afterwards (anywhere with clang + objdump):
 #   python3 oracle/revizor/scripts/hw_label_variants.py emit --out <out>
@@ -21,6 +25,9 @@ SPEC="$HOME_DIR/sca-fuzzer/base_x86.json"
 RECORDS="eval/data/revizor_spectre_v1_heldout.jsonl eval/data/revizor_spectre_v4_heldout.jsonl eval/data/revizor_mds_heldout.jsonl eval/data/revizor_l1tf_heldout.jsonl"
 CLASSES="SPECTRE_V1 SPECTRE_V4 MDS L1TF"
 LIMIT=0
+SKIP=""
+STAGES="minimize plan run"
+VARIANTS=""
 REPS=3
 OUT="$HOME_DIR/rvzr_hwlabel"
 
@@ -29,9 +36,12 @@ while [ $# -gt 0 ]; do
     --records) RECORDS="$2"; shift 2;;
     --classes) CLASSES="$2"; shift 2;;
     --limit) LIMIT="$2"; shift 2;;
+    --skip-labelled) SKIP="$2"; shift 2;;
+    --stages) STAGES="$2"; shift 2;;
+    --variants) VARIANTS="$2"; shift 2;;
     --reps) REPS="$2"; shift 2;;
     --out) OUT="$2"; shift 2;;
-    -h|--help) sed -n 2,13p "$0"; exit 0;;
+    -h|--help) sed -n 2,17p "$0"; exit 0;;
     *) echo "FATAL: unknown argument '$1'"; exit 1;;
   esac
 done
@@ -56,10 +66,20 @@ echo "spec_store_bypass: $(cat /sys/devices/system/cpu/vulnerabilities/spec_stor
 
 cd "$REPO" || exit 1
 PY="$VENV/bin/python"
+TARGETS=(--records $RECORDS --classes $CLASSES --limit "$LIMIT" --out "$OUT")
+[ -n "$SKIP" ] && TARGETS+=(--skip-labelled $SKIP)
 # shellcheck disable=SC2086
-"$PY" "$SCRIPT_DIR/hw_label_variants.py" plan --records $RECORDS --classes $CLASSES \
-  --limit "$LIMIT" --out "$OUT" || exit 1
-"$PY" "$SCRIPT_DIR/hw_label_variants.py" run --out "$OUT" --rvzr "$VENV/bin/rvzr" \
-  --spec "$SPEC" --reps "$REPS" || exit 1
+for st in $STAGES; do
+  echo "=== stage $st: $(date) ==="
+  case "$st" in
+    minimize) "$PY" "$SCRIPT_DIR/hw_label_variants.py" minimize "${TARGETS[@]}" \
+                --rvzr "$VENV/bin/rvzr" --spec "$SPEC" || exit 1;;
+    plan) "$PY" "$SCRIPT_DIR/hw_label_variants.py" plan "${TARGETS[@]}" \
+            ${VARIANTS:+--variants $VARIANTS} || exit 1;;
+    run) "$PY" "$SCRIPT_DIR/hw_label_variants.py" run --out "$OUT" --rvzr "$VENV/bin/rvzr" \
+           --spec "$SPEC" --reps "$REPS" || exit 1;;
+    *) echo "FATAL: unknown stage $st"; exit 1;;
+  esac
+done
 chown -R "${SUDO_USER:-$USER}" "$OUT"
 echo "=== done: $(date). Next: hw_label_variants.py emit --out $OUT ==="

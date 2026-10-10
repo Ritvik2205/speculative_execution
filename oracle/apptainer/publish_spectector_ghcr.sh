@@ -25,16 +25,28 @@ set -euo pipefail
 : "${GHCR_OWNER:?set GHCR_OWNER=<your github username or org>}"
 # ghcr.io repository paths must be lowercase (Docker reference rules).
 GHCR_OWNER="$(printf '%s' "$GHCR_OWNER" | tr '[:upper:]' '[:lower:]')"
-LOCAL_IMAGE="specdiscover-spectector:pinned"
-REMOTE_IMAGE="ghcr.io/${GHCR_OWNER}/specdiscover-spectector:pinned"
+# COMBINED=1 publishes the Spectector-Combined image instead of upstream.
+if [ "${COMBINED:-0}" = "1" ]; then
+  LOCAL_IMAGE="specdiscover-spectector-combined:pinned"
+else
+  LOCAL_IMAGE="specdiscover-spectector:pinned"
+fi
+REMOTE_IMAGE="ghcr.io/${GHCR_OWNER}/${LOCAL_IMAGE}"
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 docker_dir="$(cd "$here/../docker" && pwd)"
 
-echo "==> building ${LOCAL_IMAGE} (linux/amd64) via oracle/docker/build_spectector.sh"
-# build_spectector.sh already forces --platform linux/amd64 so the pushed
-# image runs natively on the cluster's x86_64 nodes (no emulation).
-( cd "$docker_dir" && bash build_spectector.sh )
+if [ "${COMBINED:-0}" = "1" ]; then
+  echo "==> building ${LOCAL_IMAGE} (linux/amd64, pinned Ciao)"
+  docker build --platform linux/amd64 \
+    -f "$docker_dir/Dockerfile.spectector_combined_pinned" \
+    -t "$LOCAL_IMAGE" "$docker_dir"
+else
+  echo "==> building ${LOCAL_IMAGE} (linux/amd64) via oracle/docker/build_spectector.sh"
+  # build_spectector.sh already forces --platform linux/amd64 so the pushed
+  # image runs natively on the cluster's x86_64 nodes (no emulation).
+  ( cd "$docker_dir" && bash build_spectector.sh )
+fi
 
 echo "==> tagging  ${LOCAL_IMAGE} -> ${REMOTE_IMAGE}"
 docker tag "$LOCAL_IMAGE" "$REMOTE_IMAGE"

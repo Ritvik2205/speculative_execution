@@ -225,6 +225,15 @@ def main():
                           "hardcoded rate. When starting from --init-from, a much "
                           "lower LR (e.g. 1e-4) avoids overwriting the pretrained "
                           "weights in the first few steps.")
+    ap.add_argument("--per-arch-tokenizer", action="store_true",
+                     help="tokenize each record with ITS OWN ISA's spec engine "
+                          "instead of the shared base.json. REQUIRED for riscv64: "
+                          "base.json's addressing grammar does not match riscv, so "
+                          "riscv operands normalize wrongly and only 0/100 of "
+                          "realized riscv sequences assemble, against 100/100 with "
+                          "the riscv engine. It also changes ~8.5%% of x86 records, "
+                          "so it is opt-in and changes the vocabulary -- a "
+                          "checkpoint trained with it must be used with it.")
     ap.add_argument("--extra-train", nargs="+", default=None,
                      help="extra gadget JSONL(s) ({label,arch,sequence}) appended "
                           "to the v54 training pool -- e.g. the idiomatic riscv "
@@ -246,7 +255,20 @@ def main():
         by_arch = Counter(norm_arch(r.get("arch", "x86_64")) for r in extra)
         print(f"[extra-train] merged {len(extra)} records; arch mix {dict(by_arch)}")
         train_rows = train_rows + extra
-    tr_tok = [tok.tokenize_sequence(r["sequence"]) for r in train_rows]
+    if args.per_arch_tokenizer:
+        _spec_for = {"x86_64": "x86_64.json", "arm64": "arm64.json",
+                     "riscv64": "riscv.json"}
+        _toks = {a: AsmTokenizer(load_engine(f)) for a, f in _spec_for.items()}
+        print(f"[tokenizer] per-arch engines: {_spec_for}")
+
+        def tokenize(rec):
+            return _toks[norm_arch(rec.get("arch", "x86_64"))].tokenize_sequence(
+                rec["sequence"])
+    else:
+        def tokenize(rec):
+            return tok.tokenize_sequence(rec["sequence"])
+
+    tr_tok = [tokenize(r) for r in train_rows]
     classes = sorted({r["label"] for r in train_rows})
 
     vocab = GenVocab.build(tr_tok, classes, ARCHS, min_count=5)
@@ -283,7 +305,7 @@ def main():
     ytr = np.array([lid[r["label"]] for r in train_rows])
     rf = RandomForestClassifier(n_estimators=300, n_jobs=-1, random_state=SEED,
                                 class_weight="balanced").fit(Xtr, ytr)
-    te_tok = [tok.tokenize_sequence(r["sequence"]) for r in test_rows]
+    te_tok = [tokenize(r) for r in test_rows]
     Xte = np.vstack([mlm.embed_sequence(t) for t in te_tok])
     yte = np.array([lid[r["label"]] for r in test_rows])
     print(f"[verify] reference clf real-test acc={accuracy_score(yte, rf.predict(Xte))*100:.2f}% "

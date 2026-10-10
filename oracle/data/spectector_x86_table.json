@@ -1,0 +1,520 @@
+{
+ "provenance": {
+  "image": "specdiscover-spectector:pinned",
+  "image_id": "sha256:934dd7752a424a66b8be87b1bfea91c88c8146740d42da734cef15b49d712c1a",
+  "table_path": "/root/ciao/muasm_translator/src/x86_table.pl",
+  "table_sha256": "a723ee58495cbedcc1d05e6f42b1722b386f116a88b711dbe1b3d5e0a0ab3acb",
+  "parser_aux_path": "/root/ciao/muasm_translator/src/parser_aux.pl",
+  "parser_aux_sha256": "bd4979b5b1c3634c932e95eb321c47cf3c734c58206d16ccbc7d1ec74c100699",
+  "extracted_at": "2026-10-08T19:01:54Z",
+  "note": "Spectector's own x86 front-end allow-list; see module docstring."
+ },
+ "suffix_chars": [
+  "b",
+  "d",
+  "l",
+  "q",
+  "s",
+  "t",
+  "w"
+ ],
+ "max_suffixes": 2,
+ "instructions": [
+  {
+   "name": "lfence",
+   "arity": 0
+  },
+  {
+   "name": "mfence",
+   "arity": 0
+  },
+  {
+   "name": "sfence",
+   "arity": 0
+  },
+  {
+   "name": "leave",
+   "arity": 0
+  },
+  {
+   "name": "clflush",
+   "arity": 0
+  },
+  {
+   "name": "cmp",
+   "arity": 2
+  },
+  {
+   "name": "comis",
+   "arity": 2
+  },
+  {
+   "name": "ucomis",
+   "arity": 2
+  },
+  {
+   "name": "test",
+   "arity": 2
+  },
+  {
+   "name": "mul",
+   "arity": 1
+  },
+  {
+   "name": "mulsd",
+   "arity": 2
+  },
+  {
+   "name": "imul",
+   "arity": 1
+  },
+  {
+   "name": "imul",
+   "arity": 2
+  },
+  {
+   "name": "imul",
+   "arity": 3
+  },
+  {
+   "name": "lea",
+   "arity": 2
+  },
+  {
+   "name": "add",
+   "arity": 2
+  },
+  {
+   "name": "adc",
+   "arity": 2
+  },
+  {
+   "name": "padd",
+   "arity": 2
+  },
+  {
+   "name": "sub",
+   "arity": 2
+  },
+  {
+   "name": "neg",
+   "arity": 1
+  },
+  {
+   "name": "not",
+   "arity": 1
+  },
+  {
+   "name": "sbb",
+   "arity": 2
+  },
+  {
+   "name": "pxor",
+   "arity": 2
+  },
+  {
+   "name": "xor",
+   "arity": 2
+  },
+  {
+   "name": "xorpd",
+   "arity": 2
+  },
+  {
+   "name": "xorps",
+   "arity": 2
+  },
+  {
+   "name": "and",
+   "arity": 2
+  },
+  {
+   "name": "pand",
+   "arity": 2
+  },
+  {
+   "name": "andps",
+   "arity": 2
+  },
+  {
+   "name": "andpd",
+   "arity": 2
+  },
+  {
+   "name": "or",
+   "arity": 2
+  },
+  {
+   "name": "dec",
+   "arity": 1
+  },
+  {
+   "name": "inc",
+   "arity": 1
+  },
+  {
+   "name": "cmovs",
+   "arity": 2
+  },
+  {
+   "name": "cmovns",
+   "arity": 2
+  },
+  {
+   "name": "cmova",
+   "arity": 2
+  },
+  {
+   "name": "cmovae",
+   "arity": 2
+  },
+  {
+   "name": "cmovnb",
+   "arity": 2
+  },
+  {
+   "name": "cmovb",
+   "arity": 2
+  },
+  {
+   "name": "cmovbe",
+   "arity": 2
+  },
+  {
+   "name": "cmove",
+   "arity": 2
+  },
+  {
+   "name": "cmovne",
+   "arity": 2
+  },
+  {
+   "name": "cmovl",
+   "arity": 2
+  },
+  {
+   "name": "cmovle",
+   "arity": 2
+  },
+  {
+   "name": "cmovg",
+   "arity": 2
+  },
+  {
+   "name": "cmovge",
+   "arity": 2
+  },
+  {
+   "name": "mov",
+   "arity": 2
+  },
+  {
+   "name": "movhlps",
+   "arity": 2
+  },
+  {
+   "name": "movlhps",
+   "arity": 2
+  },
+  {
+   "name": "movaps",
+   "arity": 2
+  },
+  {
+   "name": "movapd",
+   "arity": 2
+  },
+  {
+   "name": "movabs",
+   "arity": 2
+  },
+  {
+   "name": "movdqu",
+   "arity": 2
+  },
+  {
+   "name": "movdqa",
+   "arity": 2
+  },
+  {
+   "name": "movups",
+   "arity": 2
+  },
+  {
+   "name": "movupd",
+   "arity": 2
+  },
+  {
+   "name": "movz",
+   "arity": 2
+  },
+  {
+   "name": "movzx",
+   "arity": 2
+  },
+  {
+   "name": "movs",
+   "arity": 2
+  },
+  {
+   "name": "movsxd",
+   "arity": 2
+  },
+  {
+   "name": "cvtdq2pd",
+   "arity": 2
+  },
+  {
+   "name": "cvtsi2ss",
+   "arity": 2
+  },
+  {
+   "name": "cvtsd2ss",
+   "arity": 2
+  },
+  {
+   "name": "cvtsi2sd",
+   "arity": 2
+  },
+  {
+   "name": "cvtss2sd",
+   "arity": 2
+  },
+  {
+   "name": "cvttss2si",
+   "arity": 2
+  },
+  {
+   "name": "cvttsd2si",
+   "arity": 2
+  },
+  {
+   "name": "stmxcsr",
+   "arity": 1
+  },
+  {
+   "name": "ldmxcsr",
+   "arity": 1
+  },
+  {
+   "name": "jp",
+   "arity": 1
+  },
+  {
+   "name": "js",
+   "arity": 1
+  },
+  {
+   "name": "jns",
+   "arity": 1
+  },
+  {
+   "name": "jl",
+   "arity": 1
+  },
+  {
+   "name": "jle",
+   "arity": 1
+  },
+  {
+   "name": "je",
+   "arity": 1
+  },
+  {
+   "name": "jne",
+   "arity": 1
+  },
+  {
+   "name": "ja",
+   "arity": 1
+  },
+  {
+   "name": "jae",
+   "arity": 1
+  },
+  {
+   "name": "jnb",
+   "arity": 1
+  },
+  {
+   "name": "jb",
+   "arity": 1
+  },
+  {
+   "name": "jbe",
+   "arity": 1
+  },
+  {
+   "name": "jg",
+   "arity": 1
+  },
+  {
+   "name": "jge",
+   "arity": 1
+  },
+  {
+   "name": "setl",
+   "arity": 1
+  },
+  {
+   "name": "seta",
+   "arity": 1
+  },
+  {
+   "name": "setae",
+   "arity": 1
+  },
+  {
+   "name": "setg",
+   "arity": 1
+  },
+  {
+   "name": "setge",
+   "arity": 1
+  },
+  {
+   "name": "setle",
+   "arity": 1
+  },
+  {
+   "name": "setb",
+   "arity": 1
+  },
+  {
+   "name": "setnb",
+   "arity": 1
+  },
+  {
+   "name": "setbe",
+   "arity": 1
+  },
+  {
+   "name": "sete",
+   "arity": 1
+  },
+  {
+   "name": "setne",
+   "arity": 1
+  },
+  {
+   "name": "setc",
+   "arity": 1
+  },
+  {
+   "name": "jmp",
+   "arity": 1
+  },
+  {
+   "name": "xchg",
+   "arity": 2
+  },
+  {
+   "name": "cli",
+   "arity": 0
+  },
+  {
+   "name": "sti",
+   "arity": 0
+  },
+  {
+   "name": "hlt",
+   "arity": 0
+  },
+  {
+   "name": "ud2",
+   "arity": 0
+  },
+  {
+   "name": "lock",
+   "arity": 0
+  },
+  {
+   "name": "shr",
+   "arity": 2
+  },
+  {
+   "name": "shr",
+   "arity": 1
+  },
+  {
+   "name": "shl",
+   "arity": 2
+  },
+  {
+   "name": "pslld",
+   "arity": 2
+  },
+  {
+   "name": "sar",
+   "arity": 2
+  },
+  {
+   "name": "sar",
+   "arity": 1
+  },
+  {
+   "name": "psrldq",
+   "arity": 2
+  },
+  {
+   "name": "psrad",
+   "arity": 2
+  },
+  {
+   "name": "sal",
+   "arity": 2
+  },
+  {
+   "name": "cltd",
+   "arity": 0
+  },
+  {
+   "name": "cwtl",
+   "arity": 0
+  },
+  {
+   "name": "cltq",
+   "arity": 0
+  },
+  {
+   "name": "cdqe",
+   "arity": 0
+  },
+  {
+   "name": "cqto",
+   "arity": 0
+  },
+  {
+   "name": "cbtw",
+   "arity": 0
+  },
+  {
+   "name": "push",
+   "arity": 1
+  },
+  {
+   "name": "pop",
+   "arity": 1
+  },
+  {
+   "name": "call",
+   "arity": 1
+  },
+  {
+   "name": "ret",
+   "arity": 0
+  },
+  {
+   "name": "ret",
+   "arity": 1
+  },
+  {
+   "name": "nop",
+   "arity": null
+  },
+  {
+   "name": "npad",
+   "arity": null
+  }
+ ]
+}

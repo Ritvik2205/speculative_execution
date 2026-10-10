@@ -1,0 +1,42 @@
+{
+  "summary": {
+    "n": 590,
+    "unfenced": {
+      "safe": 457,
+      "unrunnable": 128,
+      "leak": 5
+    },
+    "adjudicable": 462,
+    "adjudicable_rate": 0.7830508474576271,
+    "leak": 5,
+    "leak_rate_of_adjudicable": 0.010822510822510822,
+    "fenced_on_leaks": {
+      "safe": 5
+    },
+    "mitigated_rate": 1.0,
+    "fenced_leak_anomalies": 0
+  },
+  "anchors_failed": [
+    "shard_000.jsonl",
+    "shard_001.jsonl",
+    "shard_002.jsonl",
+    "shard_003.jsonl",
+    "shard_004.jsonl",
+    "shard_005.jsonl",
+    "shard_006.jsonl",
+    "shard_007.jsonl",
+    "shard_008.jsonl",
+    "shard_009.jsonl"
+  ],
+  "budget": {
+    "anchor": {
+      "source_id": "anchor_s0",
+      "unfenced": "safe",
+      "fenced": "safe"
+    },
+    "anchors_ok": false,
+    "window": 100,
+    "steps": 1000000,
+    "timeout": 300
+  }
+}

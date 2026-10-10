@@ -25,6 +25,23 @@ reproduce.yaml):
        after_load      (MDS/L1TF) after every memory read (exploratory)
        entry / tail    k lfences right after measurement_start / after the
                        last body instruction, k = the twin's fence count
+     Counterfactuals with a fence INSIDE the sequence that may NOT mitigate
+     (2026-10-08: "some lfence mid-sequence => BENIGN" matched 799/806 of the
+     first labels, so the set above cannot test structure):
+       cf_wrong_path   (V1) `jcc; .bb_0.cfwpN: lfence; jmp`: the fence sits on
+                       the jcc's other path in its own block. Converted to
+                       AT&T this is exactly the pre-10-03 twin (jcc; lfence; jmp)
+     Need the `minimize` step first (rvzr minimize on the original):
+       cf_nonleak      lfence before each memory op / jcc that the instruction
+                       pass REMOVED (not needed for the violation) and whose
+                       neighbours were removed too
+       cf_after_bypass (V4) lfence after each essential pure load that follows
+                       an essential store (the load that may bypass it)
+       cf_fencepass    Revizor's fence pass: lfences greedily inserted wherever
+                       the violation survives during minimization
+  0. minimize (i5 only, root): `rvzr minimize` instruction pass and fence pass
+     per dir, into <out>/<class>/<dir>/_min/ (also the first minimality data:
+     original vs minimized instruction count)
   2. run (i5 only, root): `rvzr reproduce` each variant R times on the
      violation's own inputs and config, with the speculation/observation
      filters OFF (a filtered test case would read as "no violation" and be
@@ -46,11 +63,13 @@ rvzr/arch/x86/fuzzer.py:_create_fenced_test_case), so a fence is never placed
 right after a j*/loop line; such placements are skipped and logged.
 
 Usage:
+  sudo env PATH=$PATH python3 hw_label_variants.py minimize --out ~/rvzr_hwlabel \\
+       --rvzr ~/sca-fuzzer/venv/bin/rvzr --spec ~/sca-fuzzer/base_x86.json
   python3 hw_label_variants.py plan --records eval/data/revizor_*_heldout.jsonl --out ~/rvzr_hwlabel
   sudo env PATH=$PATH python3 hw_label_variants.py run --out ~/rvzr_hwlabel \\
        --rvzr ~/sca-fuzzer/venv/bin/rvzr --spec ~/sca-fuzzer/base_x86.json --reps 3
   python3 hw_label_variants.py emit --out ~/rvzr_hwlabel --jsonl eval/data/revizor_hwlabel_variants.jsonl
-The wrapper run_hw_label_variants.sh does plan + run with the i5 host guard.
+The wrapper run_hw_label_variants.sh does minimize + plan + run with the i5 host guard.
 """
 from __future__ import annotations
 
@@ -72,12 +91,21 @@ REPO_ROOT = HERE.parents[2]
 FENCE = "lfence"
 CLASSES = ("SPECTRE_V1", "SPECTRE_V4", "MDS", "L1TF")
 CLASS_VARIANTS = {
-    "SPECTRE_V1": ("twin", "v1_fallthrough", "shifted", "entry", "tail"),
+    "SPECTRE_V1": ("twin", "v1_fallthrough", "shifted", "entry", "tail", "cf_wrong_path"),
     "SPECTRE_V4": ("twin", "shifted", "entry", "tail"),
     "MDS": ("twin", "after_load", "entry", "tail"),
     "L1TF": ("twin", "after_load", "entry", "tail"),
 }
 CONTROL_VARIANTS = ("original", "fence_all")
+# variants that need the minimize step's output (essential instructions / fence pass)
+MIN_VARIANTS = {
+    "SPECTRE_V1": ("cf_nonleak", "cf_fencepass"),
+    "SPECTRE_V4": ("cf_nonleak", "cf_after_bypass", "cf_fencepass"),
+    "MDS": ("cf_nonleak", "cf_fencepass"),
+    "L1TF": ("cf_nonleak", "cf_fencepass"),
+}
+ALL_VARIANTS = sorted({v for vs in CLASS_VARIANTS.values() for v in vs}
+                      | {v for vs in MIN_VARIANTS.values() for v in vs} | set(CONTROL_VARIANTS))
 VIOLATION_MARKER = "Violations detected"
 # The four per-class held-out sets the joint model is scored on. NOT a
 # revizor_*_heldout glob: that also matches the legacy revizor_v4_heldout.jsonl
@@ -171,10 +199,12 @@ class Placement:
     def __init__(self):
         self.after: collections.Counter = collections.Counter()
         self.before: collections.Counter = collections.Counter()
+        self.after_text: Dict[int, List[str]] = {}  # raw lines (label + lfence) after line i
         self.skipped: List[str] = []
 
     def count(self) -> int:
-        return sum(self.after.values()) + sum(self.before.values())
+        return (sum(self.after.values()) + sum(self.before.values())
+                + sum(t.count(FENCE) for t in self.after_text.values()))
 
 
 def _body(lines, start, end):
@@ -211,7 +241,8 @@ def _label_index(lines, start, end, label) -> Optional[int]:
     return None
 
 
-def place(variant: str, cls: str, lines, start, end, k: int = 0) -> Placement:
+def place(variant: str, cls: str, lines, start, end, k: int = 0,
+          essential: Optional[Set[int]] = None) -> Placement:
     pl = Placement()
     body = _body(lines, start, end)
     if variant == "original":
@@ -265,6 +296,46 @@ def place(variant: str, cls: str, lines, start, end, k: int = 0) -> Placement:
             if lines[i].reads_mem:
                 _add_after(pl, lines, i)
         return pl
+    if variant == "cf_wrong_path":
+        n = 0
+        for i in body:
+            if not lines[i].is_jcc:
+                continue
+            nxt = next((j for j in range(i + 1, end + 1) if lines[j].text.strip()), None)
+            if nxt is None or not (lines[nxt].is_jump and not lines[nxt].is_jcc):
+                pl.skipped.append(f"jcc line {i + 1}: not followed by jmp")
+                continue
+            # a new block between the jcc and the jmp: the parser accepts any
+            # `.bb_*:` label, and the fence is no longer "directly after a jump"
+            pl.after_text[i] = [f".bb_0.cfwp{n}:", FENCE]
+            n += 1
+        return pl
+    if variant in ("cf_nonleak", "cf_after_bypass"):
+        if essential is None:
+            pl.skipped.append("no minimize output")
+            return pl
+        core = [i for i in body if "instrumentation" not in lines[i].text]
+        if variant == "cf_nonleak":
+            for n_, i in enumerate(core):
+                l = lines[i]
+                if i in essential or not (l.reads_mem or l.writes_mem or l.is_jcc):
+                    continue
+                if n_ == 0 or n_ == len(core) - 1:
+                    continue  # keep it mid-sequence
+                if core[n_ - 1] in essential or core[n_ + 1] in essential:
+                    continue  # not adjacent to anything the leak needs
+                _add_before(pl, lines, i)
+        else:
+            seen_store = False
+            for i in core:
+                if i not in essential:
+                    continue
+                l = lines[i]
+                if l.writes_mem:
+                    seen_store = True
+                elif seen_store and l.reads_mem:
+                    _add_after(pl, lines, i)
+        return pl
     if variant == "entry":
         if k:
             pl.after[start] += k
@@ -282,16 +353,62 @@ def render(lines: List[Line], pl: Placement) -> str:
         out += [FENCE] * pl.before.get(i, 0)
         out.append(l.text)
         out += [FENCE] * pl.after.get(i, 0)
+        out += pl.after_text.get(i, [])
     return "\n".join(out) + "\n"
 
 
-def make_variants(program_text: str, cls: str) -> Dict[str, Tuple[str, Placement]]:
+def _norm(line: str) -> str:
+    return " ".join(line.split("#", 1)[0].lower().split())
+
+
+def essential_lines(program_text: str, minimized_text: str) -> Set[int]:
+    """Indices of `program_text` lines whose instruction survives in the
+    instruction-pass output. The pass only deletes lines (and clears an
+    `instrumentation` tag, which _norm drops), so an order-preserving match
+    on comment-stripped text recovers the mapping."""
+    import difflib
+    a = [_norm(l) for l in program_text.splitlines()]
+    b = [_norm(l) for l in minimized_text.splitlines()]
+    sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    keep: Set[int] = set()
+    for blk in sm.get_matching_blocks():
+        keep.update(range(blk.a, blk.a + blk.size))
+    lines, start, end = parse_program(program_text)
+    return {i for i in keep if start < i < end and lines[i].is_instr}
+
+
+def fencepass_program(program_text: str, fenced_text: str) -> Optional[str]:
+    """The fence-pass output, if it differs from the original ONLY by inserted
+    lfence lines (else None: the pass changed something else)."""
+    a = [_norm(l) for l in program_text.splitlines() if l.strip()]
+    f = [l for l in fenced_text.splitlines() if l.strip()]
+    if [_norm(l) for l in f if _norm(l) != FENCE] != a or not any(_norm(l) == FENCE for l in f):
+        return None
+    return "\n".join(FENCE if _norm(l) == FENCE else l for l in f) + "\n"
+
+
+def make_variants(program_text: str, cls: str, min_dir: Optional[Path] = None,
+                  only: Optional[Set[str]] = None) -> Dict[str, Tuple[str, Placement]]:
     lines, start, end = parse_program(program_text)
     twin = place("twin", cls, lines, start, end)
     k = twin.count()
+    essential = None
+    if min_dir is not None and (min_dir / "min.asm").is_file():
+        essential = essential_lines(program_text, (min_dir / "min.asm").read_text())
     out = {}
-    for v in CONTROL_VARIANTS + CLASS_VARIANTS[cls]:
-        pl = twin if v == "twin" else place(v, cls, lines, start, end, k)
+    names = CONTROL_VARIANTS + CLASS_VARIANTS[cls] + MIN_VARIANTS[cls]
+    for v in names:
+        if only and v != "original" and v not in only:
+            continue
+        if v == "cf_fencepass":
+            fp = min_dir / "fenced.asm" if min_dir is not None else None
+            prog = fencepass_program(program_text, fp.read_text()) if fp and fp.is_file() else None
+            if prog is not None:
+                pl = Placement()
+                pl.after_text[-1] = [FENCE] * prog.count(FENCE + "\n")  # fence count only
+                out[v] = (prog, pl)
+            continue
+        pl = twin if v == "twin" else place(v, cls, lines, start, end, k, essential)
         if v != "original" and pl.count() == 0:
             continue
         out[v] = (render(lines, pl), pl)
@@ -352,10 +469,36 @@ def _vdir(out: Path, t: dict) -> Path:
     return out / t["cls"].lower() / Path(t["src_dir"]).name
 
 
-def cmd_plan(a) -> int:
-    out = Path(os.path.expanduser(a.out))
-    out.mkdir(parents=True, exist_ok=True)
+_VARIANT_SUFFIX = re.compile(r"_(mis)?fenced$")
+
+
+def labelled_groups(sources: List[str]) -> Set[str]:
+    """Groups already run in earlier labelling passes. Each source is a results
+    dir (its runs.jsonl: every group with at least one reproduce call, whatever
+    the outcome, so unstable originals are not re-run either) or an emitted
+    labelled JSONL (group minus its _fenced/_misfenced suffix)."""
+    done: Set[str] = set()
+    for src in sources:
+        p = Path(os.path.expanduser(src))
+        if p.is_dir():
+            p = p / "runs.jsonl"
+        if not p.is_file():
+            raise FileNotFoundError(f"--skip-labelled: {src} has no runs.jsonl / is not a file")
+        for line in open(p):
+            if line.strip():
+                done.add(_VARIANT_SUFFIX.sub("", json.loads(line)["group"]))
+    return done
+
+
+def select_targets(a) -> List[dict]:
     targets, missing = load_targets(a.records, a.classes)
+    if missing:
+        print(f"WARNING: {len(missing)} src_path(s) not found, e.g. {missing[0]}", file=sys.stderr)
+    if a.skip_labelled:
+        done = labelled_groups(a.skip_labelled)
+        before = len(targets)
+        targets = [t for t in targets if t["group"] not in done]
+        print(f"--skip-labelled: {before - len(targets)} dir(s) already run, {len(targets)} left")
     if a.limit:
         per = collections.Counter()
         keep = []
@@ -364,12 +507,20 @@ def cmd_plan(a) -> int:
                 per[t["cls"]] += 1
                 keep.append(t)
         targets = keep
+    return targets
+
+
+def cmd_plan(a) -> int:
+    out = Path(os.path.expanduser(a.out))
+    out.mkdir(parents=True, exist_ok=True)
+    targets = select_targets(a)
+    only = set(a.variants) if a.variants else None
     n_var = collections.Counter()
     plan = []
     for t in targets:
         text = (Path(t["src_dir"]) / "program.asm").read_text()
         vd = _vdir(out, t)
-        for v, (asm, pl) in make_variants(text, t["cls"]).items():
+        for v, (asm, pl) in make_variants(text, t["cls"], vd / "_min", only).items():
             d = vd / v
             d.mkdir(parents=True, exist_ok=True)
             (d / "program.asm").write_text(asm)
@@ -382,8 +533,50 @@ def cmd_plan(a) -> int:
     print(f"{len(targets)} violation dirs, {len(plan)} variant programs -> {out}/plan.jsonl")
     for (c, v), n in sorted(n_var.items()):
         print(f"  {c:11s} {v:15s} {n}")
-    if missing:
-        print(f"WARNING: {len(missing)} src_path(s) not found, e.g. {missing[0]}", file=sys.stderr)
+    return 0
+
+
+def cmd_minimize(a) -> int:
+    """rvzr minimize per dir: the instruction pass (which instructions the
+    violation needs) and, separately, the fence pass (where an lfence does
+    NOT kill it). Resumable: a dir with _min/status.json is skipped."""
+    out = Path(os.path.expanduser(a.out))
+    targets = select_targets(a)
+    for n, t in enumerate(targets):
+        src = Path(t["src_dir"])
+        md = _vdir(out, t) / "_min"
+        if (md / "status.json").is_file():
+            continue
+        md.mkdir(parents=True, exist_ok=True)
+        cfg = md / "config.yaml"
+        write_config(src, cfg, a.keep_filters)
+        n_inputs = len(glob.glob(str(src / "input_*.bin"))) or 100
+        status = {"group": t["group"], "cls": t["cls"], "n_inputs": n_inputs}
+        for name, passes in (("min", ["--enable-instruction-pass", "true"]),
+                             ("fenced", ["--enable-instruction-pass", "false",
+                                         "--enable-fence-pass", "true"])):
+            cmd = [a.rvzr, "minimize", "-s", a.spec, "-c", str(cfg), "-t", str(src / "program.asm"),
+                   "-i", str(n_inputs), "-o", str(md / f"{name}.asm"),
+                   "--enable-label-pass", "false", *passes]
+            t0 = time.time()
+            try:
+                p = subprocess.run(cmd, capture_output=True, text=True, timeout=a.timeout)
+                rc, log = p.returncode, p.stdout + p.stderr
+            except subprocess.TimeoutExpired as e:
+                rc, log = -9, f"[ERROR] timeout after {a.timeout}s\n{e.stdout or ''}"
+            (md / f"{name}.log").write_text(log)
+            ok = rc == 0 and (md / f"{name}.asm").is_file() and "Traceback" not in log
+            status[name] = {"rc": rc, "ok": ok, "seconds": round(time.time() - t0, 1)}
+        prog = (src / "program.asm").read_text()
+        if status["min"]["ok"]:
+            ess = essential_lines(prog, (md / "min.asm").read_text())
+            lines, s0, e0 = parse_program(prog)
+            status["n_body"] = sum(1 for i in _body(lines, s0, e0) if "instrumentation" not in lines[i].text)
+            status["n_essential"] = sum(1 for i in ess if "instrumentation" not in lines[i].text)
+        (md / "status.json").write_text(json.dumps(status, indent=1))
+        print(f"[{n + 1}/{len(targets)}] {t['cls']} {src.name}: min {status['min']['ok']} "
+              f"({status.get('n_essential', '?')}/{status.get('n_body', '?')} instrs), "
+              f"fence pass {status['fenced']['ok']}", flush=True)
     return 0
 
 
@@ -556,13 +749,26 @@ def cmd_emit(a) -> int:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
+    def target_args(q):
+        q.add_argument("--records", nargs="+", default=DEFAULT_RECORDS,
+                       help="corpus JSONL(s)/globs; held-out sets by default. Use "
+                            "eval/data/revizor_{spectre_v1,spectre_v4,mds,l1tf}_real.jsonl for the training pool")
+        q.add_argument("--classes", nargs="+", default=list(CLASSES), choices=CLASSES)
+        q.add_argument("--limit", type=int, default=0, help="max violation dirs per class (0 = all)")
+        q.add_argument("--skip-labelled", nargs="+", default=[], metavar="RESULTS",
+                       help="skip violation dirs already run: earlier results dir(s) (runs.jsonl) "
+                            "or emitted labelled JSONL(s), e.g. oracle/revizor/results/hw_label_261007")
+        q.add_argument("--out", required=True)
+    m = sub.add_parser("minimize")
+    target_args(m)
+    m.add_argument("--rvzr", required=True)
+    m.add_argument("--spec", required=True)
+    m.add_argument("--timeout", type=int, default=3600)
+    m.add_argument("--keep-filters", action="store_true")
     p = sub.add_parser("plan")
-    p.add_argument("--records", nargs="+", default=DEFAULT_RECORDS,
-                   help="corpus JSONL(s)/globs; held-out sets by default. Use "
-                        "eval/data/revizor_{spectre_v1,spectre_v4,mds,l1tf}_real.jsonl for the training pool")
-    p.add_argument("--classes", nargs="+", default=list(CLASSES), choices=CLASSES)
-    p.add_argument("--limit", type=int, default=0, help="max violation dirs per class (0 = all)")
-    p.add_argument("--out", required=True)
+    target_args(p)
+    p.add_argument("--variants", nargs="+", default=None, choices=ALL_VARIANTS,
+                   help="only these variants (plus `original`, always kept as the stability control)")
     r = sub.add_parser("run")
     r.add_argument("--out", required=True)
     r.add_argument("--rvzr", required=True)
@@ -576,7 +782,7 @@ def main(argv=None) -> int:
     e.add_argument("--out", required=True)
     e.add_argument("--jsonl", default=str(REPO_ROOT / "eval/data/revizor_hwlabel_variants.jsonl"))
     a = ap.parse_args(argv)
-    return {"plan": cmd_plan, "run": cmd_run, "emit": cmd_emit}[a.cmd](a)
+    return {"minimize": cmd_minimize, "plan": cmd_plan, "run": cmd_run, "emit": cmd_emit}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -197,3 +197,4 @@ gen/.benign_xarch_tmp/
 # Apptainer images (large, pulled per-cluster, never committed)
 oracle/apptainer/*.sif
 *.sif
+gen/arch_purity_cache.json

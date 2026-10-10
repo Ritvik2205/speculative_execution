@@ -1,6 +1,6 @@
 # P3 — held-out real-V4 recall + V4 false-positive rate: baseline vs trained-with-real-V4 (mean±95%CI)
 
-Both scored on the seed-disjoint held-out set (eval/data/revizor_v4_heldout.jsonl), which contains BOTH real SPECTRE_V4 positives and fenced (SSBP-mitigated) V4-shaped BENIGN negatives, seed-disjoint from training for both classes.
+Both scored on the seed-disjoint held-out set (eval/data/revizor_v4_heldout.jsonl), which contains BOTH real SPECTRE_V4 positives and lfence-fenced (synthetic, not HW-validated) V4-shaped BENIGN negatives, seed-disjoint from training for both classes.
 
 | metric | BEFORE (v55h, no real V4 in train) | AFTER (v55h + 11 real V4 + 11 fenced BENIGN in train) |
 |---|---|---|

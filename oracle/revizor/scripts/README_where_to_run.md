@@ -73,3 +73,18 @@ the current pipeline stage uses) and let it manage the container.
 |---|---|---|
 | Revizor | i5-8300H bare-metal Linux only | needs real hardware PMU counters + `rvzr_executor` kernel module; no arm64/Docker substitute |
 | Spectector | This Mac, via Docker (`specdiscover-spectector:pinned`) | symbolic oracle, no hardware dependency |
+
+## V2 / RETBLEED hardware ground truth — i5-8300H, published PoC + control
+
+`run_v2_retbleed_campaign.sh` is a RUNNER and LABELLER, not an exploit: it
+ships no attack. Revizor cannot test SPECTRE_V2 or RETBLEED (no indirect-branch
+or return clause, CALL/RET excluded from its pool), but the i5-8300H is an
+affected part, so ground truth comes from a published PoC run under a
+mitigation control. You supply the built PoC binary (SPECTRE_V2: Google
+SafeSide, already a corpus source; RETBLEED: the ETH Zurich artifact). The
+script records the kernel mitigation state, requires BYTE-MATCH output
+("RECOVERED k/N" of the known secret, never a hit count — the discipline that
+the retracted "V4 40/40" result violated), and labels leak only on a majority
+of correct bytes. Confirm a class the way V4 was: leaks on a mitigation-OFF
+boot (`spectre_v2=off` / `retbleed=off` on the kernel cmdline), stops on a
+mitigation-ON boot.

@@ -22,3 +22,19 @@ def test_generate_writes_files_and_index(tmp_path):
     assert idx["adjudicable"] in ("yes","partial","no")
     for r in [json.loads(l) for l in open(os.path.join(str(tmp_path),"spec_gadgets.jsonl"))]:
         assert os.path.exists(r["path"])
+
+
+def test_combined_v2_victim_has_a_landing_pad_and_a_benign_target():
+    from gen.synth.spectector_gadgets import render_spec_combined
+    src = render_spec_combined("SPECTRE_V2", fenced=False)
+    assert "void leaky(size_t i){ uint8_t v=arr[i]; probe[v*64]=1; }" in src
+    assert "void (*fp)(size_t) = benign;" in src
+    assert "void gadget(size_t i){ fp(i); }" in src
+    assert "lfence" not in src
+
+
+def test_combined_v2_fence_sits_at_the_landing_pad_entry():
+    from gen.synth.spectector_gadgets import render_spec_combined
+    src = render_spec_combined("SPECTRE_V2", fenced=True, gen_body="BODY;")
+    assert 'void leaky(size_t i){ asm volatile("lfence":::"memory"); BODY; }' in src
+    assert "void gadget(size_t i){ fp(i); }" in src   # the call itself is unfenced

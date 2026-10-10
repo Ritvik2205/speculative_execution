@@ -195,6 +195,19 @@ class GINEDatasetV47(Dataset):
         # (taint_mode="shift", mem_order_edges=False, cfg_spec_edges=False)
         # reproduce the original SpecBackedPDGBuilder construction exactly —
         # purely additive, no behavior change when callers don't pass them.
+        #
+        # RESOLVED 2026-10-09 (the e3a541e ambiguity): this `mem_order_edges`
+        # flag is NOT the only thing that controls MEMORY_ORDER edges. Under
+        # use_spec_builder=True (the locked model and every current baseline),
+        # spec/base.json's `memory_order_mode: "address_base"` makes the spec
+        # engine emit MEMORY_ORDER edges regardless of this flag (confirmed:
+        # ~3% of edges on real records). So the "DEFAULT OFF" reading of this
+        # flag describes the legacy PDGBuilder path only. DECISION: leave the
+        # spec default on. The locked ensemble and all comparison baselines
+        # were trained with these edges present; flipping it would invalidate
+        # the locked model and every number measured against it, for an edge
+        # type whose measured recall effect is small. Change it only with a
+        # full retrain + baseline re-measure, behind ./scripts/run_feature_gate.sh.
         if not use_spec_builder and (
             taint_mode != "shift" or mem_order_edges or cfg_spec_edges
         ):

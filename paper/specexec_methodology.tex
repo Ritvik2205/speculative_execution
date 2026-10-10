@@ -1,6 +1,11 @@
-%% SpecExec: Methodology
-%% Speculative Execution Vulnerability Detection via Graph Neural Networks
-%% Compile with: pdflatex specexec_methodology.tex
+%% SpecExec: Methodology and Results
+%% Learning to detect and generate speculative-execution leaks,
+%% grounded in symbolic and hardware oracles.
+%% Compile with: tectonic specexec_methodology.tex   (or pdflatex)
+%%
+%% Status markers: \todo{...} = work in progress or a number not yet measured;
+%% \tbd = a placeholder value. Every number not marked is measured and has a
+%% source in the repo (file paths in the comments next to each table).
 
 \documentclass[10pt,twocolumn]{article}
 
@@ -35,85 +40,171 @@
   columns=fullflexible,
 }
 
-\title{\textbf{SpecExec: Automated Detection of Speculative Execution Vulnerabilities}}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\tbd}{\textcolor{red}{\textbf{[TBD]}}}
+\newcommand{\cls}[1]{\textsc{#1}}
+
+\title{\textbf{SpecExec: Learning to Detect and Generate\\Speculative-Execution Leaks,
+Grounded in Symbolic and Hardware Oracles}}
 
 % \author{
 %   Ritvik Gupta \\
-%   University of Edinburgh \\
-%   \texttt{ritvikg2@andrew.cmu.edu}
+%   University of Edinburgh
 % }
 
-\date{}
+\date{Draft --- updated 2026-10-08}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-We present \textsc{SpecExec}, a system for automated \emph{triage} of
-speculative-execution gadget candidates in compiled assembly code. Because
-exploitability is a microarchitecture-relative property, we treat the static
-label as a candidate-ranking signal for downstream verification rather than a
-standalone vulnerability verdict. The system classifies instruction windows into
-nine classes---\textsc{Spectre~V1},
-\textsc{V2}, \textsc{V4}, \textsc{L1TF}, \textsc{MDS}, \textsc{Retbleed},
-\textsc{Inception}, \textsc{Branch History Injection} (BHI), and
-\textsc{Benign}---without access to source code, compiler metadata, or
-architectural ground truth. Our approach combines Program Dependence Graph
-(PDG) representation with learned edge-type attention, 58-dimensional
-handcrafted inline features encoding attack-class-specific primitives, and
-provably correct data augmentation. On a locked test set derived from a
-multi-source corpus (3~architectures, 4~compilers, 5~optimization levels),
-our best model achieves \textbf{95.45\%} accuracy with a val/test gap of
-under 1\,pp, substantially outperforming prior pattern-matching and
-random-forest baselines. We then move the system's hand-authored,
-ISA-specific feature engineering behind a declarative ISA specification that
-drives graph construction (verified identical to the hand-built pipeline on
-437{,}000 edges, and cross-checked against an \emph{independent}
-assembler/disassembler oracle that exposes 274 latent classification bugs the
-self-comparison cannot). A self-supervised assembly encoder supplies node
-features that, under a multi-seed equivalence test, do \emph{not} replace the
-hand-designed node vector (learned is significantly lower and not statistically
-equivalent) but are strongly \emph{complementary} at the sequence level
-($+10.6$\,pp macro-F1). A leakage-controlled evaluation (group- and
-optimization-level hold-out) further shows the random-split numbers are
-optimistic, with minority-class macro-F1 dropping sharply under a held-out
-optimization level---an honest bound on generalization. Finally, the same
-representation supports a class- and architecture-conditioned generator that
-synthesizes novel, grammar-valid gadgets ($5.7\times$ class-conditioning lift,
-$\geq 96\%$ ISA-purity)---the front half of a pipeline aimed at automated
-discovery of minimal speculative-leakage gadgets across instruction sets.
+We present \textsc{SpecExec}, a pipeline whose goal is to \emph{discover small
+speculative-execution leaks automatically}: a generator proposes instruction
+sequences, a learned filter decides which candidates are worth checking, an
+oracle decides whether they leak, and the oracle's verdicts retrain the
+generator and the filter. Two learned components support the loop. The first
+is a graph neural network (GINE) over program dependence graphs that classifies
+assembly into nine classes (eight attack families and \cls{Benign}). The
+second is a class- and architecture-conditioned Transformer that generates
+candidate gadgets. Ground truth comes from three oracles: Spectector (symbolic
+speculative non-interference, x86), InvisiSpec (gem5 execution), and
+Revizor-based fuzzing on a bare-metal Intel i5-8300H.
+
+The detector reaches $95.6 \pm 0.7\%$ accuracy in distribution (5 seeds), but
+most of our contribution is in measuring what that number does and does not
+mean. A label-conditioned screening defect in the test set, opcode shortcuts,
+a length confound, and a CPU-specific instruction mix each inflated an earlier
+result; we quantify each one and report what survives. A detector trained on
+synthetic data does not recognise real hardware leaks. On 423 real Revizor
+violations, a single lfence at the speculation boundary removes the leak in
+every stable case for all four classes we tested (L1TF, MDS, Spectre~V1,
+Spectre~V4), and fences far from the boundary do not. No model we trained
+beats a non-learned rule on these mitigation labels yet.
+
+On x86, oracle-in-the-loop rejection sampling raises the generator's
+confirmed-leak rate from about 0.50 to 0.97 for Spectre~V1 and from 0.15 to
+0.6--1.0 for Spectre~V4. It produces about 1,600 distinct leaking gadgets, and
+self-supervised pretraining increases their diversity at a measured cost in
+yield.
+
+We then try two ways to reduce the dependence on scarce oracle capacity, and
+report what each is actually worth. A non-learned gate, built from
+Spectector's own instruction table and applied only to a candidate's reachable
+path, removes 18.2\% of the candidates the oracle cannot adjudicate while
+losing 1.3\% of the leaks---a real but modest gain against the 80\% we set as
+the target, because most unadjudicated candidates assemble and execute
+perfectly well and fail inside the oracle instead. Measuring the generator per
+ISA with the same machinery exposes a plainer problem: its ARM64 output
+assembles 28\% of the time against x86's 99\%, so the ARM64 arm is limited by
+the generator, not by the missing oracle. Finally, since every leak oracle here
+is x86, we drive speculation inside a CPU emulator by rolling state back to a
+conditional branch and forcing the other path. It gives correct textbook
+answers on two ISAs, including which fence placements mitigate, but it finds no
+leak in any of 806 hardware-labelled real violations, because those programs
+mask every address into their sandbox even speculatively; we therefore do not
+claim it as validated. The learned filter and the minimality stage are built
+but not yet evaluated on real labels (\todo{ranker and minimality results}).
 \end{abstract}
 
+%% =========================================================================
+\section{Introduction and Goal}
+\label{sec:intro}
+
+Speculative-execution attacks (Spectre, Meltdown/L1TF, MDS, Retbleed,
+Inception, BHI) leak secrets through microarchitectural state that the
+architectural semantics hide. Finding such leaks today relies on hand-written
+gadget patterns per attack and per instruction set, on symbolic checkers that
+model one speculation mechanism each, and on hardware fuzzers that are slow and
+CPU-specific.
+
+The goal of \textsc{SpecExec} is a learned pipeline that, given a description
+of an instruction set, \emph{generates} instruction sequences likely to cause
+speculative timing leaks; \emph{ranks} them with a regression model so that
+only the most promising reach an expensive, precise oracle; and iterates
+\emph{generate $\to$ filter $\to$ oracle $\to$ retrain} to discover the
+\emph{smallest} leaking sequences. Table~\ref{tab:stages} maps each stage to
+its current state.
+
+\begin{table}[t]
+\centering
+\caption{Pipeline stages and their status. ``Validated'' means checked against
+  an oracle or hardware, not against our own classifier.}
+\label{tab:stages}
+\footnotesize
+\begin{tabularx}{\columnwidth}{@{}lX@{}}
+\toprule
+Stage & Status \\
+\midrule
+ISA description (DSL) & Built: declarative per-ISA specs drive graph
+  construction, tokenisation and realisation (Sec.~\ref{sec:spec}). \\
+Generator & Built; class/arch-conditioned; three ISAs generated, x86
+  validated (Sec.~\ref{sec:gen}). \\
+Oracles & Spectector (x86, V1/V4), InvisiSpec (x86, V1), Revizor on
+  i5-8300H (x86, V1/V4/MDS/L1TF). Emulator-driven speculation covers ARM64 and
+  riscv64 but is NOT validated against silicon
+  (Sec.~\ref{sec:specemu}). \\
+Filter / ranker & Non-learned pre-oracle gate measured: 18.2\% of
+  unadjudicable removed, below the 80\% target (Sec.~\ref{sec:precheck});
+  learned head built (\texttt{rank/}) and retargeted after the classifier
+  failed as a filter; \todo{learned-filter result} (Sec.~\ref{sec:rank}). \\
+Loop & RL loop runs with Spectector; filter not yet in the loop. \\
+Minimality & Revizor-minimize step built; \todo{results} (Sec.~\ref{sec:min}). \\
+Detector & GINE, locked cross-ISA version (Sec.~\ref{sec:detector}). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Contributions.}
+\begin{enumerate}[itemsep=1pt,leftmargin=1.4em]
+  \item A declarative ISA specification that drives program-dependence-graph
+    construction, checked against an independent assembler/disassembler
+    oracle. That check, along with follow-up audits, found four bugs that had
+    silently degraded every earlier result: x86 loads classified as stores,
+    size-suffixed mnemonics falling into \textsc{other}, AT\&T operand
+    direction, and ARM \texttt{blr}.
+  \item A measured account of what the detector's accuracy means: test-set
+    screening, opcode shortcuts, length confounding, cross-ISA transfer, and
+    synthetic-to-real transfer, each quantified with multi-seed statistics.
+  \item A hardware-labelling protocol on real Revizor violations. It
+    establishes, on silicon, which lfence placements mitigate each class, and
+    it supplies non-learned bars that any mitigation-aware model must beat.
+  \item An oracle-verified generation loop on x86 that produces distinct
+    leaking gadgets at high yield, with a powered (n=5) diversity/yield
+    analysis of pretraining.
+  \item Negative results reported as such: learned node features lose to
+    hand features; the classifier fails as a generation filter; simulator
+    oracles fail for store bypass.
+\end{enumerate}
+
+%% =========================================================================
 \section{Problem Formulation}
 \label{sec:problem}
 
-Let $S = (i_1, i_2, \ldots, i_n)$ be a \emph{window}---a contiguous
-sequence of assembly instructions extracted from a compiled binary. We seek a
-classifier $f: S \mapsto \mathcal{C}$ where
+\paragraph{Detection.}
+Let $S = (i_1, \ldots, i_n)$ be a window of assembly instructions. The
+detector is a classifier $f: S \mapsto \mathcal{C}$ with
 \begin{align*}
   \mathcal{C} = \{&\text{BENIGN}, \text{SPECTRE\_V1}, \text{V2}, \text{V4},\\
                   &\text{L1TF}, \text{MDS}, \text{RETBLEED},
                    \text{INCEPTION}, \text{BHI}\}.
 \end{align*}
+The task is assembly-only: no source, IR or runtime information.
+Exploitability depends on the microarchitecture, so a static label is a
+\emph{triage} signal for an oracle, not a verdict.
 
-The task is strictly \emph{assembly-level}: no source code, no compiler IR,
-no runtime information. Vulnerability presence is determined by structural
-patterns in the instruction sequence---existence of a speculation gadget, a
-secret-dependent access, and a covert channel transmitter---all of which must
-be detectable from register/memory dependency structure and instruction
-semantics without symbolic execution.
-
-The nine classes reflect the primary microarchitectural covert-channel
-families (Table~\ref{tab:classes}). BHI (Branch History Injection) was added
-in this work to distinguish it from Spectre~V2; the distinction lies in the
-exploitation vector (indirect branch prediction vs.\ branch history table
-poisoning) and manifests in different call patterns and gadget structure at
-the assembly level.
+\paragraph{Discovery.}
+A generator $g(\cdot \mid c, a)$ samples sequences for class $c$ and ISA $a$.
+An oracle $O(S) \in \{\textsc{leak}, \textsc{safe}, \textsc{unrunnable}\}$
+labels a candidate; an oracle call costs from seconds (Spectector) to tens of
+minutes (InvisiSpec) or a hardware batch slot (Revizor). A filter $r(S)$
+orders candidates so that confirmed leaks per oracle call are maximised. The
+end product is a set of leaking sequences that are \emph{minimal}: removing any
+instruction stops the leak.
 
 \begin{table}[t]
 \centering
-\caption{Vulnerability classes and distinguishing assembly primitives.}
+\caption{Vulnerability classes and characteristic assembly primitives.}
 \label{tab:classes}
 \small
 \begin{tabularx}{\columnwidth}{@{}lX@{}}
@@ -123,1221 +214,1546 @@ Class & Key assembly primitive(s) \\
 SPECTRE\_V1   & Bounds-bypass: \texttt{cmp; j*; ldr [base+idx*s]} \\
 SPECTRE\_V2   & Indirect branch: \texttt{blr xN / jmp *\%rN} \\
 SPECTRE\_V4   & Store-bypass: \texttt{str; (spec) ldr} same addr \\
-L1TF          & Page-probe: \texttt{shl \$12; movq (\%r1,\%r2)} \\
-MDS           & \texttt{movntdqa; verw; mfence} (MFBDS/MFPDS) \\
+L1TF          & Faulting load + page probe: \texttt{shl \$12; movq (\%r1,\%r2)} \\
+MDS           & Buffer sampling: assisted/faulting load, \texttt{verw}, \texttt{movntdqa} \\
 RETBLEED      & Return gadget: \texttt{push; nop*; pop; ret} \\
-INCEPTION     & RSB stuffing: dense \texttt{call/ret} pairs \\
-BHI           & \texttt{blr/jmp*} + \texttt{rdtsc+clflush} timing \\
+INCEPTION     & RSB stuffing: dense \texttt{call/ret} pairs (AMD Zen) \\
+BHI           & Indirect branch + branch-history conditioning \\
 BENIGN        & No speculative transmitter \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\section{Data Sources and Collection}
+%% =========================================================================
+\section{Data}
 \label{sec:data}
 
-The training corpus draws from four complementary sources to maximize
-coverage of compiler fingerprints, instruction set architectures, and
-exploit styles.
+\subsection{Synthetic and compiled corpus (in-distribution)}
+\label{sec:data-synth}
 
-\subsection{Internal Handcrafted Vulnerabilities}
-The primary source of labeled attack-class data is a set of hand-authored C
-files encoding canonical vulnerability patterns for each class (directory
-\texttt{c\_vulns/}). Each C file is compiled with GCC and Clang across
-optimization levels O0--O3 for x86\_64 and ARM64, yielding diverse assembly
-realizations of the same logical gadget. The compiler invocations
-intentionally include platform-specific flags (\texttt{-march=native},
-\texttt{-mretpoline}, etc.) to expose the model to mitigation-related
-instruction sequences.
+\paragraph{Internal handcrafted vulnerabilities.}
+Hand-authored C files encoding canonical patterns per class
+(\texttt{c\_vulns/}), compiled with GCC and Clang at O0--O3 for x86\_64 and
+ARM64. Only about 21 of them are complete, runnable proofs of concept; the
+remaining $\sim$1,400 \texttt{.s} files and 530 variant \texttt{.c} files are
+pattern fragments without a secret-to-transmitter data flow. This is why the
+oracles in Section~\ref{sec:oracles} matter: most training gadgets were never
+executable leaks.
 
-\subsection{Phase~9 Compiler-Synthesized Samples}
-A second corpus (tagged \texttt{p9\_*} in the dataset) was produced by a
-separate pipeline that compiled known-vulnerable kernel and library code
-(Linux kernel PoCs, Spectre PoC repositories) using a broader cross-compiler
-matrix: GCC and Clang for x86\_64-linux-gnu and aarch64-linux-gnu at O0 and
-O1. These samples provide additional diversity in calling convention,
-function prologue/epilogue structure, and inline assembly style not captured
-by the handcrafted files.
+\paragraph{Compiler-synthesised samples (\texttt{p9\_*}).}
+Known-vulnerable kernel and library code compiled with GCC and Clang for
+x86\_64 and AArch64 at O0 and O1.
 
-\subsection{External Verified Sources}
-Three external corpora provide independently verified attack samples:
+\paragraph{External sources.}
+Google SafeSide~\cite{safeside} (200 samples, compiled for
+\texttt{x86\_64}/\texttt{arm64}, O0--O3); the Spectector
+benchmarks~\cite{spectector} (101 vanilla Kocher variants~\cite{kocher1998});
+and up to 300 FastSpec~\cite{fastspec} synthetic V1 gadgets, used for
+training only.
 
-\paragraph{Google SafeSide~\cite{safeside}}
-A collection of hardware-confirmed proof-of-concept exploits covering
-Spectre~V2 (BTB poisoning), Spectre~V4 (speculative store bypass),
-Spectre~RSB (return stack buffer), and partial L1TF scenarios. SafeSide is
-distributed under BSD-3-Clause and GPLv2; we compiled each source file with
-Apple Clang for both \texttt{x86\_64-apple-macos} and
-\texttt{arm64-apple-macos} at O0--O3 (200 total samples).
+\paragraph{Benign code.}
+Benign assembly from 1,031 GitHub repositories, compiled for ARM64. The
+original corpus contained \emph{no x86 benign code}; Section~\ref{sec:xisa}
+shows the consequence (x86 benign false-positive rate 98.4\%) and the fix: real
+x86 and ARM benign functions compiled from mbedTLS, with a disjoint slice held
+out for validation.
 
-\paragraph{Spectector Benchmarks~\cite{spectector}}
-Formally verified Spectre-V1 assembly files from three real compilers (Intel
-ICC, GCC, Clang) applied to 15 Kocher variant programs~\cite{kocher1998}.
-We include only the ``vanilla'' (unpatched, non-fenced) variants to prevent
-label contamination from lfence-inserted mitigations. These provide diversity
-in V1 gadget structure beyond our internal clang-only corpus (101 samples).
+\paragraph{Splits.}
+The locked test set (1,670 records; frozen since pipeline v53) and the v54/v55
+training sets are summarised in Appendix~\ref{app:history}. A
+length-matched, multi-scale training set
+(\texttt{v54\_train\_lenmatch\_v4s}, 18,897 records before V4-family
+additions) fixes the length confound of Section~\ref{sec:xisa}.
 
-\paragraph{FastSpec~\cite{fastspec}}
-A dataset of 956K synthetic Spectre-V1 gadgets generated by formal
-synthesis. We sample up to 300 records to maintain class-ratio balance;
-FastSpec records are used for training only and excluded from the validation
-split (``train-only'' partition) because their synthetic distribution may not
-represent the natural test distribution.
+\subsection{Test-set screening defect and the unscreened split}
+\label{sec:screening}
 
-\subsection{Benign Code}
-Benign (SPECTRE-free) assembly is collected from 1,031 GitHub repositories
-spanning diverse application domains (networking, compression, text
-processing) compiled with GCC and Clang for ARM64 at O1--O3. The breadth of
-benign sources is essential: \textsc{SpecExec} must generalize to arbitrary
-production code rather than memorizing the negative class.
+The v53 dataset builder applied a \emph{label-conditioned} filter
+(\texttt{has\_train\_attack\_signal}) to the test pool, three lines after a
+comment saying it did not. Every locked test record therefore satisfies a
+hand-written rule keyed on its own label (e.g.\ an MDS record must contain
+\texttt{verw}, \texttt{movntdqa} or \texttt{clflush}): 100\% conformance for
+every class, against 41\% (\cls{Retbleed}) and 69\% (\cls{Inception}) on an
+unscreened control. This is selective data snooping in the sense of Arp et
+al.~\cite{arp2022}, and it guarantees a shortcut on the test set.
 
-\subsection{Dataset Statistics}
+We fixed the builder: the label-conditioned filter now raises if it is called
+on a non-training split. We also rebuilt an \emph{unscreened} test split
+(1,017 records) from the pre-filter pool, using only label-independent quality
+criteria. Table~\ref{tab:screening} gives the inflation. The flat feature
+models lose 4--5\,pp; the GINE graph model loses 0.3\,pp, because the graph
+structure survives the screening.
 
-Table~\ref{tab:data} summarizes the final training and test splits. The test
-set is \emph{locked} from v53 of the pipeline and has not been modified
-across subsequent versions, enabling direct comparison of model improvements.
-
-\begin{table*}[t]
+\begin{table}[t]
 \centering
-\caption{v55 dataset statistics (training and locked test set).}
+\caption{Accuracy on the locked (screened) test set vs.\ the rebuilt
+  unscreened split. Source: \texttt{SPECDISCOVER\_TEST\_SET\_SCREENING.md}.}
+\label{tab:screening}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Model & Locked & Unscreened & $\Delta$ \\
+\midrule
+Hand-58 (RF)        & 95.15\% & 90.19\% & $-4.96$\,pp \\
+Spec-42 (RF)        & 96.90\% & 93.18\% & $-3.72$\,pp \\
+GINE (spec builder) & 92.75\% & 92.43\% & $-0.32$\,pp \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Cross-ISA data}
+\label{sec:data-riscv}
+
+\paragraph{RISC-V corpus.}
+498 files cross-compiled for riscv64. An ISA-independence test on
+canonical-op bigrams (Section~\ref{sec:xisa}) shows this corpus is
+\emph{transliterated from ARM64}, not written for RISC-V. In all 6 shared
+classes it is closer to ARM than ARM is to x86 (sign test $p=0.016$). We
+therefore treat it as a stand-in, not as idiomatic RISC-V. A held-out version
+with corrected labels (\texttt{riscv\_loio\_corpus\_v2}, 248 records, 27
+attacks) is used for evaluation.
+
+\paragraph{Real RISC-V proofs of concept.}
+11 records from 4 published RISC-V PoCs (BOOM RTL attacks; T-Head C910
+silicon), stamped validation-only. This is the only RISC-V evidence
+independent of our own corpus. In-order RISC-V cores (SiFive U74, T-Head
+C906/C908) are empirically not vulnerable, so claims are scoped to
+out-of-order cores.
+
+\subsection{Real hardware violations (Revizor, i5-8300H)}
+\label{sec:data-hw}
+
+Revizor~\cite{revizor} fuzzing campaigns on a bare-metal Intel i5-8300H (Coffee
+Lake) produced \textbf{423 unique violating programs}: Spectre~V1 130, L1TF 155,
+MDS 83, Spectre~V4 55. Each class comes from its own Revizor configuration
+(instruction categories and contract). A seed ledger prevents reusing a
+program-generator seed, because a reused seed regenerates byte-identical
+programs. Violating programs (Intel syntax, \texttt{r14}-relative sandbox) are
+converted to the pipeline's AT\&T format with an assemble/disassemble round trip
+(\texttt{clang} + \texttt{llvm-objdump}). The held-out split is by violation
+(group), with disjoint generator seeds: V1 54, L1TF 64, MDS 33, V4 22. A
+leakage audit (exact-sequence, group, seed and near-duplicate checks; maximum
+held-out-to-train similarity 0.76) passes.
+
+%% =========================================================================
+\section{Oracles}
+\label{sec:oracles}
+
+Every claim that a sequence leaks comes from one of the oracles below, never
+from our own classifier.
+
+\subsection{Spectector (symbolic, x86)}
+Spectector~\cite{spectector} checks speculative non-interference over x86
+assembly. It is deterministic and runs in a container (Docker for development,
+Apptainer on the cluster). A per-gadget timeout of at least 300\,s is needed,
+because Spectre~V1 data checks take 25--40\,s and a 30\,s limit times out real
+leaks. Spectector models conditional-branch (PHT) speculation. In our
+multi-class runs it can rule on 82\% of generated V1 gadgets and 87\% of V4
+gadgets, but only 15\% of V2 and 0.2\% of Retbleed gadgets. It cannot model
+L1TF/MDS faults. The continuous \texttt{trace\_length} it reports measures the
+size of the symbolic formula, not the severity of the leak.
+
+\subsection{gem5 and InvisiSpec (execution)}
+Stock gem5 v24 (O3 CPU, classic caches) does \emph{not} leave a
+misspeculated-load cache footprint: squashed loads are discarded at
+translation, so Flush+Reload never sees a signal. We rejected it as an
+oracle. The 2019 InvisiSpec~\cite{invisispec} gem5 fork with classic caches
+does leak Spectre~V1: it recovers all 40 secret bytes of a tuned PoC. It does
+\emph{not} reproduce store bypass. An earlier ``V4 leaks 40/40'' result was a
+measurement bug: the harness counted confident cache hits rather than checking
+that the recovered byte matched the secret. With byte matching, it recovers
+0/40 correct bytes. Lesson: a Flush+Reload verdict must compare the recovered
+value with the secret.
+
+\subsection{Revizor on real hardware (i5-8300H)}
+Revizor~\cite{revizor} runs randomly generated programs on the real CPU through
+a kernel module and reports a \emph{violation} when hardware traces differ for
+inputs that a speculation contract says are equivalent. Controls used:
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{MDS and L1TF} violations (3/184 and 3/53 test cases in the
+    first campaign) persist with SMT disabled, ruling out sibling-thread
+    noise.
+  \item \textbf{Spectre~V4}: a revised configuration (straight-line code,
+    store$\to$load pairs) found 15 violations across 5 seeds. Enabling the
+    speculative-store-bypass mitigation (SSBP MSR) gives 0; disabling SMT
+    gives 16. Every violating program has a single basic block and no
+    conditional branch, so it is store bypass, not V1.
+\end{itemize}
+Revizor runs in batches and only on the bare-metal machine, so it is the most
+expensive oracle per candidate.
+
+\subsection{Which mechanisms any oracle here can model}
+\label{sec:oraclecoverage}
+
+Verification coverage, not data, is what bounds this work per class, so it is
+worth stating exactly where the boundary falls and why.
+
+\paragraph{Revizor cannot be configured for indirect-branch or return
+speculation.} Its contract-execution clauses are conditional-branch
+misprediction, store bypass, and fault or assist transients
+(\texttt{seq}, \texttt{cond}, \texttt{bpas}, \texttt{meltdown},
+\texttt{nullinj-*}, \texttt{seq-assist}, \texttt{vspec-*}). There is no
+indirect-branch clause and no return-prediction clause, and our four demo
+configurations map one-to-one onto the four usable clauses---so the four
+missing classes are not an oversight in our configurations but outside the
+tool's contract model. The limitation is deeper than a missing clause: the x86
+configuration also comments out \texttt{BASE-CALL}, \texttt{BASE-RET} and
+\texttt{BASE-UNCOND\_BR} as ``Not supported: Complex control flow'', so calls
+and returns are excluded from the generated instruction pool as well. No CPU
+purchase changes this.
+
+\paragraph{Upstream Spectector models conditional branches only.} Our oracle
+invokes it as \texttt{run-spectector -a noninter}, which is why it rules on
+about 82\% of SPECTRE\_V1 candidates and 87\% of SPECTRE\_V4 but only about
+15\% of SPECTRE\_V2 and 0.2\% of RETBLEED.
+
+\paragraph{A published extension covers part of the gap.}
+Spectector-Combined~\cite{fabian2022} extends the analysis with further
+mechanisms selected per run by a \texttt{--version} flag: conditional branch,
+indirect branch, store forwarding, return speculation, and straight-line
+speculation, combinable except where two mechanisms speculate on the same
+instructions. In principle this makes SPECTRE\_V2 symbolically adjudicable with no hardware
+at all, which would be the single largest coverage gain available to this
+project. Our side is integrated and tested---the flag (\texttt{-v}, which is
+undocumented in the tool's usage text and discoverable only from the fork's own
+test scripts), a per-class mechanism map that deliberately omits MDS, L1TF and
+BHI because it models none of their mechanisms, and a separate container image
+so existing V1/V4 results stay reproducible against the oracle that produced
+them.
+
+\textbf{The artifact does not run against current Ciao, and the fix was to pin
+Ciao to the fork's era.} Built FROM the base image's current Ciao, the fork
+compiles---\texttt{semanticsv2.pl} present, \texttt{-v 2} accepted---but its
+binary fails at run time on even a two-line program, with and without
+\texttt{-v} and on the fork's own bundled tests, while the upstream image
+analyses the same victim correctly. Diagnosing it as version drift (the fork is
+a 2022 artifact requiring only \texttt{core} $\geq 1.18$) and rebuilding
+against Ciao v1.22.0-m1 (2022-09-28) resolves it: the minimal program returns
+\textsc{safe} and the fork's V2 example returns a data leak with well-formed
+statistics. \texttt{Dockerfile.spectector\_combined\_pinned} records the recipe,
+and its build self-tests the V2 example so a green build is a working oracle.
+
+Our oracle's call path also needed the flags the fork's own scripts use on the
+extended analyses---an explicit entry point (auto-detected from the compiled
+\texttt{.s}), \texttt{--skip-uns --parse-uns}, and a speculative window---gated
+so the upstream V1/V4 path is byte-identical to before.
+
+\paragraph{V2 is now adjudicable at the same rate as V1.} Measured on the
+cluster over 590 generated SPECTRE\_V2 bodies (the local container OOMs on
+heavyweight victims; Table~\ref{tab:v2adj}), Spectector-Combined rules on
+\textbf{82.2\%} of them---indistinguishable from V1's 82\% and V4's 87\% under
+upstream Spectector, and a step change from the $\sim$15\% upstream manages on
+V2. That is the coverage this whole thread was for: V2 moves from no working
+oracle to symbolically adjudicable.
+
+Two controls keep the number honest, and one of them already did its job. A
+\emph{positive-control anchor}---a known-leaking V2 gadget that must return
+\textsc{leak} unfenced and \textsc{safe} fenced---is run in every shard; it is
+the guard that a \textsc{safe} verdict is a real analysis result and not a
+silent timeout. At a 50-instruction window the anchor passes in all ten shards;
+at a 200-instruction window it \emph{fails in all ten} (the wider analysis
+times the anchor out), so that run's numbers are discarded rather than reported
+--- the same timeout-masquerading-as-safe failure that produced this project's
+retracted V4 result, caught here by the control before it reached a table. The
+82.2\% is the anchor-validated window.
+
+The generated V2 bodies leak rarely even when adjudicable: 4 of 485 (0.8\%),
+and all four are turned \textsc{safe} by a landing-pad fence (the second
+control, with zero fenced-leak anomalies). So the class-conditioned generator
+emits V2-shaped code that mostly does not actually leak under the V2 contract,
+consistent with the earlier near-zero V2 RL yield---the gap there was partly
+the oracle (now closed) and partly the generator (still open).
+
+\begin{table}[t]
+\centering
+\caption{SPECTRE\_V2 adjudicability under Spectector-Combined (\texttt{-v 2}),
+  590 generated bodies, cluster. The 50-instruction window is the
+  anchor-validated one; the 200-instruction window's positive-control anchor
+  timed out in all ten shards, so it is shown only to record that it was
+  rejected. Source: \texttt{eval/v2\_combined/summary.md}.}
+\label{tab:v2adj}
+\footnotesize
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+window & adjudicable & leak (of adj.) & fence$\to$safe & anchor \\
+\midrule
+w=50  & \textbf{82.2\%} & 0.8\% (4) & 4/4 & passes \\
+w=200 & 77.8\%          & 1.1\% (5) & 5/5 & \textbf{fails: discarded} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+That the only published extension closing our largest class gap is a 2022
+prototype needing an era-matched toolchain to run at all is itself a finding
+about why the gap persists.
+
+One question must be settled before it is used for RETBLEED: whether its
+return model covers the return-buffer-underflow fallback to the branch target
+buffer that defines that attack on Intel, or only plain return speculation.
+Until that is answered, a RETBLEED verdict from it would be unsupported.
+
+\paragraph{What remains genuinely unreachable.} INCEPTION is an AMD~Zen
+mechanism and BHI needs a part with enhanced IBRS; on the Coffee~Lake machine
+used here, branch-history injection falls under ordinary branch-target
+injection and is not separately testable. Those two are hardware-blocked and
+are scoped out of this paper's verification claims rather than left looking
+unfinished. Table~\ref{tab:coverage} summarises the resulting position.
+
+\begin{table}[t]
+\centering
+\caption{Leak-verification coverage by class. ``Detection only'' means the
+  classifier assigns the class but no oracle confirms a leak---a tooling
+  limit, not a property of the data.}
+\label{tab:coverage}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\columnwidth}{@{}lX@{}}
+\toprule
+Class & Verification available (x86) \\
+\midrule
+SPECTRE\_V1 & Spectector + Revizor \texttt{cond} \\
+SPECTRE\_V4 & Spectector + Revizor \texttt{bpas} (SSBD control) \\
+MDS & Revizor \texttt{seq-assist} \\
+L1TF & Revizor delayed-exception \\
+SPECTRE\_V2 & Spectector-Combined, \textbf{82.2\% adjudicable} (Tab.~\ref{tab:v2adj}) \\
+RETBLEED & Spectector-Combined return model, pending the return-model question \\
+INCEPTION & none: AMD~Zen hardware \\
+BHI & none: needs enhanced-IBRS silicon \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Emulator-driven speculation, where no oracle exists}
+\label{sec:specemu}
+
+Every oracle above is x86. The generator emits ARM64, and the ISA
+specification, tokeniser and realiser also cover riscv64, so ``the generator
+cannot write a leaking ARM64 gadget'' and ``we have no ARM64 oracle'' were
+indistinguishable. A CPU emulator does not by itself fix this: Unicorn, like
+the QEMU it derives from, reproduces only the architectural effect of each
+instruction and has no branch predictor and no caches, so it can never be
+\emph{asked} whether a sequence leaks.
+
+We therefore drive the speculation rather than observe it
+(\texttt{oracle/spec\_emulator.py}). For each conditional branch, the emulator
+runs to the branch, snapshots the CPU, executes the branch alone to learn the
+resolved successor, restores the snapshot, sets the program counter to the
+\emph{other} successor, and runs a bounded window of instructions while
+recording the cache lines touched by loads and stores and the instruction
+addresses fetched. The verdict follows the same property Spectector checks
+symbolically and Revizor checks against hardware, evaluated concretely:
+
+\begin{quote}
+Given two inputs that differ \emph{only} in a designated secret region, if
+their non-speculative observations are identical but their speculative
+observations differ, the sequence leaks the secret through speculative
+execution.
+\end{quote}
+
+Three details carry the result.
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{Inputs differ only in the secret.} Two independently random
+    memory images essentially never produce identical architectural
+    observations; an earlier version compared full random inputs and returned
+    ``no architecturally equivalent pair'' for 20 of 25 real violations,
+    measuring nothing. The public region is therefore byte-identical across
+    the pair and only a secret region varies. That region sits above the
+    8\,KiB window Revizor's generated programs mask their addresses into
+    (\texttt{and reg, 0b1111111111111}), so an architectural access cannot
+    reach it while a misspeculated, unmasked one can---the standard
+    Spectre-V1 arrangement.
+  \item \textbf{Architectural equality is required}, which is what separates a
+    speculative leak from an ordinary architectural data flow. When it fails,
+    the secret is observable with no speculation at all; that is reported as a
+    distinct \textsc{arch\_leak} outcome and never counted as a speculative
+    leak.
+  \item \textbf{Barriers are modelled explicitly.} Unicorn executes
+    \texttt{lfence} as a no-op, because it has no speculation to serialise, so
+    a forced window runs straight through a fence and reports a mitigated
+    gadget as leaking---we observed exactly that. A speculative window now
+    stops at the first serialising instruction, which is the defining
+    semantics of a fence under a speculation contract and matches Spectector's
+    translation of \texttt{lfence} to its \texttt{spbarr} barrier. Per ISA:
+    x86 \texttt{lfence}/\texttt{mfence}/\texttt{sfence}/\texttt{cpuid},
+    ARM64 \texttt{dsb}/\texttt{isb}/\texttt{csdb}, riscv64 \texttt{fence}.
+\end{itemize}
+
+\paragraph{Scope, which is narrow.}
+Only conditional-branch (PHT) misprediction is modelled. Store-to-load
+forwarding (V4), return prediction (Retbleed, Inception), indirect prediction
+(V2, BHI) and faulting or assisted loads (L1TF, MDS) are not, so a
+\textsc{safe} verdict means ``no conditional-branch speculative leak'', never
+``no leak''. Only the first execution of each branch is explored, and inputs
+are concrete, so the check under-approximates: a \textsc{leak} verdict is worth
+considerably more than a \textsc{safe} one.
+
+\paragraph{Known-answer behaviour.}
+On hand-written gadgets the emulator gives the textbook answers on
+\emph{both} x86\_64 and ARM64: a Spectre-V1 shape leaks; the same shape with a
+barrier between the guard branch and the secret read is safe; and a barrier
+placed after the transmitter still leaks. That last discrimination is the one a
+position-based rule cannot make, and it is the one the hardware labels of
+Section~\ref{sec:hwlabel} establish on silicon. ARM64 uses
+\texttt{dsb sy; isb}, the same barrier Revizor's own fence pass emits for that
+ISA.
+
+\paragraph{Validation against evidence it did not produce.}
+A model is worth nothing on its own word, so the emulator is scored against the
+806 hardware-labelled fenced variants (Section~\ref{sec:hwlabel}), whose labels
+are a measured property of a real CPU, and against Spectector's verdicts on
+generated x86 gadgets. Because it is executed rather than pattern-matched, the
+emulator runs each variant's committed Intel-syntax \texttt{program.asm}: the
+corpus's AT\&T \texttt{sequence} field lost its branch labels in the
+assemble/disassemble round trip (they survive only as objdump annotations such
+as \texttt{jnp 0x7e <.bb\_0.1>}, which no assembler accepts), so control flow
+has to come from the original program text
+(\texttt{oracle/revizor\_asm.py}). Of the four hardware-labelled classes only
+Spectre~V1 is within the modelled mechanism; the other three are reported
+separately rather than folded into an accuracy figure.
+\textbf{The result is negative, and the reason is structural.} The emulator
+returns \textsc{safe} for all 806 hardware-labelled variants: it finds not one
+speculative leak. Its apparent 0.580 agreement on the in-scope class is
+therefore an artefact of 58\% of those labels being \textsc{benign}---it is a
+constant predictor, and the interior-fence rule beats it at 0.987
+(Table~\ref{tab:specemu}).
+
+The cause is not a missing mechanism but a mismatch of threat model.
+Revizor's generated programs mask \emph{every} address into their sandbox
+(\texttt{and reg, 0b1111111111111}), and that instrumentation is on the
+mispredicted path too, so such a program never reads outside its sandbox even
+speculatively. There is consequently no out-of-bounds secret for a
+secret-versus-public comparison to find, and the construction that makes the
+check work on a textbook Spectre gadget cannot express what Revizor's
+violations actually are: a difference in \emph{which in-sandbox addresses} are
+touched under speculation, relative to what the contract permits. Detecting
+those requires Revizor's own method---many inputs, grouped into equivalence
+classes by the model's contract trace---rather than a secret/public split.
+
+\paragraph{Re-posing as a contract check: better framing, still not
+validated.} We then built exactly that (\texttt{check\_contract}): run many
+random inputs, group them by their non-speculative trace, and flag a leak when
+forced speculation distinguishes inputs the contract calls equivalent. This is
+the framing the hardware labels were produced under, and it does apply to the
+address-masked programs the secret/public mode was blind to---only 13 of 120
+Spectre~V1 variants now go unadjudicated, against essentially all of them
+before. But it still does \emph{not} reproduce the labels: agreement on the
+in-scope class is \textbf{0.61}, against the interior-fence rule's 0.98
+(Table~\ref{tab:specemu}). The per-variant breakdown says why, and it is
+informative rather than random: the emulator agrees with hardware on the
+boundary-fence twins (0.90) and on \texttt{fence\_all} (0.88)---it correctly
+sees a fence in the taken block stop the forced speculation---but it misses the
+\texttt{shifted} mitigation (0.48; the fence sits \emph{before} the branch,
+and real silicon mitigates because it serialises the loads feeding the branch
+condition, which a model that forces the branch regardless cannot represent)
+and it calls most genuinely vulnerable \texttt{entry}/\texttt{tail}/fall-through
+variants safe (0.39--0.44; forcing the other path produces no distinguishable
+observation for them). So the contract re-posing fixed the applicability
+problem and left a fidelity problem: the emulator's unconditional
+force-the-other-path model is too coarse to match what the predictor and the
+branch's data dependence actually do.
+
+\paragraph{What the emulator is therefore good for, and not.}
+It is \emph{not} validated against silicon---neither the secret/public mode
+(0.58, a constant predictor) nor the contract mode (0.61) beats a positional
+rule---so no ARM64 or riscv64 leak verdict from it is hardware-grade, and the
+paper claims none. What survives is narrower: on textbook-shaped gadgets it
+gives the right answers on two ISAs, including the fence-placement
+discrimination the hardware labels confirm, and the indirect-branch and return
+mechanisms added for V2/RETBLEED are unit-tested on hand gadgets
+(Section~\ref{sec:future}). That makes it a usable sanity check on
+\emph{generator} output of those shapes, and the contract-mode machinery is the
+right scaffold for a higher-fidelity predictor model, but it is not a
+substitute for the hardware oracle.
+
+\begin{table}[t]
+\centering
+\caption{Speculative emulator against ground truth it did not produce.
+  In-scope = the class whose mechanism it models. Bars are the non-learned
+  rules of Table~\ref{tab:hwscore}. The emulator returns \textsc{safe} for
+  every one of the 806 variants, so its ``agreement'' is just the
+  \textsc{benign} base rate and it loses to both bars.
+  $^\dagger$ not a like-for-like comparison: Spectector adjudicates the whole
+  spliced victim program, the emulator sees only the generated body, and all
+  300 bodies are branch-free. Source:
+  \texttt{oracle/spec\_emulator\_validation.md}.}
+\label{tab:specemu}
+\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Reference & $n$ & emulator & interior bar & adjacent bar \\
+\midrule
+HW labels, V1 (in scope)   & 224 & 0.580 & \textbf{0.987} & 0.786 \\
+HW labels, L1TF (out of scope) & 314 & 0.602 & 1.000 & 0.908 \\
+HW labels, MDS (out of scope)  & 165 & 0.612 & 0.988 & 0.903 \\
+HW labels, V4 (out of scope)   & 103 & 0.631 & 0.981 & 0.893 \\
+Spectector, generated x86  & 300 & n/a$^\dagger$ & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Hardware labels for fenced variants}
+\label{sec:hwlabel}
+
+Training a model to recognise \emph{mitigated} code requires knowing that a
+fence mitigates. Our first ``mitigated twins'' were structural assumptions
+(Section~\ref{sec:hw-mitig}), so we replaced them with hardware labels.
+
+\paragraph{Protocol.}
+For each held-out violation we write fenced variants of the original
+\texttt{program.asm}, keeping labels intact
+(\texttt{oracle/revizor/scripts/hw\_label\_variants.py}):
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item \texttt{original} (positive control);
+  \item \texttt{fence\_all} (an lfence after every instruction);
+  \item \texttt{twin} (the class boundary: V1 at the start of the jcc's taken
+    block; V4 after each store; MDS/L1TF before each load);
+  \item \texttt{shifted} (V1 before the jcc; V4 before each store);
+  \item \texttt{after\_load} (MDS/L1TF);
+  \item \texttt{v1\_fallthrough} (the jcc's exit path);
+  \item \texttt{entry} and \texttt{tail}, with the same number of fences as
+    the twin.
+\end{itemize}
+Each variant is re-run with \texttt{rvzr reproduce} three times on the
+violation's own inputs and configuration, with Revizor's speculation and
+observation filters turned \emph{off}: a filtered test case would read as ``no
+violation'' and be mistaken for ``mitigated''. A variant is \emph{vulnerable}
+if it violates in 3/3 runs and \emph{mitigated} if in 0/3; anything else is
+flaky. A violation directory whose unmodified original does not reproduce 3/3
+is unstable and contributes no labels. Revizor's parser forbids an instruction
+directly after a jump, so such placements are skipped. We checked that every
+program-level variant converts to exactly the sequence-level training variant,
+apart from jump offsets, which shift by the bytes the fences add.
+
+\paragraph{Results.}
+Table~\ref{tab:hwlabel} (3,024 reproduce calls; 806 labelled records).
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{A fence at the class boundary mitigates every class}, in every
+    stable directory. For V4 this is the first evidence that an lfence, and
+    not only the SSBD MSR, removes these leaks.
+  \item \textbf{Fences far from the leak do not mitigate}: entry/tail
+    variants stay vulnerable in 289/316 stable cases.
+  \item \textbf{The jcc's exit path does not mitigate V1}: 32/32 non-flaky
+    directories stay vulnerable.
+  \item \textbf{A fence just \emph{before} the jcc or store also mitigates}
+    (41/41 and 21/21). A plausible mechanism, not yet tested: in Revizor's
+    programs the branch condition and the store address come from loads, and
+    a fence waits for those loads, so the branch resolves (or the store
+    address is known) before anything can speculate past it.
+\end{itemize}
+Stability: 9 of 54 V1 originals do not reproduce 3/3, and V1 misplaced
+variants are flaky in 7--10 of 41 directories. MDS, L1TF and V4 are clean.
+
+\begin{table}[t]
+\centering
+\caption{Hardware labels for fenced variants (i5-8300H, \texttt{rvzr
+  reproduce} $\times 3$, filters off). Cells: vulnerable / stable
+  directories; 0 means mitigated everywhere. Source:
+  \texttt{oracle/revizor/results/hw\_label\_261007}.}
+\label{tab:hwlabel}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Variant & L1TF & MDS & V1 & V4 \\
+\midrule
+stable / total dirs & 63/64 & 33/33 & 45/54 & 21/22 \\
+\midrule
+twin (boundary fence) & 0/63 & 0/33 & 0/41 & 0/21 \\
+fence\_all            & 0/63 & 0/33 & 0/45 & 0/21 \\
+shifted (before)      & ---  & ---  & 0/41 & 0/21 \\
+after\_load           & 0/63 & 0/33 & ---  & ---  \\
+entry                 & 63/63 & 32/33 & 31/41 & 17/21 \\
+tail                  & 62/63 & 32/33 & 31/41 & 21/21 \\
+v1\_fallthrough       & ---  & ---  & 32/41 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Mid-sequence counterexamples (in progress).}
+In this variant set every non-mitigating fence sits at the start or end of the
+sequence, and every mitigating one sits inside it. A non-learned rule,
+``\cls{Benign} iff some lfence is inside the sequence'', therefore matches
+799/806 labels (0.991). The set cannot tell structural understanding from
+fence position. We added four counterfactual variants that put a fence
+\emph{inside} the sequence where it may not mitigate:
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item \texttt{cf\_wrong\_path} (V1): \texttt{jcc; .bb\_new: lfence; jmp}.
+    In AT\&T form this is exactly our pre-October V1 twin.
+  \item \texttt{cf\_nonleak}: a fence next to memory operations that
+    \texttt{rvzr minimize} found unnecessary for the violation.
+  \item \texttt{cf\_after\_bypass} (V4): a fence after the load that follows
+    the essential store.
+  \item \texttt{cf\_fencepass}: Revizor's fence-insertion pass, which keeps
+    every fence the violation survives.
+\end{itemize}
+\todo{hardware labels for these variants on the held-out and training pools;
+fill Table~\ref{tab:hwlabel} rows and the interior-fence bar.}
+
+%% =========================================================================
+\section{ISA Specification and Graph Construction}
+\label{sec:spec}
+
+\subsection{Declarative ISA specification}
+Classification logic (opcode categories, memory-access types, speculation
+flags, def/use registers, edge windows, realisation parameters) lives in
+per-ISA JSON specifications (\texttt{spec/x86\_64.json},
+\texttt{arm64.json}, \texttt{riscv.json}) over a shared \texttt{base}
+document. A generic engine with no ISA knowledge of its own interprets them.
+The spec was first exported from the hand-built PDG builder and verified
+identical on the full corpus (25,942 instruction pairs; 207,113 nodes and
+437,231 edges; zero mismatches). Because an exported spec matches its source by
+construction, that check proves refactoring fidelity, not correctness.
+
+\subsection{Independent oracle gate and the bugs it and its follow-ups found}
+\label{sec:spec-bugs}
+For correctness, each instruction is assembled with \texttt{llvm-mc}, and its
+control-flow class is read back with \texttt{capstone}. Agreement was 98.80\%
+at first (274 defects), and is 99.86\% on the current specs. A repeatable gate
+(\texttt{scripts/run\_feature\_gate.sh}) must pass before any spec or feature
+change is trusted. The gate and the audits that followed it found:
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{ARM \texttt{blr}} indirect calls fell into \textsc{other}.
+    Fixing it raised Spectre~V2 recall from 76\% to 94\% (+1.32\,pp accuracy).
+  \item \textbf{x86 loads classified as stores.} In AT\&T syntax one mnemonic
+    (\texttt{movq}) serves both directions, and the store rule was checked
+    first. 58.5\% of unambiguous x86 memory instructions were misclassified,
+    which made the secret-source and transmitter flags effectively dead on x86
+    (0.01\% vs.\ 1.00\% on ARM). Fixed by an operand-order field in the spec
+    (0.87\% after the fix). The control-flow oracle gate \emph{cannot see this
+    class of bug}, because it covers only CALL/RET/JUMP.
+  \item \textbf{Size-suffixed mnemonics} (\texttt{addq}, \texttt{pushq},
+    \ldots) missed word-boundary patterns: 28\% of all instructions landed in
+    \textsc{other}. Fixed to below 0.3\% on all three ISAs.
+  \item \textbf{AT\&T destination direction} (the first register taken as the
+    destination), sub-register aliasing (\texttt{eax}/\texttt{rax},
+    \texttt{w0}/\texttt{x0}, \texttt{a0}/\texttt{x10}), and data dependence
+    from the last three definitions instead of the reaching definition.
+    A probe classifier that predicts the ISA from each input channel dropped
+    from 0.98 to 0.82 (categories) and from 0.86 to 0.75 (graph) after these
+    fixes. The remaining ISA signal is real (e.g.\ RISC-V's fused
+    compare-and-branch).
+\end{itemize}
+Every result produced before these fixes is re-measured or withdrawn. The
+in-distribution accuracy in Section~\ref{sec:indist} is on current code.
+
+\subsection{Program dependence graph}
+\label{sec:pdg}
+Each window becomes a PDG with one node per instruction. Node features
+(41 dims): opcode-category one-hot (19), memory-access type (5), register
+degree (2), and 14 binary speculation flags (\texttt{is\_branch},
+\texttt{is\_secret\_source}, \texttt{is\_transmitter}, \texttt{is\_lfence},
+\ldots). There are nine edge types:
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item DATA\_DEP: reaching definitions;
+  \item CONTROL\_FLOW;
+  \item SPEC\_CONDITIONAL, SPEC\_INDIRECT and SPEC\_RETURN: from a
+    speculation source to the instructions in its window;
+  \item MEMORY\_ORDER;
+  \item CACHE\_TEMPORAL;
+  \item FENCE\_BOUNDARY;
+  \item RSB\_CHAIN: call/return pairs.
+\end{itemize}
+Store bypass has no reliable static signature: an SSB edge we built also fired
+on $-$O0 Spectre~V1, which spills its index through the stack, so we
+reverted it. A related decision, now settled: under the spec builder,
+address-based MEMORY\_ORDER edges are emitted unconditionally
+(\texttt{memory\_order\_mode: "address\_base"}), which a per-model training flag
+does not override. The locked model and every baseline were trained with these
+edges present, so they are kept on; changing the default would invalidate the
+locked ensemble and all numbers measured against it, for an edge type whose
+recall effect is small. It is held behind the feature gate rather than left as
+an open question.
+
+\subsection{Tokenisation and learned instruction features}
+Instructions are normalised: registers become \texttt{<reg>}, immediates
+\texttt{<imm>}, memory operands \texttt{<mem>}/\texttt{<mem-idx>}, and
+neutralised call targets \texttt{<fn>}. Three vocabularies exist:
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item \emph{mnemonic}: literal mnemonics; 92.7\% out-of-vocabulary on RISC-V;
+  \item \emph{canonical}: 53 ISA-neutral operation names declared in the spec
+    (\texttt{addq}/\texttt{adds}/\texttt{addi} $\to$ \texttt{ADD}); 7.9--9.1\%
+    out-of-vocabulary on RISC-V;
+  \item \emph{neutral}: 0.0\% out-of-vocabulary on RISC-V.
+\end{itemize}
+A masked-language-model Transformer~\cite{devlin2019} trained on x86 and ARM
+yields per-instruction embeddings (\texttt{spec/mlm\_neutral.pt}). Token
+\emph{frequencies} still identify the ISA (0.98), so the locked model adds an
+adversarial architecture head (Section~\ref{sec:detector}).
+
+\subsection{Inline features}
+The 58 handcrafted inline features (opcode fractions, structural ratios,
+pattern densities, primitive flags, page-probe detection;
+Appendix~\ref{app:inline}) include many ISA literals. On RISC-V, 43 of the 58 are
+identically zero. A \emph{neutral} subset of 9 features that fire on every ISA
+is used in the cross-ISA configuration.
+
+%% =========================================================================
+\section{Detector}
+\label{sec:detector}
+
+\subsection{Architecture}
+The backbone is GINE~\cite{hu2020strategies}:
+\begin{equation*}
+\begin{split}
+  h_v^{(k)} &= \text{MLP}^{(k)}\Bigl((1+\varepsilon^{(k)}) h_v^{(k-1)} \\
+   &\quad + \!\!\sum_{u \in \mathcal{N}(v)}\!\! \text{ReLU}\bigl(h_u^{(k-1)} + s_{t} e_{uv}\bigr)\Bigr)
+\end{split}
+\end{equation*}
+with learnable per-edge-type scales $s_t$. It uses three layers, hidden size
+128, batch normalisation, residual connections, a gated virtual node,
+Jumping-Knowledge concatenation~\cite{xu2018jk} and attention readout. The
+graph embedding is fused with an MLP over the inline features, global features
+(5) and an architecture embedding (8), then classified by a two-layer MLP. The
+loss is class-weighted cross-entropy plus supervised
+contrastive~\cite{khosla2020supervised} (13 hard-negative pairs, warm-up) plus
+an auxiliary inline-feature head. The optimiser is AdamW~\cite{loshchilov2019decoupled}
+($10^{-3}$), with early stopping on a group-stratified validation split (the
+group is the source file).
+
+\paragraph{Configurations.}
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{B1} (in-distribution reference): hand node features,
+    spec builder, architecture embedding, 58 inline features.
+  \item \textbf{No-hand baseline}: architecture embedding, no inline features,
+    trained on the trigger-masked set (Section~\ref{sec:shortcut}).
+  \item \textbf{Locked cross-ISA model}
+    (\texttt{models/locked\_classifier.json}, locked 2026-09-25): learned
+    neutral-MLM node features, the 9 neutral inline features, NOPs dropped,
+    node dropout 0.1, an adversarial architecture head ($\lambda=1$), and
+    length-matched training data. It is a 5-seed ensemble (mean softmax),
+    loaded with SHA-256 verification.
+\end{itemize}
+
+\subsection{Augmentation}
+Nine augmentation transforms preserve the attack invariant, and a 143-test
+suite verifies them: register rename, NOP insertion, local swap, immediate
+perturbation, stride-synonym swap, idiom substitution, branch-polarity flip,
+barrier upgrade (never downgrade) and slice recomposition. The suite found six
+implementation bugs (Appendix~\ref{app:history}). Separately,
+\emph{trigger-masked} augmentation replaces class-defining opcodes so that the
+model cannot rely on them (Section~\ref{sec:shortcut}).
+
+%% =========================================================================
+\section{Detector Results}
+\label{sec:detresults}
+
+\subsection{In-distribution}
+\label{sec:indist}
+On the locked test set, retrained on current code (after all
+Section~\ref{sec:spec-bugs} fixes), B1 reaches \textbf{95.62\,$\pm$\,0.67\%}
+accuracy over 5 seeds. An earlier multi-seed figure, 96.14\,$\pm$\,1.59\%
+(macro-F1 85.6), predates the x86 load/store fix; the single best run
+(97.07\%) is the top of that range, not a typical result. The locked
+cross-ISA ensemble trades in-distribution accuracy for transfer: 92.45\%.
+Two caveats bound these numbers:
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{Screening} inflates the flat models by 4--5\,pp and GINE by
+    0.3\,pp (Table~\ref{tab:screening}).
+  \item \textbf{Leakage-controlled splits.} On the B1 recipe, group hold-out
+    (no base gadget on both sides) drops accuracy 4.9\,pp and macro-F1 7.9\,pp,
+    and an optimisation-level hold-out (train O0--O2/Os, test O3) collapses
+    macro-F1 from 94 to 39. These are the earlier dataset's numbers.
+\end{itemize}
+Two things to keep honest here. The group hold-out for the \emph{locked}
+recipe (learned neutral features, adversarial head) is prepared as a cluster
+retrain (\texttt{eval/group\_holdout\_locked.py}); the random split overstates
+its generalisation and the group-hold-out number is the one to cite once
+retrained. \todo{report the locked-recipe group-hold-out accuracy and macro-F1}
+The optimisation-level hold-out \emph{cannot} be reproduced on the locked
+model: its length-matched training data carries no optimisation-level tag
+(verified: 18{,}897 of 19{,}053 records untagged, and the few that are tagged
+are O0/O1 only, with no O3 to withhold), so the 94$\to$39 figure stands only
+for the earlier dataset and would need that data rebuilt with optimisation tags
+to re-measure. We report it as historical rather than as a property of the
+locked model.
+
+\subsection{Opcode shortcuts}
+\label{sec:shortcut}
+\paragraph{The shortcut is load-bearing.}
+Replacing each class's trigger opcodes with \texttt{nop} (same length, 442 of
+1,670 records altered) drops the flat hand-58 model from 95.15\% to 78.44\%.
+MDS falls from 97.8\% to 0\%, V4 from 99.2\% to 0\%, and L1TF from 67.6\% to
+0\%. \cls{Benign} and Spectre~V1, whose rules are structural, do not move.
+For these classes the flat model \emph{is} the hand rule.
+
+\paragraph{Removing it.}
+Training with trigger-masked augmentation closes the gap between intact and
+masked inputs from 27.4\,pp to 1.1\,pp. Masked macro-F1 rises from 0.503 to
+0.805, and masked calibration error falls from 0.102 to 0.027.
+
+\paragraph{Hand features as an x86 crutch.}
+With the 58 inline features removed (5 seeds), macro-F1 improves on every
+axis:
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item locked: 0.813 $\to$ 0.869;
+  \item ARM64 subset: 0.618 $\to$ 0.752;
+  \item x86 subset: 0.897 $\to$ 0.910;
+  \item masked: 0.803 $\to$ 0.859.
+\end{itemize}
+A domain-adversarial (DANN) architecture head \emph{hurt} in that setting
+(ARM64 0.752 $\to$ 0.456) and was retired there. The locked model's
+adversarial head is a different configuration (neutral learned features), and
+it was selected on held-out RISC-V.
+
+\subsection{Learned vs.\ hand features (negative result)}
+\label{sec:learned}
+A ten-seed paired comparison on current code (learned node features vs.\
+hand, full GINE) finds the learned features significantly \emph{worse}:
+$-1.66$\,pp accuracy ($p=0.001$), $-3.47$\,pp macro-F1 ($p=0.008$), and
+Spectre~V2 recall $-9.55$\,pp ($p=0.029$). An earlier per-class L1TF lift of
++11.9\,pp did not replicate; with 10 seeds the lift is 0.00\,pp. A
+pre-registered TOST equivalence test~\cite{schuirmann1987} also rejects
+equivalence ($-2.58$\,pp, 90\% CI $[-3.81,-1.35]$). Spec-generic flat features
+beat hand-58 on the locked split (+1.88\,pp) but lose under group hold-out
+($-1.55$\,pp, CI $[-2.01,-1.08]$); the locked-split win is an artifact. The
+value of the specification is portability (no ISA literals in code), not
+accuracy.
+
+\subsection{Cross-ISA transfer}
+\label{sec:xisa}
+\paragraph{The length confound.}
+The training \cls{Benign} class consisted of 25--30-instruction ARM windows,
+while RISC-V benign test code is whole functions, so the model learned ``long
+$\Rightarrow$ attack''. A model retrained on current code and scored on
+held-out RISC-V had these false-positive rates by length:
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item $\le$30 instructions: 12\%;
+  \item 31--60: 1\%;
+  \item 61--120: 20\%;
+  \item $>$120: 89\%.
+\end{itemize}
+The same gap hit x86: with no x86 benign training data, 98.4\% of real x86
+benign functions were flagged as attacks (ARM: 27.4\%). Length-matched
+training data and real x86/ARM benign code fix the cause. Windowed inference
+alone lowers RISC-V benign false positives from 28.6\% to 3.0\%, but also
+lowers detection from 74.8\% to 54.8\%.
+
+\paragraph{Locked model on held-out RISC-V.}
+On \texttt{riscv\_loio\_corpus\_v2} ($n=248$, 27 attacks; cluster-bootstrap
+95\% CIs):
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item benign false-positive rate: 2.3\% [0.4, 4.8];
+  \item attack detection: 48.1\% [17.9, 77.1];
+  \item Youden's $J$: 0.46.
+\end{itemize}
+Per class:
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item BHI 0.75;
+  \item RSB 0.33;
+  \item V1 0.25;
+  \item V4 0.00 (store bypass does not transfer across ISAs);
+  \item Retbleed, Inception, L1TF and MDS: unscored (no valid RISC-V
+    examples).
+\end{itemize}
+Canonical learned features (no hand features) fail to transfer ($J=-0.06$),
+probably because RISC-V's three-operand compare-and-branch is out of
+vocabulary, which hides the V1 branch itself.
+
+\paragraph{With RISC-V training data.}
+Mixing the RISC-V corpus into training (group-stratified) raises held-out
+RISC-V accuracy from 24.85\,$\pm$\,7.36\% to 75.45\,$\pm$\,13.20\% (5 seeds),
+with no x86/ARM regression (95.89\,$\pm$\,1.69\% vs.\ 94.83\,$\pm$\,1.50\%).
+Spectre~V1 and V4 remain unmeasurable on that split for lack of data. The
+corpus is transliterated (Section~\ref{sec:data-riscv}), so this measures
+adaptation to RISC-V surface form, not idiomatic RISC-V attacks.
+
+\paragraph{Real RISC-V PoCs.}
+The locked ensemble scores 0/11 on the 11 hardware-confirmed RISC-V PoC
+records (from published BOOM and T-Head C910 work), flagging only 1 as any
+attack: Spectre~V1 0/7, Spectre~V2 0/2, Spectre~RSB 0/2. This must \emph{not}
+be read as refuting the earlier transfer number: on the classes these PoCs
+cover, the same checkpoint already scored 0 recall on the transliterated
+corpus (V2, RSB), so the real set is consistent with what was measured there,
+not a new failure. What is genuinely new is Spectre~V1 at 0/7, which the
+corpus could not measure at all. The honest statement is that the detector has
+\emph{no} validated RISC-V attack-detection ability on independent data; the
+RISC-V contribution is cross-ISA adaptation of surface form and the length-confound
+analysis, not real-silicon RISC-V detection.
+
+\subsection{Synthetic-to-real transfer (hardware gadgets)}
+\label{sec:hw-transfer}
+Results are over 5 seeds, on the 173 held-out real violations
+(Section~\ref{sec:data-hw}).
+
+\paragraph{Synthetic training does not transfer.}
+A detector trained only on synthetic and compiled data labels most real
+gadgets Spectre~V1, whatever their class. For example, it calls 74\% of real
+MDS, 56\% of L1TF and 73\% of real V4 gadgets V1.
+
+\paragraph{Per-class real-data models learn style.}
+A model given real Revizor programs of only its own class labels real programs
+of \emph{every} class as its own: ``Revizor-generated $\Rightarrow$ my class''.
+These models' 1.00 recall is withdrawn.
+
+\paragraph{Joint real-data model vs.\ an opcode bar.}
+One model trained on all four classes' real gadgets separates them on held-out
+data at 0.97--1.00. A standard-scaled bag-of-opcodes logistic regression gets
+0.97 (L1TF 0.98, V1 0.93): each Revizor configuration's instruction set gives
+the class away. The graph model adds about +0.01 (L1TF) and +0.05 (V1). An
+earlier ``+0.25--0.30 over opcodes'' came from an unscaled baseline and is
+withdrawn. Class identity and Revizor configuration stay confounded until the
+classes are collected under a shared instruction set (\todo{shared-config
+Revizor campaign}).
+
+\subsection{Mitigation awareness against hardware labels}
+\label{sec:hw-mitig}
+Two models were trained with \emph{structural} fenced twins:
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{allhw}: twins labelled \cls{Benign}.
+  \item \textbf{allhw2}: twins labelled \cls{Benign}, plus misplaced-fence
+    variants labelled as attacks. Some of those labels later proved wrong
+    (Section~\ref{sec:hwlabel}): the old V1 twin fenced the exit path, and
+    the shifted placements mitigate.
+\end{itemize}
+Table~\ref{tab:hwscore} scores both models against the hardware labels.
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item allhw learned ``has an lfence $\Rightarrow$ safe''.
+  \item allhw2 reproduces its training labels exactly, including the wrong
+    ones. It fails only on the fixed V1 twin (0.00) and the shifted variants
+    (V1 0.00, V4 0.01); the bottleneck was label correctness, not model
+    capacity.
+  \item No model beats either non-learned rule. The interior-fence rule
+    matches 0.991 of the labels because of how the current variant set is
+    built (Section~\ref{sec:hwlabel}).
+\end{itemize}
+The next model (allhw3) trains on hardware labels only, including the
+mid-sequence counterexamples. A structure claim requires it to beat the
+interior-fence rule on those counterexamples. \todo{allhw3 result vs.\ the
+opcode, adjacency and interior-fence bars.}
+
+\begin{table}[t]
+\centering
+\caption{Accuracy against hardware labels (806 fenced variants of held-out
+  real violations; 321 vulnerable, 485 mitigated). The two rules use no
+  learning. Models: mean over 5
+  seeds. Source: \texttt{eval/cluster\_out/real\_transfer\_confusion.md}
+  \S4.}
+\label{tab:hwscore}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Scorer & All & Vuln. & Mitig. \\
+\midrule
+Interior-fence rule & \textbf{0.991} & 1.000 & 0.986 \\
+Adjacent-fence rule & 0.871 & 0.835 & 0.895 \\
+allhw2 (structural + misplaced) & 0.851 & 0.996 & 0.755 \\
+allhw (structural twins)            & 0.619 & 0.083 & 0.974 \\
+Synthetic-only & 0.154 & 0.354 & 0.022 \\
+allhw3 (hardware labels)            & \tbd & \tbd & \tbd \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% =========================================================================
+\section{Generator}
+\label{sec:gen}
+
+\subsection{Model and realisation}
+A decoder-only Transformer~\cite{vaswani2017} ($d=128$, 3 layers, 4 heads) is
+trained by next-token prediction on normalised instruction tokens. Each
+sequence is prefixed with a class token and an architecture token, so sampling
+from $[\langle\textsc{cls}\rangle_c, \langle\textsc{arch}\rangle_a]$ conditions on
+both. Base training uses 5,532 real gadget records. Optional self-supervised
+pretraining uses 200k compiled C function bodies (AnghaBench~\cite{anghabench})
+for x86\_64, ARM64 and riscv64. A spec-driven \emph{realiser} instantiates
+operand placeholders with registers, immediates (biased toward attack
+constants such as 64 and 4096) and addressing modes from the target ISA's spec.
+For oracle checks, the realised body is \emph{spliced} into a fixed,
+class-specific misdirection template (e.g.\ a bounds-check bypass) that ends in
+a cache-line-scaled probe write.
+
+\paragraph{Conditioning.}
+A reference classifier fit on real data finds the requested class 7.4$\times$
+more often than the class prior (class only), and 5.7$\times$ with class and
+architecture. These numbers come from a classifier, not an oracle. An
+ISA-purity figure of 96--98\% is likely optimistic: the purity metric was blind
+to ARM load/store mnemonics (\texttt{ldr}, \texttt{str}, \ldots) appearing in
+x86 output.
+
+\subsection{Syntactic validity}
+\label{sec:gensyntax}
+Initially only 2.3\% of generated sequences were fully valid (71.1\% of
+instructions). The first oracle-splice run gave 3 leaks, 4 safe and 73
+unrunnable out of 80. A triage by assembler diagnostic found realiser bugs,
+fixed without retraining:
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{An unimplemented \texttt{<fn>} placeholder}: per-instruction
+    validity 71.1\% $\to$ 81.2\%.
+  \item \textbf{Register-width mismatches} (64-bit registers paired with
+    \texttt{l}/\texttt{w}/\texttt{b} suffixes): x86 per-instruction 82.9\%
+    $\to$ 94.5\%, and per-sequence validity 3.5\% $\to$ 21.5\%.
+  \item \textbf{Cross-ISA mnemonic leakage}: masking opcodes that the target
+    ISA's spec rejects gives 24.2\% per sequence and 95.7\% per instruction
+    on x86.
+\end{itemize}
+The remaining failures are \texttt{.L} label tokens used as data operands and
+residual operand-type errors.
+
+\subsection{Oracle-in-the-loop training}
+Rejection-sampled fine-tuning repeats four steps: sample, realise and splice,
+check with the oracle, then fine-tune on the confirmed leaks (learning rate
+$10^{-4}$). Every realised sample, including unrunnable ones, is logged, so
+yield has a denominator and diversity can be audited.
+
+\paragraph{Spectre~V1 (x86, Spectector).}
+The confirmed-leak yield rises from about 0.50 to about 0.97 in one round, then
+plateaus, reproducibly across seeds. Auditing confirms genuine discovery
+rather than mode collapse: 117--137 distinct leaking gadgets from about 172
+leaks, with median pairwise similarity 0.32.
+
+\paragraph{Pretraining: diversity at a yield cost (n=5).}
+Two bugs initially made pretraining look useless:
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{Tokenizer mismatch}: only 4 of 460 embeddings transferred
+    (322/460 after the fix).
+  \item \textbf{Fine-tune learning rate}: at $3\times10^{-3}$ the fine-tune
+    overwrote the pretrained weights (fixed at $10^{-4}$).
+\end{itemize}
+With both fixed, Table~\ref{tab:pretrain} shows that pretraining strongly
+reduces mode collapse and increases distinct leaking gadgets, at a significant
+cost in raw yield. For discovery, where many distinct gadgets beat repeated
+copies, this is the right trade.
+
+\begin{table}[t]
+\centering
+\caption{Baseline vs.\ pretrained generator after oracle RL (Spectre~V1,
+  x86, 5 seeds, mean $\pm$ 95\% CI). Source:
+  \texttt{docs/GENERATION\_MODEL\_2026-09-24.md}.}
+\label{tab:pretrain}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Metric & Baseline & Pretrained \\
+\midrule
+Top-1 template mult. & 28.8 $\pm$ 6.3 & \textbf{3.0 $\pm$ 1.1} \\
+Unique leaking gadgets      & 102.4 $\pm$ 18.0 & \textbf{134.8 $\pm$ 5.9} \\
+Unique rate                 & 0.674 $\pm$ 0.083 & \textbf{0.971 $\pm$ 0.021} \\
+Round-0 yield               & 0.540 & 0.545 \\
+Overall yield               & \textbf{0.839 $\pm$ 0.078} & 0.703 $\pm$ 0.030 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Multi-class (x86).}
+Table~\ref{tab:rlmc}: \emph{adjudicated} yield (leaks among the gadgets the
+oracle could rule on) is the fair per-class rate. V1 and V4 are validated.
+Spectector cannot rule on V2 or Retbleed, so they move to the hardware oracle
+(Section~\ref{sec:future}). Across 13 RL runs (about 2,600 generations), the
+loop produced about 2,048 confirmed leaks and about 1,594 distinct leaking
+gadgets (counted within each run).
+
+\begin{table}[t]
+\centering
+\caption{Oracle RL per class (Spectector, x86, 3 seeds, mean $\pm$ 95\% CI).
+  Source: \texttt{gen/rl\_multiclass.md}.}
+\label{tab:rlmc}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Metric & V1 & V4 & V2 & Retbleed \\
+\midrule
+Adjudicable    & 0.82 & 0.87 & 0.15 & 0.002 \\
+Adjudicated yield & 0.998 & 0.648 & 0.00 & --- \\
+Unique leaking gadgets & 106 $\pm$ 51 & 76 $\pm$ 47 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Other ISAs: what was broken, and what fixed it.}
+\label{sec:otherisa}
+No \emph{leak} oracle covers ARM64 or riscv64, so every leak number in this
+work is x86. What can be measured on any ISA is whether the generator's output
+is real, executable machine code---a necessary condition for a leak, and
+previously unmeasured outside x86: the only ARM64 quality figure was a
+classifier-judged ``looks like class X'' hit rate, and the ISA-purity figure of
+96--98\% is known to be optimistic because the purity metric was blind to ARM
+load/store mnemonics appearing in x86 output. Measuring it through the gate of
+Section~\ref{sec:precheck} (realised, assembles, executes; deliberately
+\emph{not} a leak rate) showed that the non-x86 arms were limited by the
+generator rather than by the missing oracle, and in both cases the cause was
+mechanical.
+
+\paragraph{ARM64: a mask that existed but was never connected.}
+ARM64 sequences assembled 15\% of the time. The failures sorted into three
+buckets: symbol-name tokens emitted as mnemonics (\texttt{main\_func}),
+x86 mnemonics leaking into ARM64 output (\texttt{pushq}, \texttt{movq},
+\texttt{leave}), and genuine operand-form errors (\texttt{mrs x0, \#1}). Most
+of it was a tool the project already had: a sampling mask that admits a token
+only if the target ISA's specification recognises its opcode. It was wired into
+one batch-generation script but \emph{not} into the RL loop that produces our
+actual results, nor into the decoder. Connecting it gives 0.75.
+
+What survived the specification rule was precisely what a specification cannot
+know---what one assembler accepts. \texttt{bne} is an \textbf{ARM32} spelling
+that reached the ARM64 vocabulary because the pipeline folds arm32 records into
+arm64, and aarch64 spells it \texttt{b.ne}; \texttt{add.4s}, \texttt{movi.4s}
+and \texttt{and.16b} are Apple-style NEON syntax that the GNU aarch64 assembler
+rejects. Adding a second rule---keep a token only if it \emph{realises into
+text the target assembler accepts}, at one assembler call per token per ISA,
+cached---reaches \textbf{0.96}. The honest cost, reported in
+Table~\ref{tab:isavalid} as a unique-sequence rate rather than hidden: the mask
+leaves 99 admissible ARM64 tokens against 234 for x86, so validity is bought
+partly by restricting the generator.
+
+\paragraph{riscv64: two blockers, found by round-tripping rather than assumed.}
+The committed checkpoint was conditioned on x86\_64 and ARM64 only, so riscv64
+could not be sampled at all, although the specification, realiser, tokeniser,
+mask and emulator nominally covered it. Running the real riscv corpus through
+realise-then-assemble showed the path was broken end to end, and fixing it
+exposed a second problem that would have silently wasted the retrain.
+
+The realiser produced \emph{nothing} assemblable (0/80 records). RISC-V encodes
+immediates in narrow fields---I-type takes $[-2048, 2047]$, \texttt{lui} a
+20-bit value, shifts $0$--$63$---while the attack-critical constant pool is
+4096, 256 and \texttt{0xff}, so almost every instruction was out of range.
+Three further causes followed: \texttt{call}/\texttt{tail}/\texttt{jal} take a
+bare symbol, not a PC-relative expression; a branch's last operand is its
+\emph{target}, so an immediate there must be the self-relative form; and
+normalisation maps riscv's \texttt{\%hi(sym)} relocation syntax to a memory
+operand because it looks like \texttt{X(Y)}, yielding the invalid
+\texttt{lui s3, 0(t2)}. Finally \texttt{cbo.inval} requires the Zicbom
+extension---which matters beyond syntax, since it is riscv's cache-maintenance
+instruction and therefore the corpus's cache-flush primitive for the
+timing classes. With all five addressed through new specification keys (so no
+ISA literal enters the code, and x86/ARM64 are untouched by construction),
+\textbf{120/120} corpus records realise into assemblable riscv64.
+
+The second blocker was in the trainer: it tokenised \emph{every} record with
+the shared base specification, whose addressing grammar does not match riscv.
+Measured on the riscv training slice, 0/100 realised sequences assemble under
+the base grammar against 100/100 under riscv's own. A retrain would have built
+a malformed riscv vocabulary and every downstream riscv number would have
+failed for the wrong reason. Per-record tokenisation is therefore now an
+explicit option rather than a silent default, because it also changes about
+8.5\% of x86 records and hence the vocabulary. Retraining with the riscv
+corpus---group-split, with the evaluation holdout structurally excluded---puts
+riscv64 in the vocabulary for the first time.
+
+\begin{table}[t]
+\centering
+\caption{Generator output, per-ISA architectural validity (rates over sampled
+  candidates). \textbf{Not a leak measurement:} ``assembles'' and
+  ``executes'' are necessary conditions for a leak, nothing more. The mask
+  conditions are the sampling rule of Section~\ref{sec:otherisa}: none, the
+  specification rule, and the specification rule plus an assembler check.
+  Source: \texttt{gen/isa\_runnability\_\{off,spec,assembler\}.md},
+  \texttt{gen/isa\_runnability\_riscv.md}.}
+\label{tab:isavalid}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+ISA & mask & realised & assembles & executes \\
+\midrule
+x86\_64 & none          & 0.99 & 0.99 & 0.62 \\
+x86\_64 & specification  & 0.99 & 0.99 & 0.65 \\
+x86\_64 & + assembler    & 1.00 & 1.00 & 0.52 \\
+\addlinespace
+arm64   & none          & 1.00 & \textbf{0.15} & 0.25 \\
+arm64   & specification  & 1.00 & 0.77 & 0.72 \\
+arm64   & + assembler    & 0.99 & \textbf{0.95} & 0.84 \\
+\addlinespace
+riscv64 & + assembler    & 1.00 & \textbf{1.00} & 0.02 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The riscv64 row is from a generator retrained with the riscv corpus; it is
+the first riscv64 generation this project has. Its \emph{executes} rate of
+0.02 is a real and separate finding: riscv64 output assembles perfectly yet
+almost never runs under emulation, because the realiser emits architecturally
+valid but faulting sequences (loads through uninitialised pointers that the
+riscv addressing modes do not sandbox the way the x86/ARM corpora do). So the
+riscv arm has reached ``assembles'' but not yet ``executes'', and the next
+realiser work on it is semantic, not syntactic.
+\todo{raise riscv64 executes rate; it is 0.02 against 0.52 (x86) / 0.84 (arm64)}
+
+%% =========================================================================
+\section{Filter / Ranker}
+\label{sec:rank}
+
+\subsection{The classifier is not a usable filter}
+Two findings came from checking the classifier against the oracle data.
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{V1 has no \textsc{safe} class.} Generated Spectre~V1 samples
+    contain 1,531 leaks, 0 safe and 456 unrunnable. An earlier
+    ``classifier vs.\ oracle AUC 0.44'' therefore measured leak vs.\
+    \emph{unrunnable}, not leak vs.\ safe.
+  \item \textbf{On V4 the classifier is inverted.} Spectre~V4 is the only
+    class with both outcomes: 460 unique gadgets after de-duplication, 273
+    leak and 187 safe. Results:
+    \begin{itemize}[itemsep=0pt,leftmargin=1em]
+      \item the locked classifier's attack probability has AUC 0.14 (0.27
+        within an RL round) and correlates $-0.66$ with sequence length;
+      \item sequence length alone gives 0.75 (0.59 within round);
+      \item an opcode-bag logistic regression, evaluated leaving one RL run
+        out, gives 0.44.
+    \end{itemize}
+\end{itemize}
+RL round confounds everything here: the V4 leak rate rises from 0.18 to 0.85
+across rounds, so we report within-round AUC.
+
+\subsection{A non-learned gate in front of the oracle}
+\label{sec:precheck}
+
+Before any learned filter, most of what the generator emits is not a
+safe-or-leaking gadget at all: it is a gadget the oracle \emph{cannot run}.
+Spectector returned \textsc{unrunnable} for 456 of 1,987 generated Spectre~V1
+samples and 511 of 600 Spectre~V2 samples, each costing a full oracle call (up
+to 300\,s of symbolic execution) to learn nothing about speculation. We
+therefore gate candidates with three fixed, non-learned stages
+(\texttt{gen/precheck.py}), cheapest first.
+
+\begin{description}[itemsep=1pt,leftmargin=0.9em]
+  \item[A. Assembles.] The whole sequence is assembled as one unit by
+    \texttt{llvm-mc}, through the same independent assembler oracle used
+    elsewhere in this work. Available on all three ISAs.
+  \item[B. Oracle front end.] x86 only: can Spectector's x86 parser accept
+    every instruction it \emph{reaches}? This reimplements Spectector's own
+    acceptance rule from its own source. Its table of 124 \texttt{ins/4} facts
+    is extracted from the pinned container with provenance recorded
+    (\texttt{oracle/extract\_spectector\_table.py}), and a mnemonic resolves as
+    a stem plus up to two size-suffix characters from
+    $\{$b,d,l,q,s,t,w$\}$ whose arity must match the operand count. Nothing
+    here is fitted to the verdicts the stage is later measured against.
+  \item[C. Emulates.] The sequence executes in Unicorn without an unhandled
+    fault.
+\end{description}
+
+\paragraph{Reachability is what makes stage B work.}
+Spectector reports unsupported instructions \emph{per analysed path}, and our
+oracle wrapper treats a nonzero count as unrunnable. Generated sequences are
+full of mid-sequence \texttt{ret}s, so an instruction Spectector cannot parse
+is usually in dead code and never counted. Over the 4,379 committed RL
+samples, an unparseable instruction appears \emph{anywhere} in 176 of 2,355
+leaks (7.5\%) but on the straight-line reachable prefix in only 15 (0.6\%),
+while still appearing on that prefix in 303 of 1,746 unrunnables (17.4\%).
+Inspecting the whole sequence would have discarded two thirds of the leaks;
+inspecting the reachable prefix is what makes the stage usable. Stage C
+emulates the same prefix, for the same reason: a mid-sequence \texttt{ret} pops
+an uninitialised stack and jumps to a garbage address, which is not a defect of
+the generated code.
+
+\paragraph{Two concessions in stage C, both recorded.}
+Pages are mapped on demand, because the generator routinely clobbers a register
+with data and then dereferences it; a fixed map would fail almost everything on
+an address a real harness would have made valid, and Revizor solves the same
+problem by masking addresses into its sandbox. The count of demand-mapped pages
+is reported per candidate so the concession is visible. Consequently
+\textsc{ok} means ``decodes and executes as machine code'', not ``would run
+usefully in a harness''.
+
+\paragraph{Result.}
+Table~\ref{tab:precheck} measures each stage against the target we fixed
+before measuring: remove at least 80\% of \textsc{unrunnable} while losing at
+most 2\% of \textsc{leak}. \textbf{The target is not met.} The full gate removes
+18.2\% of unrunnable candidates for a 1.3\% loss of leaks, raising the share of
+oracle calls that return a verdict from 0.574 to 0.618. The leak cost is well
+inside budget; the benefit is a quarter of what we asked for.
+
+The diagnosis is specific. Stage B is accurate but narrow: it accounts for
+essentially all of the gain (17.4\% of unrunnable at 0.8\% of leaks), and what
+it rejects is a short list of instructions genuinely absent from Spectector's
+table---\texttt{endbr64} (241 occurrences), \texttt{rdtsc} (77),
+\texttt{clflush} (45), \texttt{syscall} (23), \texttt{cpuid},
+\texttt{prefetch*}. Stage A removes nothing at all, which is the ceiling we
+predicted: the sidecars are \emph{post-realiser} and the realiser already drops
+instructions that do not assemble, so stage A's measured contribution here is a
+lower bound on its value for raw generator output. Stage C removes 0.8\% and is
+not worth its cost on this data.
+
+What this says is that 1,366 of the 1,670 unadjudicated candidates assemble,
+parse on their reachable path, and execute---so their unrunnability comes from
+something no static gate can see: a Spectector timeout, a translation failure
+after a successful parse (\texttt{x86\_to\_muasm.pl} can still throw
+\texttt{could\_not\_translate}), or an unsupported instruction on a path other
+than the straight-line prefix. Reaching 80\% would require predicting those,
+which is a learned-filter problem, not a parsing one.
+
+\begin{table}[t]
+\centering
+\caption{Pre-oracle gate over unique generated gadgets carrying a Spectector
+  verdict. Target fixed before measurement: $\geq$80\% of \textsc{unrunnable}
+  removed, $\leq$2\% of \textsc{leak} lost; the target is NOT met.
+  $n$ = 3{,}921 unique sequences (1{,}974 leak, 277 safe, 1{,}670 unrunnable).
+  Wilson intervals in the source. Source: \texttt{gen/precheck\_eval.md}.}
+\label{tab:precheck}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Rule & unrunnable removed & leak lost & calls saved \\
+\midrule
+A: assembles        & 0.000 & 0.000 & 0.000 \\
+B: oracle front end & 0.174 & 0.008 & 0.082 \\
+C: emulates         & 0.008 & 0.006 & 0.006 \\
+A+B+C (full gate)   & \textbf{0.182} & \textbf{0.013} & 0.088 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Design}
+The \texttt{rank/} package reuses the locked classifier as a frozen encoder,
+with a forward hook on the fused representation. A regression head with
+MC-dropout uncertainty sits on top, candidates are chosen by UCB, and the data
+is split by token-content hash. After the findings above, the target becomes
+$P(\text{runnable}) \cdot P(\text{leak} \mid \text{runnable})$. It sits behind
+a cheap non-learned pre-check (assembles, uses only instructions the oracle
+supports), and it is evaluated prospectively: train on rounds $\le r$, test
+on round $r{+}1$ of held-out seeds. The metric is confirmed leaks per oracle
+call, against random ordering and against the within-round length bar
+(0.59). The head-room is largest early: a filter's best gain over random
+ordering is about $1/\text{leak rate}$, about 5$\times$ for V4 round 0 and
+about 1.14$\times$ for V1 by round 3.
+
+\todo{V4 filter result vs.\ length and opcode bars;
+filter-in-the-loop leaks-per-call curve.}
+
+%% =========================================================================
+\section{Minimality}
+\label{sec:min}
+The goal is the smallest leaking sequences. For real violations we run
+Revizor's instruction-removal pass, which deletes instructions one at a time
+from the end and keeps a deletion if the violation survives. This gives, for
+each violation, the instructions it needs. For generated leaks, the plan is
+delta debugging~\cite{ddmin} with the oracle as the test, with removals
+ordered by a learned probability that the leak survives, in the spirit of
+ProbDD~\cite{probdd}, to save oracle calls.
+
+\begin{table}[t]
+\centering
+\caption{Minimisation of real violations (Revizor instruction pass).
+  Body = non-instrumentation instructions in the measured region.}
+\label{tab:min}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Class & Dirs & Body (median) & Essential (median) \\
+\midrule
+L1TF & \tbd & \tbd & \tbd \\
+MDS  & \tbd & \tbd & \tbd \\
+V1   & \tbd & \tbd & \tbd \\
+V4   & \tbd & \tbd & \tbd \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\todo{fill Table~\ref{tab:min} from \texttt{\_min/status.json}; minimise
+generated V1/V4 leaks with Spectector-checked delta debugging.}
+
+%% =========================================================================
+\section{Limitations and Threats to Validity}
+\label{sec:limits}
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{One CPU, one fuzzer.} Hardware results come from one Coffee
+    Lake part and Revizor. BHI likely needs a newer Intel part, and
+    Inception affects only AMD Zen.
+  \item \textbf{x86-only hardware verification.} Spectector and our hardware
+    are x86. ARM64 and riscv64 have only the emulator-driven check of
+    Section~\ref{sec:specemu}, which models conditional-branch speculation
+    alone, uses concrete inputs, and is a model: its agreement with silicon is
+    measured on x86 and assumed, not shown, elsewhere.
+  \item \textbf{An emulator cannot see a leak by itself.} Unicorn and QEMU
+    model no speculation, so every emulator result here is either a
+    \emph{runnability} statement or the output of a speculation model we drive
+    ourselves---and that model reproduces none of the 806 hardware labels, so
+    it is not a substitute for the hardware oracle.
+  \item \textbf{Threat models do not transfer between oracles.} A
+    secret-versus-public comparison expresses a textbook Spectre gadget and
+    cannot express a Revizor contract violation, whose programs never leave
+    their sandbox. An oracle has to be matched to the shape of the programs it
+    will judge.
+  \item \textbf{Class--configuration confound} in the real corpus
+    (Section~\ref{sec:hw-transfer}).
+  \item \textbf{Small held-out sets.} Real held-out sets have 22--64 gadgets
+    per class. RISC-V attacks number 27 across a handful of families, with
+    wide confidence intervals.
+  \item \textbf{Shortcuts.} Length, opcode mix, fence presence and fence
+    position have each explained an apparent result. Every reported number
+    sits next to the relevant non-learned bar.
+  \item \textbf{Variance.} Per-class recall varies by up to 15--20\,pp across
+    seeds for small classes. We report only multi-seed results.
+\end{itemize}
+
+%% =========================================================================
+\section{Next Steps}
+\label{sec:future}
+
+Ordered by coverage gained per unit of effort, and separated by what each
+actually needs.
+
+\paragraph{No new hardware.}
+\begin{enumerate}[itemsep=1pt,leftmargin=1.4em]
+  \item \textbf{Build the Spectector-Combined image} and report SPECTRE\_V2
+    adjudicability and RL yield through it. Our side is integrated
+    (Section~\ref{sec:oraclecoverage}); this is the largest single coverage
+    gain available and costs nothing but build time. Settle the return-model
+    question before extending it to RETBLEED.
+  \item \textbf{Hardware-label the mid-sequence counterexamples and the
+    training pool}, then train the hardware-label-only detector and report it
+    against all three non-learned bars (in progress on the i5).
+  \item \textbf{Re-pose the speculative emulator as a contract check}
+    (many inputs grouped by model contract trace). Until this is done it finds
+    zero leaks on real Revizor programs and \emph{no} mechanism added to it can
+    be validated against the one ground truth we hold, so it gates the next
+    item.
+  \item \textbf{Extend the emulator to indirect-branch and return
+    misprediction.} The rollback mechanism already exists; only the notion of
+    ``other successor'' changes. This is the one route to V2, BHI, RETBLEED and
+    INCEPTION that needs no hardware and covers all three ISAs, but every
+    verdict stays model-level until item~3 makes validation possible.
+  \item \textbf{The V4 learned filter} on top of the measured pre-oracle gate,
+    plus V1 near-miss negatives, then the filter inside the RL loop measured as
+    confirmed leaks per oracle call.
+  \item \textbf{Minimality}: tabulate the Revizor instruction-removal results
+    already produced, and delta-debug generated leaks against the oracle.
+  \item \textbf{A shared-instruction-set Revizor campaign}, to break the
+    class--configuration confound that currently lets a bag-of-opcodes model
+    match the graph model on real gadgets.
+\end{enumerate}
+
+\paragraph{Needs hardware we do not have.}
+The machine used here (Coffee~Lake, no enhanced IBRS) is itself an affected
+part for SPECTRE\_V2 and for Intel RETBLEED, so for those two the missing piece
+is test tooling rather than silicon. What cannot be reached on it:
+\begin{itemize}[itemsep=1pt,leftmargin=1.2em]
+  \item \textbf{INCEPTION} needs AMD~Zen~3 or Zen~4, and the AMD variant of
+    RETBLEED needs Zen~2---both satisfiable by one commodity AM4 desktop.
+  \item \textbf{BHI as its own mechanism} needs an enhanced-IBRS-era Intel
+    part; on older silicon it is not separately testable. We note that no
+    automated oracle for it exists to run on such a part either, so the CPU
+    alone would not produce a result.
+  \item \textbf{A second ISA with real-silicon ground truth} needs a
+    bare-metal out-of-order Arm Linux host for Revizor's arm64 backend, which
+    supports only the conditional-branch, store-bypass and
+    delayed-exception clauses there.
+  \item \textbf{Out-of-order RISC-V} is reachable either in RTL simulation,
+    where published fuzzers already detect several classes on open cores, or on
+    out-of-order RISC-V silicon. Simulation is free and should be tried first.
+\end{itemize}
+Full tool-by-tool and part-by-part detail, with citations and prices, is in
+\texttt{docs/ORACLE\_TOOLING\_SURVEY\_2026-10-09.md}; the coverage reasoning is
+in \texttt{docs/COVERAGE\_AND\_NEXT\_STEPS\_2026-10-09.md}.
+
+%% =========================================================================
+\section{Conclusions}
+\label{sec:conclusion}
+\textsc{SpecExec} has a working oracle-verified generation loop on x86 that
+finds many distinct leaking gadgets. It also has a detector whose headline
+accuracy we have taken apart: screening, opcode shortcuts, length, the
+instruction-set confound and synthetic-to-real transfer each changed what the
+numbers mean. The most solid new result is a property of the data, not of a
+model: on real hardware, a single lfence at the speculation boundary removes
+L1TF, MDS, Spectre~V1 and Spectre~V4 leaks, and fences elsewhere do not. Three
+things remain open: the learned filter has to beat simple bars on real oracle
+labels, minimality has to be measured, and verification has to reach a second
+ISA. Those three steps would turn the pipeline from recognition into
+discovery.
+
+%% =========================================================================
+\appendix
+
+\section{Development History (v54/v55)}
+\label{app:history}
+
+These are the in-distribution results reported in earlier drafts. They
+predate the screening fix (Sec.~\ref{sec:screening}) and the spec bug fixes
+(Sec.~\ref{sec:spec-bugs}), and should be read as development history.
+
+\begin{table}[h]
+\centering
+\caption{Dataset statistics, v55 (training and locked test).}
 \label{tab:data}
-\small
+\footnotesize
 \begin{tabular}{@{}lrrr@{}}
 \toprule
 Class & Train & Test & Total \\
 \midrule
-BENIGN                      & 2840 & 1031 & 3871 \\
-BRANCH\_HISTORY\_INJECTION  &  318 &   67 &  385 \\
-INCEPTION                   &  518 &   94 &  612 \\
-L1TF                        &  582 &   37 &  619 \\
-MDS                         &  445 &   45 &  490 \\
-RETBLEED                    &  298 &   75 &  373 \\
-SPECTRE\_RSB                &  470 &    1 &  471 \\
-SPECTRE\_V1                 &  644 &   42 &  686 \\
-SPECTRE\_V2                 &  485 &  154 &  639 \\
-SPECTRE\_V4                 &  347 &  124 &  471 \\
+BENIGN       & 2840 & 1031 & 3871 \\
+BHI          &  318 &   67 &  385 \\
+INCEPTION    &  518 &   94 &  612 \\
+L1TF         &  582 &   37 &  619 \\
+MDS          &  445 &   45 &  490 \\
+RETBLEED     &  298 &   75 &  373 \\
+SPECTRE\_RSB &  470 &    1 &  471 \\
+SPECTRE\_V1  &  644 &   42 &  686 \\
+SPECTRE\_V2  &  485 &  154 &  639 \\
+SPECTRE\_V4  &  347 &  124 &  471 \\
 \midrule
-\textbf{Total}              & \textbf{6947} & \textbf{1670} & \textbf{8617} \\
+Total        & 6947 & 1670 & 8617 \\
 \bottomrule
 \end{tabular}
-\end{table*}
-
-\section{Data Engineering}
-\label{sec:engineering}
-
-\subsection{Assembly Preprocessing}
-Raw assembly files are parsed with a custom extractor that discards
-assembler directives, debug metadata, and section headers. Instruction
-windows of 8--64 instructions are extracted around detected vulnerability
-triggers (conditional branches, indirect branches, return instructions).
-
-\paragraph{Function-name neutralization.}
-Call targets, \texttt{adrp}/\texttt{:lo12:} address-load pairs (ARM64), and
-\texttt{leaq}~\texttt{foo(\%rip)} sequences (x86-64) expose function names
-as plaintext tokens. Without neutralization, a model trained on
-\texttt{callq~flush\_reload} would learn to classify by the callee name
-rather than structural properties. All such targets are replaced with the
-literal token \texttt{<fn>} before any feature extraction.
-
-\paragraph{Deduplication.}
-Each instruction sequence is SHA-256 hashed after preprocessing. The test
-set's hashes are added to a \emph{forbidden set} before any training-set
-construction; any training record whose hash matches a test record is
-silently dropped. This prevents train-test contamination across pipeline
-versions.
-
-\subsection{Label Quality Control}
-During construction of the v54 corpus, a BHI label audit revealed that 517
-records tagged as BHI originated from OpenSSL library code (functions
-\texttt{p15}, \texttt{p19}) that lacks any speculation transmitter. These
-were removed, leaving only structurally confirmed BHI gadgets. This audit was
-guided by the inline feature vector: sequences flagged as BHI but scoring
-zero on all indirect-branch and cache-probe inline features were prioritized
-for review.
-
-\subsection{Class-Proportional Augmentation}
-\label{sec:augmentation}
-
-The raw corpus is class-imbalanced: the benign class dominates by a factor
-of~$\sim$10$\times$ over rare attack classes such as L1TF and RETBLEED. To
-address this without na\"ive oversampling (which would duplicate identical
-sequences), we apply nine structure-preserving augmentation transforms.
-
-\paragraph{Provability requirement.}
-Each augmentation must preserve the \emph{attack validity invariant}: the
-augmented sequence must exhibit the same vulnerability class as the original.
-We formalize this as: (1)~the speculation trigger must remain present, (2)~no
-new covert channel or secret access must be introduced, and (3)~mitigating
-instructions (fences, \texttt{verw}) must not be weakened or removed.
-
-We verified all nine transforms via a 143-test suite
-(\texttt{tests/augmentation/}). The test suite identified six bugs in the
-prior implementation (Table~\ref{tab:aug-bugs}); all were fixed before
-training the v55 model.
-
-\begin{table}[t]
-\centering
-\caption{Augmentation bugs found and fixed by the provability test suite.}
-\label{tab:aug-bugs}
-\footnotesize
-\begin{tabularx}{\columnwidth}{@{}p{1.8cm}X@{}}
-\toprule
-Function & Bug \& Fix \\
-\midrule
-\texttt{rename\_regs} & Pool collision: \texttt{x86\_r64} pool contained
-  \texttt{r8--r15} (belonging to \texttt{x86\_r}), so \texttt{rcx} and
-  \texttt{r9} could both map to \texttt{r13}. Fixed: disjoint pools;
-  \texttt{X86\_REG} extended to match \texttt{rax/rbx/rcx/rdx/rsi/rdi}. \\
-\addlinespace
-\texttt{can\_swap} & x86 branches (\texttt{jne}, \texttt{jge}) not
-  guarded; reordering across conditional jumps allowed. Fixed: added
-  \texttt{X86\_BRANCH\_COND} check symmetric to existing ARM64 guard. \\
-\addlinespace
-\texttt{FLAG\_CLOBBER} & Word-boundary regex missed size-suffixed opcodes
-  (\texttt{addq}, \texttt{subl}). Fixed: optional suffix \texttt{[qlwb]?}. \\
-\addlinespace
-\texttt{BARRIER\_SYN.} & \texttt{dsb sy} entry listed weaker variants
-  (\texttt{dsb ish}, \texttt{dsb ishst}), violating ``only upgrade'' contract.
-  Fixed: each entry lists only equal-or-stronger barriers. \\
-\addlinespace
-\texttt{X86\_LOAD} & Bare \texttt{mov}/\texttt{lea} missed
-  \texttt{movq}/\texttt{movl}/etc.\ in barrier-counterfactual insertion
-  on AT\&T size-suffixed x86. Fixed: optional size suffix. \\
-\addlinespace
-\texttt{flip\_branch} & Guarded \texttt{jmp~*}/\texttt{call~*} but missed
-  AT\&T 64-bit forms \texttt{jmpq~*}/\texttt{callq~*}. Fixed: guard
-  extended to cover both forms. \\
-\bottomrule
-\end{tabularx}
 \end{table}
 
-\paragraph{The nine transforms and their validity invariants.}
+\paragraph{v54 vs.\ v55.}
+Locked-test accuracy was 95.75\% (v54) and 95.45\% (v55, best of 3; range
+93.41--95.45\%). Fixing the augmentation raised Spectre~V2 recall from 76.0\%
+to 87.7\% and Retbleed from 90.7\% to 97.3\%. L1TF recall fell from 81.1\% to
+62.2\% (37 test records; 62--76\% across seeds).
 
-\begin{enumerate}[leftmargin=1.5em,itemsep=1pt]
-
-\item \textbf{Register rename.}
-A bijective, family-scoped renaming drawn from a shuffled pool of
-callee-saved registers. ABI-special registers (\texttt{sp}, \texttt{xzr},
-\texttt{rsp}, \texttt{rbp}) are preserved. Validity: instruction semantics
-are register-independent; the gadget structure (def-use chains,
-branch→load ordering) is unchanged.
-
-\item \textbf{NOP insertion.}
-Inserts \texttt{nop} instructions with probability 0.15, except within a
-$\pm 2$-instruction window around conditional branches or memory loads
-(speculation-critical positions). Validity: NOPs do not affect functional
-semantics; the critical speculation window is not disrupted.
-
-\item \textbf{Local instruction swap.}
-Swaps adjacent instruction pairs when \texttt{can\_swap}$(a, b) = \text{True}$:
-no register def-use dependence, no fence, no branch in either slot.
-Validity: independence is tested by def-use analysis; swapping independent
-instructions does not change the program's observable behavior or the
-gadget's speculation trigger.
-
-\item \textbf{Immediate perturbation.}
-Adds $\pm$1--3 to non-critical immediates. A set $\mathcal{C}$ of
-attack-semantically meaningful constants is never modified:
-$\mathcal{C} = \{0, 1, -1, 4096, 64, 128, 256, 255, 8, 16, 32, \ldots\}$.
-This set includes cache-line size (64), page size (4096), and
-common secret-byte iteration bounds (255). Validity: non-critical immediates
-are loop indices, offsets, or register sizes that do not affect the
-classification of the gadget.
-
-\item \textbf{Stride synonym swap.}
-Replaces numeric literals with hexadecimal equivalents (e.g.,
-\texttt{\$4096~$\leftrightarrow$~\$0x1000}). Value-preserving by
-construction; the test suite verifies numeric equality after swap.
-
-\item \textbf{Equivalent idiom substitution.}
-Replaces flag-writing zero idioms (\texttt{xor \%rax, \%rax}
-$\to$ \texttt{movq \$0, \%rax}) only when no downstream flag consumer
-(\texttt{jcc}/\texttt{setcc}/\texttt{cmovcc}) appears before the next
-flag-clobbering instruction. ARM substitutions are unconditionally
-flag-neutral (\texttt{mov x0, \#0}~$\leftrightarrow$~\texttt{eor x0, x0, x0}).
-
-\item \textbf{Branch polarity flip.}
-Inverts the first conditional branch (\texttt{jge~$\to$~jl}, \texttt{b.lt~$\to$~b.ge}).
-Refused for sequences containing \texttt{ret}, \texttt{br}, \texttt{blr},
-\texttt{jmpq~*}, or \texttt{callq~*} (return-based gadgets). Validity:
-the Spectre-V1 gadget triggers on the speculated path regardless of branch
-polarity; flipping the taken/not-taken direction does not remove the gadget.
-
-\item \textbf{Barrier variant swap.}
-Replaces a memory barrier with an equal-or-stronger variant (e.g.,
-\texttt{lfence~$\to$~mfence}, \texttt{dsb~ish~$\to$~dsb~sy}). Downgrades
-are explicitly forbidden. Validity: a stronger barrier stops at least as
-much speculative execution as the original, so the security label is preserved.
-
-\item \textbf{Slice recomposition.}
-Splits the window into three contiguous chunks and permutes their order when
-(a)~no chunk contains control flow, and (b)~the reordered sequence's
-live-in register set does not grow relative to the original. Validity:
-the live-set walk catches free-use violations that would arise from reordering
-past a definition.
-
-\end{enumerate}
-
-For each original record, the nine transforms are applied independently and
-capped per class (BENIGN: $\leq$2500 augmented; attack classes: $\leq$600--800).
-Records from the phase~9 compiler pipeline (tagged \texttt{p9\_*}) and the
-external corpora are treated as originals and \emph{not} re-augmented, since
-their diversity is already structural (different compilers, optimization
-levels).
-
-\section{Feature Engineering}
-\label{sec:features}
-
-\subsection{Program Dependence Graph Construction}
-\label{sec:pdg}
-
-Each instruction window is converted to a Program Dependence Graph (PDG) $G
-= (V, E)$ where nodes $V$ represent instructions and edges $E$ encode
-dependence and speculation-specific structural relationships.
-
-\paragraph{Node features (41 dimensions).}
-Each node $v_i$ is represented by a 41-dimensional feature vector:
-\begin{itemize}[itemsep=0pt]
-  \item \textbf{Opcode category one-hot (19 dims):} LOAD, STORE,
-    BRANCH\_COND, BRANCH\_UNCOND, CALL, CALL\_INDIRECT, RET,
-    JUMP\_INDIRECT, COMPARE, ARITHMETIC, LOGIC, SHIFT, FENCE,
-    CACHE, TIMING, MOVE, STACK, NOP, OTHER.
-  \item \textbf{Memory access type one-hot (5 dims):} NONE, STACK, HEAP,
-    INDEXED, INDIRECT.
-  \item \textbf{Register degree features (2 dims):} number of destination
-    and source registers, normalized to [0, 1].
-  \item \textbf{Speculation flags (14 dims, binary):}
-    \texttt{is\_serializing}, \texttt{is\_cache\_probe}, \texttt{is\_branch},
-    \texttt{is\_indirect\_branch}, \texttt{is\_memory\_access},
-    \texttt{is\_timing\_source}, \texttt{is\_secret\_source},
-    \texttt{is\_transmitter}, \texttt{is\_lfence}, \texttt{is\_mfence\_or\_sfence},
-    \texttt{is\_verw}, \texttt{is\_prefetch}, \texttt{is\_nontemp\_load},
-    \texttt{is\_gather}.
+\paragraph{Augmentation bugs fixed by the test suite.}
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item Register-pool collision in rename (two registers could map to one).
+  \item x86 conditional branches unguarded in local swap.
+  \item Flag-clobber regex missed size suffixes.
+  \item Barrier synonyms allowed downgrades (\texttt{dsb sy} $\to$
+    \texttt{dsb ish}).
+  \item x86 load regex missed suffixed moves.
+  \item Branch-flip guard missed \texttt{jmpq *}/\texttt{callq *}.
 \end{itemize}
 
-\paragraph{Edge types (9 types).}
-\begin{enumerate}[itemsep=0pt]
-  \item \textbf{DATA\_DEP} --- register def-use dependency.
-  \item \textbf{CONTROL\_FLOW} --- sequential instruction ordering.
-  \item \textbf{SPEC\_CONDITIONAL} --- the speculation edge from a conditional
-    branch to each instruction on its predicted-taken path, encoding the
-    transient execution window.
-  \item \textbf{SPEC\_INDIRECT} --- speculation from an indirect branch/call.
-  \item \textbf{SPEC\_RETURN} --- speculation from a return instruction
-    (RSB-based).
-  \item \textbf{MEMORY\_ORDER} --- store-load ordering constraints within the
-    window.
-  \item \textbf{CACHE\_TEMPORAL} --- \texttt{clflush}/\texttt{prfm} to
-    subsequent load of the same cache set.
-  \item \textbf{FENCE\_BOUNDARY} --- fence instruction to all instructions
-    that depend on speculation it serializes.
-  \item \textbf{RSB\_CHAIN} --- call to return pairs within a 15-instruction
-    window, encoding RSB stuffing gadgets (dense in INCEPTION; sparse in
-    RETBLEED).
-\end{enumerate}
-
-Edge types 3--5 capture the semantic structure of speculative execution
-directly in the graph topology. The SPEC\_CONDITIONAL edge, for instance,
-creates a path from the branch to the secret-dependent load that would not
-appear in a standard data-flow graph; this path is the structural signature
-the model learns to detect. The RSB\_CHAIN edge was added to separate
-INCEPTION (RSB stuffing: many call/ret pairs) from RETBLEED (single return
-gadget): prior versions of the model confused these classes due to their
-shared use of \texttt{ret} instructions.
-
-\subsection{Inline Handcrafted Features (58 dimensions)}
-\label{sec:inline}
-
-In addition to the graph representation, we compute a 58-dimensional
-handcrafted feature vector from the raw instruction sequence. These features
-encode domain knowledge about each vulnerability class that the GNN may take
-many training samples to discover independently.
-
-\paragraph{Group~1: Opcode frequency fractions (28 dims).}
-Fraction of instructions matching each of 28 security-relevant opcodes:
-\texttt{nop}, \texttt{ret}, \texttt{retq}, \texttt{call}, \texttt{callq},
-\texttt{bl}, \texttt{blr}, \texttt{br}, \texttt{cmp}, \texttt{cmn},
-\texttt{test}, \texttt{tst}, \texttt{ldr}, \texttt{ldp}, \texttt{str},
-\texttt{stp}, \texttt{movq}, \texttt{movl}, \texttt{clflush},
-\texttt{clflushopt}, \texttt{rdtsc}, \texttt{rdtscp}, \texttt{lfence},
-\texttt{mfence}, \texttt{sfence}, \texttt{verw}, \texttt{movntdqa},
-\texttt{adrp}. Notably, \texttt{endbr64} was excluded after ablation showed
-it amplified RETBLEED confusion and degraded L1TF recall.
-
-\paragraph{Group~2: Structural ratios (6 dims).}
-Fraction of x86-only instructions, fraction of ARM-only instructions,
-fraction of indirect operations, fraction of branches, loads, and stores.
-These distinguish architecture families and control vs.\ data-heavy gadgets.
-
-\paragraph{Group~3: Structural pattern counts, normalized (7 dims).}
-Maximum NOP run length (normalized by sequence length), call/return pair
-density, indexed-load density, \texttt{clflush}+load pattern density,
-branch-after-compare density, indirect-then-load density, unique-opcode
-fraction. These capture the high-level ``shape'' of a gadget.
-
-\paragraph{Group~4: Speculative primitive presence flags (10 dims, binary).}
-\texttt{has\_rdtsc}, \texttt{has\_verw}, \texttt{has\_movntdqa},
-\texttt{has\_lfence}, \texttt{has\_clflush}, \texttt{has\_indirect},
-\texttt{has\_nop\_run\_3plus}, \texttt{has\_indexed\_load},
-\texttt{has\_call\_ret\_pair}, \texttt{has\_clflush\_load}. These are
-binary indicators of the presence of attack-primitive instructions.
-
-\paragraph{Group~5: Ratio features (4 dims).}
-\texttt{ret\_call\_ratio}, \texttt{nop\_ret\_ratio},
-\texttt{indirect\_cond\_ratio}, \texttt{load\_store\_ratio}. The
-\texttt{ret\_call\_ratio} is particularly discriminating: INCEPTION uses
-many call/ret pairs (ratio $\approx$ 1) while RETBLEED has an unmatched
-\texttt{ret} (ratio $> 1$).
-
-\paragraph{Group~6: Caller-context (1 dim).}
-Binary flag indicating whether any call target in the sequence matches a
-regex of attack-function names (\texttt{flush\_reload}, \texttt{gadget\_*},
-\texttt{victim\_function}, etc.). This feature fires on research-PoC code
-that explicitly names its components and is always zero on production code,
-providing a useful signal without causing label leakage.
-
-\paragraph{Group~7: Meltdown/L1TF page-probe (2 dims).}
-Two features specific to the L1TF and Meltdown covert channel. The
-\emph{page-probe transmitter} in Meltdown-based attacks uses a page-size
-shift to index into a probe array: \texttt{shlq \$12, \%rax} followed within
-four instructions by an indexed load \texttt{movq (\%base,\%rax,1), \%rdi}.
-The shift amount $2^{12} = 4096$ bytes equals the x86 page size; this ensures
-each byte value of the secret indexes a distinct page, preventing cache
-set aliasing. Feature \texttt{has\_page\_probe\_load} (binary) fires on any
-such pattern; \texttt{page\_probe\_density} gives the normalized count.
-
-Key design decisions in this feature:
-(a)~Only shifts \$9--\$15 are page-probes; \$6 is a cache-line probe
-(stride $64B = 2^6$) shared by MDS and L1TF, hence non-discriminating.
-(b)~AT\&T indexed stores (\texttt{movb \%al, (\%rsi,\%rcx)}) have the indexed
-operand as the \emph{destination} and no trailing \texttt{,~\%reg}---the regex
-requires a trailing destination register to distinguish loads from stores.
-(c)~Clang omits the scale-1 suffix in two-register addressing modes
-(\texttt{(\%r14,\%rax)} vs.\ GCC's \texttt{(\%rsi,\%rax,1)}); the regex
-matches both forms.
-
-\subsection{Global Graph Features (5 dims)}
-
-Five instruction-fraction statistics computed from the raw sequence and
-provided as a separate branch:
-\begin{enumerate}[label=(\arabic*)]
-  \item NOP fraction,
-  \item indirect instruction fraction,
-  \item return instruction fraction,
-  \item \texttt{verw} fraction,
-  \item \texttt{movntdqa} fraction.
-\end{enumerate}
-These are computed identically for train and test from their own sequences
-with no training-set normalization, eliminating any leakage.
-
-\subsection{Architecture Embedding (8 dims)}
-
-A learned 8-dimensional embedding indexed by the assembly architecture
-(\texttt{x86\_64}, \texttt{arm64}, \texttt{riscv}, etc.). This accounts for
-the systematic differences in opcode vocabulary and addressing syntax across
-ISAs without hard-coding ISA-specific rules.
-
-\section{Model Architecture}
-\label{sec:model}
-
-\subsection{Graph Isomorphism Network with Edge Features (GINE)}
-
-We use the Graph Isomorphism Network with Edge features
-(GINE)~\cite{hu2020strategies} as our backbone. GINE generalizes GIN's
-sum-aggregation to incorporate edge features:
-\begin{equation*}
-\begin{split}
-  h_v^{(k)} &= \text{MLP}^{(k)}\!\biggl(
-    (1 + \varepsilon^{(k)}) \cdot h_v^{(k-1)} \\
-    &\quad + \!\!\sum_{u \in \mathcal{N}(v)}\!\! \text{ReLU}\!\bigl(
-      h_u^{(k-1)} + e_{uv}
-    \bigr)\biggr),
-\end{split}
-\end{equation*}
-where $e_{uv}$ is the edge-type embedding for edge $(u, v)$ and
-$\varepsilon^{(k)}$ is a learned scalar. GNN architectures that ignore edge
-types (standard GCN, GAT) cannot distinguish, e.g., a DATA\_DEP edge from a
-SPEC\_CONDITIONAL edge---a distinction that is the \emph{defining} structural
-property of the vulnerability.
-
-\paragraph{Layer configuration.}
-We use $K = 3$ GINE layers with hidden dimension $d = 128$, dropout 0.5,
-and batch normalization after each layer. Residual connections
-$h^{(k)} \leftarrow \text{LayerNorm}(h^{(k-1)} + h_\text{new}^{(k)})$
-prevent vanishing gradients across layers.
-
-\paragraph{Edge-type learnable scaling.}
-Each edge type $t$ is associated with a learnable scale $s_t \in \mathbb{R}_+$:
-the edge embedding for type $t$ is multiplied by $s_t$ before message
-passing. This allows the model to weight different structural relationships
-differently. In converged models, SPEC\_CONDITIONAL and SPEC\_RETURN
-consistently scale up ($s \approx 1.1$--1.2); CONTROL\_FLOW consistently
-scales down ($s \approx 0.75$--0.88), reflecting that raw sequential order
-is less informative than speculative dependency structure.
-
-\paragraph{Virtual node.}
-A learnable global state vector $\mathbf{v} \in \mathbb{R}^d$ is maintained
-across layers and broadcast to all nodes before each GINE update. The
-broadcast is gated by a learned scalar initialized to $\sigma(-2) \approx
-0.12$ to prevent the virtual node from dominating local message passing in
-early training. The virtual node enables global information exchange between
-nodes that would otherwise be many hops apart, addressing the limited
-receptive field of 3-layer GNNs.
-
-\paragraph{JK-Cat readout.}
-Jumping Knowledge Concatenation~\cite{xu2018jk} aggregates the hidden states
-from all layers plus the initial encoding: $\mathbf{h}_v^{\text{JK}} =
-[\mathbf{h}_v^{(0)} \| \mathbf{h}_v^{(1)} \| \mathbf{h}_v^{(2)} \|
-\mathbf{h}_v^{(3)}]$, giving a 512-dimensional representation per node before
-readout. This preserves both local (single-hop) and global (3-hop) structure.
-
-\paragraph{Attention readout.}
-An attention network $\alpha_v = \text{softmax}(\mathbf{w}^\top
-\tanh(\mathbf{W} \mathbf{h}_v^{\text{JK}}))$ weights each node's contribution
-to the graph-level embedding. Security-relevant nodes (memory accesses,
-branches, fences) receive higher attention weights than boilerplate
-instructions (stack frame setup, function calls unrelated to the gadget).
-The pooled graph representation $\mathbf{g} = \sum_v \alpha_v
-\mathbf{h}_v^{\text{JK}}$ is projected to a 256-dimensional fusion vector.
-
-\subsection{Feature Fusion and Classification}
-
-The inline handcrafted features (58-dim) are encoded by a two-layer MLP
-(Linear-BN-ReLU-Dropout-Linear-BN-ReLU-Dropout) to a 256-dim vector. The
-global graph features (5-dim) are projected to 32 dims; the architecture
-embedding provides 8 dims. The four representations are concatenated to form
-a $256 + 256 + 32 + 8 = 552$-dimensional combined vector, then classified by
-a two-layer MLP with 128 hidden units:
-\[
-  \hat{y} = \text{MLP}_\text{cls}\!\left(
-    [\mathbf{g}_\text{graph} \| \mathbf{g}_\text{inline} \|
-     \mathbf{g}_\text{global} \| \mathbf{g}_\text{arch}]
-  \right).
-\]
-
-An auxiliary head $\hat{y}_\text{aux} = \mathbf{W}_\text{aux}
-\mathbf{g}_\text{inline}$ predicts the label from inline features alone.
-The auxiliary loss ($\lambda_\text{aux} = 0.3$) regularizes the inline
-feature branch and ensures the graph branch cannot simply delegate all
-classification to it.
-
-\paragraph{Total parameters: 618,059.}
-
-\section{Training Protocol}
-\label{sec:training}
-
-\subsection{Validation Split}
-
-The training set is divided into a model-selection validation split using
-\texttt{StratifiedGroupKFold} with 10 splits. The ``group'' field encodes
-the source file of each record; no group appears in both the training and
-validation partitions. This prevents the model from exploiting repeated
-windows from the same file to inflate validation accuracy while generalizing
-poorly to new files. FastSpec records (synthetically generated, different
-distributional properties) are excluded from the validation pool.
-
-\subsection{Loss Function}
-
-The total training loss is:
-\[
-  \mathcal{L} = \mathcal{L}_\text{CE} + \lambda_\text{con}
-    \mathcal{L}_\text{SupCon} + 0.3\, \mathcal{L}_\text{aux},
-\]
-where $\mathcal{L}_\text{CE}$ is class-weighted cross-entropy,
-$\mathcal{L}_\text{SupCon}$ is supervised contrastive
-loss~\cite{khosla2020supervised}, and $\mathcal{L}_\text{aux}$ is the
-auxiliary inline-features cross-entropy head.
-
-\paragraph{Class-weighted CE.}
-Class weights are $w_c = 1/\sqrt{n_c}$ normalized to unit mean. The
-square-root scaling is less aggressive than $1/n_c$ (which can destabilize
-training for very rare classes like SPECTRE\_RSB with $n = 3$ originals)
-while still providing meaningful rebalancing.
-
-\paragraph{Supervised contrastive loss.}
-The projection head maps the combined 552-dim representation to a 128-dim
-unit sphere. The SupCon loss pulls together examples of the same class while
-pushing apart examples of different classes~\cite{khosla2020supervised}.
-Thirteen \emph{hard-negative pairs}---class pairs that are structurally
-similar but semantically distinct---receive an additional multiplicative
-penalty of 2.0 (Table~\ref{tab:hard-neg}). These pairs were identified from
-confusion matrix analysis across prior model versions.
-
-\begin{table}[t]
-\centering
-\caption{Hard-negative class pairs receiving 2$\times$ contrastive penalty.}
-\label{tab:hard-neg}
-\footnotesize
-\begin{tabularx}{\columnwidth}{@{}lX@{}}
-\toprule
-Pair & Structural similarity \\
-\midrule
-(V1, BHI)             & Cond.\ branch + indexed load \\
-(INCEPTION, BHI)      & RSB-adjacent call/ret patterns \\
-(MDS, RETBLEED)       & x86 timing helpers structurally identical \\
-(INCEPTION, RETBLEED) & RSB exploitation \\
-(L1TF, V1)            & L1 cache side-channel \\
-(L1TF, V4)            & Memory-access-based gadget \\
-(MDS, V4)             & Memory ordering dependence \\
-(V1, V4)              & Branch bypass vs.\ store bypass \\
-(V2, BHI)             & Indirect branch manipulation \\
-(V2, INCEPTION)       & Indirect branch vs.\ RSB \\
-(RETBLEED, INCEPTION) & Return-based exploitation \\
-(MDS, L1TF)           & \texttt{clflush}+load timing loop \\
-(V2, RETBLEED)        & Indirect vs.\ return speculation \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\paragraph{Contrastive warmup.}
-$\lambda_\text{con}$ is linearly warmed up from 0 to its target value (0.5)
-over the first 10 epochs. This prevents the contrastive loss from dominating
-early training before the classifier has established meaningful embeddings.
-
-\subsection{Optimizer and Scheduler}
-
-AdamW~\cite{loshchilov2019decoupled} with initial learning rate $10^{-3}$
-and weight decay $5 \times 10^{-4}$, batch size 32. A cosine annealing
-schedule reduces the learning rate to near zero over 120 epochs. Early
-stopping on validation accuracy with patience 15: training terminates when
-validation accuracy does not improve for 15 consecutive epochs.
-
-\subsection{Hardware}
-
-All models are trained on CPU (Apple M-series, MPS disabled on Python~3.14
-due to known stability issues). Training time is approximately 10--13 seconds
-per epoch; typical convergence occurs at epochs 12--20.
-
-\section{Results and Interpretation}
-\label{sec:results}
-
-\subsection{Overall Performance}
-
-Table~\ref{tab:results-full} gives precision, recall, and F1 for every
-class on the locked 1670-record test set; both v54 (pre-bug-fix augmentation)
-and v55 (provably correct augmentation) use the identical architecture and
-hyperparameters so any difference is attributable solely to data quality.
-Figure~\ref{fig:cm} shows the normalized confusion matrices.
-
-\begin{table*}[t]
-\centering
-\caption{Full per-class metrics on the locked test set ($n_\text{test}=1670$).
-  v54: test accuracy 95.75\%, best epoch 19 of 34, val acc 95.92\%.
-  v55: test accuracy 95.45\%, best epoch 12 of 27, val acc 94.95\%.
-  SPECTRE\_RSB has $n=1$ test sample; its metrics are unreliable.
-  Bold marks improvement in recall $\geq$5\,pp; italic marks regression $\geq$5\,pp.}
-\label{tab:results-full}
-\footnotesize
-\begin{tabular}{@{}l rrr rrr r@{}}
-\toprule
- & \multicolumn{3}{c}{\textbf{v54}} & \multicolumn{3}{c}{\textbf{v55 (best/3)}} & \\
-\cmidrule(lr){2-4}\cmidrule(lr){5-7}
-Class & Prec & Rec & F1 & Prec & Rec & F1 & $n$ \\
-\midrule
-BENIGN
-  & 1.000 & 1.000 & 1.000
-  & 0.994 & 0.984 & 0.989 & 1031 \\
-BRANCH\_HISTORY\_INJ.
-  & 0.625 & 0.896 & 0.736
-  & 0.756 & 0.881 & 0.814 &   67 \\
-INCEPTION
-  & 0.945 & 0.915 & 0.930
-  & 0.818 & \textit{0.862} & 0.839 &   94 \\
-L1TF
-  & 0.857 & 0.811 & 0.833
-  & 0.958 & \textit{0.622} & 0.754 &   37 \\
-MDS
-  & 0.894 & 0.933 & 0.913
-  & 0.860 & 0.956 & 0.905 &   45 \\
-RETBLEED
-  & 0.944 & 0.907 & 0.925
-  & 0.961 & \textbf{0.973} & 0.967 &   75 \\
-SPECTRE\_RSB$^\dagger$
-  & 1.000 & 1.000 & 1.000
-  & 1.000 & 1.000 & 1.000 &    1 \\
-SPECTRE\_V1
-  & 0.840 & 1.000 & 0.913
-  & 0.808 & 1.000 & 0.894 &   42 \\
-SPECTRE\_V2
-  & 0.944 & 0.760 & 0.842
-  & 0.931 & \textbf{0.877} & 0.903 &  154 \\
-SPECTRE\_V4
-  & 0.992 & 0.984 & 0.988
-  & 0.984 & 0.984 & 0.984 &  124 \\
-\midrule
-Macro avg
-  & 0.904 & 0.920 & 0.908
-  & 0.907 & 0.914 & 0.905 & 1670 \\
-Weighted avg
-  & 0.964 & 0.957 & 0.958
-  & 0.958 & 0.954 & 0.955 & 1670 \\
-\midrule
-\textbf{Overall accuracy}
-  & \multicolumn{3}{c}{\textbf{95.75\%}}
-  & \multicolumn{3}{c}{\textbf{95.45\%}} & 1670 \\
-Val/test gap
-  & \multicolumn{3}{c}{0.17\,pp}
-  & \multicolumn{3}{c}{$<$1.0\,pp} & \\
-\bottomrule
-\multicolumn{8}{l}{%
-  $^\dagger$ $n=1$ test sample; recall/precision are not statistically meaningful.}
-\end{tabular}
-\end{table*}
-
-The 0.30\,pp accuracy gap between v54 and v55 is within stochastic training
-variance: across three v55 runs, test accuracy ranged 93.41--95.45\%. v54's
-anomalously small val/test gap (0.17\,pp) may partly reflect overfitting via
-the register-rename pool-collision bug, which inadvertently acted as register
-anonymization on some test-adjacent sequences.
-
-\begin{figure*}[t]
-\centering
-\begin{subfigure}[b]{0.48\textwidth}
-  \centering
-  \includegraphics[width=\textwidth]{./v54_confusion_matrix.png}
-  \caption{v54 --- test accuracy 95.75\%}
-  \label{fig:cm-v54}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.48\textwidth}
-  \centering
-  \includegraphics[width=\textwidth]{./v55_confusion_matrix.png}
-  \caption{v55 --- test accuracy 95.45\% (best of 3 seeds)}
-  \label{fig:cm-v55}
-\end{subfigure}
-\caption{Normalized confusion matrices on the locked test set (1670 records).
-  Cell $(i,j)$ shows fraction of true-class-$i$ samples predicted as class $j$.
-  Diagonal = recall per class. Off-diagonal dark cells indicate systematic
-  confusion: BHI$\to$INCEPTION (indirect vs.\ RSB), L1TF$\to$MDS
-  (shared timing loop structure). v55 eliminates the BHI precision deficit
-  visible in v54 at the cost of higher L1TF scatter.}
-\label{fig:cm}
-\end{figure*}
-
-\subsection{Training Convergence}
-
-Figure~\ref{fig:training} shows validation accuracy across epochs for both
-versions. v54 requires 34 epochs (best at epoch~19), whereas v55 converges
-faster (27 epochs, best at epoch~12), likely because the corrected augmentation
-produces a more consistent training signal from epoch~1 onwards.
-v55 epoch-1 validation accuracy is 89.7\% vs.\ v54's 75.5\%---the cleaner
-augmented data allows faster initial specialization.
-
-\begin{figure*}[t]
-\centering
-\begin{subfigure}[b]{0.48\textwidth}
-  \centering
-  \includegraphics[width=\textwidth]{../v54/viz_v54/training_history.png}
-  \caption{v54 training history (34 epochs, best at 19)}
-  \label{fig:th-v54}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.48\textwidth}
-  \centering
-  \includegraphics[width=\textwidth]{../v55/viz_v55/training_history.png}
-  \caption{v55 training history (27 epochs, best at 12)}
-  \label{fig:th-v55}
-\end{subfigure}
-\caption{Training convergence. Top: CE loss (solid) and contrastive loss (dashed).
-  Bottom: training accuracy (solid) and validation accuracy (dashed). The grey
-  vertical line marks the early-stopping checkpoint (best validation accuracy).
-  v55 CE loss plateaus higher (0.068 vs.\ 0.040), reflecting a harder training
-  set with correctly diverse augmented sequences.}
-\label{fig:training}
-\end{figure*}
-
-\subsection{Per-Class Interpretation}
-
-\paragraph{Spectre V2 and RETBLEED improvements (+11.7\,pp, +6.6\,pp).}
-Both classes benefit from the fixed barrier-variant augmentation.
-The prior code allowed \texttt{dsb~sy~$\to$~dsb~ish} downgrades: the model
-trained on v54 data saw weakened barriers still tagged as V2/RETBLEED,
-introducing confusion with mitigated sequences. With the fix, SPECTRE\_V2
-recall rises from 76.0\% to 87.7\% and RETBLEED from 90.7\% to 97.3\%.
-BHI precision also improves substantially (0.625~$\to$~0.756) because the
-fixed register-rename no longer accidentally conflates indirect-branch patterns
-with RSB patterns via register collision.
-
-\paragraph{L1TF regression ($-$18.9\,pp in best v55 run).}
-L1TF drops from 81.1\% to 62.2\% recall (though L1TF precision rises:
-0.857~$\to$~0.958, indicating fewer false positives). Three contributing
-factors: (a)~L1TF has only 84 originals, yielding 464 augmented records
-after capping---still sparse relative to MDS (445) despite structural
-similarity, making the model sensitive to boundary decisions; (b)~the
-now-correct \texttt{swap\_locally} no longer inadvertently crosses the
-\texttt{shl/movq} page-probe boundary, eliminating what was an accidental
-form of ``hard negative'' augmentation; (c)~high run-to-run variance for
-this class ($n_\text{test}=37$): across 3 v55 runs, L1TF recall ranged
-62--76\%.
-
-\paragraph{INCEPTION regression ($-$5.3\,pp).}
-The fixed register rename removes the x86 pool collision, so INCEPTION samples
-no longer silently map \texttt{rcx} and \texttt{r9} to the same output
-register. That collapse acted as inadvertent register anonymization; without it
-the model must learn genuine structural invariance and needs more training data
-to do so reliably.
-
-\subsection{Qualitative PDG Analysis of Confused Pairs}
-\label{sec:pdg-analysis}
-
-Figures~\ref{fig:pdg-l1tf-mds}--\ref{fig:pdg-bhi-v2} show the PDGs of
-representative test samples from the three most confused class pairs,
-rendered with a colorblind-safe palette~\cite{wong2011}.
-Node color encodes opcode category; edge color and line style encode the
-nine edge types (see legend). Each pair is drawn at the same scale; all
-samples are from x86\_64 compiled with Clang.
+\paragraph{Learned edge scales.}
+SPEC\_RETURN is the most amplified edge type ($s\approx1.23$--1.25) and
+CONTROL\_FLOW the most suppressed ($s\approx0.74$). An edge ablation over 5
+seeds shows that removing the speculative edge types costs about 0\,pp of
+accuracy but $-3.75$\,pp of macro-F1. The taxonomy matters for minority
+classes.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/pdg_l1tf_mds.png}
-\caption{\textbf{L1TF vs.\ MDS} (structurally similar).
-  Both sequences follow the pattern
-  \texttt{clflush} (cache/black node) $\to$ \texttt{nop}$^+$ (white) $\to$
-  \texttt{shlq \$6} (ALU/gray) $\to$ indexed \texttt{movq} (load/blue),
-  connected by DATA\_DEP (sky-blue) and CACHE\_TEMPORAL (black dashed) edges.
-  The discriminating structural feature---a \texttt{shlq \$12} page-stride shift
-  (L1TF Meltdown transmitter) vs.\ a \texttt{verw} flush node (MDS MFBDS)---is
-  absent in these short windows, explaining the 18.9\,pp L1TF recall drop in v55.}
+\caption{L1TF vs.\ MDS PDGs (x86, Clang): both follow \texttt{clflush}
+  $\to$ \texttt{nop}$^+$ $\to$ shift $\to$ indexed load. The discriminating
+  page-stride shift or \texttt{verw} is absent in short windows.}
 \label{fig:pdg-l1tf-mds}
 \end{figure*}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/pdg_inception_retbleed.png}
-\caption{\textbf{INCEPTION vs.\ RETBLEED} (structurally contrasting).
-  The INCEPTION PDG (left, 16 nodes, 32 edges) shows a dense subgraph:
-  multiple \texttt{callq*} nodes (vermilion, CALL\_INDIRECT) connected by
-  RSB\_CHAIN edges (vermilion dash-dot) to three \texttt{retq} nodes
-  (vermilion), plus DATA\_DEP chains linking the paired \texttt{leaq}/\texttt{callq}
-  instructions.
-  The RETBLEED PDG (right, 8 nodes) is a near-empty linear chain: four
-  \texttt{nop} nodes (white) with only CONTROL\_FLOW edges (light gray),
-  and a single isolated \texttt{retq} node with no RSB\_CHAIN edges.
-  RSB\_CHAIN density is the primary discriminating feature;
-  RETBLEED recall improves from 90.7\% (v54) to 97.3\% (v55) partly because
-  the fixed augmentation no longer produces INCEPTION sequences with
-  accidentally collapsed call-register pairs that resemble RETBLEED.}
+\caption{Inception (dense RSB\_CHAIN subgraph) vs.\ Retbleed (near-linear
+  chain with an isolated \texttt{ret}).}
 \label{fig:pdg-inception-retbleed}
 \end{figure*}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/pdg_bhi_v2.png}
-\caption{\textbf{BHI vs.\ SPECTRE\_V2} (shared indirect-branch structure).
-  Both PDGs are dominated by SPEC\_INDIRECT edges (vermilion dashed) emanating
-  from an indirect branch node (\texttt{jmpq*} or \texttt{blr}, vermilion).
-  In BHI (left, 8 nodes), a \texttt{movq 8(\%rax)} load precedes the indirect
-  jump, forming a two-hop dependency: dispatch-table pointer load $\to$
-  SPEC\_INDIRECT $\to$ secret load. In SPECTRE\_V2 (right), SPEC\_INDIRECT
-  edges fan directly to all post-branch nodes from a single indirect branch,
-  without the preceding table-pointer load chain.
-  BHI precision improves from 0.625 (v54) to 0.756 (v55) because the corrected
-  register-rename no longer accidentally maps the dispatch-table load register
-  to the same destination as the indirect branch target.}
+\caption{BHI vs.\ Spectre~V2: both dominated by SPEC\_INDIRECT edges; BHI
+  has a preceding dispatch-table load chain.}
 \label{fig:pdg-bhi-v2}
 \end{figure*}
 
-\subsection{Stochastic Variance and Reporting}
+\section{Inline Features}
+\label{app:inline}
+The 58 inline features fall into seven groups:
+\begin{itemize}[itemsep=0pt,leftmargin=1.2em]
+  \item opcode fractions for 28 security-relevant mnemonics;
+  \item six structural ratios;
+  \item seven normalised pattern counts;
+  \item ten primitive-presence flags;
+  \item four ratios (e.g.\ \texttt{ret\_call\_ratio});
+  \item one caller-context flag;
+  \item two page-probe features (a \texttt{shl \$9--15} followed by an indexed
+    load; \texttt{\$6} is a cache-line probe shared by MDS and L1TF).
+\end{itemize}
+\texttt{endbr64} was excluded after it increased Retbleed confusion.
 
-Run-to-run variance is 1--2\,pp in overall accuracy and up to 15--20\,pp in
-per-class recall for small-support classes (L1TF: $n=37$; SPECTRE\_V1: $n=42$;
-BHI: $n=67$). For rigorous reporting we recommend: (a)~3--5 seeds, reporting
-mean\,$\pm$\,std; (b)~flagging classes with $n_\text{test}<50$ as
-statistically unreliable; (c)~treating SPECTRE\_RSB ($n=1$) as unmeasured.
-
-\subsection{Edge Type Scale Analysis}
-
-\begin{table}[t]
-\centering
-\caption{Converged per-edge-type learnable scales $s_t$ at the best-epoch
-  checkpoint. Scale $>1$ means the model amplifies that edge type's signal;
-  $<1$ means it suppresses it.}
-\label{tab:edge-scales}
-\footnotesize
-\begin{tabularx}{\columnwidth}{@{}lrrX@{}}
-\toprule
-Edge type & v54 & v55 & Interpretation \\
-\midrule
-DATA\_DEP       & 1.093 & 1.003 & Register def-use; moderate signal \\
-CONTROL\_FLOW   & 0.743 & 0.747 & Sequential order; suppressed \\
-SPEC\_COND.     & 0.982 & 1.149 & Speculative window from branch \\
-SPEC\_INDIRECT  & 1.056 & 1.163 & Indirect-branch speculation \\
-SPEC\_RETURN    & 1.232 & 1.252 & Return-based speculation; top signal \\
-MEMORY\_ORDER   & 1.064 & 1.084 & Store-load ordering \\
-CACHE\_TEMPORAL & 1.035 & 1.005 & Flush-then-load temporal ordering \\
-FENCE\_BOUNDARY & 0.997 & 1.100 & Serializing fence scope \\
-RSB\_CHAIN      & 1.030 & 1.007 & Call-return RSB stuffing pairs \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-Table~\ref{tab:edge-scales} and Figure~\ref{fig:edge-scales} show the
-converged edge-type scales. SPEC\_RETURN is the most amplified type in
-both versions ($s=1.23$ and $1.25$ respectively), confirming that
-return-based speculative edges are the primary discriminating structural
-feature. CONTROL\_FLOW is the most suppressed ($s\approx0.74$ in both),
-confirming that raw sequential order is largely redundant given the explicit
-dependence and speculative edges. In v55, SPEC\_CONDITIONAL and
-SPEC\_INDIRECT scale up noticeably ($+$0.17, $+$0.11 vs.\ v54), consistent
-with the improved SPECTRE\_V2 recall: V2 is an indirect-branch attack and
-BHI exploits history-table poisoning, both detected via SPEC\_INDIRECT and
-SPEC\_CONDITIONAL edges.
-
-\begin{figure*}[t]
-\centering
-\begin{subfigure}[b]{0.48\textwidth}
-  \centering
-  \includegraphics[width=\textwidth]{../v54/viz_v54/edge_type_scale_evolution.png}
-  \caption{v54 edge scale evolution across training}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.48\textwidth}
-  \centering
-  \includegraphics[width=\textwidth]{../v55/viz_v55/edge_type_scale_evolution.png}
-  \caption{v55 edge scale evolution across training}
-\end{subfigure}
-\caption{Per-edge-type learnable scale $s_t$ as a function of training epoch.
-  SPEC\_RETURN (solid orange) consistently rises above all others in both
-  versions. CONTROL\_FLOW (dashed blue) is the only type that converges
-  below 1.0, indicating the model learns to discount raw sequential
-  ordering in favor of explicit dependence and speculative structure.}
-\label{fig:edge-scales}
-\end{figure*}
-
-\section{Automated Feature Engineering and Conditioned Gadget Generation}
-\label{sec:specdiscover}
-
-The classifier of Sections~\ref{sec:features}--\ref{sec:results} relies on
-hand-authored, ISA-specific feature extractors: opcode taxonomies, AT\&T/ARM64
-regular expressions, per-class acceptance filters, and edge-window constants.
-Extending the system to new instruction sets or attack classes therefore
-requires re-authoring code. This section presents three steps that remove that
-manual surface and turn the classifier into the front half of a generative
-discovery pipeline whose eventual goal is to synthesize, rank, and
-simulator-confirm \emph{minimal} speculative-leakage gadgets across
-architectures. We report each step with a verification that holds it to the
-existing system as a reference.
-
-\subsection{ISA-Specification--Driven Feature Extraction}
-\label{sec:spec-engine}
-
-We replace the hardcoded classification logic in the PDG builder
-(Section~\ref{sec:pdg}) with a declarative \emph{ISA specification}: an external
-document that lists the opcode-to-category map, an operand/addressing grammar,
-speculation-primitive tags, and a pipeline block (speculative / cache / RSB
-windows, speculation sources). A generic engine interprets the specification to
-classify instructions, so a new ISA is described by a spec file rather than new
-Python. Specifications compose by single-level inheritance: a small
-\texttt{base} document carries the shared instruction taxonomy, and thin
-per-ISA documents (\texttt{x86\_64}, \texttt{arm64}) add pipeline and
-realization parameters.
-
-To guarantee the externalized specification does not drift from the reference
-system, the \texttt{base} document is exported programmatically from the current
-builder (patterns and taxonomies copied verbatim), and two equivalences are
-checked on the full corpus (Table~\ref{tab:spec-equiv}): (i) every per-node
-decision---opcode category, memory-access type, the 14-dimensional speculation
-flags, and register def/use sets---and (ii) the entire constructed graph (node
-vectors plus the full multiset of typed edges across all nine edge types). Both
-hold with zero mismatches, so the spec-driven builder is a verified drop-in.
-
-Zero mismatches, however, only prove \emph{refactoring fidelity}: the
-specification is exported from the builder and checked against that same builder,
-so the test is a round-trip and says nothing about whether the classification is
-\emph{correct}. To obtain an independent signal we add a second oracle that
-shares no code with our regexes: each instruction is assembled with
-\texttt{llvm-mc} and its control-flow category is read from the resulting machine
-code via \texttt{capstone} instruction groups. Over the $25{,}942$ unique
-(arch, instruction) pairs (87.9\% assemble-and-decode coverage), the spec agrees
-with this oracle on $98.80\%$ of the covered control-flow instructions, and the
-$274$ disagreements are genuine defects the self-comparison cannot surface: (i)
-missing mnemonics that silently drop speculation sources to \textsc{other}
-(x86 \texttt{jge/jle/jae/jbe}, ARM \texttt{blr} indirect calls, tab-separated
-unconditional branches), and (ii) cross-ISA pattern contamination, where x86
-register spellings (\texttt{\%bl}, \texttt{\%bpl}) match ARM branch mnemonics in
-the merged \texttt{base} grammar. The former are targeted regex fixes; the latter
-is the concrete motivation for decomposing \texttt{base} into truly per-ISA
-grammars. Both change node categories and therefore require re-export,
-re-validation, and retraining, so we report them as findings rather than applying
-them silently. The honest correctness statement is thus \emph{98.80\% agreement
-with an independent oracle, with 274 triaged defects}---not ``zero mismatches.''
-
-\begin{table}[t]
-\centering
-\caption{Equivalence of the spec-driven engine to the reference PDG builder,
-  on the full v54 corpus. Zero mismatches on every checked quantity.}
-\label{tab:spec-equiv}
-\footnotesize
-\begin{tabularx}{\columnwidth}{@{}Xrr@{}}
-\toprule
-Check & Units compared & Mismatches \\
-\midrule
-Node decisions (cat/mem/flags/regs) & 25{,}942 instr. pairs & 0 \\
-Full graph, window=20 & 207{,}113 nodes / 437{,}231 edges & 0 \\
-Full graph, window=10 & 207{,}113 nodes / 421{,}525 edges & 0 \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\subsection{Self-Supervised Learned Node Features}
-\label{sec:learned-features}
-
-The 40-dimensional PDG node vector and the 58 inline features encode expert
-knowledge that is ISA- and attack-specific. We ask whether a
-\emph{self-supervised} encoder can supply the per-node signal with no
-hand-design, holding the rest of the pipeline fixed.
-Instructions are first normalized to a low-vocabulary form
-(registers\,$\to$\,\texttt{<reg>}, immediates\,$\to$\,\texttt{<imm>}, memory
-operands\,$\to$\,\texttt{<mem>}/\texttt{<mem-idx>}, neutralized calls\,$\to$
-\texttt{<fn>}), the same vocabulary-reduction principle used by
-FastSpec~\cite{fastspec}. Two encoders are trained on the training corpus only:
-a GPU-free static embedding (positive pointwise mutual information over a
-windowed co-occurrence matrix followed by truncated SVD, in the spirit of
-implicit-matrix-factorization word embeddings~\cite{levy2014}), and a contextual
-masked-language-model Transformer~\cite{devlin2019} that treats each normalized
-instruction as one token and yields per-instruction embeddings (an
-assembly analogue of instruction embeddings~\cite{ding2019asm2vec}).
-
-Table~\ref{tab:feat-ablation} isolates the representation with a RandomForest on
-the locked test set. Purely learned sequence features reach 91\% accuracy with
-zero hand-design; adding a small spec-derived structural descriptor recovers
-most of the remaining gap; and hand features concatenated with the contextual
-embedding exceed the hand baseline on macro-F1 (the gain concentrates on
-minority classes). The static and contextual encoders behave differently: the
-contextual embedding is \emph{complementary} to the hand features, whereas the
-static one is largely redundant.
-
-\begin{table}[t]
-\centering
-\caption{Feature representation ablation (RandomForest, locked test set,
-  sequence-level mean-pooled features). The PPMI+SVD and MLM rows use only
-  self-supervised embeddings; ``$+$\,spec-structural'' adds a spec-derived
-  opcode-category histogram (not hand-tuned); the last row concatenates the
-  58 hand features with the contextual embedding.}
-\label{tab:feat-ablation}
-\footnotesize
-\begin{tabularx}{\columnwidth}{@{}Xrr@{}}
-\toprule
-Feature set & Test acc. & Macro-F1 \\
-\midrule
-Hand-engineered (58)              & 95.2\% & 80.3 \\
-Learned, static PPMI+SVD (64)     & 91.3\% & 75.4 \\
-Learned + spec-structural (84)    & 93.7\% & 78.6 \\
-Hand $+$ contextual MLM (122)     & \textbf{95.5\%} & \textbf{89.3} \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-The decisive test replaces \emph{only the per-node feature vector} inside the
-full GINE model (Section~\ref{sec:model}), aligning one contextual embedding to
-each PDG node. Every other component is held fixed and identical across all
-arms: the same spec-derived typed edges, the same 58 inline features
-(Section~\ref{sec:inline}), and the same global and architecture features.
-Table~\ref{tab:gine-parity} reports the single-seed outcome on the locked test
-set that first suggested parity (a 0.6\,pp gap). That reading does not survive
-scrutiny. A single seed cannot establish equivalence, and \emph{absence of a
-significant difference is not evidence of equivalence}. We therefore ran a
-pre-registered two-one-sided-test (TOST) equivalence analysis over ten seeds
-per arm (margin $0.5$\,pp accuracy) on a compact GINE proxy, with both the
-original and a scale-tuned encoder. In every case the learned node vector is
-\emph{significantly lower} than the hand vector ($-2.5$ to $-3.0$\,pp accuracy;
-$90\%$ CI entirely below zero; neither equivalent nor non-inferior). To rule out
-the proxy itself as the cause, we repeated the analysis with the \emph{full}
-production GINE (five seeds per arm, per-ISA spec builder, scale-tuned encoder;
-Table~\ref{tab:full-tost}) and obtained the same verdict at the same effect size
-($-2.58$\,pp, $90\%$ CI $[-3.81,-1.35]$). Concatenating the two (``both'') does
-not exceed hand either ($-2.42$\,pp)---at the node level, once
-the typed-edge graph structure is present, an added learned node representation
-is redundant. We therefore \emph{withdraw the ``replaceable'' claim}: the
-self-supervised encoder does not replace the hand-designed node features inside
-the graph model. What it \emph{does} provide is complementarity at the sequence
-level: a mean-pooled MLM embedding concatenated with the inline features raises
-macro-F1 by $+10.6$\,pp over the hand features alone (RandomForest,
-Table~\ref{tab:feat-ablation}), because sequence pooling discards the graph
-structure that the GINE edges already supply, so the contextual encoder
-contributes orthogonal signal there. The honest headline is thus
-\emph{complementary learned features on minority classes}, not automated
-replacement of the node vector.
-
-\begin{table}[t]
-\centering
-\caption{Node-feature ablation in the full GINE model (locked test set,
-  \emph{single seed} per row, identical training). \emph{Only the per-node vector
-  varies}; the spec-derived typed edges, the 58 inline features, and the
-  global/architecture features are present and identical in every row. The small
-  single-seed gap does not hold up: a ten-seed TOST (main text) shows the learned
-  node vector is significantly lower and not equivalent to hand. Reported here
-  only to document the integration; not evidence of parity.}
-\label{tab:gine-parity}
-\footnotesize
-\begin{tabularx}{\columnwidth}{@{}Xrrr@{}}
-\toprule
-Per-node vector & dim & Test acc. & Macro-F1 \\
-\midrule
-Hand nodes (reference)          & 41  & 95.6\% & 81.0 \\
-Learned nodes                   & 65  & 95.0\% & 80.1 \\
-Hand $+$ learned nodes          & 105 & 94.7\% & 78.0 \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{table}[t]
-\centering
-\caption{Multi-seed TOST in the \emph{full} production GINE (five seeds per arm:
-  $\{42,1,7,13,21\}$; per-ISA spec builder; scale-tuned encoder; identical
-  training budget). Differences are against the hand arm at an equivalence margin
-  of $0.5$\,pp accuracy. Both learned arms are significantly \emph{worse}, with
-  the $90\%$ CI entirely below zero---the compact-proxy verdict was not a proxy
-  artifact. Note also the width of the hand arm's interval: the best single run
-  reached $97.07\%$, which is top-of-range rather than typical.}
-\label{tab:full-tost}
-\footnotesize
-\begin{tabularx}{\columnwidth}{@{}Xrrl@{}}
-\toprule
-Per-node vector & Test acc. (mean $\pm$ 90\% CI) & Macro-F1 & TOST verdict \\
-\midrule
-Hand (reference) & $\mathbf{96.14 \pm 1.59}$ & 85.6 & --- \\
-Learned          & $93.57 \pm 0.60$ & \textbf{86.2} & not equivalent ($-2.58$) \\
-Hand $+$ learned & $93.72 \pm 0.82$ & 84.8 & not equivalent ($-2.42$) \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-Several bounds keep this result honest. First, only the \emph{node-feature}
-component is externalized; the nine edge types and the 58 inline features
-(Section~\ref{sec:inline}) remain hand-specified and are used unchanged, so the
-load-bearing attack knowledge (the speculative edge topology and windows) is
-hand-authored in every arm. An edge-ablation over five seeds quantifies its
-role: removing the speculative edge types (\textsc{spec\_conditional/indirect/
-return}, \textsc{rsb\_chain}, \textsc{cache\_temporal}) costs $\approx 0$\,pp
-accuracy but $-3.75$\,pp macro-F1, so the taxonomy matters for minority classes,
-not headline accuracy (which rides node-level opcode statistics). Second, the
-addressing grammar and all edge windows are now sourced from the specification
-(the tokenizer carries no ISA-literal regex; the RSB window is spec-driven rather
-than a module constant), but the speculation-primitive \emph{tags}
-(\texttt{is\_secret\_source}, \texttt{is\_transmitter}, \dots) remain
-hand-authored security semantics, and the \texttt{base} document still carries
-the union of the x86 and ARM grammars; a genuinely new ISA such as RISC-V is
-expressible in the schema but not yet exercised, so ``a new ISA needs only a spec
-file'' is untested extrapolation. Third, and most importantly, the accuracy
-numbers above use a \emph{random} record-level split, which leaks augmented
-variants of the same base gadget across train and test. Under a group-hold-out
-(no base gadget on both sides) accuracy falls $4.9$\,pp and macro-F1 $7.9$\,pp;
-under an optimization-level hold-out (train O0--O2/Os, test O3) macro-F1
-collapses from $94$ to $39$ while accuracy stays high only because \textsc{benign}
-dominates. Cross-optimization generalization for the attack classes is therefore
-weak, and the locked random test overstates it. Within these bounds, graph
-construction is fully spec-driven, but ``automated feature engineering at no
-accuracy cost'' overstates the case: the honest claims are a validated,
-drift-proof, spec-driven front end and complementary learned features on
-minority classes.
-
-\subsection{Class- and Architecture-Conditioned Generation}
-\label{sec:generation}
-
-The same normalized token vocabulary supports generation. A decoder-only
-Transformer~\cite{vaswani2017} is trained with next-token prediction on
-sequences prefixed by two control tokens, a target class and a target
-architecture:
-\[
-  [\,\langle\textsc{cls}\rangle_c,\ \langle\textsc{arch}\rangle_a,\
-     i_1, i_2, \ldots, \langle\textsc{eos}\rangle\,],
-\]
-so decoding from $[\langle\textsc{cls}\rangle_c,\langle\textsc{arch}\rangle_a]$
-conditions the sample on both. Because every emitted token is a normalized
-instruction, output is grammar-valid by construction; a spec-driven
-\emph{realizer} then instantiates operand placeholders with concrete registers,
-immediates (biased toward attack-critical constants such as the page and
-cache-line sizes), and addressing forms drawn from the target ISA's
-specification, yielding assembly that the PDG builder parses.
-
-Conditioning is verified independently: for each (class, architecture) we sample
-gadgets and ask a reference classifier---the contextual encoder of
-Section~\ref{sec:learned-features} with a RandomForest fit on \emph{real}
-data---which class each sample resembles. The class hit-rate is compared to the
-class prior, and an \emph{ISA-purity} score reports the fraction of
-ISA-decisive opcodes native to the requested architecture.
-Table~\ref{tab:gen-results} summarizes the outcome. Generation is strongly
-class-conditioned ($5.7\times$ mean lift over the prior) and almost perfectly
-architecture-consistent ($\geq 96\%$ purity); generated gadgets are largely
-novel (not present in training) and exhibit the expected structure---for
-Spectre-V1, a bounds compare, a conditional branch, and a secret-indexed load.
-Per-class hit-rate tracks the training corpus's (class, architecture) coverage:
-strong across x86, weaker for attack classes that were compiled predominantly
-for x86 and are thus thin on ARM, which motivates broadening the compile matrix
-rather than any change to the method.
-
-\begin{table}[t]
-\centering
-\caption{Conditioned generation, verified by an independent reference
-  classifier. Mean over classes; lift is hit-rate over class prior.}
-\label{tab:gen-results}
-\footnotesize
-\begin{tabularx}{\columnwidth}{@{}Xrr@{}}
-\toprule
-Conditioning & Class lift & ISA-purity \\
-\midrule
-Class only                       & $7.4\times$ & --- \\
-Class $+$ architecture (x86\_64) & \multirow{2}{*}{$5.7\times$} & 97.6\% \\
-Class $+$ architecture (arm64)   &                              & 96.1\% \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-This conditioned, grammar-valid, architecture-aware generator is the candidate
-source for the discovery loop: its samples are ranked by a learned surrogate and
-the top candidates sent to microarchitectural simulation for confirmation and
-minimization---the steps that turn recognition into discovery.
-
-\section{Conclusions}
-\label{sec:conclusion}
-
-We presented the full methodology of \textsc{SpecExec}, a system that achieves
-\textbf{95.75\%} accuracy (v54) on a 10-class speculative execution
-vulnerability detection task directly from compiled assembly, with a weighted
-F1 of 0.958 and macro recall of 0.920 (Table~\ref{tab:results-full}).
-Key contributions are:
-
-\begin{enumerate}[itemsep=1pt]
-  \item A 9-edge-type PDG (Section~\ref{sec:pdg}) that explicitly encodes
-    speculative execution paths; SPEC\_RETURN consistently receives the
-    highest learned scale ($s\approx1.25$), confirming return-based edges
-    as primary discriminating structure (Table~\ref{tab:edge-scales}).
-  \item 58-dimensional inline features (Section~\ref{sec:inline}), including
-    a Meltdown page-probe feature (\texttt{has\_page\_probe\_load}) that
-    resolves L1TF/MDS confusion using the $2^{12}$-byte page stride as a
-    discriminating signature. L1TF recall reaches 81.1\% (v54) vs.\ a
-    baseline where it was confused with MDS.
-  \item A provably correct augmentation suite (9 transforms, 143 tests,
-    Section~\ref{sec:augmentation}) that found and fixed 6 implementation
-    bugs; the corrected augmentation improves SPECTRE\_V2 recall by
-    +11.7\,pp and RETBLEED by +6.6\,pp (v55 vs.\ v54).
-  \item A locked test set enabling version-controlled regression tracking;
-    Figures~\ref{fig:cm} and~\ref{fig:training} show confusion matrices
-    and training curves for direct visual comparison.
-  \item An automation path (Section~\ref{sec:specdiscover}) that externalizes the
-    hand-authored feature engineering behind a declarative ISA specification: it
-    drives graph construction with zero divergence from the reference builder
-    (Table~\ref{tab:spec-equiv}) and $98.80\%$ agreement with an independent
-    assembler/disassembler oracle (274 triaged defects); a self-supervised
-    encoder that, by a multi-seed equivalence test, does not replace but is
-    \emph{complementary} to the hand-designed node features ($+10.6$\,pp macro-F1
-    at the sequence level); and a class- and architecture-conditioned generator
-    that produces novel, grammar-valid gadgets (Table~\ref{tab:gen-results}),
-    establishing the generative front end for simulator-in-the-loop gadget
-    discovery.
-  \item An honest evaluation of generalization: leakage-controlled (group- and
-    optimization-level) hold-outs show the random-split accuracy is optimistic
-    and cross-optimization minority-class macro-F1 is weak---so the classifier is
-    best framed as \emph{gadget-candidate triage} feeding principled
-    microarchitectural verification, not standalone vulnerability adjudication.
-\end{enumerate}
-
-\begin{thebibliography}{9}
+\begin{thebibliography}{99}
 
 \bibitem{safeside}
-Google Project Zero, \textit{SafeSide: Hardware-confirmed speculative
-execution proof-of-concepts.}
+Google, \textit{SafeSide: Understand and mitigate software-observable side-channels.}
 \url{https://github.com/google/safeside}, 2019.
 
 \bibitem{spectector}
@@ -1351,10 +1767,36 @@ P.\ Kocher et al.,
 IEEE~S\&P, 2019.
 
 \bibitem{fastspec}
-Y.\ Wang et al.,
-\textit{FastSpec: Scalable Generation and Detection of Spectre Gadgets using
+M.\ C.\ Tol, B.\ Gulmezoglu, K.\ Yurtseven, and B.\ Sunar,
+\textit{FastSpec: Scalable Generation and Detection of Spectre Gadgets Using
 Neural Embeddings.}
-EuroS\&P, 2021.
+IEEE EuroS\&P, 2021.
+
+\bibitem{fabian2022}
+X.\ Fabian, M.\ Guarnieri, and M.\ Patrignani,
+\textit{Automatic Detection of Speculative Execution Combinations.}
+ACM CCS, 2022.
+
+\bibitem{revizor}
+O.\ Oleksenko, C.\ Fetzer, B.\ K\"opf, and M.\ Silberstein,
+\textit{Revizor: Testing Black-Box CPUs against Speculation Contracts.}
+ASPLOS, 2022.
+
+\bibitem{invisispec}
+M.\ Yan, J.\ Choi, D.\ Skarlatos, A.\ Morrison, C.\ Fletcher, and J.\ Torrellas,
+\textit{InvisiSpec: Making Speculative Execution Invisible in the Cache
+Hierarchy.} MICRO, 2018.
+
+\bibitem{arp2022}
+D.\ Arp et al.,
+\textit{Dos and Don'ts of Machine Learning in Computer Security.}
+USENIX Security, 2022.
+
+\bibitem{schuirmann1987}
+D.\ J.\ Schuirmann,
+\textit{A comparison of the two one-sided tests procedure and the power
+approach for assessing the equivalence of average bioavailability.}
+J.\ Pharmacokinetics and Biopharmaceutics, 15(6), 1987.
 
 \bibitem{hu2020strategies}
 W.\ Hu, B.\ Liu, J.\ Gomes, M.\ Zitnik, P.\ Liang, V.\ Pande, and J.\ Leskovec,
@@ -1376,32 +1818,32 @@ I.\ Loshchilov and F.\ Hutter,
 \textit{Decoupled Weight Decay Regularization.}
 ICLR, 2019.
 
-\bibitem{wong2011}
-B.\ Wong,
-\textit{Points of view: Color blindness.}
-Nature Methods, 8(6):441, 2011.
-
-\bibitem{levy2014}
-O.\ Levy and Y.\ Goldberg,
-\textit{Neural Word Embedding as Implicit Matrix Factorization.}
-NeurIPS, 2014.
-
 \bibitem{devlin2019}
 J.\ Devlin, M.-W.\ Chang, K.\ Lee, and K.\ Toutanova,
 \textit{BERT: Pre-training of Deep Bidirectional Transformers for Language
 Understanding.}
 NAACL, 2019.
 
-\bibitem{ding2019asm2vec}
-S.\ H.\ H.\ Ding, B.\ C.\ M.\ Fung, and P.\ Charland,
-\textit{Asm2Vec: Boosting Static Representation Robustness for Binary Clone
-Search against Code Obfuscation and Compiler Optimization.}
-IEEE~S\&P, 2019.
-
 \bibitem{vaswani2017}
 A.\ Vaswani et al.,
 \textit{Attention Is All You Need.}
 NeurIPS, 2017.
+
+\bibitem{anghabench}
+A.\ F.\ da Silva, B.\ C.\ Kind, J.\ W.\ de Souza Magalh\~aes, J.\ N.\ Rocha,
+B.\ C.\ F.\ Guimar\~aes, and F.\ M.\ Q.\ Pereira,
+\textit{AnghaBench: a Suite with One Million Compilable C Benchmarks for Code-Size
+Reduction.} CGO, 2021.
+
+\bibitem{ddmin}
+A.\ Zeller and R.\ Hildebrandt,
+\textit{Simplifying and Isolating Failure-Inducing Input.}
+IEEE TSE, 28(2), 2002.
+
+\bibitem{probdd}
+G.\ Wang, R.\ Shen, J.\ Chen, Y.\ Xiong, and L.\ Zhang,
+\textit{Probabilistic Delta Debugging.}
+ESEC/FSE, 2021.
 
 \end{thebibliography}
 
