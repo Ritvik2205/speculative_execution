@@ -1,0 +1,316 @@
+{
+ "config": {
+  "gen": "gen/generator_expanded.pt",
+  "n": 24,
+  "temperature": 0.9,
+  "top_k": 20,
+  "seed": 0,
+  "archs": [
+   "x86_64",
+   "arm64",
+   "riscv64"
+  ],
+  "emulation": true
+ },
+ "arch_purity": "assembler",
+ "unique_realized": {
+  "x86_64|BRANCH_HISTORY_INJECTION": 24,
+  "x86_64|INCEPTION": 24,
+  "x86_64|L1TF": 24,
+  "x86_64|MDS": 24,
+  "x86_64|RETBLEED": 24,
+  "x86_64|SPECTRE_RSB": 24,
+  "x86_64|SPECTRE_V1": 24,
+  "x86_64|SPECTRE_V2": 24,
+  "x86_64|SPECTRE_V4": 24,
+  "arm64|BRANCH_HISTORY_INJECTION": 24,
+  "arm64|INCEPTION": 24,
+  "arm64|L1TF": 24,
+  "arm64|MDS": 24,
+  "arm64|RETBLEED": 24,
+  "arm64|SPECTRE_RSB": 24,
+  "arm64|SPECTRE_V1": 24,
+  "arm64|SPECTRE_V2": 24,
+  "arm64|SPECTRE_V4": 24,
+  "riscv64|BRANCH_HISTORY_INJECTION": 24,
+  "riscv64|INCEPTION": 24,
+  "riscv64|L1TF": 24,
+  "riscv64|MDS": 24,
+  "riscv64|RETBLEED": 24,
+  "riscv64|SPECTRE_RSB": 24,
+  "riscv64|SPECTRE_V1": 24,
+  "riscv64|SPECTRE_V2": 24,
+  "riscv64|SPECTRE_V4": 24
+ },
+ "counts": {
+  "x86_64|BRANCH_HISTORY_INJECTION": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 17,
+   "emulated_ok": 17
+  },
+  "x86_64|INCEPTION": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 20,
+   "emulated_ok": 20
+  },
+  "x86_64|L1TF": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 11,
+   "emulated_ok": 2
+  },
+  "x86_64|MDS": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 8
+  },
+  "x86_64|RETBLEED": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 18,
+   "emulated_ok": 17
+  },
+  "x86_64|SPECTRE_RSB": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 14,
+   "emulated_ok": 14
+  },
+  "x86_64|SPECTRE_V1": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 23,
+   "emulated_ok": 19
+  },
+  "x86_64|SPECTRE_V2": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 16,
+   "emulated_ok": 16
+  },
+  "x86_64|SPECTRE_V4": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "oracle_supported": 18,
+   "emulated_ok": 13
+  },
+  "arm64|BRANCH_HISTORY_INJECTION": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "emulated_ok": 17
+  },
+  "arm64|INCEPTION": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 22,
+   "emulated_ok": 11
+  },
+  "arm64|L1TF": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 22,
+   "emulated_ok": 22
+  },
+  "arm64|MDS": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 21,
+   "emulated_ok": 21
+  },
+  "arm64|RETBLEED": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "emulated_ok": 21
+  },
+  "arm64|SPECTRE_RSB": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "emulated_ok": 23
+  },
+  "arm64|SPECTRE_V1": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 21,
+   "emulated_ok": 21
+  },
+  "arm64|SPECTRE_V2": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "emulated_ok": 21
+  },
+  "arm64|SPECTRE_V4": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "emulated_ok": 24
+  },
+  "riscv64|BRANCH_HISTORY_INJECTION": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24
+  },
+  "riscv64|INCEPTION": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24
+  },
+  "riscv64|L1TF": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24
+  },
+  "riscv64|MDS": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24
+  },
+  "riscv64|RETBLEED": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24
+  },
+  "riscv64|SPECTRE_RSB": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24
+  },
+  "riscv64|SPECTRE_V1": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24,
+   "emulated_ok": 3
+  },
+  "riscv64|SPECTRE_V2": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24
+  },
+  "riscv64|SPECTRE_V4": {
+   "sampled": 24,
+   "realized": 24,
+   "assembles": 24
+  }
+ },
+ "emulation_outcomes": {
+  "x86_64|BRANCH_HISTORY_INJECTION": {
+   "ok": 17,
+   "skipped": 7
+  },
+  "x86_64|INCEPTION": {
+   "ok": 20,
+   "skipped": 4
+  },
+  "x86_64|L1TF": {
+   "skipped": 13,
+   "fault_insn": 9,
+   "ok": 2
+  },
+  "x86_64|MDS": {
+   "skipped": 16,
+   "fault_insn": 8
+  },
+  "x86_64|RETBLEED": {
+   "skipped": 6,
+   "ok": 17,
+   "fault_insn": 1
+  },
+  "x86_64|SPECTRE_RSB": {
+   "ok": 14,
+   "skipped": 10
+  },
+  "x86_64|SPECTRE_V1": {
+   "fault_insn": 4,
+   "ok": 19,
+   "skipped": 1
+  },
+  "x86_64|SPECTRE_V2": {
+   "ok": 16,
+   "skipped": 8
+  },
+  "x86_64|SPECTRE_V4": {
+   "fault_insn": 5,
+   "skipped": 6,
+   "ok": 13
+  },
+  "arm64|BRANCH_HISTORY_INJECTION": {
+   "ok": 17,
+   "fault_insn": 7
+  },
+  "arm64|INCEPTION": {
+   "fault_insn": 11,
+   "ok": 11,
+   "skipped": 2
+  },
+  "arm64|L1TF": {
+   "skipped": 2,
+   "ok": 22
+  },
+  "arm64|MDS": {
+   "ok": 21,
+   "skipped": 3
+  },
+  "arm64|RETBLEED": {
+   "ok": 21,
+   "fault_insn": 1,
+   "no_code": 2
+  },
+  "arm64|SPECTRE_RSB": {
+   "ok": 23,
+   "fault_insn": 1
+  },
+  "arm64|SPECTRE_V1": {
+   "skipped": 3,
+   "ok": 21
+  },
+  "arm64|SPECTRE_V2": {
+   "ok": 21,
+   "fault_insn": 3
+  },
+  "arm64|SPECTRE_V4": {
+   "ok": 24
+  },
+  "riscv64|BRANCH_HISTORY_INJECTION": {
+   "fault_insn": 24
+  },
+  "riscv64|INCEPTION": {
+   "fault_insn": 24
+  },
+  "riscv64|L1TF": {
+   "fault_insn": 24
+  },
+  "riscv64|MDS": {
+   "fault_insn": 24
+  },
+  "riscv64|RETBLEED": {
+   "fault_insn": 24
+  },
+  "riscv64|SPECTRE_RSB": {
+   "fault_insn": 24
+  },
+  "riscv64|SPECTRE_V1": {
+   "fault_insn": 21,
+   "ok": 3
+  },
+  "riscv64|SPECTRE_V2": {
+   "fault_insn": 24
+  },
+  "riscv64|SPECTRE_V4": {
+   "fault_insn": 24
+  }
+ }
+}
