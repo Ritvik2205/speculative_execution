@@ -1,0 +1,9 @@
+=== group-holdout (locked recipe): Fri  9 Oct 23:36:25 BST 2026 seeds=42 1 7 13 21 ===
+pool=19053 groups=1002 train=13998 test=5055 (231 test groups)
+  seed 42 FAILED (see /home/s2473583/speculative_execution/eval/group_holdout_locked/s42.log)
+  seed 1 FAILED (see /home/s2473583/speculative_execution/eval/group_holdout_locked/s1.log)
+  seed 7 FAILED (see /home/s2473583/speculative_execution/eval/group_holdout_locked/s7.log)
+  seed 13 FAILED (see /home/s2473583/speculative_execution/eval/group_holdout_locked/s13.log)
+  seed 21 FAILED (see /home/s2473583/speculative_execution/eval/group_holdout_locked/s21.log)
+no successful runs
+=== done: Fri  9 Oct 23:41:57 BST 2026; summary at eval/group_holdout_locked/summary.json ===
