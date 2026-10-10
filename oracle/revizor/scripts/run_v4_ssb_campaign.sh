@@ -39,7 +39,9 @@ uname -r
 
 # --- step 1: load the executor module ---------------------------------------
 echo "--- step 1: kernel module ---"
-if lsmod | grep -q rvzr_executor; then
+# /proc/modules, not `lsmod | grep -q`: see run_multiclass_campaign.sh --
+# pipefail + grep -q's early exit makes lsmod die of SIGPIPE (141).
+if grep -q '^rvzr_executor ' /proc/modules; then
   echo "rvzr_executor already loaded"
 else
   cd /home/ritvik/sca-fuzzer/rvzr/executor_km || exit 1
