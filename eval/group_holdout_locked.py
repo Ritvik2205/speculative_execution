@@ -86,7 +86,10 @@ def run_seed(sd, tp, ep):
         "--hidden-dim", "128", "--num-layers", "3", "--jk-mode", "cat",
         "--batch-size", "32", "--lr", "1e-3",
         "--use-spec-builder",
-        "--node-feature-mode", "learned", "--mlm-path", "spec/mlm_neutral.pt",
+        # ABSOLUTE path: train_gine_v38.py runs with cwd=v54/, so a relative
+        # "spec/mlm_neutral.pt" would resolve to v54/spec/... and not be found.
+        "--node-feature-mode", "learned",
+        "--mlm-path", str(ROOT / "spec" / "mlm_neutral.pt"),
         "--arch-mode", "adversarial", "--arch-lambda", "1.0",
         "--handcrafted-subset", "neutral", "--drop-nops", "--node-drop", "0.1",
         "--seed", str(sd),
