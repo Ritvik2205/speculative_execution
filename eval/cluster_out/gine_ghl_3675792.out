@@ -1,0 +1,13 @@
+=== group-holdout (locked recipe): Sat 10 Oct 16:21:26 BST 2026 seeds=42 1 7 13 21 ===
+pool=19053 groups=1002 train=13998 test=5055 (231 test groups)
+  seed 42: acc=91.26 macroF1=83.66
+  seed 1: acc=88.23 macroF1=80.14
+  seed 7: acc=89.54 macroF1=83.38
+  seed 13: acc=87.72 macroF1=78.61
+  seed 21: acc=92.44 macroF1=87.63
+
+group-holdout, LOCKED recipe, 5 seeds:
+  acc       89.84 +/- 2.48
+  macro-F1  82.68 +/- 4.34
+  vs locked random-split acc 92.45: delta -2.61pp
+=== done: Sat 10 Oct 17:04:47 BST 2026; summary at eval/group_holdout_locked/summary.json ===

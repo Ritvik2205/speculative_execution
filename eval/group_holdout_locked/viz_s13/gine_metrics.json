@@ -1,0 +1,147 @@
+{
+  "test_accuracy": 0.8771513353115727,
+  "best_epoch": 4,
+  "total_params": 649936,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 11991,
+  "val_count": 2007,
+  "test_count": 5055,
+  "best_val_acc": 0.924265072247135,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.9058687686920166,
+    "CONTROL_FLOW": 0.9176546335220337,
+    "SPEC_CONDITIONAL": 1.0775233507156372,
+    "SPEC_INDIRECT": 1.2166000604629517,
+    "SPEC_RETURN": 1.025653600692749,
+    "MEMORY_ORDER": 1.0370128154754639,
+    "CACHE_TEMPORAL": 1.2264677286148071,
+    "FENCE_BOUNDARY": 0.9980418682098389,
+    "RSB_CHAIN": 0.8506172299385071
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9378585086042065,
+      "recall": 0.9286841274850111,
+      "f1-score": 0.9332487712065959,
+      "support": 3169.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.4861878453038674,
+      "recall": 0.8148148148148148,
+      "f1-score": 0.6089965397923875,
+      "support": 108.0
+    },
+    "INCEPTION": {
+      "precision": 0.9102564102564102,
+      "recall": 0.6698113207547169,
+      "f1-score": 0.7717391304347826,
+      "support": 318.0
+    },
+    "L1TF": {
+      "precision": 0.7063492063492064,
+      "recall": 0.8018018018018018,
+      "f1-score": 0.7510548523206751,
+      "support": 111.0
+    },
+    "MDS": {
+      "precision": 0.8557692307692307,
+      "recall": 0.712,
+      "f1-score": 0.777292576419214,
+      "support": 125.0
+    },
+    "RETBLEED": {
+      "precision": 0.6830985915492958,
+      "recall": 0.8584070796460177,
+      "f1-score": 0.7607843137254902,
+      "support": 113.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.7653333333333333,
+      "recall": 0.6932367149758454,
+      "f1-score": 0.7275031685678074,
+      "support": 414.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.9794117647058823,
+      "recall": 0.9224376731301939,
+      "f1-score": 0.9500713266761769,
+      "support": 361.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.6666666666666666,
+      "recall": 0.8415300546448088,
+      "f1-score": 0.7439613526570048,
+      "support": 183.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.7663043478260869,
+      "recall": 0.9215686274509803,
+      "f1-score": 0.8367952522255193,
+      "support": 153.0
+    },
+    "accuracy": 0.8771513353115727,
+    "macro avg": {
+      "precision": 0.7757235905364186,
+      "recall": 0.816429221470419,
+      "f1-score": 0.7861447284025653,
+      "support": 5055.0
+    },
+    "weighted avg": {
+      "precision": 0.8874915347959027,
+      "recall": 0.8771513353115727,
+      "f1-score": 0.8790274927169983,
+      "support": 5055.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.6835432479773126,
+    "epoch1_val_acc": 0.8355754857997011
+  },
+  "args": {
+    "data": null,
+    "train_data": "/home/s2473583/speculative_execution/eval/data/group_holdout_locked_train.jsonl",
+    "test_data": "/home/s2473583/speculative_execution/eval/data/group_holdout_locked_test.jsonl",
+    "output_dir": "/home/s2473583/speculative_execution/eval/group_holdout_locked/viz_s13",
+    "viz_dir": "/home/s2473583/speculative_execution/eval/group_holdout_locked/viz_s13",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "adversarial",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "neutral",
+    "drop_nops": true,
+    "node_drop": 0.1,
+    "no_handcrafted": false,
+    "node_feature_mode": "learned",
+    "mlm_path": "/home/s2473583/speculative_execution/spec/mlm_neutral.pt",
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 13
+  }
+}

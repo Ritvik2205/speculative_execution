@@ -1,0 +1,147 @@
+{
+  "test_accuracy": 0.895351137487636,
+  "best_epoch": 7,
+  "total_params": 649936,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 11991,
+  "val_count": 2007,
+  "test_count": 5055,
+  "best_val_acc": 0.922272047832586,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.8508079051971436,
+    "CONTROL_FLOW": 0.8732274770736694,
+    "SPEC_CONDITIONAL": 1.0915491580963135,
+    "SPEC_INDIRECT": 1.3233137130737305,
+    "SPEC_RETURN": 1.0653213262557983,
+    "MEMORY_ORDER": 1.02324640750885,
+    "CACHE_TEMPORAL": 1.3083962202072144,
+    "FENCE_BOUNDARY": 0.988349974155426,
+    "RSB_CHAIN": 0.9437440037727356
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9547967479674797,
+      "recall": 0.9264752287787946,
+      "f1-score": 0.9404228058936579,
+      "support": 3169.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.825,
+      "recall": 0.9166666666666666,
+      "f1-score": 0.868421052631579,
+      "support": 108.0
+    },
+    "INCEPTION": {
+      "precision": 0.7508196721311475,
+      "recall": 0.720125786163522,
+      "f1-score": 0.7351524879614767,
+      "support": 318.0
+    },
+    "L1TF": {
+      "precision": 0.7461538461538462,
+      "recall": 0.8738738738738738,
+      "f1-score": 0.8049792531120332,
+      "support": 111.0
+    },
+    "MDS": {
+      "precision": 0.8976377952755905,
+      "recall": 0.912,
+      "f1-score": 0.9047619047619048,
+      "support": 125.0
+    },
+    "RETBLEED": {
+      "precision": 0.5290697674418605,
+      "recall": 0.8053097345132744,
+      "f1-score": 0.6385964912280702,
+      "support": 113.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.8181818181818182,
+      "recall": 0.7391304347826086,
+      "f1-score": 0.7766497461928934,
+      "support": 414.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.9603399433427762,
+      "recall": 0.9390581717451524,
+      "f1-score": 0.9495798319327731,
+      "support": 361.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.7521739130434782,
+      "recall": 0.9453551912568307,
+      "f1-score": 0.837772397094431,
+      "support": 183.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.8402366863905325,
+      "recall": 0.9281045751633987,
+      "f1-score": 0.8819875776397516,
+      "support": 153.0
+    },
+    "accuracy": 0.895351137487636,
+    "macro avg": {
+      "precision": 0.807441018992853,
+      "recall": 0.8706099662944121,
+      "f1-score": 0.8338323548448571,
+      "support": 5055.0
+    },
+    "weighted avg": {
+      "precision": 0.9020847213607965,
+      "recall": 0.895351137487636,
+      "f1-score": 0.8971246167618516,
+      "support": 5055.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.6798732171156894,
+    "epoch1_val_acc": 0.8176382660687593
+  },
+  "args": {
+    "data": null,
+    "train_data": "/home/s2473583/speculative_execution/eval/data/group_holdout_locked_train.jsonl",
+    "test_data": "/home/s2473583/speculative_execution/eval/data/group_holdout_locked_test.jsonl",
+    "output_dir": "/home/s2473583/speculative_execution/eval/group_holdout_locked/viz_s7",
+    "viz_dir": "/home/s2473583/speculative_execution/eval/group_holdout_locked/viz_s7",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "adversarial",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "neutral",
+    "drop_nops": true,
+    "node_drop": 0.1,
+    "no_handcrafted": false,
+    "node_feature_mode": "learned",
+    "mlm_path": "/home/s2473583/speculative_execution/spec/mlm_neutral.pt",
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 7
+  }
+}
