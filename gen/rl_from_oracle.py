@@ -515,6 +515,12 @@ def main(argv=None) -> int:
                      help="target vuln class (repeatable). Default: the "
                           "Spectector-adjudicable classes from gen/synth/params.py.")
     ap.add_argument("--arch", default="x86_64", choices=["x86_64", "arm64"])
+    ap.add_argument("--combined-oracle", action="store_true",
+                    help="use Spectector-Combined with a per-class -v mechanism "
+                         "(SPECTECTOR_VERSION_FOR_CLASS). Needed for SPECTRE_V2 "
+                         "and return classes, which upstream cannot adjudicate; "
+                         "requires the combined image / COMBINED .sif. Upstream "
+                         "(default) for V1/V4.")
     ap.add_argument("--out", default=str(ROOT / "gen" / "rl_yield.md"))
     ap.add_argument("--samples-out", default=str(ROOT / "gen" / "rl_samples.jsonl"),
                      help="per-sample JSONL sidecar (class/round/index/gadget_id/"
@@ -575,7 +581,14 @@ def main(argv=None) -> int:
                           assembler_check=True)
     spec = gen_decode.load_spec(f"{args.arch}.json")
     realizer = gen_decode.Realizer(spec, seed=args.seed)
-    validator = SpectectorValidator(repo_root=str(repo_root))
+    if args.combined_oracle:
+        from oracle.spectector_oracle import (SPECTECTOR_VERSION_FOR_CLASS,
+                                              _DOCKER_IMAGE_COMBINED)
+        validator = SpectectorValidator(repo_root=str(repo_root),
+                                        versions_by_class=SPECTECTOR_VERSION_FOR_CLASS,
+                                        image=_DOCKER_IMAGE_COMBINED)
+    else:
+        validator = SpectectorValidator(repo_root=str(repo_root))
     out_dir = repo_root / "oracle" / "build"
 
     classes = args.classes or _default_classes()
