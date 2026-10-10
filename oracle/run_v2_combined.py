@@ -190,7 +190,14 @@ def main(argv=None):
     # -w 50, not the fork's 200: on the default victim -w 50 adjudicates both
     # twins in ~4 s, while -w 200 never finishes the unfenced one in 900 s.
     r.add_argument("--window", type=int, default=50)
-    r.add_argument("--steps", type=int, default=1000000)
+    # --steps 20000, not the fork's 1000000: a generator victim with a loop
+    # makes the v2 analysis run speculatively to the full budget and never
+    # halt within --timeout (floods "V2 Execute NoBranch" -> SIGKILL ->
+    # unrunnable). 20000 lets concolic finish full exploration on a ~50-instr
+    # victim in ~8 s and caps runaway speculation; raising the old eval's 18%
+    # unrunnable was exactly these non-halting runs. (The earlier eval/v2_combined
+    # summaries were produced with 1000000 and so UNDER-count adjudicability.)
+    r.add_argument("--steps", type=int, default=20000)
     r.add_argument("--timeout", type=int, default=300)
     sm = sub.add_parser("summarize")
     for p_ in (r, sm):

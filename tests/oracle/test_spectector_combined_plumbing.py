@@ -154,7 +154,7 @@ def test_window_and_steps_are_tunable_on_the_versioned_path(captured, tmp_path):
     # default window is 50 (anchor-validated); 200 times the oracle's
     # positive-control anchor out -- see eval/v2_combined.
     _run(tmp_path, versions="2")
-    assert "-w 50 --steps 1000000" in captured["script"]
+    assert "-w 50 --steps 20000" in captured["script"]
     _run(tmp_path, versions="2", window=40, steps=50000)
     assert "-w 40 --steps 50000" in captured["script"]
 

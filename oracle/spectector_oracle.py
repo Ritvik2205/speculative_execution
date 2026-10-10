@@ -200,7 +200,7 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
             the combined image -- upstream Spectector has no such flag.
         image: container image to run; defaults to the pinned upstream one.
         window, steps: speculative window (`-w`) and step budget (`--steps`)
-            for the versioned path; default 50 / 1000000. NOTE 50, not the
+            for the versioned path; default 50 / 20000. NOTE 50, not the
             fork's 200: the batch V2 adjudicability run (eval/v2_combined)
             found w=200 TIMES OUT the positive-control anchor in all 10 shards
             (every gadget reads unrunnable), while w=50 passes the anchor and
@@ -240,6 +240,16 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
     #   -w 50 --steps ...   a speculative window and step budget. 50 is the
     #                       anchor-validated window; the fork's 200 times the
     #                       positive-control anchor out (eval/v2_combined).
+    #                       --steps defaults to 20000, NOT the fork's 1000000:
+    #                       a generator victim with a loop makes the v2 analysis
+    #                       execute speculatively to the full step budget
+    #                       (floods "V2 Execute NoBranch"), so 1000000 never
+    #                       halts within the timeout -> SIGKILL -> unrunnable.
+    #                       20000 lets concolic finish full path exploration on
+    #                       a ~50-instruction victim in ~8 s (measured on the
+    #                       cluster) and still caps runaway speculation; the cap
+    #                       is a backstop, not a target (a halting victim stops
+    #                       at its own length well before it).
     #   -fcf-protection=branch   the fork models a mispredicted indirect jump
     #                       as landing on any `endbr64`; with none in the .s
     #                       the target set is unbounded and the analysis
@@ -247,7 +257,7 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
     #                       The upstream path keeps =none, byte-identical.
     if versions:
         extra = (f" -v {versions} -e [$ENTRY] --skip-uns --parse-uns "
-                 f"-w {window or 50} --steps {steps or 1000000}")
+                 f"-w {window or 50} --steps {steps or 20000}")
         cf_protection = "branch"
         entry_cmd = (f"ENTRY=$( (grep -oE '^gadget:' {out_asm} || "
                      f"grep -oE '^[a-zA-Z_][a-zA-Z0-9_]*:' {out_asm} "

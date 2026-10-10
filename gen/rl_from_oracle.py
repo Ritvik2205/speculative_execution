@@ -584,12 +584,17 @@ def main(argv=None) -> int:
     if args.combined_oracle:
         from oracle.spectector_oracle import (SPECTECTOR_VERSION_FOR_CLASS,
                                               _DOCKER_IMAGE_COMBINED)
-        # window=50: the anchor-validated setting (eval/v2_combined). The
-        # earlier bootstrap run used the old default 200 and every gadget read
-        # unrunnable because w=200 times the oracle's positive control out.
+        # window=50 / steps=20000: the anchor-validated, halts-in-~8s settings
+        # (eval/v2_combined). window=200 times the oracle's positive control
+        # out; steps=1000000 (the fork default) makes the v2 analysis execute
+        # speculatively to the full budget on any generator victim with a loop
+        # -> never halts within the timeout -> SIGKILL -> unrunnable. 20000
+        # lets concolic finish full path exploration and still caps runaway
+        # speculation.
         validator = SpectectorValidator(repo_root=str(repo_root),
                                         versions_by_class=SPECTECTOR_VERSION_FOR_CLASS,
-                                        image=_DOCKER_IMAGE_COMBINED, window=50)
+                                        image=_DOCKER_IMAGE_COMBINED,
+                                        window=50, steps=20000)
     else:
         validator = SpectectorValidator(repo_root=str(repo_root))
     out_dir = repo_root / "oracle" / "build"
