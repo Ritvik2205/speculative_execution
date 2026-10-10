@@ -955,11 +955,18 @@ Two caveats bound these numbers:
     macro-F1 from 94 to 39. These are the earlier dataset's numbers.
 \end{itemize}
 Two things to keep honest here. The group hold-out for the \emph{locked}
-recipe (learned neutral features, adversarial head) is prepared as a cluster
-retrain (\texttt{eval/group\_holdout\_locked.py}); the random split overstates
-its generalisation and the group-hold-out number is the one to cite once
-retrained. \todo{report the locked-recipe group-hold-out accuracy and macro-F1}
-The optimisation-level hold-out \emph{cannot} be reproduced on the locked
+recipe (learned neutral features, adversarial head), retrained for five seeds,
+gives \textbf{89.8\,$\pm$\,2.5\%} accuracy and \textbf{82.7\,$\pm$\,4.3}
+macro-F1 (\texttt{eval/group\_holdout\_locked}). That is 2.6\,pp below the
+locked model's random-split accuracy (92.45\%)---a smaller leakage penalty
+than the B1 recipe's 4.9\,pp, and the number to cite for generalisation. Two
+caveats bound it: the random-split and group-hold-out test sets are different
+sets (the latter is the held-out groups of the length-matched training pool),
+so the 2.6\,pp is indicative rather than a paired difference; and per-class
+recall on held-out groups ranges from 94\% (\textsc{benign}), 93\%
+(Spectre~V1), 92\% (Spectre~V4) down to 76\% (Spectre~RSB) and 71\%
+(\textsc{inception}), with every class retaining real support, so the headline
+does not rest on one class. The optimisation-level hold-out \emph{cannot} be reproduced on the locked
 model: its length-matched training data carries no optimisation-level tag
 (verified: 18{,}897 of 19{,}053 records untagged, and the few that are tagged
 are O0/O1 only, with no O3 to withhold), so the 94$\to$39 figure stands only
