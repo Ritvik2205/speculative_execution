@@ -144,10 +144,10 @@ Oracles & Spectector (x86, V1/V4), InvisiSpec (x86, V1), Revizor on
   i5-8300H (x86, V1/V4/MDS/L1TF). Emulator-driven speculation covers ARM64 and
   riscv64 but is NOT validated against silicon
   (Sec.~\ref{sec:specemu}). \\
-Filter / ranker & Non-learned pre-oracle gate measured: 18.2\% of
-  unadjudicable removed, below the 80\% target (Sec.~\ref{sec:precheck});
-  learned head built (\texttt{rank/}) and retargeted after the classifier
-  failed as a filter; \todo{learned-filter result} (Sec.~\ref{sec:rank}). \\
+Filter / ranker & Pre-oracle gate measured (18.2\% of unadjudicable removed,
+  Sec.~\ref{sec:precheck}); retargeted learned head on the frozen embedding
+  beats the length bar on V4 (within-round AUC 0.656 vs 0.587); not yet wired
+  into the loop (Sec.~\ref{sec:rank}). \\
 Loop & RL loop runs with Spectector; filter not yet in the loop. \\
 Minimality & Revizor-minimize step built; \todo{results} (Sec.~\ref{sec:min}). \\
 Detector & GINE, locked cross-ISA version (Sec.~\ref{sec:detector}). \\
@@ -1514,8 +1514,43 @@ call, against random ordering and against the within-round length bar
 ordering is about $1/\text{leak rate}$, about 5$\times$ for V4 round 0 and
 about 1.14$\times$ for V1 by round 3.
 
-\todo{V4 filter result vs.\ length and opcode bars;
-filter-in-the-loop leaks-per-call curve.}
+\paragraph{Result: the retargeted filter clears the bar, modestly.}
+On the 460 unique V4 leak/safe sequences, a logistic head on the frozen
+\emph{embedding} (not the classifier's attack probability, which was inverted)
+separates leak from safe at within-round AUC \textbf{0.656}, above the
+sequence-length bar's 0.587 and level with an opcode-bag model's 0.650
+(Table~\ref{tab:v4filter}). Under the prospective split (train rounds $\le r$,
+test $r{+}1$) the encoder head reaches 0.772, so the signal is not an
+artefact of round. The embedding carries usable leak signal where the
+classifier output did not---the fix was the target (binary leak, not trace
+length) and the representation (fused embedding, not the softmax). The gain
+over length is real but small, and the leaks-per-oracle-call headroom is
+limited precisely because the RL generator's own yield is already high by late
+rounds (the filter's value concentrates in early rounds and harder classes,
+as the head-room argument above predicts). The encoder built 360 of 460 PDGs;
+the other 100 are counted as unselectable, not dropped.
+
+\begin{table}[t]
+\centering
+\caption{SPECTRE\_V4 leak-vs-safe discrimination, 460 unique generated
+  gadgets. Within-round AUC controls for the RL-round confounder; prospective
+  trains on rounds $\le r$ and tests on $r{+}1$. Source:
+  \texttt{rank/v4\_filter\_eval.md}.}
+\label{tab:v4filter}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+scorer & within-round AUC & prospective AUC \\
+\midrule
+sequence length (bar) & 0.587 & --- \\
+opcode-bag LR         & 0.650 & 0.627 \\
+frozen-encoder head   & \textbf{0.656} & \textbf{0.772} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\todo{wire the encoder head into the RL loop and report the leaks-per-call
+curve in situ (the static evaluation above is on logged samples).}
 
 %% =========================================================================
 \section{Minimality}
