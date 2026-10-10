@@ -14,7 +14,11 @@
 #
 # PREREQ: publish + pull the combined .sif first (one-time):
 #   # on a machine with docker:  GHCR_OWNER=<you> COMBINED=1 bash oracle/apptainer/publish_spectector_ghcr.sh
-#   # on the cluster:            GHCR_OWNER=<you> COMBINED=1 SIF_OUT=/disk/scratch/$USER/spectector-combined.sif bash oracle/apptainer/pull_spectector.sh
+#   # on the cluster, pull to SHARED storage ($HOME), NOT node-local /disk/scratch
+#   # (that dir is per-node; a login-node copy is invisible to the compute node):
+#   #   GHCR_OWNER=<you> COMBINED=1 SIF_OUT=$HOME/spectector-combined.sif bash oracle/apptainer/pull_spectector.sh
+#   #   export SPECEXEC_SPECTECTOR_COMBINED_SIF=$HOME/spectector-combined.sif
+#   # the job stages that shared copy into the compute node's own /disk/scratch.
 #
 # Submit:  sbatch gen/rl_v2_bootstrap.sbatch
 # ---------------------------------------------------------------------------
@@ -34,7 +38,33 @@ source "$HOME/miniconda3/etc/profile.d/conda.sh"
 conda activate specexec
 
 export SPECEXEC_CONTAINER_RUNTIME=apptainer
-: "${SPECEXEC_SPECTECTOR_COMBINED_SIF:?set it to the pulled combined .sif (see header)}"
+: "${SPECEXEC_SPECTECTOR_COMBINED_SIF:?set it to the combined .sif on SHARED storage (see header)}"
+
+# ---------------------------------------------------------------------------
+# Stage the .sif onto the COMPUTE NODE's local disk. /disk/scratch is
+# node-local on this cluster: a .sif pulled on the login node is NOT visible
+# from the compute node the job lands on, so apptainer exits 255 ("no such
+# file") on every gadget and the whole run reads unrunnable in ~2 min. The
+# env var must therefore point at a copy on SHARED storage ($HOME / NFS);
+# this block copies it into the node's own /disk/scratch for fast local
+# reads and repoints the oracle at the local copy for the rest of the job.
+# ---------------------------------------------------------------------------
+if [ ! -r "$SPECEXEC_SPECTECTOR_COMBINED_SIF" ]; then
+  echo "FATAL: SPECEXEC_SPECTECTOR_COMBINED_SIF not readable on $(hostname): $SPECEXEC_SPECTECTOR_COMBINED_SIF" >&2
+  echo "       Point it at the combined .sif on SHARED storage (\$HOME), not node-local /disk/scratch." >&2
+  exit 1
+fi
+_LOCAL_SIF="/disk/scratch/$USER/$(basename "$SPECEXEC_SPECTECTOR_COMBINED_SIF")"
+if [ "$SPECEXEC_SPECTECTOR_COMBINED_SIF" != "$_LOCAL_SIF" ]; then
+  mkdir -p "/disk/scratch/$USER"
+  if cp -f "$SPECEXEC_SPECTECTOR_COMBINED_SIF" "$_LOCAL_SIF" 2>/dev/null; then
+    echo "staged sif -> $_LOCAL_SIF on $(hostname)"
+    export SPECEXEC_SPECTECTOR_COMBINED_SIF="$_LOCAL_SIF"
+  else
+    echo "WARN: could not stage to node-local scratch; using shared path directly" >&2
+  fi
+fi
+echo "using sif: $SPECEXEC_SPECTECTOR_COMBINED_SIF on $(hostname)"
 
 ROUNDS="${ROUNDS:-5}"
 K="${K:-60}"
