@@ -462,7 +462,38 @@ and all four are turned \textsc{safe} by a landing-pad fence (the second
 control, with zero fenced-leak anomalies). So the class-conditioned generator
 emits V2-shaped code that mostly does not actually leak under the V2 contract,
 consistent with the earlier near-zero V2 RL yield---the gap there was partly
-the oracle (now closed) and partly the generator (still open).
+the oracle (now closed) and partly the generator, which the end-to-end
+bootstrap below now isolates as the binding one.
+
+\paragraph{The generator, not the oracle, is the V2 bottleneck: a negative
+result.} With the oracle working we ran the oracle-labelled bootstrap
+(\emph{generate $\to$ \texttt{-v 2} label $\to$ keep leaks $\to$ fine-tune})
+end to end on the cluster. Two clean runs reproduce the adjudicability exactly
+but confirm that synthesis does not supply positives. A 1{,}200-body run
+(eight rounds of 150) ruled on \textbf{998 bodies (83.2\%)}---matching the
+82.2\% above---yet yielded \textbf{one} oracle-confirmed leak (0.10\% of
+adjudicable); a prior 300-body run yielded none. Across roughly 2{,}000
+adjudicated bodies in total the generator produces on the order of five
+confirmed V2 leaks. The single bootstrap leak is a genuine V2 gadget---an
+indirect call (\texttt{callq~*\%rax}) whose mispredicted target speculatively
+executes a secret-dependent load---but one positive cannot define a
+leak-versus-safe filter, and a sub-1\% yield cannot bootstrap a training set.
+We therefore report this as a negative result: oracle-labelled self-training
+does not manufacture SPECTRE\_V2 positives at useful scale with this generator.
+Spectector-Combined's role for V2 settles accordingly as a \emph{labeler}---it
+confirms the rare positive and supplies a large \textsc{safe} set (${\sim}1{,}000
+bodies)---rather than a yield engine, so scalable V2 positives must come from
+the hardware campaign (Sec.~\ref{sec:data-hw}), not synthesis. Reaching this
+number was almost entirely an infrastructure problem, which we record because
+it is the kind of silent failure that otherwise corrupts a result: on a cluster
+whose \texttt{/disk/scratch} is node-local the oracle image was invisible to the
+compute node and every gadget read \textsc{unrunnable}, and the fork's default
+million-step budget made the \texttt{-v 2} analysis non-halting on any looping
+victim; a staged image, the 50-instruction window, a 20{,}000-step and
+30-second per-gadget cap, and a combined-image availability check were all
+required before a single real verdict appeared. Each of those first presented
+as ``0\% yield,'' indistinguishable at the surface from the true low yield
+until isolated.
 
 \begin{table}[t]
 \centering
