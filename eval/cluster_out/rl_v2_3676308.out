@@ -1,0 +1,4 @@
+staged sif -> /disk/scratch/s2473583/spectector-combined.sif on damnii11.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector-combined.sif on damnii11.inf.ed.ac.uk
+=== V2 oracle-labelled bootstrap: Sun 11 Oct 13:45:46 BST 2026 gen=gen/generator_expanded.pt rounds=10 k=200 ===
+=== done: Sun 11 Oct 13:45:46 BST 2026. Adjudicated yield + kept leaks in gen/rl_v2_bootstrap.md ===

@@ -1,0 +1,10 @@
+staged sif -> /disk/scratch/s2473583/spectector-combined.sif on damnii11.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector-combined.sif on damnii11.inf.ed.ac.uk
+=== V2 oracle-labelled bootstrap: Sun 11 Oct 14:01:25 BST 2026 gen=gen/generator_expanded.pt rounds=10 k=200 ===
+[rl] seed=0 gen=gen/generator_expanded.pt arch=x86_64
+  [train] device=cuda records=1 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.9590
+  epoch 1/1  lm_loss=0.9590
+  [train] device=cuda records=1 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.6663
+  epoch 1/1  lm_loss=0.6663

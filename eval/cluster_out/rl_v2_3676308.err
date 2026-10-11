@@ -1,0 +1,5 @@
+ERROR: Spectector oracle unavailable -- SPECEXEC_CONTAINER_RUNTIME=apptainer requires SPECEXEC_SPECTECTOR_SIF to point at the pulled .sif. Pull it with:
+    GHCR_OWNER=<user> bash oracle/apptainer/pull_spectector.sh
+then:
+    export SPECEXEC_CONTAINER_RUNTIME=apptainer
+    export SPECEXEC_SPECTECTOR_SIF=/disk/scratch/$USER/spectector.sif

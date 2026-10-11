@@ -1,0 +1,11 @@
+staged sif -> /disk/scratch/s2473583/spectector-combined.sif on damnii12.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector-combined.sif on damnii12.inf.ed.ac.uk
+=== V2 oracle-labelled bootstrap: Sun 11 Oct 17:33:50 BST 2026 gen=gen/generator_expanded.pt rounds=8 k=150 ===
+[rl] seed=0 gen=gen/generator_expanded.pt arch=x86_64
+  [train] device=cuda records=1 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=0.9590
+  epoch 1/1  lm_loss=0.9590
+[SPECTRE_V2] yield per round: {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.006666666666666667, 5: 0.0, 6: 0.0, 7: 0.0}
+wrote gen/rl_v2_bootstrap.md
+wrote gen/rl_v2_bootstrap_samples.jsonl
+=== done: Sun 11 Oct 20:09:28 BST 2026. Adjudicated yield + kept leaks in gen/rl_v2_bootstrap.md ===
