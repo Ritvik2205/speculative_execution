@@ -289,28 +289,40 @@ _SPECTECTOR_BUILD_CMD = "bash oracle/docker/build_spectector.sh"
 _GEN_VOCAB_ALIAS = {"BHI": "BRANCH_HISTORY_INJECTION"}
 
 
-def _docker_unavailable_reason() -> Optional[str]:
+def _docker_unavailable_reason(combined: bool = False) -> Optional[str]:
     """None if a usable Spectector container runtime is available; otherwise a
     human-readable reason plus remediation. Never raises.
 
     Respects SPECEXEC_CONTAINER_RUNTIME (docker default; apptainer/singularity
-    on the cluster). Matches oracle/spectector_oracle._container_cmd."""
+    on the cluster). Matches oracle/spectector_oracle._container_cmd.
+
+    `combined=True` (a --combined-oracle run) checks the COMBINED sif var
+    (SPECEXEC_SPECTECTOR_COMBINED_SIF), since that run never touches the
+    upstream image -- requiring SPECEXEC_SPECTECTOR_SIF there is what made a
+    fresh-shell combined run abort before a single gadget ran."""
     runtime = os.environ.get("SPECEXEC_CONTAINER_RUNTIME", "docker").lower()
     if runtime in ("apptainer", "singularity"):
         if not shutil.which(runtime):
             return (f"{runtime} not found on PATH. On the Teaching/ICF cluster "
                     f"run from a compute node where apptainer is installed.")
-        sif = os.environ.get("SPECEXEC_SPECTECTOR_SIF")
+        sif_var = ("SPECEXEC_SPECTECTOR_COMBINED_SIF" if combined
+                   else "SPECEXEC_SPECTECTOR_SIF")
+        default_name = "spectector-combined.sif" if combined else "spectector.sif"
+        pull_cmd = ("GHCR_OWNER=<user> COMBINED=1 bash oracle/apptainer/pull_spectector.sh"
+                    if combined else
+                    "GHCR_OWNER=<user> bash oracle/apptainer/pull_spectector.sh")
+        sif = os.environ.get(sif_var)
         if not sif:
-            return ("SPECEXEC_CONTAINER_RUNTIME=%s requires SPECEXEC_SPECTECTOR_SIF "
-                    "to point at the pulled .sif. Pull it with:\n"
-                    "    GHCR_OWNER=<user> bash oracle/apptainer/pull_spectector.sh\n"
+            return ("SPECEXEC_CONTAINER_RUNTIME=%s requires %s "
+                    "to point at the pulled .sif (on SHARED storage, e.g. $HOME). "
+                    "Pull it with:\n"
+                    "    %s\n"
                     "then:\n"
                     "    export SPECEXEC_CONTAINER_RUNTIME=apptainer\n"
-                    "    export SPECEXEC_SPECTECTOR_SIF=/disk/scratch/$USER/spectector.sif"
-                    % runtime)
+                    "    export %s=$HOME/%s"
+                    % (runtime, sif_var, pull_cmd, sif_var, default_name))
         if not Path(sif).is_file():
-            return (f"SPECEXEC_SPECTECTOR_SIF={sif!r} does not exist. "
+            return (f"{sif_var}={sif!r} does not exist. "
                     f"Re-run oracle/apptainer/pull_spectector.sh.")
         return None
     if not shutil.which("docker"):
@@ -551,7 +563,7 @@ def main(argv=None) -> int:
                           "back to leak-only for the run.")
     args = ap.parse_args(argv)
 
-    reason = _docker_unavailable_reason()
+    reason = _docker_unavailable_reason(combined=args.combined_oracle)
     if reason:
         print(f"ERROR: Spectector oracle unavailable -- {reason}", file=sys.stderr)
         return 1

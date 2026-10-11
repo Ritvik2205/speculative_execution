@@ -284,3 +284,36 @@ def test_apptainer_sif_path_missing(monkeypatch, tmp_path):
     reason = rl._docker_unavailable_reason()
     assert reason is not None
     assert "does not exist" in reason
+
+
+def test_apptainer_combined_checks_combined_sif_var(monkeypatch, tmp_path):
+    """A --combined-oracle run (combined=True) must be satisfied by the COMBINED
+    sif var alone and must NOT demand the upstream SPECEXEC_SPECTECTOR_SIF --
+    requiring the latter is what aborted a fresh-shell combined bootstrap before
+    any gadget ran (the oracle path uses only the combined image)."""
+    import gen.rl_from_oracle as rl
+
+    sif = tmp_path / "spectector-combined.sif"
+    sif.write_bytes(b"sif")
+    monkeypatch.setenv("SPECEXEC_CONTAINER_RUNTIME", "apptainer")
+    monkeypatch.setenv("SPECEXEC_SPECTECTOR_COMBINED_SIF", str(sif))
+    monkeypatch.delenv("SPECEXEC_SPECTECTOR_SIF", raising=False)  # upstream var absent
+    monkeypatch.setattr(rl.shutil, "which",
+                        lambda name: "/usr/bin/apptainer" if name == "apptainer" else None)
+    # combined=True: satisfied by the combined var despite the upstream one being unset
+    assert rl._docker_unavailable_reason(combined=True) is None
+    # the default (combined=False) still fails, naming the upstream var
+    reason = rl._docker_unavailable_reason()
+    assert reason is not None and "SPECEXEC_SPECTECTOR_SIF" in reason
+
+
+def test_apptainer_combined_missing_combined_sif_env(monkeypatch):
+    import gen.rl_from_oracle as rl
+
+    monkeypatch.setenv("SPECEXEC_CONTAINER_RUNTIME", "apptainer")
+    monkeypatch.delenv("SPECEXEC_SPECTECTOR_COMBINED_SIF", raising=False)
+    monkeypatch.setattr(rl.shutil, "which",
+                        lambda name: "/usr/bin/apptainer" if name == "apptainer" else None)
+    reason = rl._docker_unavailable_reason(combined=True)
+    assert reason is not None
+    assert "SPECEXEC_SPECTECTOR_COMBINED_SIF" in reason
