@@ -1190,6 +1190,7 @@ The remaining failures are \texttt{.L} label tokens used as data operands and
 residual operand-type errors.
 
 \subsection{Generator yield (oracle-in-the-loop)}
+\label{sec:genyield}
 Rejection-sampled fine-tuning repeats four steps: sample, realise and splice,
 check with the oracle, then fine-tune on the confirmed leaks (learning rate
 $10^{-4}$). Every realised sample, including unrunnable ones, is logged, so
@@ -1369,6 +1370,64 @@ riscv addressing modes do not sandbox the way the x86/ARM corpora do). So the
 riscv arm has reached ``assembles'' but not yet ``executes'', and the next
 realiser work on it is semantic, not syntactic.
 \todo{raise riscv64 executes rate; it is 0.02 against 0.52 (x86) / 0.84 (arm64)}
+
+%% =========================================================================
+
+\subsection{Length and execution-graph-size diversity}
+\label{sec:lengthdiv}
+
+The generator is conditioned only on \texttt{(class, arch)}, not on size, so a
+natural question is whether its output spans a range of attack lengths or
+collapses onto one shape. We sample a pool per class (x86, temperatures
+$0.8/1.0/1.2$, $n{=}198$ realised sequences each), bucket it by instruction
+count, and measure within-bucket diversity with the same two notions used
+elsewhere in this paper (Sec.~\ref{sec:genyield}): exact-dedup unique-rate, and
+mean pairwise Ruzicka (multiset-Jaccard) \emph{similarity} over the unique set,
+where a lower value means more diverse. The instruction count and the program
+dependence graph's node count coincide here (one node per instruction), so the
+same buckets index both ``length'' and ``execution-graph size''.
+
+\begin{table}[t]
+\centering
+\caption{Diversity by length bucket (x86). Similarity is mean pairwise Ruzicka
+  over the unique set; lower is more diverse. The pooled row's similarity falls
+  \emph{below} every single bucket's, so the gain is not merely a larger
+  sample.}
+\label{tab:lengthdiv}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+Class & Bucket (instrs) & $n$ & unique & uniq-rate & sim$\downarrow$ \\
+\midrule
+\multirow{4}{*}{V1}
+ & S ($\le 8$)   & 11  & 9   & 0.818 & 0.235 \\
+ & M ($9$--$16$) & 75  & 60  & 0.800 & 0.240 \\
+ & L ($>16$)     & 112 & 94  & 0.839 & 0.167 \\
+ & \textbf{all}  & 198 & 163 & 0.823 & \textbf{0.136} \\
+\midrule
+\multirow{4}{*}{V4}
+ & S ($\le 8$)   & 10  & 6   & 0.600 & 0.536 \\
+ & M ($9$--$16$) & 35  & 25  & 0.714 & 0.278 \\
+ & L ($>16$)     & 153 & 98  & 0.641 & 0.243 \\
+ & \textbf{all}  & 198 & 129 & 0.652 & \textbf{0.193} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:lengthdiv} shows the generator already populates short, medium
+and long gadgets for both classes, and that the pooled set is more diverse than
+any single length: mean pairwise similarity for the full range is below every
+individual bucket's ($0.136$ vs.\ $\ge 0.167$ for V1; $0.193$ vs.\ $\ge 0.243$
+for V4), which---unlike a raw count of distinct sequences---does not inflate
+with sample size. Spanning all buckets also yields more distinct gadgets than
+the single richest one ($163$ vs.\ $94$ for V1, $129$ vs.\ $98$ for V4), though
+that comparison partly reflects the larger pooled sample and we do not lean on
+it. The remaining confirmation---that longer gadgets still \emph{leak} at the
+same rate, so breadth does not cost yield---is a per-bucket oracle check we run
+with the same sweep (\todo{per-bucket Spectector leak rate for V1/V4}). One
+bucket the model under-fills is short V1 (it has a natural length floor); a
+length-conditioning prompt token is the retraining-based route to it.
 
 %% =========================================================================
 
