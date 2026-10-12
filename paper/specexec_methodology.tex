@@ -52,7 +52,7 @@ Grounded in Symbolic and Hardware Oracles}}
 %   University of Edinburgh
 % }
 
-\date{Draft --- updated 2026-10-08}
+\date{Draft --- updated 2026-10-12}
 
 \begin{document}
 
@@ -77,10 +77,12 @@ mean. A label-conditioned screening defect in the test set, opcode shortcuts,
 a length confound, and a CPU-specific instruction mix each inflated an earlier
 result; we quantify each one and report what survives. A detector trained on
 synthetic data does not recognise real hardware leaks. On 423 real Revizor
-violations, a single lfence at the speculation boundary removes the leak in
-every stable case for all four classes we tested (L1TF, MDS, Spectre~V1,
-Spectre~V4), and fences far from the boundary do not. No model we trained
-beats a non-learned rule on these mitigation labels yet.
+violations, a single \texttt{lfence} at the speculation boundary removes the leak in
+every stable case, and fences far from the boundary do not. Replaying each
+violation's recorded inputs on the i5-8300H re-triggers L1TF, Spectre~V1 and
+Spectre~V4 at 100\% but \emph{not} MDS (0/6, independent of SMT), so we report
+those three as verified silicon leaks and leave MDS unconfirmed. No model we
+trained beats a non-learned rule on these mitigation labels yet.
 
 On x86, oracle-in-the-loop rejection sampling raises the generator's
 confirmed-leak rate from about 0.50 to 0.97 for Spectre~V1 and from 0.15 to
@@ -167,7 +169,7 @@ Detector & GINE, locked cross-ISA version (Sec.~\ref{sec:detector}). \\
     screening, opcode shortcuts, length confounding, cross-ISA transfer, and
     synthetic-to-real transfer, each quantified with multi-seed statistics.
   \item A hardware-labelling protocol on real Revizor violations. It
-    establishes, on silicon, which lfence placements mitigate each class, and
+    establishes, on silicon, which \texttt{lfence} placements mitigate each class, and
     it supplies non-learned bars that any mitigation-aware model must beat.
   \item An oracle-verified generation loop on x86 that produces distinct
     leaking gadgets at high yield, with a powered (n=5) diversity/yield
@@ -379,8 +381,24 @@ inputs that a speculation contract says are equivalent. Controls used:
     gives 16. Every violating program has a single basic block and no
     conditional branch, so it is store bypass, not V1.
 \end{itemize}
-Revizor runs in batches and only on the bare-metal machine, so it is the most
-expensive oracle per candidate.
+
+\noindent\textbf{Reproduction.} Fuzzing flags a violation once; we separately
+check that each recorded violation \emph{re-triggers} by replaying its exact
+saved inputs (\texttt{rvzr reproduce -i}, 200 inputs per directory, not regenerated
+from the seed---\texttt{rvzr minimize} regenerates and cannot replay, so it
+bails on most directories). On the i5-8300H the recorded L1TF (6/6), Spectre~V1 (3/3)
+and Spectre~V4 (14/14, both SSBP masks) violations re-trigger at Effective
+classification 100\% after slow-path priming at a 500-input sample, confirming
+them as stable hardware leaks. The recorded \textbf{MDS} violations do
+\emph{not} reproduce (0/6): each run is discarded on the fast path in ${\sim}1.5$\,s
+with no slow-path signal, under SMT on and off alike. MDS is therefore the one
+class whose fuzzer-flagged violations we cannot confirm by replay, and we do not
+claim a verified MDS hardware leak; the drift is consistent with MDS's
+fill-buffer channel depending on transient microarchitectural state that the
+recorded inputs no longer recreate.
+
+\noindent Revizor runs in batches and only on the bare-metal machine, so it is
+the most expensive oracle per candidate.
 
 \subsection{Which mechanisms any oracle here can model}
 \label{sec:oraclecoverage}
@@ -481,8 +499,8 @@ leak-versus-safe filter, and a sub-1\% yield cannot bootstrap a training set.
 We therefore report this as a negative result: oracle-labelled self-training
 does not manufacture SPECTRE\_V2 positives at useful scale with this generator.
 Spectector-Combined's role for V2 settles accordingly as a \emph{labeler}---it
-confirms the rare positive and supplies a large \textsc{safe} set (${\sim}1{,}000
-bodies)---rather than a yield engine, so scalable V2 positives must come from
+confirms the rare positive and supplies a large \textsc{safe} set
+(${\sim}1{,}000$ bodies)---rather than a yield engine, so scalable V2 positives must come from
 the hardware campaign (Sec.~\ref{sec:data-hw}), not synthesis. Reaching this
 number was almost entirely an infrastructure problem, which we record because
 it is the kind of silent failure that otherwise corrupts a result: on a cluster
@@ -501,15 +519,17 @@ until isolated.
   590 generated bodies, cluster. The 50-instruction window is the
   anchor-validated one; the 200-instruction window's positive-control anchor
   timed out in all ten shards, so it is shown only to record that it was
-  rejected. Source: \texttt{eval/v2\_combined/summary.md}.}
+  rejected. adjud.\ = adjudicable; leak/adj.\ = leaks as a share of
+  adjudicable bodies. Source: \texttt{eval/v2\_combined/summary.md}.}
 \label{tab:v2adj}
 \footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lrrrl@{}}
 \toprule
-window & adjudicable & leak (of adj.) & fence$\to$safe & anchor \\
+window & adjud. & leak/adj. & fence$\to$safe & anchor \\
 \midrule
 w=50  & \textbf{82.2\%} & 0.8\% (4) & 4/4 & passes \\
-w=200 & 77.8\%          & 1.1\% (5) & 5/5 & \textbf{fails: discarded} \\
+w=200 & 77.8\%          & 1.1\% (5) & 5/5 & \textbf{fails} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -542,10 +562,10 @@ unfinished. Table~\ref{tab:coverage} summarises the resulting position.
 \toprule
 Class & Verification available (x86) \\
 \midrule
-SPECTRE\_V1 & Spectector + Revizor \texttt{cond} \\
-SPECTRE\_V4 & Spectector + Revizor \texttt{bpas} (SSBD control) \\
-MDS & Revizor \texttt{seq-assist} \\
-L1TF & Revizor delayed-exception \\
+SPECTRE\_V1 & Spectector + Revizor \texttt{cond} (replay 3/3) \\
+SPECTRE\_V4 & Spectector + Revizor \texttt{bpas} (SSBD control; replay 14/14) \\
+MDS & Revizor \texttt{seq-assist} flagged, but recorded violations do not replay (0/6): \emph{unverified} \\
+L1TF & Revizor delayed-exception (replay 6/6) \\
 SPECTRE\_V2 & Spectector-Combined, \textbf{82.2\% adjudicable} (Tab.~\ref{tab:v2adj}) \\
 RETBLEED & Spectector-Combined return model, pending the return-model question \\
 INCEPTION & none: AMD~Zen hardware \\
@@ -699,8 +719,9 @@ substitute for the hardware oracle.
 \begin{table}[t]
 \centering
 \caption{Speculative emulator against ground truth it did not produce.
-  In-scope = the class whose mechanism it models. Bars are the non-learned
-  rules of Table~\ref{tab:hwscore}. The emulator returns \textsc{safe} for
+  In-scope = the class whose mechanism it models; HW = hardware labels.
+  Interior/Adjacent are the non-learned bars
+  of Table~\ref{tab:hwscore}. The emulator returns \textsc{safe} for
   every one of the 806 variants, so its ``agreement'' is just the
   \textsc{benign} base rate and it loses to both bars.
   $^\dagger$ not a like-for-like comparison: Spectector adjudicates the whole
@@ -711,13 +732,13 @@ substitute for the hardware oracle.
 \footnotesize
 \begin{tabular}{@{}lrrrr@{}}
 \toprule
-Reference & $n$ & emulator & interior bar & adjacent bar \\
+Reference & $n$ & Emul. & Interior & Adjacent \\
 \midrule
-HW labels, V1 (in scope)   & 224 & 0.580 & \textbf{0.987} & 0.786 \\
-HW labels, L1TF (out of scope) & 314 & 0.602 & 1.000 & 0.908 \\
-HW labels, MDS (out of scope)  & 165 & 0.612 & 0.988 & 0.903 \\
-HW labels, V4 (out of scope)   & 103 & 0.631 & 0.981 & 0.893 \\
-Spectector, generated x86  & 300 & n/a$^\dagger$ & --- & --- \\
+HW, V1 (in scope)    & 224 & 0.580 & \textbf{0.987} & 0.786 \\
+HW, L1TF (out)       & 314 & 0.602 & 1.000 & 0.908 \\
+HW, MDS (out)        & 165 & 0.612 & 0.988 & 0.903 \\
+HW, V4 (out)         & 103 & 0.631 & 0.981 & 0.893 \\
+Spectector, gen.\ x86 & 300 & n/a$^\dagger$ & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -732,10 +753,10 @@ fence mitigates. Our first ``mitigated twins'' were structural assumptions
 \paragraph{Protocol.}
 For each held-out violation we write fenced variants of the original
 \texttt{program.asm}, keeping labels intact
-(\texttt{oracle/revizor/scripts/hw\_label\_variants.py}):
+(\texttt{oracle/revizor/scripts/\allowbreak hw\_label\_variants.py}):
 \begin{itemize}[itemsep=0pt,leftmargin=1.2em]
   \item \texttt{original} (positive control);
-  \item \texttt{fence\_all} (an lfence after every instruction);
+  \item \texttt{fence\_all} (an \texttt{lfence} after every instruction);
   \item \texttt{twin} (the class boundary: V1 at the start of the jcc's taken
     block; V4 after each store; MDS/L1TF before each load);
   \item \texttt{shifted} (V1 before the jcc; V4 before each store);
@@ -759,7 +780,7 @@ apart from jump offsets, which shift by the bytes the fences add.
 Table~\ref{tab:hwlabel} (3,024 reproduce calls; 806 labelled records).
 \begin{itemize}[itemsep=1pt,leftmargin=1.2em]
   \item \textbf{A fence at the class boundary mitigates every class}, in every
-    stable directory. For V4 this is the first evidence that an lfence, and
+    stable directory. For V4 this is the first evidence that an \texttt{lfence}, and
     not only the SSBD MSR, removes these leaks.
   \item \textbf{Fences far from the leak do not mitigate}: entry/tail
     variants stay vulnerable in 289/316 stable cases.
@@ -803,7 +824,7 @@ v1\_fallthrough       & ---  & ---  & 32/41 & --- \\
 \paragraph{Mid-sequence counterexamples (in progress).}
 In this variant set every non-mitigating fence sits at the start or end of the
 sequence, and every mitigating one sits inside it. A non-learned rule,
-``\cls{Benign} iff some lfence is inside the sequence'', therefore matches
+``\cls{Benign} iff some \texttt{lfence} is inside the sequence'', therefore matches
 799/806 labels (0.991). The set cannot tell structural understanding from
 fence position. We added four counterfactual variants that put a fence
 \emph{inside} the sequence where it may not mitigate:
@@ -1145,7 +1166,7 @@ Two models were trained with \emph{structural} fenced twins:
 \end{itemize}
 Table~\ref{tab:hwscore} scores both models against the hardware labels.
 \begin{itemize}[itemsep=1pt,leftmargin=1.2em]
-  \item allhw learned ``has an lfence $\Rightarrow$ safe''.
+  \item allhw learned ``has an \texttt{lfence} $\Rightarrow$ safe''.
   \item allhw2 reproduces its training labels exactly, including the wrong
     ones. It fails only on the fixed V1 twin (0.00) and the shifted variants
     (V1 0.00, V4 0.01); the bottleneck was label correctness, not model
@@ -1168,6 +1189,7 @@ opcode, adjacency and interior-fence bars.}
   \S4.}
 \label{tab:hwscore}
 \footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
 Scorer & All & Vuln. & Mitig. \\
@@ -1415,7 +1437,7 @@ realiser work on it is semantic, not syntactic.
 \subsection{The classifier is not a usable filter}
 Two findings came from checking the classifier against the oracle data.
 \begin{itemize}[itemsep=1pt,leftmargin=1.2em]
-  \item \textbf{V1 has no \textsc{safe} class.} Generated Spectre~V1 samples
+  \item \textbf{V1 has no {\normalfont\textsc{safe}} class.} Generated Spectre~V1 samples
     contain 1,531 leaks, 0 safe and 456 unrunnable. An earlier
     ``classifier vs.\ oracle AUC 0.44'' therefore measured leak vs.\
     \emph{unrunnable}, not leak vs.\ safe.
@@ -1519,9 +1541,10 @@ which is a learned-filter problem, not a parsing one.
   Wilson intervals in the source. Source: \texttt{gen/precheck\_eval.md}.}
 \label{tab:precheck}
 \footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
-Rule & unrunnable removed & leak lost & calls saved \\
+Rule & unrun.\ removed & leak lost & calls saved \\
 \midrule
 A: assembles        & 0.000 & 0.000 & 0.000 \\
 B: oracle front end & 0.174 & 0.008 & 0.082 \\
@@ -1565,13 +1588,13 @@ the other 100 are counted as unselectable, not dropped.
 \centering
 \caption{SPECTRE\_V4 leak-vs-safe discrimination, 460 unique generated
   gadgets. Within-round AUC controls for the RL-round confounder; prospective
-  trains on rounds $\le r$ and tests on $r{+}1$. Source:
+  trains on rounds $\le r$ and tests on $r{+}1$. Both columns are AUC. Source:
   \texttt{rank/v4\_filter\_eval.md}.}
 \label{tab:v4filter}
 \footnotesize
 \begin{tabular}{@{}lrr@{}}
 \toprule
-scorer & within-round AUC & prospective AUC \\
+scorer & within-round & prospective \\
 \midrule
 sequence length (bar) & 0.587 & --- \\
 opcode-bag LR         & 0.650 & 0.627 \\
@@ -1717,7 +1740,7 @@ finds many distinct leaking gadgets. It also has a detector whose headline
 accuracy we have taken apart: screening, opcode shortcuts, length, the
 instruction-set confound and synthetic-to-real transfer each changed what the
 numbers mean. The most solid new result is a property of the data, not of a
-model: on real hardware, a single lfence at the speculation boundary removes
+model: on real hardware, a single \texttt{lfence} at the speculation boundary removes
 L1TF, MDS, Spectre~V1 and Spectre~V4 leaks, and fences elsewhere do not. Three
 things remain open: the learned filter has to beat simple bars on real oracle
 labels, minimality has to be measured, and verification has to reach a second
@@ -1823,101 +1846,7 @@ The 58 inline features fall into seven groups:
 \end{itemize}
 \texttt{endbr64} was excluded after it increased Retbleed confusion.
 
-\begin{thebibliography}{99}
-
-\bibitem{safeside}
-Google, \textit{SafeSide: Understand and mitigate software-observable side-channels.}
-\url{https://github.com/google/safeside}, 2019.
-
-\bibitem{spectector}
-M.\ Guarnieri, B.\ K\"opf, J.\ F.\ Morales, J.\ Reineke, and A.\ S\'anchez,
-\textit{Spectector: Principled Detection of Speculative Information Flows.}
-IEEE~S\&P, 2020.
-
-\bibitem{kocher1998}
-P.\ Kocher et al.,
-\textit{Spectre Attacks: Exploiting Speculative Execution.}
-IEEE~S\&P, 2019.
-
-\bibitem{fastspec}
-M.\ C.\ Tol, B.\ Gulmezoglu, K.\ Yurtseven, and B.\ Sunar,
-\textit{FastSpec: Scalable Generation and Detection of Spectre Gadgets Using
-Neural Embeddings.}
-IEEE EuroS\&P, 2021.
-
-\bibitem{fabian2022}
-X.\ Fabian, M.\ Guarnieri, and M.\ Patrignani,
-\textit{Automatic Detection of Speculative Execution Combinations.}
-ACM CCS, 2022.
-
-\bibitem{revizor}
-O.\ Oleksenko, C.\ Fetzer, B.\ K\"opf, and M.\ Silberstein,
-\textit{Revizor: Testing Black-Box CPUs against Speculation Contracts.}
-ASPLOS, 2022.
-
-\bibitem{invisispec}
-M.\ Yan, J.\ Choi, D.\ Skarlatos, A.\ Morrison, C.\ Fletcher, and J.\ Torrellas,
-\textit{InvisiSpec: Making Speculative Execution Invisible in the Cache
-Hierarchy.} MICRO, 2018.
-
-\bibitem{arp2022}
-D.\ Arp et al.,
-\textit{Dos and Don'ts of Machine Learning in Computer Security.}
-USENIX Security, 2022.
-
-\bibitem{schuirmann1987}
-D.\ J.\ Schuirmann,
-\textit{A comparison of the two one-sided tests procedure and the power
-approach for assessing the equivalence of average bioavailability.}
-J.\ Pharmacokinetics and Biopharmaceutics, 15(6), 1987.
-
-\bibitem{hu2020strategies}
-W.\ Hu, B.\ Liu, J.\ Gomes, M.\ Zitnik, P.\ Liang, V.\ Pande, and J.\ Leskovec,
-\textit{Strategies for Pre-training Graph Neural Networks.}
-ICLR, 2020.
-
-\bibitem{xu2018jk}
-K.\ Xu, C.\ Li, Y.\ Tian, T.\ Sonobe, K.\ Kawarabayashi, and S.\ Jegelka,
-\textit{Representation Learning on Graphs with Jumping Knowledge Networks.}
-ICML, 2018.
-
-\bibitem{khosla2020supervised}
-P.\ Khosla et al.,
-\textit{Supervised Contrastive Learning.}
-NeurIPS, 2020.
-
-\bibitem{loshchilov2019decoupled}
-I.\ Loshchilov and F.\ Hutter,
-\textit{Decoupled Weight Decay Regularization.}
-ICLR, 2019.
-
-\bibitem{devlin2019}
-J.\ Devlin, M.-W.\ Chang, K.\ Lee, and K.\ Toutanova,
-\textit{BERT: Pre-training of Deep Bidirectional Transformers for Language
-Understanding.}
-NAACL, 2019.
-
-\bibitem{vaswani2017}
-A.\ Vaswani et al.,
-\textit{Attention Is All You Need.}
-NeurIPS, 2017.
-
-\bibitem{anghabench}
-A.\ F.\ da Silva, B.\ C.\ Kind, J.\ W.\ de Souza Magalh\~aes, J.\ N.\ Rocha,
-B.\ C.\ F.\ Guimar\~aes, and F.\ M.\ Q.\ Pereira,
-\textit{AnghaBench: a Suite with One Million Compilable C Benchmarks for Code-Size
-Reduction.} CGO, 2021.
-
-\bibitem{ddmin}
-A.\ Zeller and R.\ Hildebrandt,
-\textit{Simplifying and Isolating Failure-Inducing Input.}
-IEEE TSE, 28(2), 2002.
-
-\bibitem{probdd}
-G.\ Wang, R.\ Shen, J.\ Chen, Y.\ Xiong, and L.\ Zhang,
-\textit{Probabilistic Delta Debugging.}
-ESEC/FSE, 2021.
-
-\end{thebibliography}
+\bibliographystyle{ieeetr}
+\bibliography{references}
 
 \end{document}
