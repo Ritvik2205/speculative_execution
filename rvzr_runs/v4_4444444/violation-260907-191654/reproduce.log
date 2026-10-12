@@ -1,0 +1,37 @@
+=== rvzr_runs/v4_4444444/violation-260907-191654 ===
+# n_inputs=200  spec=/home/ritvik/sca-fuzzer/base_x86.json  2026-10-12T14:04:12+01:00
+
+INFO: [fuzzer] Starting at 14:04:13
+> Entering slow path...> Priming  1             > Increasing sample size... to 50> Increasing sample size... to 100> Increasing sample size... to 500> Priming  1             
+
+================================ Violations detected ==========================
+Violation Details:
+
+-----------------------------------------------------------------------------------
+                             HTrace                              | ID:89  | ID:189|
+-----------------------------------------------------------------------------------
+^^.^.^.................^^...^..^^..............^.^^.........^.^. | 627    | 0     |
+^^.^....^..............^^...^..^^..............^.^^.........^.^. | 0      | 627   |
+
+
+================================ Statistics ===================================
+
+Test Cases: 1
+Inputs per test case: 200.0
+Violations: 1
+Effectiveness: 
+  Total Cls: 100.0
+  Effective Cls: 100.0
+Discarded Test Cases:
+  Speculation Filter: 0
+  Observation Filter: 0
+  Fast Path: 0
+  Max Nesting Check: 0
+  Tainting Check: 0
+  Early Priming Check: 0
+  Large Sample Check: 0
+  Priming Check: 0
+
+Duration: 103.5
+Finished at 14:05:56
+

@@ -1,0 +1,39 @@
+=== rvzr_runs/baseline/SPECTRE_V1/violation-260811-075618 ===
+# n_inputs=200  spec=/home/ritvik/sca-fuzzer/base_x86.json  2026-10-12T13:53:32+01:00
+
+INFO: [fuzzer] Starting at 13:53:34
+> Entering slow path...> Priming  36             > Increasing sample size... to 50> Increasing sample size... to 100> Increasing sample size... to 500> Priming  33             
+
+================================ Violations detected ==========================
+Violation Details:
+
+-----------------------------------------------------------------------------------
+                             HTrace                              | ID:1   | ID:101|
+-----------------------------------------------------------------------------------
+^..................^.....^............^.^...................^... | 624    | 0     |
+^..................^..................^.....................^... | 3      | 51    |
+^..................^.....^............^.........^...........^... | 0      | 575   |
+^......^...........^...^.^.^...^......^.........^...........^... | 0      | 1     |
+
+
+================================ Statistics ===================================
+
+Test Cases: 1
+Inputs per test case: 200.0
+Violations: 1
+Effectiveness: 
+  Total Cls: 100.0
+  Effective Cls: 100.0
+Discarded Test Cases:
+  Speculation Filter: 0
+  Observation Filter: 0
+  Fast Path: 0
+  Max Nesting Check: 0
+  Tainting Check: 0
+  Early Priming Check: 0
+  Large Sample Check: 0
+  Priming Check: 0
+
+Duration: 102.5
+Finished at 13:55:16
+
