@@ -15,7 +15,7 @@ RETBLEED, INCEPTION, BHI (9 total)._
 |---|---|---|---|
 | **Spectector** (upstream) | Symbolic speculative-non-interference checker, x86, conditional-branch (PHT) model, container (Docker local / Apptainer cluster) | **SPECTRE_V1, SPECTRE_V4** | Works. Rules on ~82% of generated V1 and ~87% of V4 candidates. Primary x86 symbolic oracle; drives the generation loop. |
 | **Spectector-Combined** (Fabian et al. 2022 fork) | Spectector + extra mechanisms selected by `-v` flag (indirect branch, store-forward, return, straight-line) | **SPECTRE_V2** (adjudicable); RETBLEED pending | Works as a **labeler**: **82.2% of V2 candidates adjudicable** (vs ~15% upstream). Required pinning Ciao to the fork's 2022 era (`v1.22.0-m1`) to run at all; our image self-tests the V2 example on build. |
-| **Revizor** (bare-metal fuzzer) | Runs random programs on the real CPU (Intel i5-8300H) via a kernel module; flags contract violations | **MDS, L1TF, SPECTRE_V4, SPECTRE_V1 (cond)** | Works. Found MDS (3/184) and L1TF (3/53) violations that persist with SMT off; V4: 15 violations / 5 seeds, killed by the SSBD MSR (confirms store-bypass, not V1). Most expensive oracle (batch, one machine). |
+| **Revizor** (bare-metal fuzzer) | Runs random programs on the real CPU (Intel i5-8300H) via a kernel module; flags contract violations | **L1TF, SPECTRE_V4, SPECTRE_V1 (cond)** verified; **MDS** fuzzer-flagged but unverified | Works. V4: 15 violations / 5 seeds, killed by the SSBD MSR (confirms store-bypass, not V1). **Recorded-input replay (`rvzr reproduce -i`, 200 saved inputs/dir) re-triggers L1TF 6/6, SPECTRE_V1 3/3, SPECTRE_V4 14/14 (both SSBP masks) at Effective Cls 100% — real, deterministically stable silicon leaks. MDS 0/6: recorded MDS violations do NOT reproduce (Fast-Path discard in ~1.5s, no slow path), SMT-independent → MDS left UNVERIFIED.** Most expensive oracle (batch, one machine). |
 | **InvisiSpec** (2019 gem5 fork) | Cycle-level simulator that *does* leave a misspeculated-load cache footprint | **SPECTRE_V1 only** | Works for V1: recovers 40/40 secret bytes of a tuned PoC (byte-matched). |
 | **Speculative emulator** (ours, Unicorn-driven) | Forces the mispredicted path by rolling back to a branch; checks which fence placements mitigate | ARM64 + riscv64 (textbook cases) | **Partial / NOT silicon-validated.** Gives correct textbook answers on two ISAs incl. fence placement, but finds 0 leaks in 806 real hardware-labelled violations (those mask every address into a sandbox, even speculatively). Not claimed as validated. |
 
@@ -44,10 +44,10 @@ RETBLEED, INCEPTION, BHI (9 total)._
 
 | Class | Verification available today |
 |---|---|
-| SPECTRE_V1 | Spectector + InvisiSpec + Revizor `cond` ✅ |
-| SPECTRE_V4 | Spectector + Revizor `bpas` (SSBD control) ✅ |
-| MDS | Revizor `seq-assist` ✅ |
-| L1TF | Revizor delayed-exception ✅ |
+| SPECTRE_V1 | Spectector + InvisiSpec + Revizor `cond` ✅ (replay 3/3) |
+| SPECTRE_V4 | Spectector + Revizor `bpas` (SSBD control) ✅ (replay 14/14) |
+| MDS | Revizor `seq-assist` fuzzer-flagged, but recorded violations do **not** replay (0/6, SMT-independent) → **unverified** ⚠️ |
+| L1TF | Revizor delayed-exception ✅ (replay 6/6) |
 | SPECTRE_V2 | Spectector-Combined, 82.2% adjudicable (symbolic labeler) ✅ symbolic; hardware in progress |
 | RETBLEED | Spectector-Combined return model — pending "does it model the RSB-underflow→BTB fallback?" question; i5 campaign in progress |
 | INCEPTION | **none** — needs AMD Zen hardware ❌ |
@@ -83,12 +83,35 @@ measurement of what each result does and does not mean* as the pipeline itself.
 
 ### 2.3 Hardware grounding + mitigation bars (i5-8300H)
 - **Claim:** on **423 real Revizor violations**, a single `lfence` at the
-  speculation boundary removes the leak in every stable case across **all four
-  tested classes (L1TF, MDS, V1, V4)**; fences far from the boundary do not.
+  speculation boundary removes the leak in every **stable** case; fences far
+  from the boundary do not.
 - **Claim (negative + a bar):** **no model we trained beats a non-learned rule**
   on these mitigation labels — the interior-fence rule scores **0.991**. A
   synthetic-trained detector does **not** recognise real hardware leaks.
-- **Backed by:** the hardware-labelling protocol and its controls.
+- **Reproduction matrix (new, 2026-10-12).** Replaying each recorded violation's
+  exact saved inputs (`rvzr reproduce -i`, 200 inputs/dir, not seed-regenerated)
+  on the i5-8300H:
+
+  | class | config | dirs | reproduced |
+  |---|---|---:|---:|
+  | L1TF | SMT on / off | 3 / 3 | **3/3 / 3/3** |
+  | SPECTRE_V1 | baseline | 3 | **3/3** |
+  | SPECTRE_V4 | SSBP mask `4444444` / `5555555` | 8 / 6 | **8/8 / 6/6** |
+  | MDS | SMT on / off | 3 / 3 | **0/3 / 0/3** |
+
+  L1TF, V1, V4 re-trigger 100% (slow-path, prime-survive, Effective Cls 100%,
+  ~100 s/dir) → stable silicon leaks. **MDS does not reproduce (0/6):** every dir
+  hits the Fast-Path discard in ~1.5 s with no slow path — the recorded htrace
+  difference is gone below threshold on this box. SMT on vs off makes no
+  difference (so it is not a sibling-thread effect), and V4 holds across both
+  SSBP masks. **Consequence:** the verified hardware set is **L1TF, V1, V4**;
+  MDS is a fuzzer flag we cannot currently confirm and is **not** claimed as a
+  verified hardware leak. The `lfence` mitigation bar stands for the three
+  reproducing classes; its MDS entries rest on non-reproducing violations and
+  are flagged accordingly.
+- **Backed by:** the hardware-labelling protocol and its controls;
+  `rvzr_runs/REPRODUCE_RESULTS.md`, `rvzr_runs/reproduce_summary.tsv`, per-dir
+  `*/reproduce.log` (branch `hw-reproduce-results`).
 
 ### 2.4 SPECTRE_V2 — symbolic coverage unlocked; synthesis a clean negative result
 - **Claim (positive):** V2 moves from no working oracle to **82.2% symbolically
@@ -123,11 +146,16 @@ unvalidated on real sandboxed violations; V2 synthesis yield is <1%.
 ## 3. What is backed by results vs. still in progress
 
 **Backed now:** detector accuracy + every caveat; x86 V1/V4 generation yield and
-the ~1,600 gadgets; hardware mitigation labels + the non-learned bars; V2
-symbolic adjudicability; the V2-synthesis negative result; the pre-oracle gate;
-the V4 filter beating the length bar.
+the ~1,600 gadgets; hardware mitigation labels + the non-learned bars;
+**recorded-input reproduction of L1TF/V1/V4 on silicon (12/12 across the
+sampled dirs + V4 14/14)**; V2 symbolic adjudicability; the V2-synthesis
+negative result; the pre-oracle gate; the V4 filter beating the length bar.
 
 **Not yet backed (in progress / TODO):**
+- **MDS hardware leak — UNVERIFIED:** recorded violations do not replay (0/6).
+  Either stale (microcode/MD_CLEAR state drift since recording) or the original
+  flags were noise-marginal; re-fuzz MDS fresh on this box before any MDS
+  hardware claim.
 - i5 **V2 / RETBLEED hardware positives** (campaign running).
 - Learned **ranker wired into the loop**; **minimality** (delta-debugging) results.
 - **ARM64 / riscv64** hardware validation (emulator is unvalidated).
