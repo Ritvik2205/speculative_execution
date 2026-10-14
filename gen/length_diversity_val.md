@@ -6,21 +6,21 @@ generator `generator_expanded.pt`, arch `x86_64`, temps [0.8, 1.0, 1.2], buckets
 
 | bucket | n | unique | unique-rate | mean sim (lower=diverse) | mean instr | mean PDG nodes |
 |---|---:|---:|---:|---:|---:|---:|
-| S (<=8) | 1 | 1 | 1.000 | --- | 5.0 | 5.0 |
-| M (9-16)  (leak 2/2) | 11 | 11 | 1.000 | 0.124 | 13.9 | 13.5 |
-| L (>16) | 288 | 284 | 0.986 | 0.156 | 37.1 | 36.3 |
-| **all** | 300 | 296 | 0.987 | 0.151 | 36.1 | 35.3 |
+| S (<=8) | 2 | 2 | 1.000 | 0.083 | 7.0 | 6.0 |
+| M (9-16) | 185 | 155 | 0.838 | 0.137 | 13.6 | 12.8 |
+| L (>16) | 113 | 65 | 0.575 | 0.215 | 17.0 | 16.0 |
+| **all** | 300 | 220 | 0.733 | 0.128 | 14.8 | 14.0 |
 
-Spanning all length buckets yields **296** distinct gadgets vs **284** from the single richest bucket (+12); the length axis adds structural coverage no single length reaches.
+Spanning all length buckets yields **220** distinct gadgets vs **155** from the single richest bucket (+65); the length axis adds structural coverage no single length reaches.
 
 ## SPECTRE_V4
 
 | bucket | n | unique | unique-rate | mean sim (lower=diverse) | mean instr | mean PDG nodes |
 |---|---:|---:|---:|---:|---:|---:|
-| S (<=8)  (leak 0/2) | 6 | 6 | 1.000 | 0.398 | 6.8 | 6.8 |
-| M (9-16)  (leak 0/4) | 23 | 22 | 0.957 | 0.304 | 11.5 | 11.5 |
-| L (>16) | 271 | 271 | 1.000 | 0.272 | 39.7 | 39.7 |
-| **all** | 300 | 299 | 0.997 | 0.267 | 36.9 | 36.9 |
+| S (<=8)  (leak 0/6) | 9 | 5 | 0.556 | 0.519 | 7.3 | 7.3 |
+| M (9-16) | 289 | 166 | 0.574 | 0.175 | 15.3 | 15.3 |
+| L (>16) | 2 | 2 | 1.000 | 0.231 | 17.0 | 16.0 |
+| **all** | 300 | 173 | 0.577 | 0.169 | 15.1 | 15.1 |
 
-Spanning all length buckets yields **299** distinct gadgets vs **271** from the single richest bucket (+28); the length axis adds structural coverage no single length reaches.
+Spanning all length buckets yields **173** distinct gadgets vs **166** from the single richest bucket (+7); the length axis adds structural coverage no single length reaches.
 
