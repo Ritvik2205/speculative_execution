@@ -115,11 +115,16 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default=str(ROOT / "gen/length_diversity.md"))
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--max-len", type=int, default=None, dest="max_len",
-                    help="cap tokens per sample. Splice-safety masking removes the "
-                         "model's natural stop signal (ret/jmp) so cold gadgets "
-                         "balloon into the >16 bucket, which the oracle adjudicates "
-                         "far worse; capping (~18) keeps them in the adjudicable M "
-                         "range. A crude length control until the length token (Step 4).")
+                    help="DEPRECATED for yield: a hard cap TRUNCATES mid-gadget and "
+                         "breaks it (cluster: 0%% adjudicable at --max-len 18). Use "
+                         "--target-len with a length-conditioned checkpoint instead "
+                         "(the model then emits COMPLETE gadgets of the target "
+                         "length: V1 94%% adjudicable at med). Kept only for "
+                         "structural-diversity sweeps where adjudication is not measured.")
+    ap.add_argument("--target-len", default=None, choices=["short", "med", "long"],
+                    help="length bucket to request from a length-conditioned "
+                         "checkpoint (gen/generator_lencond.pt). The correct length "
+                         "control -- emits complete gadgets of the target length.")
     a = ap.parse_args(argv)
 
     classes = a.classes or ["SPECTRE_V1", "SPECTRE_V4"]
@@ -151,7 +156,8 @@ def main(argv=None) -> int:
         for temp in temps:
             for i in range(per_temp):
                 norm = model.sample(alias.get(cls, cls), a.arch,
-                                    temperature=temp, top_k=20, max_len=a.max_len)
+                                    temperature=temp, top_k=20, max_len=a.max_len,
+                                    target_len=a.target_len)
                 concrete = realizer.realize_sequence(norm)
                 pdg = builder.build(concrete)
                 row = {
