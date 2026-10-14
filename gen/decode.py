@@ -104,6 +104,10 @@ def main():
     from arch_purity import attach_arch_masks
     attach_arch_masks(model, {"x86_64": "x86_64.json", "arm64": "arm64.json"},
                       assembler_check=True)
+    # splice safety: forbid control flow the class's oracle cannot model / the
+    # splice cannot host (mid-body ret stranding the transmit, etc.)
+    from splice_safety import attach_splice_masks
+    attach_splice_masks(model)
     spec = load_spec(f"{args.arch}.json")
     realizer = Realizer(spec, seed=0)
     builder = SpecBackedPDGBuilder(load_engine(f"{args.arch}.json"), speculative_window=20)

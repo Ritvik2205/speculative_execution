@@ -591,6 +591,8 @@ def main(argv=None) -> int:
         from arch_purity import attach_arch_masks
         attach_arch_masks(model, {"x86_64": "x86_64.json", "arm64": "arm64.json"},
                           assembler_check=True)
+        from splice_safety import attach_splice_masks
+        attach_splice_masks(model)
     spec = gen_decode.load_spec(f"{args.arch}.json")
     realizer = gen_decode.Realizer(spec, seed=args.seed)
     if args.combined_oracle:

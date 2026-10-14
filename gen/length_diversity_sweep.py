@@ -130,6 +130,8 @@ def main(argv=None) -> int:
     model = CondTransformerLM.load(gen)
     attach_arch_masks(model, {"x86_64": "x86_64.json", "arm64": "arm64.json"},
                       assembler_check=True)
+    from splice_safety import attach_splice_masks
+    attach_splice_masks(model)
     spec = load_spec(f"{a.arch}.json")
     realizer = Realizer(spec, seed=a.seed)
     builder = SpecBackedPDGBuilder(load_engine(f"{a.arch}.json"), speculative_window=20)

@@ -112,6 +112,15 @@ class CondTransformerLM(nn.Module):
             dis = getattr(self, "_arch_disallow", None)
             if dis is not None and target_arch in dis:
                 logits[dis[target_arch].to(logits.device)] = -1e9
+            # splice safety: if a per-class disallow mask is attached
+            # (splice_safety.attach_splice_masks), forbid control flow the
+            # class's oracle cannot model or the splice cannot host (e.g. a
+            # mid-body `ret` that strands the spliced transmit sink). Keyed by
+            # class so a class's own mechanism (V2 indirect call, RETBLEED ret)
+            # is never removed.
+            sdis = getattr(self, "_splice_disallow", None)
+            if sdis is not None and target_class in sdis:
+                logits[sdis[target_class].to(logits.device)] = -1e9
             if greedy:
                 nxt = int(logits.argmax())
             else:
