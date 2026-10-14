@@ -313,4 +313,36 @@ class Realizer:
             instr = self.realize_instruction(n, reject_invalid=reject_invalid)
             if instr is not None:
                 out.append(instr)
+        return self._retarget_self_rel_branches(out)
+
+    # Splice-reachability (adjudicability fix, step 2): realize_instruction gives
+    # a label-free branch the self-relative target `branch_self_rel` (e.g. `.+2`),
+    # which jumps into the middle of the next instruction -- garbage control flow
+    # that the upstream (conditional-branch) oracle rejects and that can strand
+    # the spliced secret->transmit sink. Rewrite every such branch to skip
+    # FORWARD to a label appended at the end of the gadget: assemblable, a plain
+    # forward conditional branch the PHT model adjudicates, and the fall-through
+    # (where the secret load + transmit live) stays reachable.
+    _END_LABEL = ".Lgen_spec_end"
+
+    def _retarget_self_rel_branches(self, out: List[str]) -> List[str]:
+        rel = self.branch_self_rel
+        if not rel:
+            return out
+        used = False
+        for k, instr in enumerate(out):
+            parts = instr.replace("\t", " ").split()
+            if not parts:
+                continue
+            opcode = parts[0]
+            is_branch = (opcode in self.branch_ops
+                         or (self.branch_prefixes
+                             and opcode.startswith(self.branch_prefixes)))
+            # retarget only a branch whose (single) target operand is the
+            # self-relative placeholder; never touch ret/indirect/data operands.
+            if is_branch and instr.rstrip().endswith(rel):
+                out[k] = instr[: instr.rfind(rel)] + self._END_LABEL
+                used = True
+        if used:
+            out.append(self._END_LABEL + ":")
         return out

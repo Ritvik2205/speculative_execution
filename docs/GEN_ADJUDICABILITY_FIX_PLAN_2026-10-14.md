@@ -64,7 +64,7 @@ short-bucket leak scarcity remains. Managed by Step 4 (short = negatives), not
 eliminated.
 
 ## Status
-- [ ] Step 1 (in progress)
-- [ ] Step 2
+- [x] Step 1 — splice-safety decode mask (gen/splice_safety.py), committed 95040f6
+- [x] Step 2 — realizer forward-label branch retarget (gen/realize.py); cluster re-run pending for the adjudicability number
 - [ ] Step 3
 - [ ] Step 4
