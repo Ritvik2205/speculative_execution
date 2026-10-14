@@ -1,0 +1,33 @@
+staged sif -> /disk/scratch/s2473583/spectector.sif on opencast.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector.sif on opencast.inf.ed.ac.uk
+=== length-diversity yield check: Wed 14 Oct 15:14:17 BST 2026 n=300 cap=20 ===
+generator=generator_expanded.pt  arch=x86_64  classes=['SPECTRE_V1', 'SPECTRE_V4']  temps=[0.8, 1.0, 1.2]  buckets=[8, 16]  n/class=300
+# Length / execution-graph-size diversity sweep
+
+generator `generator_expanded.pt`, arch `x86_64`, temps [0.8, 1.0, 1.2], buckets by instruction count [8, 16]. Diversity notions match `gen/compare_generators.py` (unique-rate; mean pairwise Ruzicka similarity over the unique set -- lower = more diverse).
+
+## SPECTRE_V1
+
+| bucket | n | unique | unique-rate | mean sim (lower=diverse) | mean instr | mean PDG nodes |
+|---|---:|---:|---:|---:|---:|---:|
+| S (<=8) | 21 | 18 | 0.857 | 0.219 | 7.0 | 7.0 |
+| M (9-16) | 111 | 88 | 0.793 | 0.208 | 11.5 | 11.5 |
+| L (>16) | 168 | 148 | 0.881 | 0.160 | 28.0 | 28.0 |
+| **all** | 300 | 254 | 0.847 | 0.140 | 20.4 | 20.4 |
+
+Spanning all length buckets yields **254** distinct gadgets vs **148** from the single richest bucket (+106); the length axis adds structural coverage no single length reaches.
+
+## SPECTRE_V4
+
+| bucket | n | unique | unique-rate | mean sim (lower=diverse) | mean instr | mean PDG nodes |
+|---|---:|---:|---:|---:|---:|---:|
+| S (<=8)  (leak 0/7) | 19 | 15 | 0.789 | 0.291 | 7.5 | 7.5 |
+| M (9-16) | 42 | 29 | 0.690 | 0.374 | 10.9 | 10.9 |
+| L (>16) | 239 | 135 | 0.565 | 0.259 | 33.5 | 33.5 |
+| **all** | 300 | 179 | 0.597 | 0.200 | 28.7 | 28.7 |
+
+Spanning all length buckets yields **179** distinct gadgets vs **135** from the single richest bucket (+44); the length axis adds structural coverage no single length reaches.
+
+
+wrote gen/length_diversity_val.md and gen/length_diversity_val_samples.jsonl (600 samples)
+=== done: Wed 14 Oct 15:24:20 BST 2026. Per-bucket leak rates in gen/length_diversity_val.md ===
