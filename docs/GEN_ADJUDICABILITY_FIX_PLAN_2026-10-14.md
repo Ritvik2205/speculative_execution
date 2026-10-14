@@ -66,5 +66,6 @@ eliminated.
 ## Status
 - [x] Step 1 — splice-safety decode mask (gen/splice_safety.py), committed 95040f6
 - [x] Step 2 — realizer forward-label branch retarget (gen/realize.py); cluster re-run pending for the adjudicability number
-- [ ] Step 3
+- [x] Step 4 — length token (gen/generator_lencond.pt); steers med/long (med->adjudicable range). Decoupled from the mask: `ret` is stripped at splice, not decode-masked, so the stop cue + length control survive.
+- [ ] Step 3 — GRPO (optional; measure loop with length control first)
 - [ ] Step 4

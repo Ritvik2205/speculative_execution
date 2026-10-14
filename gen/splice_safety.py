@@ -68,14 +68,41 @@ def _is_indirect_transfer(tok: str) -> bool:
 
 
 def forbidden_for_class(cls: str, tok: str) -> bool:
-    """True if token `tok` must not be emitted while generating class `cls`."""
+    """True if token `tok` must not be emitted while generating class `cls`.
+
+    NOTE on `ret`: it is deliberately NOT masked here, even for the
+    conditional-branch classes whose oracle cannot model it. Masking `ret`
+    removed the model's learned stop cue (<eos> follows `ret` in the victim
+    corpus), so cold gadgets ran to near max_len and the length-conditioning
+    token could not shorten them. `ret` is instead stripped at splice time for
+    every non-return-mechanism class (strip_ret_for_class / gen.decode's
+    build_gen_body), which keeps the stop cue -- and length control -- while
+    still guaranteeing no mid-body `ret` strands the transmit sink. Only the
+    stranding CF with no stop-cue value (unconditional direct jumps, and
+    indirect transfers for the conditional-branch classes) is masked at decode.
+    """
     if cls in _COND:
-        return _is_ret(tok) or _is_uncond_direct_jmp(tok) or _is_indirect_transfer(tok)
+        return _is_uncond_direct_jmp(tok) or _is_indirect_transfer(tok)
     if cls in _INDIRECT_MECH:
-        return _is_ret(tok) or _is_uncond_direct_jmp(tok)
+        return _is_uncond_direct_jmp(tok)        # keep indirect (the mechanism)
     if cls in _RET_MECH:
         return _is_uncond_direct_jmp(tok)
     return False                                 # BENIGN / unlisted: unmasked
+
+
+# Classes whose mechanism IS a return: their body must keep `ret`. Every other
+# class has `ret` stripped from the realized body before splicing (the victim
+# template supplies the function return; a mid-body `ret` would strand the sink).
+def strip_ret_for_class(cls: str) -> bool:
+    return cls not in _RET_MECH
+
+
+def strip_ret(realized, cls: str):
+    """Drop `ret`-family instructions from a realized body unless `ret` is the
+    class's mechanism. Returns a new list."""
+    if not strip_ret_for_class(cls):
+        return list(realized)
+    return [ins for ins in realized if not _is_ret(ins.replace("\t", " "))]
 
 
 def build_splice_disallow(vocab) -> dict:

@@ -71,6 +71,13 @@ _GEN_VOCAB_ALIAS = {"BHI": "BRANCH_HISTORY_INJECTION"}
 def build_gen_body(realized, cls, arch, is_invisispec):
     """cls == 'BENIGN' is not splicable -- caller must not call this for
     BENIGN (falls back to the default hand-written body instead)."""
+    # splice safety: strip a mid-body `ret` for every non-return-mechanism class
+    # (the victim template supplies the function return; a body `ret` would
+    # strand the spliced secret->transmit sink). RETBLEED/RSB keep it -- `ret`
+    # is their mechanism. `ret` is intentionally NOT decode-masked (that killed
+    # the stop cue and length control), so it is removed here instead.
+    from splice_safety import strip_ret
+    realized = strip_ret(realized, cls)
     convention, input_expr = _SPLICE_CONVENTION[(cls, is_invisispec)]
     output_expr = "probe_array" if is_invisispec else "probe"
     asm_text, clobbers = splice_gen_body(realized, arch, convention, input_expr, output_expr)
