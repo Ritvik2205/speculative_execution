@@ -58,11 +58,12 @@ GEN="${GEN:-gen/generator_lencond.pt}"
 TARGET_LEN="${TARGET_LEN:-med}"
 ROUNDS="${ROUNDS:-5}"
 K="${K:-60}"
+FTLR="${FTLR:-1e-4}"          # fine-tune LR; raise (e.g. 3e-4) to bootstrap harder on V4
 
 echo "=== length-controlled yield loop: $(date) gen=$GEN target_len=$TARGET_LEN rounds=$ROUNDS k=$K ==="
 python3 -u gen/rl_from_oracle.py \
   --gen "$GEN" --class SPECTRE_V1 --class SPECTRE_V4 --arch x86_64 \
   --target-len "$TARGET_LEN" --rounds "$ROUNDS" --k "$K" \
   --out gen/rl_lencond.md --samples-out gen/rl_lencond_samples.jsonl \
-  --finetune-lr 1e-4
+  --finetune-lr "$FTLR"
 echo "=== done: $(date). Per-round yield in gen/rl_lencond.md ==="
