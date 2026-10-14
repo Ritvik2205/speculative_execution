@@ -63,11 +63,14 @@ N="${N:-300}"
 CAP="${CAP:-20}"
 TEMPS="${TEMPS:-0.8,1.0,1.2}"
 BUCKETS="${BUCKETS:-8,16}"
+MAXLEN="${MAXLEN:-}"          # e.g. MAXLEN=18 to keep cold gadgets in the M range
+MAXLEN_ARG=""
+[ -n "$MAXLEN" ] && MAXLEN_ARG="--max-len $MAXLEN"
 
-echo "=== length-diversity yield check: $(date) n=$N cap=$CAP ==="
+echo "=== length-diversity yield check: $(date) n=$N cap=$CAP maxlen=${MAXLEN:-none} ==="
 python3 -u gen/length_diversity_sweep.py \
   --class SPECTRE_V1 --class SPECTRE_V4 --arch x86_64 \
-  --n "$N" --temps "$TEMPS" --buckets "$BUCKETS" \
+  --n "$N" --temps "$TEMPS" --buckets "$BUCKETS" $MAXLEN_ARG \
   --validate --validate-cap "$CAP" \
   --out gen/length_diversity_val.md \
   --samples-out gen/length_diversity_val_samples.jsonl
