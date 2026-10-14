@@ -80,7 +80,13 @@ def build_gen_body(realized, cls, arch, is_invisispec):
     realized = strip_ret(realized, cls)
     convention, input_expr = _SPLICE_CONVENTION[(cls, is_invisispec)]
     output_expr = "probe_array" if is_invisispec else "probe"
-    asm_text, clobbers = splice_gen_body(realized, arch, convention, input_expr, output_expr)
+    # SPECTRE_V4: guarantee the store->stale-load->transmit dataflow (the stale
+    # value survives the body and reaches the sink) via the carry_secret
+    # skeleton -- the generated body is the speculation-window payload. Other
+    # classes use the general splice.
+    carry_secret = cls == "SPECTRE_V4"
+    asm_text, clobbers = splice_gen_body(realized, arch, convention, input_expr,
+                                         output_expr, carry_secret=carry_secret)
     clobber_str = ", ".join(f'"{c.lstrip("%")}"' for c in clobbers)
     return (
         f'__asm__ __volatile__(\n"{asm_text}"\n'

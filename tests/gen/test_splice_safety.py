@@ -54,3 +54,32 @@ def test_conditional_branch_bcc_not_treated_as_uncond_b():
     assert not forbidden_for_class("SPECTRE_V1", "b.ne <sym>")
     # bare arm `b <sym>` IS unconditional -> forbidden for cond classes
     assert forbidden_for_class("SPECTRE_V1", "b <sym>")
+
+
+# --- SPECTRE_V4 carry_secret skeleton (gen/oracle_splice.py) ---
+import sys as _sys  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent.parent / "gen"))
+from oracle_splice import splice  # noqa: E402
+
+
+def test_v4_carry_secret_reserves_and_transmits_the_stale_load():
+    body = ["movq %rax, %rbx", "addq %rcx, %rbx", "movq %rdx, %rsi"]
+    asm, clob = splice(body, "x86_64", "pointer", "store + i", "probe",
+                       carry_secret=True)
+    # stale value dereferenced from the seed into the reserved secret reg r14
+    assert "movzbl (%%r15), %%r14d" in asm
+    # the transmit shifts and leaks r14 (the stale secret), not a body reg
+    assert "shlq $6, %%r14" in asm
+    assert "movb $1, (%1,%%r14)" in asm
+    # the body is remapped onto scratch BELOW r14, so it never clobbers r14
+    body_region = asm.split("%%r14d", 1)[1].rsplit("shlq", 1)[0]
+    assert "%%r14" not in body_region
+    assert "r14" in clob and "r15" in clob
+
+
+def test_carry_secret_is_x86_only_noop_elsewhere():
+    body = ["mov x0, x1"]
+    a1, _ = splice(body, "arm64", "pointer", "store + i", "probe", carry_secret=True)
+    a2, _ = splice(body, "arm64", "pointer", "store + i", "probe", carry_secret=False)
+    assert a1 == a2       # arm falls through to the general path

