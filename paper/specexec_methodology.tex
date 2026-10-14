@@ -1423,11 +1423,86 @@ for V4), which---unlike a raw count of distinct sequences---does not inflate
 with sample size. Spanning all buckets also yields more distinct gadgets than
 the single richest one ($163$ vs.\ $94$ for V1, $129$ vs.\ $98$ for V4), though
 that comparison partly reflects the larger pooled sample and we do not lean on
-it. The remaining confirmation---that longer gadgets still \emph{leak} at the
-same rate, so breadth does not cost yield---is a per-bucket oracle check we run
-with the same sweep (\todo{per-bucket Spectector leak rate for V1/V4}). One
-bucket the model under-fills is short V1 (it has a natural length floor); a
-length-conditioning prompt token is the retraining-based route to it.
+it. Breadth is \emph{not} free: oracle yield is length-dependent, and for
+Spectre~V4 the leaks concentrate at longer lengths
+(Section~\ref{sec:adjud}). One bucket the model under-fills is short V1 (it has
+a natural length floor); the length-conditioning token of
+Section~\ref{sec:adjud} both controls length directly and makes that
+length--yield dependence a usable knob.
+
+%% =========================================================================
+
+\subsection{Control-flow validity and length control raise adjudicability}
+\label{sec:adjud}
+
+Cold generations are mostly \emph{unadjudicable}: sampling the generator and
+asking Spectector to rule gives only \textbf{6\%} adjudicable
+(112 of 119 \textsc{unrunnable}, zero leaks). Inspecting the failures shows the
+cause is control flow the oracle cannot model or the victim splice cannot host:
+a \texttt{ret} in the body returns before the spliced secret$\to$transmit sink,
+so the sink is unreachable, and a label-free branch given a self-relative target
+(\texttt{.+2}) jumps into the middle of the next instruction. Three changes, all
+at sampling/realization time and none retraining the reward, remove this class
+of failure:
+\begin{enumerate}[itemsep=1pt,leftmargin=1.4em]
+  \item a class-aware decode mask that forbids the stranding control flow
+    (unconditional direct jumps; indirect transfers for the conditional-branch
+    classes) while keeping each class's own mechanism (the indirect call for
+    Spectre~V2, the \texttt{ret} for Retbleed);
+  \item a realizer rule that retargets a self-relative branch to a forward label
+    at the end of the gadget---assemblable, a plain forward conditional branch
+    the model's PHT semantics adjudicate, and leaving the sink reachable;
+  \item stripping a body \texttt{ret} at splice time (rather than masking it at
+    decode, which removed the model's stop cue and made every gadget run to the
+    length limit) for every class whose mechanism is not itself a return.
+\end{enumerate}
+
+With these in place we add a length-conditioning token
+(\texttt{<LEN\_short\textbar med\textbar long>}), so a target length can be
+requested at sampling time; this both keeps gadgets in the oracle-adjudicable
+band and makes the length--yield dependence controllable. On the cluster oracle,
+across five rejection-sampling rounds ($k{=}60$), the effect is large
+(Table~\ref{tab:adjud}).
+
+\begin{table}[t]
+\centering
+\caption{Oracle adjudicability and confirmed-leak yield, cold vs.\ the
+  control-flow fixes with length conditioning (cluster Spectector, x86, five
+  rounds $\times\,k{=}60$). The length token steers yield: Spectre~V4 leaks
+  concentrate at longer lengths.}
+\label{tab:adjud}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Configuration & Class & Adjudicable & Leak yield \\
+\midrule
+cold (no fixes)        & V1 & 6\% & $\sim$0 \\
+\midrule
+\multirow{2}{*}{fixes, \texttt{--target-len med}}
+                       & V1 & 94\% & \textbf{0.94} \\
+                       & V4 & 72\% & 0.10 \\
+\midrule
+\multirow{2}{*}{fixes, \texttt{--target-len long}}
+                       & V1 & 93\% & 0.93 \\
+                       & V4 & 93\% & \textbf{0.40} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The control-flow fixes alone lift cold V1 adjudicability from 6\% to 93--94\%
+and the confirmed-leak yield from near zero to \textbf{0.94}, at round~0, with no
+reward retraining; yield is flat across the five fine-tuning rounds
+($0.90$--$0.98$), so the gain is the validity of the generated control flow, not
+the loop. The length token is a working yield knob: Spectre~V4's leak yield rises
+\textbf{$0.10\to0.40$ (4$\times$)} from \texttt{med} to \texttt{long}, matching
+the measured length profile (its confirmed leaks average 52 instructions), while
+V1 leaks at every length. A crude alternative---capping the token budget---does
+the opposite: it truncates gadgets mid-body and drops adjudicability to 0\%, so
+the \emph{token}, which emits complete gadgets of the target length, is the
+mechanism that works. For Spectre~V4 the \texttt{med} setting is still useful: it
+yields a large \textsc{safe} set, i.e.\ negatives for the detector and the
+filter.
 
 %% =========================================================================
 
