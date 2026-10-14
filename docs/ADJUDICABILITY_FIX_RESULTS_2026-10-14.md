@@ -24,14 +24,29 @@ the middle of an instruction).
 ## Results (cluster)
 
 ### Length-controlled yield loop (`gen/rl_lencond.sbatch` -> `gen/rl_lencond.md`)
-`generator_lencond.pt`, `--target-len med`, 5 rounds x k=60:
+`generator_lencond.pt`, 5 rounds x k=60, at two target lengths:
+
+**`--target-len med`:**
 
 | class | per-round validated-leak yield | adjudicable | leak |
 |---|---|---:|---:|
 | SPECTRE_V1 | 0.967 / 0.900 / 0.967 / 0.967 / 0.900 | 282/300 (94%) | **282/300 (94%)** |
 | SPECTRE_V4 | 0.100 / 0.083 / 0.100 / 0.100 / 0.133 | 217/300 (72%) | 31/300 (10%) |
 
-Overall adjudicable 499/600 = **83%**.
+**`--target-len long`:**
+
+| class | per-round validated-leak yield | adjudicable | leak |
+|---|---|---:|---:|
+| SPECTRE_V1 | 0.917 / 0.867 / 0.983 / 0.950 / 0.917 | 278/300 (93%) | 278/300 (93%) |
+| SPECTRE_V4 | 0.400 / 0.317 / 0.467 / 0.450 / 0.350 | 278/300 (93%) | **119/300 (40%)** |
+
+### The length token steers yield
+V4 leak yield **0.10 (med) -> 0.40 (long)**, a 4x lift, matching the prior
+length profile (V4 leaks concentrate at >16 instr; the long-run leak gadgets
+mean 52 instr). V1 stays ~0.93-0.94 at both lengths (V1 leaks across all
+lengths). The `<LEN_*>` token is a working yield-steering knob: **med** for V1
+leaks + V4 negatives, **long** for V4 leaks. Overall adjudicable: med 83%,
+long 93%.
 
 ### Before vs after (V1)
 | config | adjudicable | leak yield |
