@@ -54,6 +54,9 @@ fi
 
 ARGS=(--per-arch-tokenizer --extra-train $EXTRA --lr "$LR" --save "$OUT" --k "$K")
 [ -s "$INIT" ] && ARGS+=(--init-from "$INIT")
+# LENGTH_COND=1 adds <LEN_short|med|long> tokens (Step 4) so the generator can be
+# asked for a target length; the checkpoint must then be sampled with target_len.
+[ "${LENGTH_COND:-0}" = "1" ] && ARGS+=(--length-cond)
 if [ "${SMOKE:-0}" = "1" ]; then ARGS+=(--smoke); else ARGS+=(--epochs "$EPOCHS"); fi
 
 echo "--- train: ${ARGS[*]}"

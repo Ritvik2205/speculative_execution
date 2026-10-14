@@ -67,7 +67,8 @@ sys.path.insert(0, str(ROOT / "gen"))
 from isa_spec import load_engine            # noqa: E402
 from asm_tokenizer import AsmTokenizer      # noqa: E402
 from train_mlm import MlmEncoder            # noqa: E402
-from generator import (GenVocab, CondTransformerLM, encode_record, train)  # noqa: E402
+from generator import (GenVocab, CondTransformerLM, encode_record, train,  # noqa: E402
+                       LEN_BUCKETS)
 from inline_features import _X86_ONLY, _ARM_ONLY  # noqa: E402  ISA-decisive opcode sets
 
 TRAIN = ROOT / "v54" / "data" / "v54_train.jsonl"
@@ -234,6 +235,13 @@ def main():
                           "the riscv engine. It also changes ~8.5%% of x86 records, "
                           "so it is opt-in and changes the vocabulary -- a "
                           "checkpoint trained with it must be used with it.")
+    ap.add_argument("--length-cond", action="store_true",
+                     help="add <LEN_short|med|long> conditioning tokens so the "
+                          "generator can be asked for a target gadget length "
+                          "(Step 4). Each training sequence is tagged with its "
+                          "own length bucket; sample(..., target_len=...) then "
+                          "steers length. Changes the vocabulary -- a checkpoint "
+                          "trained with it must be sampled with target_len.")
     ap.add_argument("--extra-train", nargs="+", default=None,
                      help="extra gadget JSONL(s) ({label,arch,sequence}) appended "
                           "to the v54 training pool -- e.g. the idiomatic riscv "
@@ -271,8 +279,10 @@ def main():
     tr_tok = [tokenize(r) for r in train_rows]
     classes = sorted({r["label"] for r in train_rows})
 
-    vocab = GenVocab.build(tr_tok, classes, ARCHS, min_count=5)
-    print(f"gen vocab={len(vocab)}  classes={len(classes)}  archs={ARCHS}  train={len(train_rows)}")
+    vocab = GenVocab.build(tr_tok, classes, ARCHS, min_count=5,
+                           lens=LEN_BUCKETS if args.length_cond else None)
+    print(f"gen vocab={len(vocab)}  classes={len(classes)}  archs={ARCHS}  "
+          f"train={len(train_rows)}  length_cond={args.length_cond}")
 
     encoded = [encode_record(t, r["label"], norm_arch(r.get("arch", "x86_64")),
                              vocab, MAX_LEN)

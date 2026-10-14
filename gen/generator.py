@@ -38,31 +38,40 @@ PAD, EOS = "<pad>", "<eos>"
 
 class GenVocab:
     def __init__(self, instr_tokens: List[str], classes: List[str],
-                 archs: List[str]):
+                 archs: List[str], lens: List[str] = None):
         self.classes = list(classes)
         self.archs = list(archs)
+        # length-bucket conditioning tokens (Step 4). Optional and additive: a
+        # vocab built without `lens` is byte-identical to before, so old
+        # checkpoints load and sample unchanged.
+        self.lens = list(lens) if lens else []
         self.cls_tokens = [f"<CLS_{c}>" for c in self.classes]
         self.arch_tokens = [f"<ARCH_{a}>" for a in self.archs]
-        toks = [PAD, EOS] + self.cls_tokens + self.arch_tokens + list(instr_tokens)
+        self.len_tokens = [f"<LEN_{l}>" for l in self.lens]
+        toks = ([PAD, EOS] + self.cls_tokens + self.arch_tokens
+                + self.len_tokens + list(instr_tokens))
         self.itos = toks
         self.stoi = {t: i for i, t in enumerate(toks)}
         self.pad_id = self.stoi[PAD]
         self.eos_id = self.stoi[EOS]
         self.cls_id = {c: self.stoi[f"<CLS_{c}>"] for c in self.classes}
         self.arch_id = {a: self.stoi[f"<ARCH_{a}>"] for a in self.archs}
+        self.len_id = {l: self.stoi[f"<LEN_{l}>"] for l in self.lens}
         # control tokens never emitted mid-stream
         self.control_ids = ([self.pad_id] + list(self.cls_id.values())
-                            + list(self.arch_id.values()))
+                            + list(self.arch_id.values())
+                            + list(self.len_id.values()))
 
     def __len__(self):
         return len(self.itos)
 
     @classmethod
     def build(cls, tokenized_seqs: List[List[str]], classes: List[str],
-              archs: List[str], min_count: int = 5) -> "GenVocab":
+              archs: List[str], min_count: int = 5,
+              lens: List[str] = None) -> "GenVocab":
         c = Counter(t for seq in tokenized_seqs for t in seq)
         instr = sorted(t for t, n in c.items() if n >= min_count)
-        return cls(instr, classes, archs)
+        return cls(instr, classes, archs, lens=lens)
 
 
 class CondTransformerLM(nn.Module):
@@ -92,12 +101,18 @@ class CondTransformerLM(nn.Module):
     # ---- sampling -------------------------------------------------------
     @torch.no_grad()
     def sample(self, target_class: str, target_arch: str, temperature=1.0,
-               top_k=20, max_len=None, greedy=False) -> List[str]:
+               top_k=20, max_len=None, greedy=False, target_len=None) -> List[str]:
         self.eval()
         v = self.vocab
         dev = next(self.parameters()).device
         max_len = max_len or self.max_len
         ids = [v.cls_id[target_class], v.arch_id[target_arch]]  # class + arch prefix
+        # length conditioning (Step 4): if the vocab carries <LEN_*> tokens and a
+        # target bucket is requested, seed it after the arch token. Ignored
+        # (back-compatible) for a model trained without length tokens.
+        if target_len is not None and getattr(v, "len_id", None) and target_len in v.len_id:
+            ids.append(v.len_id[target_len])
+        n_prefix = len(ids)
         for _ in range(max_len - len(ids)):
             x = torch.tensor([ids], device=dev)
             pad = torch.zeros_like(x, dtype=torch.bool)
@@ -133,7 +148,7 @@ class CondTransformerLM(nn.Module):
             if nxt == v.eos_id:
                 break
             ids.append(nxt)
-        return [v.itos[i] for i in ids[2:]]             # drop class + arch tokens
+        return [v.itos[i] for i in ids[n_prefix:]]      # drop class/arch/len prefix
 
     # ---- persistence ----------------------------------------------------
     def save(self, path):
@@ -141,7 +156,7 @@ class CondTransformerLM(nn.Module):
                     "cfg": {"vocab_size": len(self.vocab), "dim": self.dim,
                             "max_len": self.max_len},
                     "itos": self.vocab.itos, "classes": self.vocab.classes,
-                    "archs": self.vocab.archs}, path)
+                    "archs": self.vocab.archs, "lens": self.vocab.lens}, path)
 
     @classmethod
     def load(cls, path, map_location="cpu"):
@@ -150,15 +165,37 @@ class CondTransformerLM(nn.Module):
         m = cls(c["vocab_size"], dim=c["dim"], max_len=c["max_len"])
         m.load_state_dict(ck["state"])
         instr = [t for t in ck["itos"] if t not in (PAD, EOS)
-                 and not t.startswith("<CLS_") and not t.startswith("<ARCH_")]
-        m.vocab = GenVocab(instr, ck["classes"], ck["archs"])
+                 and not t.startswith("<CLS_") and not t.startswith("<ARCH_")
+                 and not t.startswith("<LEN_")]
+        # lens persisted since Step 4; older checkpoints omit it -> no length
+        # tokens, byte-identical behaviour.
+        m.vocab = GenVocab(instr, ck["classes"], ck["archs"], lens=ck.get("lens"))
         return m
+
+
+# Length buckets by instruction-token count, shared by training and sampling so
+# the <LEN_*> token means the same thing both ways. Boundaries match the
+# diversity sweep's S/M/L (gen/length_diversity_sweep.py bucket_of 8,16).
+LEN_BUCKETS = ["short", "med", "long"]
+
+
+def length_bucket(n_instr: int) -> str:
+    if n_instr <= 8:
+        return "short"
+    if n_instr <= 16:
+        return "med"
+    return "long"
 
 
 def encode_record(seq_tokens: List[str], cls: str, arch: str, vocab: GenVocab,
                   max_len: int) -> List[int]:
-    ids = [vocab.cls_id[cls], vocab.arch_id[arch]] + \
-          [vocab.stoi[t] for t in seq_tokens if t in vocab.stoi]
+    prefix = [vocab.cls_id[cls], vocab.arch_id[arch]]
+    # if the vocab carries length tokens, insert the record's own length bucket
+    # after the arch token so the model learns length as a conditioning signal.
+    if vocab.len_id:
+        instr_tokens = [t for t in seq_tokens if t in vocab.stoi]
+        prefix.append(vocab.len_id[length_bucket(len(instr_tokens))])
+    ids = prefix + [vocab.stoi[t] for t in seq_tokens if t in vocab.stoi]
     ids = ids[: max_len - 1] + [vocab.eos_id]
     return ids
 

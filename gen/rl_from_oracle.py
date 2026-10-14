@@ -542,6 +542,15 @@ def main(argv=None) -> int:
     ap.add_argument("--repo-root", default=str(ROOT))
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--top-k", type=int, default=20)
+    ap.add_argument("--target-len", default=None,
+                    choices=["short", "med", "long"],
+                    help="sample a target length bucket (needs a length-conditioned "
+                         "checkpoint, gen/train_generator.py --length-cond). 'med' "
+                         "keeps gadgets in the oracle-adjudicable range, raising "
+                         "confirmed-leak yield per oracle call.")
+    ap.add_argument("--max-len", type=int, default=None, dest="max_len",
+                    help="hard cap on tokens per sample (crude length control for a "
+                         "non-length-conditioned checkpoint).")
     ap.add_argument("--epochs-per-round", type=int, default=1)
     ap.add_argument("--seed", type=int, default=0,
                      help="seed torch/numpy/random (and the realizer) so a run is "
@@ -624,7 +633,9 @@ def main(argv=None) -> int:
         model, classes, args.arch, args.rounds, args.k,
         realize_fn_factory, validator, args.out,
         epochs_per_round=args.epochs_per_round,
-        sample_kwargs={"temperature": args.temperature, "top_k": args.top_k},
+        sample_kwargs={"temperature": args.temperature, "top_k": args.top_k,
+                       **({"target_len": args.target_len} if args.target_len else {}),
+                       **({"max_len": args.max_len} if args.max_len else {})},
         class_to_vocab=lambda c: _GEN_VOCAB_ALIAS.get(c, c),
         meta={"gen": args.gen, "arch": args.arch, "rounds": args.rounds, "k": args.k},
         samples_out=(args.samples_out or None),
