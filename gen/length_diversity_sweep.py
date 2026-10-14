@@ -138,7 +138,6 @@ def main(argv=None) -> int:
     alias = {"BHI": "BRANCH_HISTORY_INJECTION"}
 
     rows = []
-    samples_fh = open(a.samples_out, "w")
     for cls in classes:
         per_temp = max(1, a.n // len(temps))
         for temp in temps:
@@ -155,8 +154,8 @@ def main(argv=None) -> int:
                     "bucket": bucket_of(len(concrete), bounds),
                 }
                 rows.append(row)
-                samples_fh.write(json.dumps(row) + "\n")
-    samples_fh.close()
+    # samples are dumped AFTER validation below, so the per-gadget spectector
+    # verdict is persisted alongside each row (not lost).
 
     # optional yield check per (class, bucket), capped
     yields = {}
@@ -183,6 +182,11 @@ def main(argv=None) -> int:
                     vleak[key] += 1
         for key in vcount:
             yields[key] = (vleak[key], vcount[key])
+
+    # persist every row (now carrying any spectector verdict) exactly once
+    with open(a.samples_out, "w") as fh:
+        for r in rows:
+            fh.write(json.dumps(r) + "\n")
 
     # ---- report ----
     def agg(subset):
