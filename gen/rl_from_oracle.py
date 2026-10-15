@@ -152,6 +152,8 @@ def rejection_sample_finetune(
     samples_out: Optional[object] = None,
     finetune_lr: float = 3e-3,
     finetune_with_benign: bool = False,
+    gate=None,
+    gate_threshold: float = 0.5,
 ) -> dict:
     """Rejection-sampled fine-tuning loop.
 
@@ -226,12 +228,23 @@ def rejection_sample_finetune(
         kept = []
         safe_kept = []
         n_realized = 0
+        n_oracle_calls = 0
+        n_filtered = 0
         for sample_idx in range(k_per_round):
             tokens = model.sample(target_class, target_arch, **sample_kwargs)
             gadget = realize_fn(tokens, target_class, target_arch, round_idx, sample_idx)
             if gadget is None:
                 continue
             n_realized += 1
+            # pre-oracle gate (paper T6): a cheap learned head decides which
+            # realised candidates earn an expensive oracle call. The gate is
+            # pass-through-safe (score==pass_value when off / PDG unbuildable),
+            # so with no --filter-head every candidate is still adjudicated and
+            # the yield is byte-identical to the ungated loop.
+            if gate is not None and gate.score(gadget.get("_realized_asm") or []) < gate_threshold:
+                n_filtered += 1
+                continue
+            n_oracle_calls += 1
             result = validator.validate(gadget)
             gadget["_reward"] = reward_for_result(result)
             gadget["_verdict"] = result.verdict
@@ -256,6 +269,13 @@ def rejection_sample_finetune(
                 safe_kept.append(gadget)
 
         history[round_idx] = (len(kept) / n_realized) if n_realized else 0.0
+
+        if gate is not None:
+            eff = (len(kept) / n_oracle_calls) if n_oracle_calls else 0.0
+            print(f"[rl] round {round_idx} class={target_class}: gate on -- "
+                  f"realized={n_realized} filtered={n_filtered} "
+                  f"oracle_calls={n_oracle_calls} leaks={len(kept)} "
+                  f"leaks_per_oracle_call={eff:.3f}")
 
         if effective_with_benign:
             print(f"[rl] round {round_idx} class={target_class}: "
@@ -384,6 +404,8 @@ def run_oracle_rl(
     samples_out: Optional[object] = None,
     finetune_lr: float = 3e-3,
     finetune_with_benign: bool = False,
+    gate_factory: Optional[Callable[[str], object]] = None,
+    gate_threshold: float = 0.5,
 ) -> dict:
     """Core oracle-RL loop, factored out of `main()` so it's directly unit-
     testable with a stub model/validator/realize_fn_factory (no Docker, no
@@ -423,6 +445,7 @@ def run_oracle_rl(
     all_history: dict = {}
     for cls in classes:
         realize_fn = realize_fn_factory(cls)
+        gate = gate_factory(cls) if gate_factory is not None else None
         history = rejection_sample_finetune(
             model,
             target_class=class_to_vocab(cls),
@@ -437,6 +460,8 @@ def run_oracle_rl(
             samples_out=samples_out,
             finetune_lr=finetune_lr,
             finetune_with_benign=finetune_with_benign,
+            gate=gate,
+            gate_threshold=gate_threshold,
         )
         all_history[cls] = history
 
@@ -561,6 +586,16 @@ def main(argv=None) -> int:
                           "fine-tune step (gen.generator.train via "
                           "_default_finetune). Default (3e-3) is byte-identical "
                           "to the prior hardcoded rate.")
+    ap.add_argument("--filter-head", default=None,
+                     help="path to a leak/safe filter head (rank/filter_gate.py "
+                          "train) used as a PRE-ORACLE gate: candidates scoring "
+                          "below --filter-threshold skip the oracle (paper T6). "
+                          "Use {cls} in the path for a per-class head. The gate "
+                          "is pass-through-safe: a missing/unloadable head leaves "
+                          "the loop ungated.")
+    ap.add_argument("--filter-threshold", type=float, default=0.5,
+                     help="P(leak) below which a candidate is filtered out "
+                          "before the oracle (only with --filter-head)")
     ap.add_argument("--finetune-with-benign", action="store_true", default=False,
                      help="also collect this round's SAFE-verdict realized "
                           "gadgets and fine-tune on them (re-encoded under the "
@@ -629,6 +664,19 @@ def main(argv=None) -> int:
                                  gen_decode.spec_gadgets, gen_decode.build_gen_body,
                                  out_dir, repo_root)
 
+    gate_factory = None
+    if args.filter_head:
+        sys.path.insert(0, str(repo_root / "rank"))
+        from filter_gate import LeakGate
+        _gate_cache: dict = {}
+
+        def gate_factory(cls_short):  # noqa: F811
+            path = args.filter_head.format(cls=cls_short) if "{cls}" in args.filter_head \
+                else args.filter_head
+            if path not in _gate_cache:
+                _gate_cache[path] = LeakGate(path)
+            return _gate_cache[path]
+
     history = run_oracle_rl(
         model, classes, args.arch, args.rounds, args.k,
         realize_fn_factory, validator, args.out,
@@ -641,6 +689,8 @@ def main(argv=None) -> int:
         samples_out=(args.samples_out or None),
         finetune_lr=args.finetune_lr,
         finetune_with_benign=args.finetune_with_benign,
+        gate_factory=gate_factory,
+        gate_threshold=args.filter_threshold,
     )
     for cls, h in history.items():
         print(f"[{cls}] yield per round: {h}")

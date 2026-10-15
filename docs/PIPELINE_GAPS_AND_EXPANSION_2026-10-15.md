@@ -252,3 +252,85 @@ Ordered by credibility gained per unit of effort, hardware already in hand first
 
 Items 1–5 need nothing new. Item 6 needs PoC binaries from you. Items 7–8 are
 the expansion frontier.
+
+---
+
+## 6. Implemented this session (2026-10-15) + exact run commands
+
+What was built/run on the Mac, and the commands for the boxes that have the
+oracles. Nothing here ships an exploit.
+
+### Built (code, unit-tested offline on the Mac)
+- **ddmin leak minimiser** `gen/minimize_leaks.py` (+ `tests/gen/test_minimize_leaks.py`,
+  5 tests). Zeller delta-debug to a 1-minimal body, Spectector as the test.
+  Fills the generated half of `tab:min`. Runs where Spectector runs (cluster).
+- **Filter-in-loop gate** (T6): `rank/filter_gate.py` (train + `LeakGate`, pass-
+  through-safe) and `--filter-head`/`--filter-threshold` in `gen/rl_from_oracle.py`
+  (+ gate tests in `tests/gen/test_rl_cli.py`). Prints
+  `leaks_per_oracle_call` per round. Runs on the cluster.
+- **xlong length bucket** (expansion): 4-bucket scheme (short/med/long/xlong,
+  xlong = >32 instrs) via `--xlong` on `gen/train_generator.py`; the 3-bucket
+  default and the existing `generator_lencond.pt` are unchanged. Needs a retrain.
+
+### Diagnosed on the Mac (finding, not a fix)
+- **riscv64 `executes`** on `generator_lencond.pt` is ~0.10 overall (not the
+  committed 0.02), and the failures are **`fault_insn` 482/534, `fault_mem` 0** —
+  i.e. Unicorn's RISCV decoder rejecting instructions llvm-mc *assembled*
+  (`assembles` 0.99). The gap is the **emulator decoder**, not (as the paper's
+  appendix text currently says) the realiser emitting faulting loads. **Paper
+  correction to make:** the riscv `executes` cause in App.~\ref{app:gendev}
+  should read "Unicorn RISCV decoder rejects extension instructions llvm-mc
+  accepts", and the next step is to identify the offending mnemonics and either
+  enable the Unicorn extension or mask them in the riscv decode table. Left as a
+  precise next step; not blindly re-fitted.
+
+### CLUSTER commands (GPU, sbatch; Spectector .sif on $HOME)
+```bash
+# 1. Generated-leak minimality -> fills tab:min generated rows
+python3 gen/minimize_leaks.py \
+    --samples gen/rl_lencond_samples.jsonl \
+    --class SPECTRE_V1 --class SPECTRE_V4 --per-class 40 \
+    --out _min/generated_min.jsonl --md _min/generated_min.md
+
+# 2. Filter-in-loop (T6): train a per-class head from the logged samples, then
+#    run the loop gated and read leaks_per_oracle_call from the .out
+python3 rank/filter_gate.py train --class SPECTRE_V4 \
+    --samples gen/rl_lencond_samples.jsonl --out rank/filter_head_SPECTRE_V4.pkl
+python3 rank/filter_gate.py train --class SPECTRE_V1 \
+    --samples gen/rl_lencond_samples.jsonl --out rank/filter_head_SPECTRE_V1.pkl
+TARGET_LEN=long ROUNDS=5 K=120 \
+  EXTRA_ARGS="--filter-head rank/filter_head_{cls}.pkl --filter-threshold 0.5" \
+  sbatch gen/rl_lencond.sbatch
+#   (add the EXTRA_ARGS passthrough to rl_lencond.sbatch's python call, or run
+#    gen/rl_from_oracle.py directly with --filter-head rank/filter_head_{cls}.pkl)
+
+# 3. xlong V4 retrain (expansion) -> then rerun the long/xlong yield loop
+bash gen/train_expanded_generator.sh   # with LENGTH_COND=1 and --xlong added
+TARGET_LEN=xlong GEN=gen/generator_lencond_x.pt sbatch gen/rl_lencond.sbatch
+```
+
+### i5-8300H commands (bare-metal Linux, root; no-exploit)
+```bash
+# A. Fenced-variant mitigation matrix on the full pools (T3, T5)
+sudo bash oracle/revizor/scripts/reproduce_fenced_matrix.sh
+sudo bash oracle/revizor/scripts/run_hw_label_variants.sh
+
+# B. Minimality on real violations -> fills tab:min real rows
+sudo bash oracle/revizor/scripts/run_multiclass_campaign.sh \
+    --classes "SPECTRE_V4 L1TF SPECTRE_V1" --minimize
+
+# C. MDS re-fuzz (settle the one unverified class either way)
+sudo bash oracle/revizor/scripts/refuzz_mds.sh
+
+# D. V2 / RETBLEED published-PoC campaign (BLOCKED: you supply the PoC binary)
+sudo bash oracle/revizor/scripts/run_v2_retbleed_campaign.sh --class SPECTRE_V2 --poc <path>
+sudo bash oracle/revizor/scripts/run_v2_retbleed_campaign.sh --class RETBLEED --poc <path>
+```
+
+### Ruled out (policy)
+- **Generator-V4 silicon cross-validation.** Running generated V4 gadgets on the
+  i5 for a *timing* verdict needs a Flush+Reload exfiltration harness = an
+  exploit, which the i5 V4 scripts are forbidden to ship (only user-supplied
+  published PoCs run). So V4 stays grounded on silicon at the *class* level
+  (Revizor `bpas`, SSBD off->on, replay 14/14) and symbolically at the
+  *gadget* level (Spectector 0.98). Not closing this by writing an exfil harness.

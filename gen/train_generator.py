@@ -68,7 +68,7 @@ from isa_spec import load_engine            # noqa: E402
 from asm_tokenizer import AsmTokenizer      # noqa: E402
 from train_mlm import MlmEncoder            # noqa: E402
 from generator import (GenVocab, CondTransformerLM, encode_record, train,  # noqa: E402
-                       LEN_BUCKETS)
+                       LEN_BUCKETS, LEN_BUCKETS_X)
 from inline_features import _X86_ONLY, _ARM_ONLY  # noqa: E402  ISA-decisive opcode sets
 
 TRAIN = ROOT / "v54" / "data" / "v54_train.jsonl"
@@ -242,6 +242,12 @@ def main():
                           "own length bucket; sample(..., target_len=...) then "
                           "steers length. Changes the vocabulary -- a checkpoint "
                           "trained with it must be sampled with target_len.")
+    ap.add_argument("--xlong", action="store_true",
+                     help="use the 4-bucket length scheme (short/med/long/xlong, "
+                          "xlong = >32 instrs) instead of the 3-bucket default. "
+                          "Only meaningful with --length-cond. Lets a retrain "
+                          "probe whether SPECTRE_V4 yield climbs past the `long` "
+                          "band (V4 leaks average ~52 instrs).")
     ap.add_argument("--extra-train", nargs="+", default=None,
                      help="extra gadget JSONL(s) ({label,arch,sequence}) appended "
                           "to the v54 training pool -- e.g. the idiomatic riscv "
@@ -280,7 +286,8 @@ def main():
     classes = sorted({r["label"] for r in train_rows})
 
     vocab = GenVocab.build(tr_tok, classes, ARCHS, min_count=5,
-                           lens=LEN_BUCKETS if args.length_cond else None)
+                           lens=((LEN_BUCKETS_X if args.xlong else LEN_BUCKETS)
+                                 if args.length_cond else None))
     print(f"gen vocab={len(vocab)}  classes={len(classes)}  archs={ARCHS}  "
           f"train={len(train_rows)}  length_cond={args.length_cond}")
 

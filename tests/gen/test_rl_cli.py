@@ -317,3 +317,56 @@ def test_apptainer_combined_missing_combined_sif_env(monkeypatch):
     reason = rl._docker_unavailable_reason(combined=True)
     assert reason is not None
     assert "SPECEXEC_SPECTECTOR_COMBINED_SIF" in reason
+
+
+# ---------------------------------------------------------------------------
+# pre-oracle gate (paper T6): gate_factory + gate_threshold
+# ---------------------------------------------------------------------------
+
+class _FakeGate:
+    """Scores by a field the realize_fn stashes; counts score calls."""
+    def __init__(self, scores):
+        self.scores = scores
+        self.seen = 0
+
+    def score(self, asm):
+        self.seen += 1
+        return self.scores.pop(0)
+
+
+def test_gate_skips_oracle_below_threshold():
+    model = StubModel()
+    validator = AlternatingValidator()
+    factory = make_realize_fn_factory()
+    # 4 samples/round x 1 round: gate lets through #0 and #2, blocks #1,#3
+    gate = _FakeGate(scores=[0.9, 0.1, 0.9, 0.1])
+
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        run_oracle_rl(
+            model, classes=["SPECTRE_V1"], arch="x86_64",
+            rounds=1, k_per_round=4, realize_fn_factory=factory,
+            validator=validator, out_path=Path(d) / "y.md",
+            finetune_fn=lambda *a, **k: None,
+            gate_factory=lambda cls: gate, gate_threshold=0.5,
+        )
+
+    # only 2 of 4 candidates reached the oracle (the two scoring >= 0.5)
+    assert len(validator.calls) == 2
+    assert gate.seen == 4
+
+
+def test_no_gate_is_byte_identical_ungated():
+    model = StubModel()
+    validator = AlternatingValidator()
+    factory = make_realize_fn_factory()
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        h = run_oracle_rl(
+            model, classes=["SPECTRE_V1"], arch="x86_64",
+            rounds=1, k_per_round=4, realize_fn_factory=factory,
+            validator=validator, out_path=Path(d) / "y.md",
+            finetune_fn=lambda *a, **k: None,
+        )
+    assert len(validator.calls) == 4  # every candidate adjudicated
+    assert h["SPECTRE_V1"][0] == 0.5

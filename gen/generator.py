@@ -177,13 +177,26 @@ class CondTransformerLM(nn.Module):
 # the <LEN_*> token means the same thing both ways. Boundaries match the
 # diversity sweep's S/M/L (gen/length_diversity_sweep.py bucket_of 8,16).
 LEN_BUCKETS = ["short", "med", "long"]
+# opt-in 4-bucket scheme: splits the open-ended `long` tail into long (17--32)
+# and xlong (>32). SPECTRE_V4 leaks average ~52 instrs and the yield rose
+# monotone to the end of the `long` bucket, so xlong lets a retrain probe
+# whether the V4 ceiling climbs further (paper expansion). Enabled only when a
+# vocab's `lens` includes "xlong"; the 3-bucket default is unchanged.
+LEN_BUCKETS_X = ["short", "med", "long", "xlong"]
 
 
-def length_bucket(n_instr: int) -> str:
+def length_bucket(n_instr: int, buckets: List[str] = None) -> str:
+    """Map an instruction count to a length-bucket name. With the default
+    (3-bucket) scheme: short <=8, med 9--16, long >16. If `buckets` contains
+    "xlong", the 4-bucket scheme is used instead: short <=8, med 9--16,
+    long 17--32, xlong >32. Passing the vocab's own `lens` keeps the bucketing
+    consistent with whatever tokens the checkpoint actually has."""
     if n_instr <= 8:
         return "short"
     if n_instr <= 16:
         return "med"
+    if buckets and "xlong" in buckets and n_instr > 32:
+        return "xlong"
     return "long"
 
 
@@ -194,7 +207,7 @@ def encode_record(seq_tokens: List[str], cls: str, arch: str, vocab: GenVocab,
     # after the arch token so the model learns length as a conditioning signal.
     if vocab.len_id:
         instr_tokens = [t for t in seq_tokens if t in vocab.stoi]
-        prefix.append(vocab.len_id[length_bucket(len(instr_tokens))])
+        prefix.append(vocab.len_id[length_bucket(len(instr_tokens), vocab.lens)])
     ids = prefix + [vocab.stoi[t] for t in seq_tokens if t in vocab.stoi]
     ids = ids[: max_len - 1] + [vocab.eos_id]
     return ids
