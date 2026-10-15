@@ -57,6 +57,9 @@ ARGS=(--per-arch-tokenizer --extra-train $EXTRA --lr "$LR" --save "$OUT" --k "$K
 # LENGTH_COND=1 adds <LEN_short|med|long> tokens (Step 4) so the generator can be
 # asked for a target length; the checkpoint must then be sampled with target_len.
 [ "${LENGTH_COND:-0}" = "1" ] && ARGS+=(--length-cond)
+# XLONG=1 (with LENGTH_COND=1) uses the 4-bucket scheme (adds <LEN_xlong> for
+# >32-instr gadgets) to probe the V4 ceiling past the long band.
+[ "${XLONG:-0}" = "1" ] && ARGS+=(--xlong)
 if [ "${SMOKE:-0}" = "1" ]; then ARGS+=(--smoke); else ARGS+=(--epochs "$EPOCHS"); fi
 
 echo "--- train: ${ARGS[*]}"

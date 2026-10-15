@@ -284,30 +284,34 @@ oracles. Nothing here ships an exploit.
   enable the Unicorn extension or mask them in the riscv decode table. Left as a
   precise next step; not blindly re-fitted.
 
-### CLUSTER commands (GPU, sbatch; Spectector .sif on $HOME)
+### CLUSTER -- all as sbatch jobs (nothing compute/memory-heavy on the head node)
 ```bash
-# 1. Generated-leak minimality -> fills tab:min generated rows
-python3 gen/minimize_leaks.py \
-    --samples gen/rl_lencond_samples.jsonl \
-    --class SPECTRE_V1 --class SPECTRE_V4 --per-class 40 \
-    --out _min/generated_min.jsonl --md _min/generated_min.md
+# 1. Generated-leak minimality -> tab:min generated rows (oracle-bound, CPU job)
+sbatch gen/minimize_leaks.sbatch                  # PER_CLASS=20 for a faster pass
 
-# 2. Filter-in-loop (T6): train a per-class head from the logged samples, then
-#    run the loop gated and read leaks_per_oracle_call from the .out
-python3 rank/filter_gate.py train --class SPECTRE_V4 \
-    --samples gen/rl_lencond_samples.jsonl --out rank/filter_head_SPECTRE_V4.pkl
-python3 rank/filter_gate.py train --class SPECTRE_V1 \
-    --samples gen/rl_lencond_samples.jsonl --out rank/filter_head_SPECTRE_V1.pkl
+# 2. Filter-in-loop (T6): (a) train both heads, then (b) run the loop GATED.
+#    Submit the gated loop only after the head job finishes (it reads the .pkl).
+sbatch gen/train_filter_head.sbatch               # -> rank/filter_head_SPECTRE_{V1,V4}.pkl
 TARGET_LEN=long ROUNDS=5 K=120 \
   EXTRA_ARGS="--filter-head rank/filter_head_{cls}.pkl --filter-threshold 0.5" \
-  sbatch gen/rl_lencond.sbatch
-#   (add the EXTRA_ARGS passthrough to rl_lencond.sbatch's python call, or run
-#    gen/rl_from_oracle.py directly with --filter-head rank/filter_head_{cls}.pkl)
+  sbatch gen/rl_lencond.sbatch                    # leaks_per_oracle_call in the .out
+#   or chain with a dependency so you can fire both at once:
+#   jid=$(sbatch --parsable gen/train_filter_head.sbatch)
+#   TARGET_LEN=long ROUNDS=5 K=120 \
+#     EXTRA_ARGS="--filter-head rank/filter_head_{cls}.pkl --filter-threshold 0.5" \
+#     sbatch --dependency=afterok:$jid gen/rl_lencond.sbatch
 
-# 3. xlong V4 retrain (expansion) -> then rerun the long/xlong yield loop
-bash gen/train_expanded_generator.sh   # with LENGTH_COND=1 and --xlong added
+# 3. xlong V4 retrain (expansion, GPU job) -> then the yield loop at xlong
+sbatch gen/train_xlong_generator.sbatch           # -> gen/generator_lencond_x.pt
 TARGET_LEN=xlong GEN=gen/generator_lencond_x.pt sbatch gen/rl_lencond.sbatch
+#   or chained:
+#   jid=$(sbatch --parsable gen/train_xlong_generator.sbatch)
+#   TARGET_LEN=xlong GEN=gen/generator_lencond_x.pt \
+#     sbatch --dependency=afterok:$jid gen/rl_lencond.sbatch
 ```
+All four jobs need the Spectector `.sif` on `$HOME` and `SPECEXEC_SPECTECTOR_SIF`
+exported (the minimality + both yield loops hit the oracle; the header of each
+`.sbatch` repeats the one-time publish/pull). None runs on the head node.
 
 ### i5-8300H commands (bare-metal Linux, root; no-exploit)
 ```bash
