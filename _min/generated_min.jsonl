@@ -1,0 +1,38 @@
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s0_7377ddf6", "orig_len": 46, "minimal_len": 1, "minimal_body": ["addb\t$0xff, %r11b"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s1_7e226c52", "orig_len": 13, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s2_e5ad1cb0", "orig_len": 14, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s3_e1dbaf52", "orig_len": 60, "minimal_len": 2, "minimal_body": ["andq\t$0xff, %r11", "lock"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s7_3571b731", "orig_len": 35, "minimal_len": 1, "minimal_body": ["andb\t%dl, (%rax,%r10)"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s9_101e23f0", "orig_len": 38, "minimal_len": 1, "minimal_body": ["movl\t(%r9), %edi"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s10_3ac24770", "orig_len": 25, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s11_80658d88", "orig_len": 22, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s12_7d708b2a", "orig_len": 18, "minimal_len": 1, "minimal_body": ["xorb\t%r11b, (%r12,%rdx)"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s13_d7c0de98", "orig_len": 32, "minimal_len": 1, "minimal_body": ["andw\t$64, %r9w"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s14_55447a56", "orig_len": 24, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s15_9e91d30b", "orig_len": 13, "minimal_len": 1, "minimal_body": ["ret"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s16_89be2db0", "orig_len": 27, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s17_dec3433f", "orig_len": 29, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s18_dc60af95", "orig_len": 50, "minimal_len": 1, "minimal_body": ["xorb\t%bl, (%r13,%rcx)"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s19_23e54ff0", "orig_len": 24, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s20_dfac70fe", "orig_len": 31, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s21_c6a929ed", "orig_len": 33, "minimal_len": 1, "minimal_body": ["addb\t%al, %r11b"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s22_30280097", "orig_len": 19, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s23_80658d88", "orig_len": 21, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s24_3854b5dd", "orig_len": 12, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s25_6e7fb314", "orig_len": 13, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s26_7f222ce3", "orig_len": 25, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s27_dec3433f", "orig_len": 29, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s28_3a5712dd", "orig_len": 34, "minimal_len": 1, "minimal_body": ["lock"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s29_6a107b0b", "orig_len": 32, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s31_da68cca4", "orig_len": 21, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s32_7de7f568", "orig_len": 12, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s33_25e54814", "orig_len": 8, "minimal_len": 1, "minimal_body": ["andw\t$1, %dx"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s34_3d2ac611", "orig_len": 23, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s35_80658d88", "orig_len": 22, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s36_9599b51c", "orig_len": 19, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s37_7f875de9", "orig_len": 27, "minimal_len": 1, "minimal_body": ["xorb\t$1, (%rcx,%r8)"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s38_1d67c999", "orig_len": 24, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s39_2c738cfa", "orig_len": 28, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s41_695e37b1", "orig_len": 26, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s42_a0b3578b", "orig_len": 28, "minimal_len": 1, "minimal_body": ["lock"]}
+{"class": "SPECTRE_V1", "gadget_id": "rl_SPECTRE_V1_x86_64_r0_s43_0f284d91", "orig_len": 30, "minimal_len": 1, "minimal_body": [".Lgen_spec_end:"]}

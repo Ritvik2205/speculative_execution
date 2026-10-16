@@ -1,0 +1,327 @@
+=== xlong generator retrain: Fri 16 Oct 17:25:57 BST 2026 out=gen/generator_lencond_x.pt init=gen/generator_lencond.pt epochs=20 ===
+=== expanded generator retrain: Fri 16 Oct 17:25:57 BST 2026 ===
+423 hardware-confirmed gadgets -> /home/s2473583/speculative_execution/gen/data/hw_generator_pool.jsonl  (0 dup dropped, 0 too short)
+  L1TF         x86_64   155
+  MDS          x86_64   83
+  SPECTRE_V1   x86_64   130
+  SPECTRE_V4   x86_64   55
+leakage guard: no shared groups with the riscv eval holdout
+--- train: --per-arch-tokenizer --extra-train gen/data/hw_generator_pool.jsonl eval/data/riscv_train_slice.jsonl --lr 1e-4 --save gen/generator_lencond_x.pt --k 30 --init-from gen/generator_lencond.pt --length-cond --xlong --epochs 20
+[extra-train] +423 records from gen/data/hw_generator_pool.jsonl
+[extra-train] +428 records from eval/data/riscv_train_slice.jsonl
+[extra-train] merged 851 records; arch mix {'x86_64': 423, 'riscv64': 428}
+[tokenizer] per-arch engines: {'x86_64': 'x86_64.json', 'arm64': 'arm64.json', 'riscv64': 'riscv.json'}
+gen vocab=888  classes=10  archs=['x86_64', 'arm64', 'riscv64']  train=6383  length_cond=True
+[init-from] gen/generator_lencond.pt: token overlap 887/888 fine-tune vocab tokens initialized from pretrained (pretrained vocab=887); 37 transformer tensors copied, 0 skipped
+[train] lr=0.0001  init-from=gen/generator_lencond.pt
+  [train] device=cuda records=6383 batches/epoch=100 bs=64
+    epoch 1/20  batch 10/100  lm_loss=1.1830
+    epoch 1/20  batch 20/100  lm_loss=1.1596
+    epoch 1/20  batch 30/100  lm_loss=1.1471
+    epoch 1/20  batch 40/100  lm_loss=1.1223
+    epoch 1/20  batch 50/100  lm_loss=1.1135
+    epoch 1/20  batch 60/100  lm_loss=1.1242
+    epoch 1/20  batch 70/100  lm_loss=1.1257
+    epoch 1/20  batch 80/100  lm_loss=1.1151
+    epoch 1/20  batch 90/100  lm_loss=1.1203
+    epoch 1/20  batch 100/100  lm_loss=1.1268
+  epoch 1/20  lm_loss=1.1268
+    epoch 2/20  batch 10/100  lm_loss=1.1324
+    epoch 2/20  batch 20/100  lm_loss=1.1285
+    epoch 2/20  batch 30/100  lm_loss=1.1271
+    epoch 2/20  batch 40/100  lm_loss=1.1069
+    epoch 2/20  batch 50/100  lm_loss=1.0935
+    epoch 2/20  batch 60/100  lm_loss=1.1036
+    epoch 2/20  batch 70/100  lm_loss=1.0967
+    epoch 2/20  batch 80/100  lm_loss=1.0903
+    epoch 2/20  batch 90/100  lm_loss=1.0858
+    epoch 2/20  batch 100/100  lm_loss=1.0880
+  epoch 2/20  lm_loss=1.0880
+    epoch 3/20  batch 10/100  lm_loss=1.1686
+    epoch 3/20  batch 20/100  lm_loss=1.1025
+    epoch 3/20  batch 30/100  lm_loss=1.0817
+    epoch 3/20  batch 40/100  lm_loss=1.0599
+    epoch 3/20  batch 50/100  lm_loss=1.0557
+    epoch 3/20  batch 60/100  lm_loss=1.0537
+    epoch 3/20  batch 70/100  lm_loss=1.0490
+    epoch 3/20  batch 80/100  lm_loss=1.0488
+    epoch 3/20  batch 90/100  lm_loss=1.0601
+    epoch 3/20  batch 100/100  lm_loss=1.0621
+  epoch 3/20  lm_loss=1.0621
+    epoch 4/20  batch 10/100  lm_loss=1.1082
+    epoch 4/20  batch 20/100  lm_loss=1.0416
+    epoch 4/20  batch 30/100  lm_loss=1.0596
+    epoch 4/20  batch 40/100  lm_loss=1.0545
+    epoch 4/20  batch 50/100  lm_loss=1.0404
+    epoch 4/20  batch 60/100  lm_loss=1.0543
+    epoch 4/20  batch 70/100  lm_loss=1.0626
+    epoch 4/20  batch 80/100  lm_loss=1.0472
+    epoch 4/20  batch 90/100  lm_loss=1.0461
+    epoch 4/20  batch 100/100  lm_loss=1.0443
+  epoch 4/20  lm_loss=1.0443
+    epoch 5/20  batch 10/100  lm_loss=1.0819
+    epoch 5/20  batch 20/100  lm_loss=1.0793
+    epoch 5/20  batch 30/100  lm_loss=1.0265
+    epoch 5/20  batch 40/100  lm_loss=1.0365
+    epoch 5/20  batch 50/100  lm_loss=1.0313
+    epoch 5/20  batch 60/100  lm_loss=1.0377
+    epoch 5/20  batch 70/100  lm_loss=1.0398
+    epoch 5/20  batch 80/100  lm_loss=1.0379
+    epoch 5/20  batch 90/100  lm_loss=1.0321
+    epoch 5/20  batch 100/100  lm_loss=1.0333
+  epoch 5/20  lm_loss=1.0333
+    epoch 6/20  batch 10/100  lm_loss=1.0348
+    epoch 6/20  batch 20/100  lm_loss=1.0059
+    epoch 6/20  batch 30/100  lm_loss=0.9860
+    epoch 6/20  batch 40/100  lm_loss=0.9942
+    epoch 6/20  batch 50/100  lm_loss=1.0040
+    epoch 6/20  batch 60/100  lm_loss=1.0070
+    epoch 6/20  batch 70/100  lm_loss=1.0202
+    epoch 6/20  batch 80/100  lm_loss=1.0240
+    epoch 6/20  batch 90/100  lm_loss=1.0244
+    epoch 6/20  batch 100/100  lm_loss=1.0175
+  epoch 6/20  lm_loss=1.0175
+    epoch 7/20  batch 10/100  lm_loss=0.9749
+    epoch 7/20  batch 20/100  lm_loss=1.0024
+    epoch 7/20  batch 30/100  lm_loss=1.0040
+    epoch 7/20  batch 40/100  lm_loss=1.0080
+    epoch 7/20  batch 50/100  lm_loss=1.0015
+    epoch 7/20  batch 60/100  lm_loss=0.9971
+    epoch 7/20  batch 70/100  lm_loss=0.9940
+    epoch 7/20  batch 80/100  lm_loss=0.9989
+    epoch 7/20  batch 90/100  lm_loss=0.9983
+    epoch 7/20  batch 100/100  lm_loss=1.0061
+  epoch 7/20  lm_loss=1.0061
+    epoch 8/20  batch 10/100  lm_loss=0.9846
+    epoch 8/20  batch 20/100  lm_loss=0.9573
+    epoch 8/20  batch 30/100  lm_loss=0.9792
+    epoch 8/20  batch 40/100  lm_loss=0.9903
+    epoch 8/20  batch 50/100  lm_loss=0.9965
+    epoch 8/20  batch 60/100  lm_loss=0.9931
+    epoch 8/20  batch 70/100  lm_loss=0.9840
+    epoch 8/20  batch 80/100  lm_loss=0.9934
+    epoch 8/20  batch 90/100  lm_loss=0.9935
+    epoch 8/20  batch 100/100  lm_loss=0.9961
+  epoch 8/20  lm_loss=0.9961
+    epoch 9/20  batch 10/100  lm_loss=0.9336
+    epoch 9/20  batch 20/100  lm_loss=0.9563
+    epoch 9/20  batch 30/100  lm_loss=0.9852
+    epoch 9/20  batch 40/100  lm_loss=0.9896
+    epoch 9/20  batch 50/100  lm_loss=0.9945
+    epoch 9/20  batch 60/100  lm_loss=0.9914
+    epoch 9/20  batch 70/100  lm_loss=0.9901
+    epoch 9/20  batch 80/100  lm_loss=0.9927
+    epoch 9/20  batch 90/100  lm_loss=0.9855
+    epoch 9/20  batch 100/100  lm_loss=0.9857
+  epoch 9/20  lm_loss=0.9857
+    epoch 10/20  batch 10/100  lm_loss=0.9056
+    epoch 10/20  batch 20/100  lm_loss=0.9810
+    epoch 10/20  batch 30/100  lm_loss=0.9664
+    epoch 10/20  batch 40/100  lm_loss=0.9681
+    epoch 10/20  batch 50/100  lm_loss=0.9643
+    epoch 10/20  batch 60/100  lm_loss=0.9681
+    epoch 10/20  batch 70/100  lm_loss=0.9599
+    epoch 10/20  batch 80/100  lm_loss=0.9633
+    epoch 10/20  batch 90/100  lm_loss=0.9702
+    epoch 10/20  batch 100/100  lm_loss=0.9758
+  epoch 10/20  lm_loss=0.9758
+    epoch 11/20  batch 10/100  lm_loss=0.9795
+    epoch 11/20  batch 20/100  lm_loss=0.9444
+    epoch 11/20  batch 30/100  lm_loss=0.9167
+    epoch 11/20  batch 40/100  lm_loss=0.9373
+    epoch 11/20  batch 50/100  lm_loss=0.9440
+    epoch 11/20  batch 60/100  lm_loss=0.9376
+    epoch 11/20  batch 70/100  lm_loss=0.9465
+    epoch 11/20  batch 80/100  lm_loss=0.9550
+    epoch 11/20  batch 90/100  lm_loss=0.9552
+    epoch 11/20  batch 100/100  lm_loss=0.9692
+  epoch 11/20  lm_loss=0.9692
+    epoch 12/20  batch 10/100  lm_loss=0.9396
+    epoch 12/20  batch 20/100  lm_loss=0.9582
+    epoch 12/20  batch 30/100  lm_loss=0.9464
+    epoch 12/20  batch 40/100  lm_loss=0.9543
+    epoch 12/20  batch 50/100  lm_loss=0.9594
+    epoch 12/20  batch 60/100  lm_loss=0.9675
+    epoch 12/20  batch 70/100  lm_loss=0.9654
+    epoch 12/20  batch 80/100  lm_loss=0.9622
+    epoch 12/20  batch 90/100  lm_loss=0.9596
+    epoch 12/20  batch 100/100  lm_loss=0.9599
+  epoch 12/20  lm_loss=0.9599
+    epoch 13/20  batch 10/100  lm_loss=0.9149
+    epoch 13/20  batch 20/100  lm_loss=0.9194
+    epoch 13/20  batch 30/100  lm_loss=0.9323
+    epoch 13/20  batch 40/100  lm_loss=0.9273
+    epoch 13/20  batch 50/100  lm_loss=0.9403
+    epoch 13/20  batch 60/100  lm_loss=0.9434
+    epoch 13/20  batch 70/100  lm_loss=0.9503
+    epoch 13/20  batch 80/100  lm_loss=0.9580
+    epoch 13/20  batch 90/100  lm_loss=0.9563
+    epoch 13/20  batch 100/100  lm_loss=0.9503
+  epoch 13/20  lm_loss=0.9503
+    epoch 14/20  batch 10/100  lm_loss=0.9233
+    epoch 14/20  batch 20/100  lm_loss=0.9687
+    epoch 14/20  batch 30/100  lm_loss=0.9582
+    epoch 14/20  batch 40/100  lm_loss=0.9597
+    epoch 14/20  batch 50/100  lm_loss=0.9591
+    epoch 14/20  batch 60/100  lm_loss=0.9553
+    epoch 14/20  batch 70/100  lm_loss=0.9627
+    epoch 14/20  batch 80/100  lm_loss=0.9481
+    epoch 14/20  batch 90/100  lm_loss=0.9444
+    epoch 14/20  batch 100/100  lm_loss=0.9413
+  epoch 14/20  lm_loss=0.9413
+    epoch 15/20  batch 10/100  lm_loss=0.9224
+    epoch 15/20  batch 20/100  lm_loss=0.9561
+    epoch 15/20  batch 30/100  lm_loss=0.9654
+    epoch 15/20  batch 40/100  lm_loss=0.9588
+    epoch 15/20  batch 50/100  lm_loss=0.9516
+    epoch 15/20  batch 60/100  lm_loss=0.9410
+    epoch 15/20  batch 70/100  lm_loss=0.9361
+    epoch 15/20  batch 80/100  lm_loss=0.9285
+    epoch 15/20  batch 90/100  lm_loss=0.9322
+    epoch 15/20  batch 100/100  lm_loss=0.9344
+  epoch 15/20  lm_loss=0.9344
+    epoch 16/20  batch 10/100  lm_loss=0.8937
+    epoch 16/20  batch 20/100  lm_loss=0.9357
+    epoch 16/20  batch 30/100  lm_loss=0.9346
+    epoch 16/20  batch 40/100  lm_loss=0.9315
+    epoch 16/20  batch 50/100  lm_loss=0.9176
+    epoch 16/20  batch 60/100  lm_loss=0.9160
+    epoch 16/20  batch 70/100  lm_loss=0.9131
+    epoch 16/20  batch 80/100  lm_loss=0.9130
+    epoch 16/20  batch 90/100  lm_loss=0.9161
+    epoch 16/20  batch 100/100  lm_loss=0.9275
+  epoch 16/20  lm_loss=0.9275
+    epoch 17/20  batch 10/100  lm_loss=0.9102
+    epoch 17/20  batch 20/100  lm_loss=0.9193
+    epoch 17/20  batch 30/100  lm_loss=0.9216
+    epoch 17/20  batch 40/100  lm_loss=0.9159
+    epoch 17/20  batch 50/100  lm_loss=0.9135
+    epoch 17/20  batch 60/100  lm_loss=0.9172
+    epoch 17/20  batch 70/100  lm_loss=0.9205
+    epoch 17/20  batch 80/100  lm_loss=0.9261
+    epoch 17/20  batch 90/100  lm_loss=0.9179
+    epoch 17/20  batch 100/100  lm_loss=0.9195
+  epoch 17/20  lm_loss=0.9195
+    epoch 18/20  batch 10/100  lm_loss=1.0156
+    epoch 18/20  batch 20/100  lm_loss=0.9358
+    epoch 18/20  batch 30/100  lm_loss=0.9213
+    epoch 18/20  batch 40/100  lm_loss=0.9085
+    epoch 18/20  batch 50/100  lm_loss=0.9122
+    epoch 18/20  batch 60/100  lm_loss=0.9131
+    epoch 18/20  batch 70/100  lm_loss=0.9179
+    epoch 18/20  batch 80/100  lm_loss=0.9165
+    epoch 18/20  batch 90/100  lm_loss=0.9143
+    epoch 18/20  batch 100/100  lm_loss=0.9123
+  epoch 18/20  lm_loss=0.9123
+    epoch 19/20  batch 10/100  lm_loss=0.9065
+    epoch 19/20  batch 20/100  lm_loss=0.9459
+    epoch 19/20  batch 30/100  lm_loss=0.9297
+    epoch 19/20  batch 40/100  lm_loss=0.9200
+    epoch 19/20  batch 50/100  lm_loss=0.9166
+    epoch 19/20  batch 60/100  lm_loss=0.9040
+    epoch 19/20  batch 70/100  lm_loss=0.9073
+    epoch 19/20  batch 80/100  lm_loss=0.8999
+    epoch 19/20  batch 90/100  lm_loss=0.9022
+    epoch 19/20  batch 100/100  lm_loss=0.9068
+  epoch 19/20  lm_loss=0.9068
+    epoch 20/20  batch 10/100  lm_loss=0.9370
+    epoch 20/20  batch 20/100  lm_loss=0.9226
+    epoch 20/20  batch 30/100  lm_loss=0.9174
+    epoch 20/20  batch 40/100  lm_loss=0.9102
+    epoch 20/20  batch 50/100  lm_loss=0.8917
+    epoch 20/20  batch 60/100  lm_loss=0.8933
+    epoch 20/20  batch 70/100  lm_loss=0.8981
+    epoch 20/20  batch 80/100  lm_loss=0.9011
+    epoch 20/20  batch 90/100  lm_loss=0.9009
+    epoch 20/20  batch 100/100  lm_loss=0.8984
+  epoch 20/20  lm_loss=0.8984
+saved generator -> gen/generator_lencond_x.pt
+
+[verify] SKIPPED: no reference classifier at /home/s2473583/speculative_execution/spec/mlm.pt. The generator checkpoint is saved; this step is just a sanity check. To enable it, run `python3 spec/train_mlm.py --epochs 10 --save /home/s2473583/speculative_execution/spec/mlm.pt` first.
+--- verify archs + measure per-ISA validity
+archs: ['x86_64', 'arm64', 'riscv64'] classes: 10 vocab: 888
+  x86_64   BRANCH_HISTORY_INJECTION   realized 30/30 asm 30 emu 0
+  x86_64   INCEPTION                  realized 30/30 asm 30 emu 0
+  x86_64   L1TF                       realized 29/30 asm 29 emu 0
+  x86_64   MDS                        realized 30/30 asm 30 emu 0
+  x86_64   RETBLEED                   realized 30/30 asm 30 emu 0
+  x86_64   SPECTRE_RSB                realized 30/30 asm 30 emu 0
+  x86_64   SPECTRE_V1                 realized 30/30 asm 30 emu 0
+  x86_64   SPECTRE_V2                 realized 30/30 asm 30 emu 0
+  x86_64   SPECTRE_V4                 realized 30/30 asm 30 emu 0
+  arm64    BRANCH_HISTORY_INJECTION   realized 30/30 asm 28 emu 0
+  arm64    INCEPTION                  realized 30/30 asm 30 emu 0
+  arm64    L1TF                       realized 29/30 asm 28 emu 0
+  arm64    MDS                        realized 30/30 asm 30 emu 0
+  arm64    RETBLEED                   realized 30/30 asm 29 emu 0
+  arm64    SPECTRE_RSB                realized 30/30 asm 30 emu 0
+  arm64    SPECTRE_V1                 realized 29/30 asm 28 emu 0
+  arm64    SPECTRE_V2                 realized 30/30 asm 29 emu 0
+  arm64    SPECTRE_V4                 realized 30/30 asm 30 emu 0
+  riscv64  BRANCH_HISTORY_INJECTION   realized 30/30 asm 30 emu 0
+  riscv64  INCEPTION                  realized 30/30 asm 30 emu 0
+  riscv64  L1TF                       realized 30/30 asm 30 emu 0
+  riscv64  MDS                        realized 30/30 asm 30 emu 0
+  riscv64  RETBLEED                   realized 30/30 asm 30 emu 0
+  riscv64  SPECTRE_RSB                realized 30/30 asm 30 emu 0
+  riscv64  SPECTRE_V1                 realized 30/30 asm 30 emu 0
+  riscv64  SPECTRE_V2                 realized 30/30 asm 30 emu 0
+  riscv64  SPECTRE_V4                 realized 30/30 asm 30 emu 0
+# Generator output: per-ISA architectural validity
+
+30 samples per (class, ISA) from `generator_lencond_x.pt` (temperature 0.9, top-k 20, seed 0, arch-purity mask `assembler`). Rates are over SAMPLED candidates with Wilson 95% intervals.
+
+**This is not a leak measurement.** `emulated_ok` means Unicorn executed the sequence to completion with no unhandled fault, i.e. it is real machine code. Unicorn models no speculation, no caches and no branch prediction, so it cannot say whether a sequence leaks. The point of the table is to separate *the generator cannot write valid code for this ISA* from *we have no leak oracle for this ISA*.
+
+Emulation: DISABLED (unicorn missing). `oracle_supported` is blank where no symbolic oracle covers the ISA.
+
+| ISA | class | realized | assembles | oracle front end | emulates |
+|---|---|---|---|---|---|
+| x86_64 | BRANCH_HISTORY_INJECTION | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | 0.70 [0.52,0.83] | 0.00 [-0.00,0.11] |
+| x86_64 | INCEPTION | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | 0.87 [0.70,0.95] | 0.00 [-0.00,0.11] |
+| x86_64 | L1TF | 0.97 [0.83,0.99] | 0.97 [0.83,0.99] | 0.07 [0.02,0.21] | 0.00 [-0.00,0.11] |
+| x86_64 | MDS | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | 0.30 [0.17,0.48] | 0.00 [-0.00,0.11] |
+| x86_64 | RETBLEED | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | 0.90 [0.74,0.97] | 0.00 [-0.00,0.11] |
+| x86_64 | SPECTRE_RSB | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | 0.73 [0.56,0.86] | 0.00 [-0.00,0.11] |
+| x86_64 | SPECTRE_V1 | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | 0.90 [0.74,0.97] | 0.00 [-0.00,0.11] |
+| x86_64 | SPECTRE_V2 | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | 0.57 [0.39,0.73] | 0.00 [-0.00,0.11] |
+| x86_64 | SPECTRE_V4 | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | 0.70 [0.52,0.83] | 0.00 [-0.00,0.11] |
+| arm64 | BRANCH_HISTORY_INJECTION | 1.00 [0.89,1.00] | 0.93 [0.79,0.98] | -- | 0.00 [-0.00,0.11] |
+| arm64 | INCEPTION | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| arm64 | L1TF | 0.97 [0.83,0.99] | 0.93 [0.79,0.98] | -- | 0.00 [-0.00,0.11] |
+| arm64 | MDS | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| arm64 | RETBLEED | 1.00 [0.89,1.00] | 0.97 [0.83,0.99] | -- | 0.00 [-0.00,0.11] |
+| arm64 | SPECTRE_RSB | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| arm64 | SPECTRE_V1 | 0.97 [0.83,0.99] | 0.93 [0.79,0.98] | -- | 0.00 [-0.00,0.11] |
+| arm64 | SPECTRE_V2 | 1.00 [0.89,1.00] | 0.97 [0.83,0.99] | -- | 0.00 [-0.00,0.11] |
+| arm64 | SPECTRE_V4 | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | BRANCH_HISTORY_INJECTION | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | INCEPTION | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | L1TF | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | MDS | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | RETBLEED | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | SPECTRE_RSB | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | SPECTRE_V1 | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | SPECTRE_V2 | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+| riscv64 | SPECTRE_V4 | 1.00 [0.89,1.00] | 1.00 [0.89,1.00] | -- | 0.00 [-0.00,0.11] |
+
+## Per-ISA totals
+
+| ISA | sampled | realized | assembles | emulates | unique realized |
+|---|---|---|---|---|---|
+| x86_64 | 270 | 1.00 [0.98,1.00] | 1.00 [0.98,1.00] | 0.00 [0.00,0.01] | 269/269 = 1.00 |
+| arm64 | 270 | 0.99 [0.97,1.00] | 0.97 [0.94,0.98] | 0.00 [0.00,0.01] | 268/268 = 1.00 |
+| riscv64 | 270 | 1.00 [0.99,1.00] | 1.00 [0.99,1.00] | 0.00 [0.00,0.01] | 269/270 = 1.00 |
+
+## Emulation outcomes (why a sequence did not run)
+
+| ISA | outcome | count |
+|---|---|---|
+| x86_64 | skipped | 269 |
+| arm64 | skipped | 268 |
+| riscv64 | skipped | 270 |
+
+Note: the committed checkpoint was conditioned on x86_64, arm64, riscv64 only. riscv64 is supported by the code path (spec, realizer, tokenizer, emulator) but is not in this checkpoint's vocabulary, so it cannot be sampled here; that needs a generator retrained with the riscv corpus.
+
+=== done: Fri 16 Oct 17:28:44 BST 2026; checkpoint gen/generator_lencond_x.pt ===
+=== done: Fri 16 Oct 17:28:44 BST 2026. Checkpoint gen/generator_lencond_x.pt ===

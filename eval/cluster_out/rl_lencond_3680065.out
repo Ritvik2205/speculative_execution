@@ -1,0 +1,4 @@
+staged sif -> /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+=== length-controlled yield loop: Fri 16 Oct 17:28:47 BST 2026 gen=gen/generator_lencond_x.pt target_len=xlong rounds=5 k=60 extra='' ===
+=== done: Fri 16 Oct 17:28:47 BST 2026. Per-round yield in gen/rl_lencond.md ===

@@ -1,0 +1,12 @@
+usage: rl_from_oracle.py [-h] [--gen GEN] [--rounds ROUNDS] [--no-arch-purity]
+                         [--k K] [--class CLASSES] [--arch {x86_64,arm64}]
+                         [--combined-oracle] [--out OUT]
+                         [--samples-out SAMPLES_OUT] [--repo-root REPO_ROOT]
+                         [--temperature TEMPERATURE] [--top-k TOP_K]
+                         [--target-len {short,med,long}] [--max-len MAX_LEN]
+                         [--epochs-per-round EPOCHS_PER_ROUND] [--seed SEED]
+                         [--finetune-lr FINETUNE_LR]
+                         [--filter-head FILTER_HEAD]
+                         [--filter-threshold FILTER_THRESHOLD]
+                         [--finetune-with-benign]
+rl_from_oracle.py: error: argument --target-len: invalid choice: 'xlong' (choose from 'short', 'med', 'long')
