@@ -568,11 +568,12 @@ def main(argv=None) -> int:
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--top-k", type=int, default=20)
     ap.add_argument("--target-len", default=None,
-                    choices=["short", "med", "long"],
+                    choices=["short", "med", "long", "xlong"],
                     help="sample a target length bucket (needs a length-conditioned "
                          "checkpoint, gen/train_generator.py --length-cond). 'med' "
                          "keeps gadgets in the oracle-adjudicable range, raising "
-                         "confirmed-leak yield per oracle call.")
+                         "confirmed-leak yield per oracle call. 'xlong' (>32 instrs) "
+                         "needs a 4-bucket checkpoint (train with --xlong).")
     ap.add_argument("--max-len", type=int, default=None, dest="max_len",
                     help="hard cap on tokens per sample (crude length control for a "
                          "non-length-conditioned checkpoint).")

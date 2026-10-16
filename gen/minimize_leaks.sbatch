@@ -56,9 +56,18 @@ echo "using sif: $SPECEXEC_SPECTECTOR_SIF on $(hostname)"
 SAMPLES="${SAMPLES:-gen/rl_lencond_samples.jsonl}"
 PER_CLASS="${PER_CLASS:-40}"
 
-echo "=== generated-leak minimality: $(date) samples=$SAMPLES per_class=$PER_CLASS ==="
+# SNAPSHOT the samples first: gen/rl_lencond_samples.jsonl is truncated+rewritten
+# live by any concurrent rl_lencond run (it does write_text("") at start), so
+# reading it directly races -> a class can read as "no confirmed leaks" when it
+# was simply not rewritten yet (observed 2026-10-16: V4 lost to the gated run).
+mkdir -p _min
+SNAP="_min/samples_snapshot_${SLURM_JOB_ID:-local}.jsonl"
+cp -f "$SAMPLES" "$SNAP"
+echo "snapshotted $SAMPLES ($(wc -l < "$SNAP") lines) -> $SNAP"
+
+echo "=== generated-leak minimality: $(date) samples=$SNAP per_class=$PER_CLASS ==="
 python3 -u gen/minimize_leaks.py \
-  --samples "$SAMPLES" \
+  --samples "$SNAP" \
   --class SPECTRE_V1 --class SPECTRE_V4 --per-class "$PER_CLASS" \
   --out _min/generated_min.jsonl --md _min/generated_min.md
 echo "=== done: $(date). Table in _min/generated_min.md ==="
