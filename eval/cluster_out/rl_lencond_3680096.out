@@ -1,0 +1,39 @@
+staged sif -> /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+=== length-controlled yield loop: Fri 16 Oct 19:32:25 BST 2026 gen=gen/generator_lencond_x.pt target_len=xlong rounds=5 k=60 extra='' ===
+[rl] seed=0 gen=gen/generator_lencond_x.pt arch=x86_64
+  [train] device=cuda records=55 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.6674
+  epoch 1/1  lm_loss=1.6674
+  [train] device=cuda records=58 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.5787
+  epoch 1/1  lm_loss=1.5787
+  [train] device=cuda records=51 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.8916
+  epoch 1/1  lm_loss=1.8916
+  [train] device=cuda records=52 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.8477
+  epoch 1/1  lm_loss=1.8477
+  [train] device=cuda records=50 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.7471
+  epoch 1/1  lm_loss=1.7471
+  [train] device=cuda records=48 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=2.0205
+  epoch 1/1  lm_loss=2.0205
+  [train] device=cuda records=44 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.9684
+  epoch 1/1  lm_loss=1.9684
+  [train] device=cuda records=58 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.8669
+  epoch 1/1  lm_loss=1.8669
+  [train] device=cuda records=55 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.7780
+  epoch 1/1  lm_loss=1.7780
+  [train] device=cuda records=57 batches/epoch=1 bs=64
+    epoch 1/1  batch 1/1  lm_loss=1.6986
+  epoch 1/1  lm_loss=1.6986
+[SPECTRE_V1] yield per round: {0: 0.9166666666666666, 1: 0.9666666666666667, 2: 0.85, 3: 0.8666666666666667, 4: 0.8333333333333334}
+[SPECTRE_V4] yield per round: {0: 0.8, 1: 0.7333333333333333, 2: 0.9666666666666667, 3: 0.9166666666666666, 4: 0.95}
+wrote gen/rl_lencond.md
+wrote gen/rl_lencond_samples.jsonl
+=== done: Fri 16 Oct 20:05:51 BST 2026. Per-round yield in gen/rl_lencond.md ===
