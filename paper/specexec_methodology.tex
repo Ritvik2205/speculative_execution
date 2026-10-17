@@ -111,10 +111,11 @@ claim it as validated. Wired into the loop as a pre-oracle gate, the learned fil
 confirmed leak per allowed oracle call for Spectre~V4 while withholding a third
 to four-fifths of candidates from the oracle (a $5.5\times$ cut in wasted calls
 at round~0), and is a deliberate no-op for Spectre~V1, which has no safe class.
-Minimising generated V1 leaks with the oracle as the test drives every one to a
-single instruction, which localises the leak to the fixed victim scaffold
-rather than the generated body---so the informative minimality question is the
-smallest \emph{complete} program, which we measure on real violations.
+Minimising generated V1 and V4 leaks with the oracle as the test drives every
+one of the 80 to a single instruction, V4 included, which localises the leak to
+the fixed victim scaffold rather than the generated body---so the informative
+minimality question is the smallest \emph{complete} program, which we measure on
+real violations.
 \end{abstract}
 
 %% =========================================================================
@@ -162,9 +163,9 @@ Filter / ranker & Pre-oracle gate measured (18.2\% of unadjudicable removed,
   withholding 33--82\% of candidates (Sec.~\ref{sec:rank}). \\
 Loop & RL loop runs with Spectector, with the learned gate in front of the
   oracle (Sec.~\ref{sec:rank}). \\
-Minimality & Generated V1 leaks minimise to 1 instruction (leak is in the
-  fixed victim scaffold, not the body); generated V4 in progress; real-violation
-  Revizor pass \todo{results} (Sec.~\ref{sec:min}). \\
+Minimality & Generated V1 and V4 leaks both minimise to 1 instruction (leak is
+  in the fixed victim scaffold, not the body); real-violation Revizor pass
+  \todo{results} (Sec.~\ref{sec:min}). \\
 Detector & GINE, locked cross-ISA version (Sec.~\ref{sec:detector}). \\
 \bottomrule
 \end{tabularx}
@@ -1705,22 +1706,27 @@ V4   & \tbd & \tbd & \tbd \\
 \end{table}
 
 \paragraph{Generated leaks minimise to the scaffold, not the body.}
-We ran the plan on generated Spectre~V1 leaks: 1-minimality delta
-debugging~\cite{ddmin} with Spectector as the test, on 38 confirmed V1 gadgets
-(original body median 25 instructions). \emph{Every one minimises to a single
-instruction.} This is a result about where the leak lives, not about the
-generator: the V1 victim is a fixed splice scaffold (a bounds check, a secret
-load, a transmit) into which the generated body is inserted, and the generated
-body is an inessential speculation-window filler, so delta debugging correctly
-strips it to nothing and leaves the one scaffold instruction that carries the
-leak. In other words, generated-gadget minimality as posed here measures the
-minimality of our victim template, which is 1 by construction, rather than of
-the learned code. The informative version of the question---the smallest
-\emph{complete} leaking program---requires delta-debugging the victim and body
-together, which we do for real violations with Revizor's pass
-(Table~\ref{tab:min}) and leave as the correct form of the generated-leak
-measurement. The Spectector-checked V4 run (whose leaks carry a store-bypassed
-value through the body) is in progress.
+We ran the plan on generated leaks: 1-minimality delta
+debugging~\cite{ddmin} with Spectector as the test, on 40 confirmed Spectre~V1
+and 40 confirmed Spectre~V4 gadgets (original body medians 30 and 60
+instructions). \emph{Every one of the 80 minimises to a single instruction},
+V4 included, even though its gadgets are twice as long because the
+store-bypassed value must survive a wide speculation window. This is a result
+about where the leak lives, not about the generator: the victim is a fixed
+splice scaffold (for V1 a bounds check, a secret load and a transmit; for V4 a
+store that is bypassed, a stale reload and a transmit through a reserved
+register) into which the generated body is inserted, and the generated body is
+an inessential speculation-window filler, so delta debugging correctly strips
+it to nothing and leaves the one scaffold instruction that carries the leak.
+That V4 behaves exactly like V1 is the sharper point: even the class whose
+mechanism we built a dataflow-preserving splice for turns out to carry its leak
+in the scaffold's reserved-register transmit, not in any learned instruction.
+Generated-gadget minimality as posed here therefore measures the minimality of
+our victim template, which is 1 by construction, rather than of the learned
+code. The informative version of the question---the smallest \emph{complete}
+leaking program---requires delta-debugging the victim and body together, which
+we do for real violations with Revizor's pass (Table~\ref{tab:min}) and leave
+as the correct form of the generated-leak measurement.
 
 %% =========================================================================
 
