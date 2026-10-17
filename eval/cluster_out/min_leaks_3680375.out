@@ -1,0 +1,9 @@
+staged sif -> /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+snapshotted gen/rl_lencond_samples.jsonl (600 lines) -> _min/samples_snapshot_3680375.jsonl
+=== generated-leak minimality: Sat 17 Oct 14:37:16 BST 2026 samples=_min/samples_snapshot_3680375.jsonl per_class=40 ===
+[min] SPECTRE_V1: minimising 40 leaks
+    rl_SPECTRE_V1_x86_64_r0_s0_4fc27a9d: 36 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s1_9d26528f: 11 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s2_fc95c5f8: 33 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s3_94520473: 60 -> 1
