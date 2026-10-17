@@ -1,0 +1,98 @@
+staged sif -> /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+snapshotted gen/rl_lencond_samples.jsonl (600 lines) -> _min/samples_snapshot_3680386.jsonl
+=== generated-leak minimality: Sat 17 Oct 14:46:29 BST 2026 samples=_min/samples_snapshot_3680386.jsonl per_class=40 ===
+[min] SPECTRE_V4: minimising 40 leaks
+    rl_SPECTRE_V4_x86_64_r0_s0_06496b15: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s2_15bc0830: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s4_b56cd949: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s6_a3a03b8d: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s7_7be3f0b7: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s10_e4456370: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s11_4c59a5ef: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s12_3161fbde: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s14_5d60b9a4: 51 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s15_94c2d6bc: 46 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s16_55217a0b: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s17_dc0503ae: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s18_4f9bf34f: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s20_a25c4b49: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s21_100f5eb3: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s22_9d100aa9: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s23_133585ac: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s24_9cd78102: 61 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s25_3ee82cc3: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s27_884f4069: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s28_f5e4a006: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s29_f7284bef: 61 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s30_82f4ed7a: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s31_5c702940: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s32_9cb3d8bf: 61 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s33_eb59ff6b: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s34_403dd4b3: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s35_2125946d: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s36_c091c980: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s37_0f22c444: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s38_c4bfb02a: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s39_b7a9cc5d: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s43_5fb5c933: 61 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s44_9b1c89df: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s45_eca24f4f: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s46_329cf9f3: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s47_a6110a82: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s48_96f35c76: 60 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s49_e2c20c82: 61 -> 1
+    rl_SPECTRE_V4_x86_64_r0_s50_c3292ce4: 60 -> 1
+[min] SPECTRE_V1: minimising 40 leaks
+    rl_SPECTRE_V1_x86_64_r0_s0_4fc27a9d: 36 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s1_9d26528f: 11 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s2_fc95c5f8: 33 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s3_94520473: 60 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s5_99f300ba: 31 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s6_6938d7dc: 25 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s7_4fb18cee: 27 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s8_32415472: 25 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s9_70b91059: 29 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s10_afe1a6d4: 24 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s11_b3aac310: 33 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s12_5ee45ce2: 42 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s13_0bbbcf62: 60 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s14_695e37b1: 26 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s15_92c54a6a: 61 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s16_b0612a50: 35 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s17_5d34ecd1: 34 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s18_695e37b1: 25 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s19_19ae14a1: 14 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s20_60483b08: 25 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s21_2c452f85: 33 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s22_80658d88: 22 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s23_28f7bf95: 35 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s24_2aaeab22: 18 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s26_38dda10d: 60 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s27_a70c3e99: 50 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s28_695e37b1: 25 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s29_8c04136c: 27 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s30_72c61f94: 60 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s32_f606d1f9: 60 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s33_951e509c: 28 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s34_e051955c: 12 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s35_dec3433f: 30 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s36_337205f3: 46 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s37_36bc9a55: 25 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s38_cff1dae5: 60 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s39_dec3433f: 30 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s40_a4418b9e: 34 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s41_695e37b1: 26 -> 1
+    rl_SPECTRE_V1_x86_64_r0_s42_72842c99: 21 -> 1
+# Generated-leak minimality (ddmin + Spectector)
+
+- samples: `samples_snapshot_3680386.jsonl`  arch: `x86_64`  per-class cap: 40
+
+| class | n | orig median | 1-minimal median | smallest |
+|---|---|---|---|---|
+| SPECTRE_V4 | 40 | 60 | 1 | 1 |
+| SPECTRE_V1 | 40 | 30 | 1 | 1 |
+
+
+[min] wrote 80 minimal gadgets -> _min/generated_min.jsonl
+=== done: Sat 17 Oct 15:31:20 BST 2026. Table in _min/generated_min.md ===
