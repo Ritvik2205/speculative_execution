@@ -107,8 +107,14 @@ conditional branch and forcing the other path. It gives correct textbook
 answers on two ISAs, including which fence placements mitigate, but it finds no
 leak in any of 806 hardware-labelled real violations, because those programs
 mask every address into their sandbox even speculatively; we therefore do not
-claim it as validated. The learned filter and the minimality stage are built
-but not yet evaluated on real labels (\todo{ranker and minimality results}).
+claim it as validated. Wired into the loop as a pre-oracle gate, the learned filter sustains about one
+confirmed leak per allowed oracle call for Spectre~V4 while withholding a third
+to four-fifths of candidates from the oracle (a $5.5\times$ cut in wasted calls
+at round~0), and is a deliberate no-op for Spectre~V1, which has no safe class.
+Minimising generated V1 leaks with the oracle as the test drives every one to a
+single instruction, which localises the leak to the fixed victim scaffold
+rather than the generated body---so the informative minimality question is the
+smallest \emph{complete} program, which we measure on real violations.
 \end{abstract}
 
 %% =========================================================================
@@ -151,10 +157,14 @@ Oracles & Spectector (x86, V1/V4), InvisiSpec (x86, V1), Revizor on
   (Sec.~\ref{sec:specemu}). \\
 Filter / ranker & Pre-oracle gate measured (18.2\% of unadjudicable removed,
   Sec.~\ref{sec:precheck}); retargeted learned head on the frozen embedding
-  beats the length bar on V4 (within-round AUC 0.656 vs 0.587); not yet wired
-  into the loop (Sec.~\ref{sec:rank}). \\
-Loop & RL loop runs with Spectector; filter not yet in the loop. \\
-Minimality & Revizor-minimize step built; \todo{results} (Sec.~\ref{sec:min}). \\
+  beats the length bar on V4 (within-round AUC 0.656 vs 0.587), and wired into
+  the loop sustains $\sim$1 confirmed leak per allowed oracle call for V4 while
+  withholding 33--82\% of candidates (Sec.~\ref{sec:rank}). \\
+Loop & RL loop runs with Spectector, with the learned gate in front of the
+  oracle (Sec.~\ref{sec:rank}). \\
+Minimality & Generated V1 leaks minimise to 1 instruction (leak is in the
+  fixed victim scaffold, not the body); generated V4 in progress; real-violation
+  Revizor pass \todo{results} (Sec.~\ref{sec:min}). \\
 Detector & GINE, locked cross-ISA version (Sec.~\ref{sec:detector}). \\
 \bottomrule
 \end{tabularx}
@@ -1335,7 +1345,12 @@ whereas V1 is already saturated at round~0. At scale this run produced 936
 confirmed V1 leaks and 495 confirmed V4 leaks (of 960 realised samples each),
 with no V1 \textsc{safe} verdicts; the earlier \texttt{med} setting is retained
 only to harvest a large V4 \textsc{safe} set (negatives for the detector and
-the filter). A crude length alternative---capping the token budget---does the
+the filter). Extending the token set with a fourth bucket (\texttt{xlong},
+$>$32 instructions) and retraining shows the dataflow is not length-fragile:
+at \texttt{xlong} the V4 confirmed-leak yield climbs 0.80$\to$0.95 over five
+rounds (V1 holds $\sim$0.87), so pushing gadgets past the \texttt{long} band
+does not break the store$\to$stale-load$\to$transmit chain---the splice keeps
+the stale value alive across the wider window rather than losing it. A crude length alternative---capping the token budget---does the
 opposite: it truncates gadgets mid-body and drops adjudicability to 0\%, so the
 \emph{token}, which emits complete gadgets of the target length, is the
 mechanism that works.
@@ -1614,8 +1629,50 @@ frozen-encoder head   & \textbf{0.656} & \textbf{0.772} \\
 \end{tabular}
 \end{table}
 
-\todo{wire the encoder head into the RL loop and report the leaks-per-call
-curve in situ (the static evaluation above is on logged samples).}
+\paragraph{In the loop: the gate spends oracle calls almost only on leaks.}
+We then wired the frozen-encoder head into the rejection-sampling loop as a
+pre-oracle gate: a candidate is sent to Spectector only if its leak score
+clears a threshold, and the saved call budget is measured directly as
+confirmed leaks per oracle call. The gate was trained on the earlier
+dataflow-splice run and applied to a fresh five-round run (generator
+\texttt{generator\_lencond}, $k{=}120$), so the evaluation is prospective, not
+on its own training samples. On V4 the gate discards 98, 82, 55, 58 and 40 of
+the 120 candidates per round and sustains \textbf{1.00, 1.00, 0.97, 0.98,
+1.00} confirmed leaks per allowed oracle call (Table~\ref{tab:gateloop})---at
+round~0 that is 22 calls for 22 leaks where the ungated yield was 0.18, a
+$5.5\times$ reduction in wasted calls, narrowing to $1.5\times$ by round~4 as
+the generator's own yield climbs, exactly the early-round head-room the
+argument above predicts. On V1 the gate filters nothing (every sample scores
+leaky, which is correct---V1 has no \textsc{safe} class), so its allowed-call
+yield equals the raw yield and the gate is a no-op, as intended. The gate
+keeps $\sim$100\% precision on the calls it allows while cutting 33--82\% of
+the oracle calls on the class that has anything to cut.
+
+\begin{table}[t]
+\centering
+\caption{Encoder head as a pre-oracle gate inside the loop (cluster
+  Spectector, x86, $k{=}120$). ``filtered'' = candidates withheld from the
+  oracle; ``per call'' = confirmed leaks per allowed oracle call. V1 has no
+  \textsc{safe} class so nothing is filtered. Source:
+  \texttt{gen/rl\_lencond.md} (gated run).}
+\label{tab:gateloop}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+Class & Round & filtered/120 & oracle calls & leaks per call \\
+\midrule
+\multirow{5}{*}{V4}
+ & 0 & 98 & 22 & \textbf{1.00} \\
+ & 1 & 82 & 38 & \textbf{1.00} \\
+ & 2 & 55 & 65 & 0.97 \\
+ & 3 & 58 & 62 & 0.98 \\
+ & 4 & 40 & 80 & \textbf{1.00} \\
+\midrule
+V1 & 0--4 & 0 & 120 & 0.90--0.98 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 %% =========================================================================
 
@@ -1647,8 +1704,23 @@ V4   & \tbd & \tbd & \tbd \\
 \end{tabular}
 \end{table}
 
-\todo{fill Table~\ref{tab:min} from \texttt{\_min/status.json}; minimise
-generated V1/V4 leaks with Spectector-checked delta debugging.}
+\paragraph{Generated leaks minimise to the scaffold, not the body.}
+We ran the plan on generated Spectre~V1 leaks: 1-minimality delta
+debugging~\cite{ddmin} with Spectector as the test, on 38 confirmed V1 gadgets
+(original body median 25 instructions). \emph{Every one minimises to a single
+instruction.} This is a result about where the leak lives, not about the
+generator: the V1 victim is a fixed splice scaffold (a bounds check, a secret
+load, a transmit) into which the generated body is inserted, and the generated
+body is an inessential speculation-window filler, so delta debugging correctly
+strips it to nothing and leaves the one scaffold instruction that carries the
+leak. In other words, generated-gadget minimality as posed here measures the
+minimality of our victim template, which is 1 by construction, rather than of
+the learned code. The informative version of the question---the smallest
+\emph{complete} leaking program---requires delta-debugging the victim and body
+together, which we do for real violations with Revizor's pass
+(Table~\ref{tab:min}) and leave as the correct form of the generated-leak
+measurement. The Spectector-checked V4 run (whose leaks carry a store-bypassed
+value through the body) is in progress.
 
 %% =========================================================================
 
