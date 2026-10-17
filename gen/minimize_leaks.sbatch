@@ -66,8 +66,12 @@ cp -f "$SAMPLES" "$SNAP"
 echo "snapshotted $SAMPLES ($(wc -l < "$SNAP") lines) -> $SNAP"
 
 echo "=== generated-leak minimality: $(date) samples=$SNAP per_class=$PER_CLASS ==="
+# V4 FIRST: it is the missing row, and ddmin is slow + the script now flushes
+# md/jsonl after each gadget, so V4's result lands before V1 (already known to
+# minimise to 1) consumes the rest of the walltime. Override with CLASSES.
+CLASS_ARGS="${CLASS_ARGS:---class SPECTRE_V4 --class SPECTRE_V1}"
 python3 -u gen/minimize_leaks.py \
   --samples "$SNAP" \
-  --class SPECTRE_V1 --class SPECTRE_V4 --per-class "$PER_CLASS" \
+  $CLASS_ARGS --per-class "$PER_CLASS" \
   --out _min/generated_min.jsonl --md _min/generated_min.md
 echo "=== done: $(date). Table in _min/generated_min.md ==="

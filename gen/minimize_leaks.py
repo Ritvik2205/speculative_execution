@@ -141,6 +141,24 @@ def main(argv=None) -> int:
 
     per_class_stats = {}
     records = []
+
+    def _flush():
+        # write md + jsonl after EACH class (and each gadget) so a job killed
+        # or walltimed mid-run still leaves usable partial results. ddmin is
+        # oracle-bound and slow; the old write-only-at-end cost a whole 12h run
+        # its output when it did not reach the final class (observed 2026-10-17).
+        with out_path.open("w") as f:
+            for r in records:
+                f.write(json.dumps(r) + "\n")
+        md = ["# Generated-leak minimality (ddmin + Spectector)", "",
+              f"- samples: `{samples_path.name}`  arch: `{args.arch}`  per-class cap: {args.per_class}",
+              "", "| class | n | orig median | 1-minimal median | smallest |",
+              "|---|---|---|---|---|"]
+        for cls, s in per_class_stats.items():
+            md.append(f"| {cls} | {s['n']} | {s['orig_median']:.0f} | "
+                      f"{s['minimal_median']:.0f} | {s['minimal_min']} |")
+        Path(args.md).write_text("\n".join(md) + "\n")
+
     for cls in classes:
         leaks = _load_leaks(samples_path, cls, args.per_class)
         if not leaks:
@@ -148,7 +166,7 @@ def main(argv=None) -> int:
             continue
         test = make_spectector_test(cls, args.arch)
         orig_lens, min_lens, kept = [], [], 0
-        print(f"[min] {cls}: minimising {len(leaks)} leaks")
+        print(f"[min] {cls}: minimising {len(leaks)} leaks", flush=True)
         for d in leaks:
             body = d["realized_asm"]
             if not test(body):
@@ -163,28 +181,19 @@ def main(argv=None) -> int:
                 "orig_len": len(body), "minimal_len": len(minimal),
                 "minimal_body": minimal,
             })
-            print(f"    {d.get('gadget_id')}: {len(body)} -> {len(minimal)}")
-        if min_lens:
+            print(f"    {d.get('gadget_id')}: {len(body)} -> {len(minimal)}", flush=True)
+            # running stats + incremental flush so partial survives a kill
             per_class_stats[cls] = {
                 "n": kept,
                 "orig_median": statistics.median(orig_lens),
                 "minimal_median": statistics.median(min_lens),
                 "minimal_min": min(min_lens),
             }
+            _flush()
 
-    with out_path.open("w") as f:
-        for r in records:
-            f.write(json.dumps(r) + "\n")
-
-    md = ["# Generated-leak minimality (ddmin + Spectector)", "",
-          f"- samples: `{samples_path.name}`  arch: `{args.arch}`  per-class cap: {args.per_class}",
-          "", "| class | n | orig median | 1-minimal median | smallest |",
-          "|---|---|---|---|---|"]
-    for cls, s in per_class_stats.items():
-        md.append(f"| {cls} | {s['n']} | {s['orig_median']:.0f} | "
-                  f"{s['minimal_median']:.0f} | {s['minimal_min']} |")
-    Path(args.md).write_text("\n".join(md) + "\n")
-    print("\n".join(md))
+    _flush()
+    md_txt = Path(args.md).read_text()
+    print(md_txt)
     print(f"\n[min] wrote {len(records)} minimal gadgets -> {out_path}")
     return 0
 
