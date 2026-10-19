@@ -314,22 +314,59 @@ exported (the minimality + both yield loops hit the oracle; the header of each
 `.sbatch` repeats the one-time publish/pull). None runs on the head node.
 
 ### i5-8300H commands (bare-metal Linux, root; no-exploit)
+
+Status after 2026-10-19: the CLUSTER half of every paper TODO is DONE (T6
+filter-gate in-loop, T7 generated minimality V1+V4 -> both 1 instr, xlong
+yield). What is left all lands here on the i5. Run in this order; each `emit`
+/ report step writes the exact artifact the paper table cites.
+
+Prereqs on the box (once per login):
 ```bash
-# A. Fenced-variant mitigation matrix on the full pools (T3, T5)
+cd ~/speculative_execution && git pull
+grep -q '^rvzr_executor ' /proc/modules || echo "LOAD rvzr_executor module first"
+# scripts default to RVZR=~/sca-fuzzer/venv/bin/rvzr, SPEC=~/sca-fuzzer/base_x86.json
+```
+
+```bash
+# A. Fenced-variant mitigation matrix: replay recorded violations + lfence twin (T3).
+#    Writes rvzr_runs/reproduce_fenced_summary.tsv (baseline_viol vs fenced_viol verdict).
 sudo bash oracle/revizor/scripts/reproduce_fenced_matrix.sh
+
+# B. HW-label the fenced/misplaced-fence variants on the held-out+training pools (T5)
+#    AND, in the same run, minimise each reproduced violation (T7 real rows).
+#    Default --stages "minimize plan run"; --out ~/rvzr_hwlabel.
 sudo bash oracle/revizor/scripts/run_hw_label_variants.sh
+#    -> variant labels:
+python3 oracle/revizor/scripts/hw_label_variants.py emit --out ~/rvzr_hwlabel
+#    -> real-violation minimality (fills tab:min L1TF/MDS/V1/V4 rows):
+python3 oracle/revizor/minimality_report.py --results ~/rvzr_hwlabel   # -> ~/rvzr_hwlabel/minimality.md
 
-# B. Minimality on real violations -> fills tab:min real rows
-sudo bash oracle/revizor/scripts/run_multiclass_campaign.sh \
-    --classes "SPECTRE_V4 L1TF SPECTRE_V1" --minimize
-
-# C. MDS re-fuzz (settle the one unverified class either way)
+# C. MDS re-fuzz, both SMT states (settle the one replay-unverified class; the
+#    MDS tab:min / "MDS unverified" note resolves either way). Writes a
+#    rvzr_runs/mds_refuzz_<ts>/ per-SMT-state run dir.
 sudo bash oracle/revizor/scripts/refuzz_mds.sh
 
-# D. V2 / RETBLEED published-PoC campaign (BLOCKED: you supply the PoC binary)
+# D. Shared-config multiclass campaign (T2: the sec:detector campaign number).
+#    --n-seeds is MANDATORY (there is NO --minimize flag on this script).
+sudo bash oracle/revizor/scripts/run_multiclass_campaign.sh \
+    --classes "SPECTRE_V4 MDS L1TF SPECTRE_V1" --n-seeds 10 --n 1000 --inputs 100 --timeout 900
+#    ingest whatever it found into the corpus (campaign root is rvzr_runs/mc_<ts>):
+python3 oracle/revizor/convert_revizor_gadgets.py \
+    --classes MDS L1TF SPECTRE_V1 SPECTRE_V4 --roots rvzr_runs
+
+# E. V2 / RETBLEED published-PoC campaign (BLOCKED: you supply the PoC binary;
+#    SafeSide for V2, ETH artifact for RETBLEED). Runner+labeller, ships no
+#    exploit; requires byte-match output + mitigation OFF->ON control.
 sudo bash oracle/revizor/scripts/run_v2_retbleed_campaign.sh --class SPECTRE_V2 --poc <path>
 sudo bash oracle/revizor/scripts/run_v2_retbleed_campaign.sh --class RETBLEED --poc <path>
 ```
+
+After A/B/C/D land, commit the result artifacts
+(`rvzr_runs/reproduce_fenced_summary.tsv`, `~/rvzr_hwlabel/minimality.md` +
+labelled jsonl, the refuzz dir summary, the campaign's new-gadget count) and
+pull on the Mac; those fill `tab:min` real rows, the `allhw3` fenced-matrix
+line (T3), the fenced-variant labels (T5), the MDS verdict, and the
+shared-config detector number (T2).
 
 ### Ruled out (policy)
 - **Generator-V4 silicon cross-validation.** Running generated V4 gadgets on the
