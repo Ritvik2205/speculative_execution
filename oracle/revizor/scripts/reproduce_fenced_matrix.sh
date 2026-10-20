@@ -46,15 +46,22 @@ for d in "${dirs[@]}"; do
   # lfence after a terminator breaks Revizor's asm parser ("Terminator not at
   # the end of BB") and the fenced reproduce crashes before touching hardware.
   fenced="$d/program_fenced.asm"
+  # prev_term tracks whether the previous emitted instruction was a terminator:
+  # a run of adjacent terminators (e.g. `js .bb1` then `jmp .exit`) must NOT have
+  # an lfence inserted between them, or the parser rejects the first terminator
+  # ("Terminator not at the end of BB"). So lfence goes before the FIRST
+  # terminator of a run only, and after every non-terminator instruction.
   awk '{
     line=$0
     s=line; sub(/^[ \t]+/,"",s)
     m=s; sub(/^[^ \t]*:[ \t]*/,"",m)   # drop any "label:" prefix to find mnemonic
     is_code = (s !~ /^\./ && s !~ /:[ \t]*$/ && s !~ /^#/ && s !~ /^$/ && s !~ /^\/\//)
-    is_term = (m ~ /^(jmp|je|jne|jz|jnz|jl|jle|jg|jge|jb|jbe|ja|jae|jc|jnc|jo|jno|js|jns|jp|jnp|jcxz|jecxz|loop|loope|loopne|call|ret)([ \t]|$)/)
-    if (is_code && is_term)      { print "lfence"; print line }
-    else if (is_code)            { print line; print "lfence" }
-    else                         { print line }
+    # every x86 jump (jmp + all jcc synonyms: jnb/jae/jnc/jpo/...) starts with
+    # "j" and nothing else does, so match ^j[a-z]+ rather than enumerate synonyms.
+    is_term = (m ~ /^(j[a-z]+|call|ret[a-z]*|loop[a-z]*)([ \t]|$)/)
+    if (is_code && is_term)      { if (!prev_term) print "lfence"; print line; prev_term=1 }
+    else if (is_code)            { print line; print "lfence"; prev_term=0 }
+    else                         { print line; prev_term=0 }
   }' "$d/program.asm" > "$fenced"
 
   base_log="$d/reproduce.log"             # baseline from the prior matrix run
