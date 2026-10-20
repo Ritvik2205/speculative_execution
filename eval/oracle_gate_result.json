@@ -424,5 +424,5 @@
   "tolerance_pct": 0.5,
   "passed": true,
   "message": "PASS: oracle agreement 99.86% (baseline 99.86%, diff +0.00pp)",
-  "timestamp_utc": "2026-08-10T08:15:27.933169+00:00"
+  "timestamp_utc": "2026-10-20T16:12:42.067981+00:00"
 }

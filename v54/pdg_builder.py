@@ -10,6 +10,7 @@ Adds RSB_CHAIN edge type (9th type) to distinguish INCEPTION from RETBLEED:
 All other v46b edge types and node features are unchanged (node dim = 41).
 """
 
+import os
 import re
 from typing import List, Dict, Tuple, Set, Optional
 from dataclasses import dataclass, field
@@ -71,6 +72,33 @@ SPEC_FLAGS = {
 }
 
 NUM_SPEC_FLAGS = len(SPEC_FLAGS)
+
+# --- KASPER-model taint flags (opt-in; see docs/KASPER_FEATURE_AUDIT_*.md) ----
+# Three node-level taint flags that extend our secret-source/transmitter model
+# toward KASPER's control -> secret-access -> channel policy:
+#   is_control_gated_source  (F1) secret-source whose index is also compared
+#                                 by a branch guard = the bounds-check/bypass
+#                                 (attacker-CONTROL evidence KASPER requires).
+#   is_stale_forward_source  (F2) secret-source with an earlier same-base,
+#                                 different-offset STORE = store->load forward
+#                                 (SSB/MDS source; separates V4/MDS from V1).
+#   is_varlat_sink           (F3) variable-latency op (div/idiv/sqrt/gather)
+#                                 fed by a secret source = port-contention
+#                                 covert channel (a channel our cache-shift
+#                                 receiver was blind to).
+# These live OUTSIDE SPEC_FLAGS on purpose: they are concatenated into the node
+# feature vector ONLY when INCLUDE_KASPER_FLAGS is set, so the default build is
+# byte-identical (40-dim nodes) and every existing checkpoint -- including the
+# locked classifier -- loads and scores exactly as before. Turn them on for the
+# retrain that measures their lift: SPECEXEC_KASPER_FLAGS=1 (or set the flag in
+# code). Nothing reads them unless opted in.
+KASPER_FLAGS = {
+    'is_control_gated_source': 0,
+    'is_stale_forward_source': 1,
+    'is_varlat_sink': 2,
+}
+NUM_KASPER_FLAGS = len(KASPER_FLAGS)
+INCLUDE_KASPER_FLAGS = os.environ.get("SPECEXEC_KASPER_FLAGS", "0") == "1"
 
 # v47: 9 edge types — RSB_CHAIN added to distinguish INCEPTION vs RETBLEED
 EDGE_TYPES = {
@@ -149,6 +177,9 @@ class PDGNode:
     src_regs: Set[str] = field(default_factory=set)
     mem_access_type: int = 0
     spec_flags: np.ndarray = field(default_factory=lambda: np.zeros(NUM_SPEC_FLAGS))
+    # KASPER taint flags (F1/F2/F3); zeros unless apply_kasper_taint ran, and
+    # only concatenated into the vector when INCLUDE_KASPER_FLAGS is set.
+    kasper_flags: np.ndarray = field(default_factory=lambda: np.zeros(NUM_KASPER_FLAGS))
 
     def get_feature_vector(self, num_categories: int = NUM_OPCODE_CATEGORIES) -> np.ndarray:
         opcode_onehot = np.zeros(num_categories)
@@ -158,8 +189,13 @@ class PDGNode:
         num_dest = min(len(self.dest_regs), 3) / 3.0
         num_src = min(len(self.src_regs), 5) / 5.0
         reg_features = np.array([num_dest, num_src])
-        # Total: 19 + 5 + 2 + 14 = 40 dims (unchanged from v46b)
-        return np.concatenate([opcode_onehot, mem_onehot, reg_features, self.spec_flags])
+        # Total: 19 + 5 + 2 + 14 = 40 dims (unchanged from v46b). The 3 KASPER
+        # flags are appended ONLY when opted in, giving 43 dims; default output
+        # is unchanged so existing checkpoints are unaffected.
+        base = np.concatenate([opcode_onehot, mem_onehot, reg_features, self.spec_flags])
+        if INCLUDE_KASPER_FLAGS:
+            return np.concatenate([base, self.kasper_flags])
+        return base
 
 
 @dataclass
@@ -199,7 +235,7 @@ class PDG:
 
     def get_node_features(self, max_nodes: int) -> np.ndarray:
         n = min(len(self.nodes), max_nodes)
-        feature_dim = 40  # 19+5+2+14 (unchanged from v46b)
+        feature_dim = 40 + (NUM_KASPER_FLAGS if INCLUDE_KASPER_FLAGS else 0)
         features = np.zeros((max_nodes, feature_dim), dtype=np.float32)
         for i, node in enumerate(self.nodes[:n]):
             features[i] = node.get_feature_vector()

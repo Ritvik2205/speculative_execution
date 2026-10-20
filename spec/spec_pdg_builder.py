@@ -37,7 +37,7 @@ sys.path.insert(0, str(ROOT / "spec"))
 
 import pdg_builder as pb  # noqa: E402
 from isa_spec import SpecEngine  # noqa: E402
-from dataflow_taint import apply_dataflow_taint  # noqa: E402
+from dataflow_taint import apply_dataflow_taint, apply_kasper_taint  # noqa: E402
 from ir_defuse import defuse_for_sequence  # noqa: E402
 from taint_slice import mark_secret_transmitter  # noqa: E402
 
@@ -278,6 +278,11 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
             mark_secret_transmitter(pdg, defuse, arch=self.engine.arch)
         else:
             apply_dataflow_taint(pdg, max_hops=self.dataflow_taint_max_hops)
+        # KASPER taint (F1/F2/F3) refines the secret-source set just marked;
+        # writes only node.kasper_flags, which reach the feature vector only
+        # when INCLUDE_KASPER_FLAGS is set, so this is a no-op on the default
+        # (locked-model) build.
+        apply_kasper_taint(pdg, max_hops=self.dataflow_taint_max_hops)
         return pdg
 
     def _writes_mem(self, node) -> bool:

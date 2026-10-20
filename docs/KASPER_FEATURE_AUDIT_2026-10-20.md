@@ -94,3 +94,52 @@ measurable with the existing multiseed harness
 (`eval/run_dataflow_taint_multiseed.sh`), gated by `./scripts/run_feature_gate.sh`
 like any feature change. None requires running KASPER; KASPER's model is the
 specification they implement.
+
+---
+
+## Implementation status (2026-10-20): F1/F2/F3 shipped as opt-in node flags
+
+All three implemented in `spec/dataflow_taint.py::apply_kasper_taint`, wired into
+`spec/spec_pdg_builder.py` (runs after `apply_dataflow_taint`), registered as
+`KASPER_FLAGS` in `v54/pdg_builder.py`. **Opt-in and off by default**: the flags
+live outside `SPEC_FLAGS` and are concatenated into the node feature vector only
+when `INCLUDE_KASPER_FLAGS` / env `SPECEXEC_KASPER_FLAGS=1` is set, so the default
+build is byte-identical (40-dim nodes) and every existing checkpoint — the
+locked classifier included — loads and scores exactly as before.
+
+Each flag ANCHORS on a confirmed `is_secret_source` node, so it refines that set
+rather than widening it (keeps them off benign by construction).
+
+### Existing results verified intact (default path)
+- Node feature vector default **40** dims (opt-in **43**).
+- KASPER `find_keyring_by_name` gadget still scores **0.996** (V1) — unchanged.
+- Oracle agreement gate: **PASS 99.86 %, +0.00 pp** vs baseline
+  (`eval/oracle_gate_result.json`). Control-flow spec untouched, as expected
+  for taint-only features.
+- Unit tests: `tests/spec/test_kasper_taint.py` 10/10 pass.
+
+### By-construction corpus validation (`spec/validate_kasper_taint.py`, 5532 recs)
+Records-firing rate, attack classes vs BENIGN:
+
+| flag | strongest class(es) | BENIGN | reading |
+|---|---|---|---|
+| F1 `is_control_gated_source` | **V1 83.7 %**, RSB 23.1 %, L1TF 18.1 %, MDS 11.8 % | 7.9 % | strong, V1-specific (~10:1 over benign) — the bounds-check-bypass shape |
+| F2 `is_stale_forward_source` | L1TF 15.6 %, BHI 10.3 %, MDS 6.8 %, V4 3.4 % | 1.5 % | low benign, but **fires broader than intended** — a store-bypass-shaped source across mem-disclosure classes, weaker on V4 than hoped (corpus V4 often lacks an explicit same-base/diff-offset store at asm level) |
+| F3 `is_varlat_sink` | **MDS only, 2.5 %** | **0 %** | surgically clean (zero benign) but rare (n=4) — real port-contention idiom, tiny signal |
+
+Honest caveat: F2 did not achieve the clean V4/MDS separation the audit
+predicted; it is a low-benign mem-disclosure-source signal. F1 is the strong
+win; F3 is clean-but-rare.
+
+### To measure detector lift (pending; not claimed here)
+Lift must come from a multi-seed retrain with the flags on — single-seed
+"parity" is not trusted in this repo. Retrain + gate:
+
+```bash
+# retrain the spec-builder GINE with the 3 flags on, all seeds
+SPECEXEC_KASPER_FLAGS=1 bash eval/run_full_tost.sh        # or v54/run.sh per seed
+# then the gate reads the fresh cached results:
+./scripts/run_feature_gate.sh                             # stage-2 per-class lift
+```
+Until that multiseed run lands, F1/F2/F3 are validated-by-construction and
+result-neutral (off by default); the accuracy/lift claim is explicitly open.

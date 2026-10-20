@@ -72,15 +72,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "v54"))
 
-from pdg_builder import PDG, EDGE_TYPES, OPCODE_CATEGORIES, SPEC_FLAGS  # noqa: E402
+from pdg_builder import PDG, EDGE_TYPES, OPCODE_CATEGORIES, SPEC_FLAGS, KASPER_FLAGS  # noqa: E402
 
 LOAD_CAT = OPCODE_CATEGORIES["LOAD"]
 STORE_CAT = OPCODE_CATEGORIES["STORE"]
 TRANSMITTER_CATS = (LOAD_CAT, STORE_CAT)
 SHIFT_CAT = OPCODE_CATEGORIES["SHIFT"]
+COMPARE_CAT = OPCODE_CATEGORIES["COMPARE"]
 DATA_DEP = EDGE_TYPES["DATA_DEP"]
 IS_SECRET_SOURCE = SPEC_FLAGS["is_secret_source"]
 IS_TRANSMITTER = SPEC_FLAGS["is_transmitter"]
+KF_CONTROL = KASPER_FLAGS["is_control_gated_source"]
+KF_STALE = KASPER_FLAGS["is_stale_forward_source"]
+KF_VARLAT = KASPER_FLAGS["is_varlat_sink"]
 
 # Cache-line probe (Flush+Reload, MDS: 64B = shift by 6) and page probe
 # (Meltdown/L1TF: 4096B..32KB = shift by 9-15). Same magnitudes
@@ -155,5 +159,116 @@ def apply_dataflow_taint(pdg: PDG, max_hops: int = 4) -> PDG:
         if ancestor is not None:
             ancestor.spec_flags[IS_SECRET_SOURCE] = 1.0
             node.spec_flags[IS_TRANSMITTER] = 1.0
+
+    return pdg
+
+
+# ---------------------------------------------------------------------------
+# KASPER-model taint (F1/F2/F3). Each flag ANCHORS on a node that the base
+# apply_dataflow_taint already confirmed is_secret_source, so none of them can
+# fire on code that has no secret source -- they refine that set, they do not
+# widen it. This keeps them off benign code by construction (validated in
+# spec/validate_kasper_taint.py). All ISA-agnostic: register overlap via the
+# PDG's dest/src reg sets, displacements and mnemonics via text regex.
+# ---------------------------------------------------------------------------
+
+# Variable-latency / port-contending ops whose latency or port pressure is
+# operand-dependent (SMoTherSpectre-style leak). Division and square root have
+# data-dependent latency; gather contends the load ports. Multiply is fixed
+# latency on current parts, so it is deliberately excluded to stay specific.
+_VARLAT_RE = re.compile(
+    r'\b(i?div[lqwb]?|v?divp[sd]|v?divs[sd]|fdiv\w*|v?sqrt\w*|v?p?gather\w*)\b',
+    re.IGNORECASE,
+)
+
+# Displacement of the first memory operand, ISA-agnostic:
+#   x86 AT&T  16(%rcx) / (%rcx)         -> 16 / 0
+#   ARM       [x16, #16] / [x16]        -> 16 / 0
+#   RISC-V    16(t0) / 0(t0)            -> 16 / 0
+_X86_RISCV_DISP = re.compile(r'(-?(?:0[xX][0-9a-fA-F]+|\d+))\s*\(')
+_ARM_DISP = re.compile(r'\[\s*\w+\s*,\s*#(-?(?:0[xX][0-9a-fA-F]+|\d+))')
+_HAS_MEM = re.compile(r'\(|\[')
+
+
+def _mem_disp(raw: str):
+    """Return the memory-operand displacement as an int, 0 when a memory
+    operand is present with no displacement, or None when there is no memory
+    operand to compare (so callers can skip register-only ops)."""
+    if not _HAS_MEM.search(raw):
+        return None
+    for rx in (_ARM_DISP, _X86_RISCV_DISP):
+        m = rx.search(raw)
+        if m:
+            tok = m.group(1)
+            try:
+                return int(tok, 16) if 'x' in tok.lower() else int(tok)
+            except ValueError:
+                return 0
+    return 0  # has a memory operand but no parsed displacement -> treat as 0
+
+
+def _reaches_secret_source(node_id, preds, nodes, max_hops):
+    """True if an is_secret_source node is backward-reachable from node_id via
+    DATA_DEP within max_hops."""
+    stack = [(pid, 0) for pid in preds.get(node_id, [])]
+    seen = set()
+    while stack:
+        pid, hops = stack.pop()
+        if hops >= max_hops or pid in seen:
+            continue
+        seen.add(pid)
+        if nodes[pid].spec_flags[IS_SECRET_SOURCE]:
+            return True
+        for ppid in preds.get(pid, []):
+            stack.append((ppid, hops + 1))
+    return False
+
+
+def apply_kasper_taint(pdg: PDG, max_hops: int = 4, stale_window: int = 8) -> PDG:
+    """Set the three KASPER taint flags on pdg.nodes' kasper_flags, in place.
+    Must run AFTER apply_dataflow_taint (it reads is_secret_source).
+
+      F1 is_control_gated_source: an is_secret_source node that shares an
+         address register with a COMPARE -- the index is bounds-checked, i.e.
+         the bounds-check-bypass shape (KASPER's attacker-CONTROL step).
+      F2 is_stale_forward_source: an is_secret_source LOAD with an earlier
+         STORE (within stale_window, same base register, different
+         displacement) -- store->load forwarding / store-bypass (SSB, MDS),
+         the feature that separates V4/MDS from V1.
+      F3 is_varlat_sink: a variable-latency op fed (DATA_DEP, <=max_hops) by an
+         is_secret_source node -- the port-contention covert channel.
+    """
+    preds: dict[int, list[int]] = defaultdict(list)
+    for e in pdg.edges:
+        if e.edge_type == DATA_DEP:
+            preds[e.dst].append(e.src)
+
+    nodes = pdg.nodes
+    compares = [n for n in nodes if n.opcode_category == COMPARE_CAT]
+    stores = [n for n in nodes if n.opcode_category == STORE_CAT]
+
+    for node in nodes:
+        # F1 + F2 anchor on confirmed secret sources
+        if node.spec_flags[IS_SECRET_SOURCE]:
+            # F1: an address register of the source is also compared
+            src_addr = node.src_regs
+            if src_addr and any(src_addr & c.src_regs for c in compares):
+                node.kasper_flags[KF_CONTROL] = 1.0
+            # F2: earlier same-base, different-offset store (store-bypass)
+            if node.opcode_category == LOAD_CAT:
+                ld_disp = _mem_disp(node.raw_instruction)
+                for s in stores:
+                    if not (0 <= node.id - s.id <= stale_window):
+                        continue
+                    if not (node.src_regs & s.src_regs):
+                        continue  # no shared base register
+                    st_disp = _mem_disp(s.raw_instruction)
+                    if ld_disp is not None and st_disp is not None and ld_disp != st_disp:
+                        node.kasper_flags[KF_STALE] = 1.0
+                        break
+        # F3: variable-latency op fed by a secret source
+        if _VARLAT_RE.search(node.raw_instruction) and \
+                _reaches_secret_source(node.id, preds, nodes, max_hops):
+            node.kasper_flags[KF_VARLAT] = 1.0
 
     return pdg
