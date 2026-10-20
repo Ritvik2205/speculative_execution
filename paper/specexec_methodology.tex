@@ -1795,7 +1795,16 @@ nine-class scheme---its covert-channel axis maps onto our L1TF and MDS
 classes---and a principled reference for what a secret-source/transmit dataflow
 feature should capture. Kasper is x86-64 and kernel-only, dynamic and
 fuzz-driven, and emits no per-variant labels, so it is a conceptual contrast,
-not a component we reuse. Our generate$\to$filter$\to$oracle$\to$retrain loop
+not a component we reuse. As a concrete external-validity check we reconstructed
+Kasper's primary case-study gadget (\texttt{find\_keyring\_by\_name}, its
+\textsc{pht-massage-mds} label) in x86-64 from the paper's listings and ran it
+through our locked detector: it is flagged as an attack at $0.996$ and classed
+\textsc{spectre\_v1}---consistent rather than contradictory, since our taxonomy
+names the speculation primitive (the PHT loop-exit misprediction) while Kasper
+names the leak channel (MDS). Removing the in-gadget transmit barely moves the
+score ($0.979$), i.e.\ the detector keys on the control/access structure and is
+nearly blind to the channel, which is exactly the MDS/port-contention blind spot
+our own dataflow features have. Our generate$\to$filter$\to$oracle$\to$retrain loop
 and its pre-oracle gate draw their search strategy from taint- and
 feedback-guided fuzzing, in the lineage of VUzzer~\cite{vuzzer}, where taint
 feedback steers mutation toward the input bytes that drive new behaviour; here
