@@ -740,6 +740,10 @@ def main():
     parser.add_argument('--lambda-con', type=float, default=0.5)
     parser.add_argument('--temperature', type=float, default=0.07)
     parser.add_argument('--hard-neg-weight', type=float, default=2.0)
+    parser.add_argument('--class-boost', action='append', default=None,
+                        help="multiply a class's CE weight by a factor, on top of "
+                             "the inverse-sqrt scheme. Repeatable: CLASS:factor "
+                             "(e.g. --class-boost MDS:2.0). Default: no boost.")
     parser.add_argument('--grad-accum', type=int, default=2)
     parser.add_argument('--no-virtual-node', action='store_true')
     parser.add_argument('--no-strip', action='store_true')
@@ -1023,6 +1027,18 @@ def main():
         1.0 / math.sqrt(max(class_counts.get(id_to_label[i], 1), 1))
         for i in range(num_classes)
     ], dtype=torch.float32).to(DEVICE)
+    # Optional per-class boost (on top of inverse-sqrt): --class-boost MDS:2.0
+    # nudges the ambiguous V1/MDS boundary toward the boosted class. Applied
+    # BEFORE the mean-normalise so the LR scale stays stable.
+    if args.class_boost:
+        label_to_id = {id_to_label[i]: i for i in range(num_classes)}
+        for spec in args.class_boost:
+            cls, _, fac = spec.partition(":")
+            if cls not in label_to_id:
+                raise ValueError(f"--class-boost: unknown class {cls!r} "
+                                 f"(known: {sorted(label_to_id)})")
+            class_weights[label_to_id[cls]] *= float(fac)
+            print(f"  class-boost: {cls} x{float(fac)}")
     # Normalise so mean weight = 1.0 (keeps LR scale stable)
     class_weights = class_weights / class_weights.mean()
 
