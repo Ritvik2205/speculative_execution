@@ -40,13 +40,21 @@ for d in "${dirs[@]}"; do
   n=${#inputs[@]}
   [ "$n" -gt 0 ] || { echo "skip (no inputs): $d"; continue; }
 
-  # fenced copy: lfence after every instruction line (not directives/labels/blank/comment)
+  # fenced copy: lfence at every instruction boundary. A terminator (jmp/jcc/
+  # call/ret) must stay LAST in its basic block, so for those we emit lfence
+  # BEFORE the instruction; for every other instruction, lfence AFTER. Putting
+  # lfence after a terminator breaks Revizor's asm parser ("Terminator not at
+  # the end of BB") and the fenced reproduce crashes before touching hardware.
   fenced="$d/program_fenced.asm"
   awk '{
-    print $0
-    s=$0; sub(/^[ \t]+/,"",s)
-    if (s !~ /^\./ && s !~ /:[ \t]*$/ && s !~ /^#/ && s !~ /^$/ && s !~ /^\/\//)
-      print "lfence"
+    line=$0
+    s=line; sub(/^[ \t]+/,"",s)
+    m=s; sub(/^[^ \t]*:[ \t]*/,"",m)   # drop any "label:" prefix to find mnemonic
+    is_code = (s !~ /^\./ && s !~ /:[ \t]*$/ && s !~ /^#/ && s !~ /^$/ && s !~ /^\/\//)
+    is_term = (m ~ /^(jmp|je|jne|jz|jnz|jl|jle|jg|jge|jb|jbe|ja|jae|jc|jnc|jo|jno|js|jns|jp|jnp|jcxz|jecxz|loop|loope|loopne|call|ret)([ \t]|$)/)
+    if (is_code && is_term)      { print "lfence"; print line }
+    else if (is_code)            { print line; print "lfence" }
+    else                         { print line }
   }' "$d/program.asm" > "$fenced"
 
   base_log="$d/reproduce.log"             # baseline from the prior matrix run
