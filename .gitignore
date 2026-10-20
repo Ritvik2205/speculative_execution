@@ -198,3 +198,5 @@ gen/.benign_xarch_tmp/
 oracle/apptainer/*.sif
 *.sif
 gen/arch_purity_cache.json
+rvzr_runs/**/program_fenced.asm
+rvzr_runs/**/program_fenced.asm.patched.asm

@@ -1,0 +1,28 @@
+=== FENCED rvzr_runs/v4_5555555/violation-260911-003443 ===
+# n_inputs=200  spec=/home/ritvik/sca-fuzzer/base_x86.json  2026-10-20T18:05:15+01:00
+
+WARNING: [executor] SMT is on! You may experience false positives.
+
+INFO: [fuzzer] Starting at 18:05:16
+
+================================ Statistics ===================================
+
+Test Cases: 1
+Inputs per test case: 200.0
+Violations: 0
+Effectiveness: 
+  Total Cls: 0.0
+  Effective Cls: 0.0
+Discarded Test Cases:
+  Speculation Filter: 0
+  Observation Filter: 1
+  Fast Path: 0
+  Max Nesting Check: 0
+  Tainting Check: 0
+  Early Priming Check: 0
+  Large Sample Check: 0
+  Priming Check: 0
+
+Duration: 0.5
+Finished at 18:05:17
+
