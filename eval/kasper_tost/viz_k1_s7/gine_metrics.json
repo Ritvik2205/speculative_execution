@@ -1,0 +1,147 @@
+{
+  "test_accuracy": 0.9491017964071856,
+  "best_epoch": 4,
+  "total_params": 634827,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 4803,
+  "val_count": 729,
+  "test_count": 1670,
+  "best_val_acc": 0.9519890260631001,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.9804682731628418,
+    "CONTROL_FLOW": 0.9478893280029297,
+    "SPEC_CONDITIONAL": 1.080407738685608,
+    "SPEC_INDIRECT": 1.0209494829177856,
+    "SPEC_RETURN": 0.9889308214187622,
+    "MEMORY_ORDER": 1.064296007156372,
+    "CACHE_TEMPORAL": 1.0599379539489746,
+    "FENCE_BOUNDARY": 0.9779275059700012,
+    "RSB_CHAIN": 0.9851170182228088
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9980314960629921,
+      "recall": 0.9835111542192047,
+      "f1-score": 0.9907181240840254,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.7142857142857143,
+      "recall": 0.8955223880597015,
+      "f1-score": 0.7947019867549668,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.8282828282828283,
+      "recall": 0.8723404255319149,
+      "f1-score": 0.8497409326424871,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.8064516129032258,
+      "recall": 0.6756756756756757,
+      "f1-score": 0.7352941176470589,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.8888888888888888,
+      "recall": 0.8888888888888888,
+      "f1-score": 0.8888888888888888,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.8674698795180723,
+      "recall": 0.96,
+      "f1-score": 0.9113924050632911,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.7692307692307693,
+      "recall": 0.9523809523809523,
+      "f1-score": 0.851063829787234,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9848484848484849,
+      "recall": 0.8441558441558441,
+      "f1-score": 0.9090909090909091,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 0.953125,
+      "recall": 0.9838709677419355,
+      "f1-score": 0.9682539682539683,
+      "support": 124.0
+    },
+    "accuracy": 0.9491017964071856,
+    "macro avg": {
+      "precision": 0.7810614674020975,
+      "recall": 0.8056346296654118,
+      "f1-score": 0.789914516221283,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.953141922618148,
+      "recall": 0.9491017964071856,
+      "f1-score": 0.949652426562186,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7636893608161566,
+    "epoch1_val_acc": 0.9149519890260631
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/kasper_tost/viz_k1_s7",
+    "viz_dir": "eval/kasper_tost/viz_k1_s7",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "embed",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "all",
+    "drop_nops": false,
+    "node_drop": 0.0,
+    "no_handcrafted": false,
+    "node_feature_mode": "both",
+    "mlm_path": "spec/mlm_large.pt",
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 7
+  }
+}

@@ -1,0 +1,42 @@
+=== KASPER-flags paired TOST: Tue 20 Oct 17:21:51 BST 2026 seeds=[42 1 7] ===
+--- training k0_s42 (SPECEXEC_KASPER_FLAGS=0) ---
+0	42	94.07	0.81
+--- training k0_s1 (SPECEXEC_KASPER_FLAGS=0) ---
+0	1	93.95	0.78
+--- training k0_s7 (SPECEXEC_KASPER_FLAGS=0) ---
+0	7	93.59	0.77
+--- training k1_s42 (SPECEXEC_KASPER_FLAGS=1) ---
+1	42	92.99	0.78
+--- training k1_s1 (SPECEXEC_KASPER_FLAGS=1) ---
+1	1	93.77	0.87
+--- training k1_s7 (SPECEXEC_KASPER_FLAGS=1) ---
+1	7	94.91	0.79
+=== aggregating paired result -> eval/kasper_tost/kasper_tost.md ===
+# KASPER-flags paired lift (multi-seed)
+
+- seeds: baseline(k0)=3, kasper(k1)=3
+
+## Test accuracy
+- baseline  : 93.8700 +/- 0.2040
+- +F1/F2/F3 : 93.8900 +/- 0.7884
+- delta     : +0.0200
+
+## Per-class recall (mean +/- std), delta = k1 - k0
+
+| class | baseline | +KASPER | delta | lift? |
+|---|---|---|---|---|
+| BENIGN | 0.983±0.009 | 0.980±0.008 | -0.003 | ~ |
+| BRANCH_HISTORY_INJECTION | 0.947±0.009 | 0.907±0.025 | -0.040 | regress |
+| INCEPTION | 0.850±0.014 | 0.867±0.012 | +0.017 | ~ |
+| L1TF | 0.703±0.021 | 0.650±0.042 | -0.053 | ~ |
+| MDS | 0.887±0.048 | 0.940±0.045 | +0.053 | ~ |
+| RETBLEED | 0.973±0.012 | 0.930±0.022 | -0.043 | regress |
+| SPECTRE_RSB | 0.000±0.000 | 0.333±0.471 | +0.333 | ~ |
+| SPECTRE_V1 | 0.953±0.021 | 0.967±0.024 | +0.013 | ~ |
+| SPECTRE_V2 | 0.720±0.080 | 0.750±0.073 | +0.030 | ~ |
+| SPECTRE_V4 | 0.990±0.000 | 0.987±0.005 | -0.003 | ~ |
+
+lift? column: `yes` = delta exceeds the combined per-class std band (candidate real lift, confirm with a paired test); `~` = within noise; `regress` = negative beyond the band. Single-run deltas are not trusted in this repo.
+
+-> eval/kasper_tost/kasper_tost.md
+=== done: Tue 20 Oct 17:52:00 BST 2026. Table in eval/kasper_tost/kasper_tost.md ===
