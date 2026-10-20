@@ -174,3 +174,47 @@ any existing result). They remain in the tree, validated-by-construction and
 opt-in, as a documented negative. Closing the channel-blindness would be an
 architectural/data change (e.g. a channel-labelled training signal), not a
 feature append.
+
+---
+
+## Second fix attempt (2026-10-20): MDS class-weighted retrain — ALSO NEGATIVE
+
+After the feature route failed, tried the cheaper of the two remaining options
+for the V1↔MDS tail: upweight MDS's CE loss (on top of the inverse-sqrt scheme)
+to drag the ambiguous boundary — the no-VERW, has-compare MDS gadgets that look
+structurally like Spectre-V1 — toward MDS. No new features. Knob:
+`v54/train_gine_v38.py --class-boost MDS:<factor>`. Sweep: boost ∈ {1.0, 2.0, 3.0}
+× 3 seeds, "both" node-feature mode (`eval/mds_boost.sbatch`).
+Source: `eval/mds_boost/mds_boost.md`.
+
+| metric | x1.0 (base) | x2.0 | x3.0 |
+|---|---|---|---|
+| test accuracy | 0.947±0.001 | 0.938±0.006 | 0.940±0.010 |
+| macro F1 | 0.804±0.016 | 0.781±0.008 | 0.783±0.010 |
+| MDS recall | 0.919±0.055 | 0.941±0.021 | 0.926±0.038 |
+| MDS precision | 0.875±0.024 | 0.852±0.062 | 0.837±0.076 |
+| V1 precision | 0.824±0.020 | 0.785±0.025 | 0.795±0.081 |
+| V1 recall | 0.960±0.011 | 0.952±0.000 | 0.960±0.011 |
+| L1TF recall | 0.676±0.022 | 0.667±0.013 | 0.649±0.038 |
+
+**Read.** The nominal MDS-recall "gain" (+0.022 at x2.0) is smaller than the
+baseline's own seed std (±0.055) — not real. And boosting *pays* everywhere it
+touches: MDS precision falls monotonically (0.875→0.852→0.837), V1 precision
+falls (0.824→0.785), L1TF recall falls, overall accuracy falls. The mechanism is
+exactly the failure mode the sweep was built to detect: upweighting MDS drags the
+boundary so V1/L1TF leak *into* the MDS bucket — MDS precision drops instead of
+recall rising. Both levels: **no clean win** (the gate's rule — MDS recall up
+while V1 holds — is not met at any level).
+
+**Conclusion.** Second null. The V1↔MDS tail is a data-imbalance artifact of
+statically V1-identical gadgets (no VERW, has compare), and neither explicit
+taint features nor loss reweighting manufactures the missing signal. Note the
+locked 5-seed ensemble already reaches MDS recall 0.933 / precision 1.000; these
+single-config runs sit *below* that, so boosting does not even recover the
+ensemble's operating point. The durable fix is real VERW-bearing i5 MDS data
+(VERW is the MDS-exclusive discriminator), blocked on hardware — not a training
+trick.
+
+**Decision:** `--class-boost` stays **off by default** (it is an opt-in CLI flag;
+unset = unchanged behaviour, zero impact on any existing result). Kept in the
+tree as a documented negative alongside F1/F2/F3.
