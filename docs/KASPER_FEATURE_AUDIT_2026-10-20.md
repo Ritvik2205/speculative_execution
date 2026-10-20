@@ -143,3 +143,34 @@ SPECEXEC_KASPER_FLAGS=1 bash eval/run_full_tost.sh        # or v54/run.sh per se
 ```
 Until that multiseed run lands, F1/F2/F3 are validated-by-construction and
 result-neutral (off by default); the accuracy/lift claim is explicitly open.
+
+---
+
+## Lift result (2026-10-20): NEGATIVE — flags stay off by default
+
+Ran the paired multiseed retrain (`eval/kasper_tost.sbatch`, "both" node-feature
+mode, flags OFF vs ON, same seeds/graphs). 3 seeds landed (42, 1, 7).
+Source: `eval/kasper_tost/kasper_tost.md`.
+
+**Accuracy:** baseline 93.87 % ± 0.20 → +F1/F2/F3 93.89 % ± 0.79. Delta **+0.02 pp**
+(noise), and adding the three features **inflated seed variance** (0.20 → 0.79).
+
+**Per-class recall:** nothing clears the combined-std band. Nominal positives all
+within noise (MDS +0.053, V2 +0.030, INCEPTION +0.017, V1 +0.013); beyond-band
+regressions on BHI (−0.040) and RETBLEED (−0.043); L1TF −0.053 (within noise via
+high variance); SPECTRE_RSB 0.000→0.333±0.471 is pure instability.
+
+**Conclusion.** The audit's gaps are real (the detector is demonstrably
+channel-blind on the KASPER gadget), but **adding the taint flags as explicit
+node features does not close them in this detector.** The GINE + learned-MLM
+representation already encodes the bounds-check / store / probe structure the
+flags name, so appending them is redundant and adds noise, not signal — the same
+pattern this repo has seen before (learned ≯ hand, spec-generic ≯ hand). The one
+directional hint (MDS +0.053, consistent with F3 being MDS-specific) is not real
+at n=3 and not worth more compute given the inflated variance.
+
+**Decision:** F1/F2/F3 stay **off by default** (already the case; zero impact on
+any existing result). They remain in the tree, validated-by-construction and
+opt-in, as a documented negative. Closing the channel-blindness would be an
+architectural/data change (e.g. a channel-labelled training signal), not a
+feature append.
