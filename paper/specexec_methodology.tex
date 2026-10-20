@@ -1771,6 +1771,39 @@ as the correct form of the generated-leak measurement.
 
 %% =========================================================================
 
+\subsection{Related work}
+\label{sec:related}
+The closest work in spirit is Kasper~\cite{kasper}, which scans the Linux
+kernel for ``generalized'' transient-execution gadgets: it compiles the kernel
+with a DataFlowSanitizer-based toolchain, fuzzes it with a modified syzkaller,
+and flags a gadget whenever a taint policy connects the three steps of a
+transient attack---attacker-controlled data on the speculative path, a secret
+access (out-of-bounds or use-after-free), and a covert channel (cache, MDS, or
+port contention). Kasper and this work attack the same object from opposite
+ends. Kasper \emph{discovers} gadgets that already exist in shipped code;
+we \emph{synthesize} candidate gadgets with a class- and ISA-conditioned
+generator, so we can produce labelled examples for class/ISA combinations that
+no single body of real software exposes on demand (rare classes, riscv64),
+at the cost of the real secret$\to$transmit context a kernel gadget carries.
+The verdict differs in the same way: Kasper's ``is this a gadget'' decision
+\emph{is} its taint model, which can over- or under-approximate, whereas every
+leak verdict here comes from an oracle external to the generator and the
+detector (Spectector's symbolic non-interference, InvisiSpec/gem5, Revizor on
+silicon), trading Kasper's end-to-end realism for an independent ground truth.
+Kasper's control/secret/channel decomposition is also a useful lens on our
+nine-class scheme---its covert-channel axis maps onto our L1TF and MDS
+classes---and a principled reference for what a secret-source/transmit dataflow
+feature should capture. Kasper is x86-64 and kernel-only, dynamic and
+fuzz-driven, and emits no per-variant labels, so it is a conceptual contrast,
+not a component we reuse. Our generate$\to$filter$\to$oracle$\to$retrain loop
+and its pre-oracle gate draw their search strategy from taint- and
+feedback-guided fuzzing, in the lineage of VUzzer~\cite{vuzzer}, where taint
+feedback steers mutation toward the input bytes that drive new behaviour; here
+the analogue is detector/oracle feedback selecting which candidates and
+mutations to pursue rather than sampling blindly.
+
+%% =========================================================================
+
 \subsection{Next Steps}
 \label{sec:future}
 
