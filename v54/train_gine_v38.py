@@ -36,7 +36,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from pdg_builder import PDGBuilder, EDGE_TYPES, NUM_EDGE_TYPES
+from pdg_builder import PDGBuilder, EDGE_TYPES, NUM_EDGE_TYPES, INCLUDE_KASPER_FLAGS, NUM_KASPER_FLAGS
 from gine_classifier_v38 import GINEClassifier, SupervisedContrastiveLoss, ARCH_VOCAB, NUM_ARCHS, assert_arch_keys
 from strip_boilerplate import strip_boilerplate
 from inline_features import compute_inline_features, get_feature_names
@@ -242,7 +242,9 @@ class GINEDatasetV47(Dataset):
         self.node_feature_mode = node_feature_mode
         self.mlm = mlm
         self.tokenizer = tokenizer
-        base_dim, pos_dim = 40, 1
+        # 40 base PDG dims, +3 when the opt-in KASPER taint flags are enabled
+        # (SPECEXEC_KASPER_FLAGS=1); get_node_features widens to match.
+        base_dim, pos_dim = 40 + (NUM_KASPER_FLAGS if INCLUDE_KASPER_FLAGS else 0), 1
         learned_dim = int(mlm.dim) if mlm is not None else 0
         if node_feature_mode == 'hand':
             self.node_feature_dim = base_dim + pos_dim            # 41
