@@ -1410,6 +1410,26 @@ Table~\ref{tab:hwlabel} (3,024 reproduce calls; 806 labelled records).
 Stability: 9 of 54 V1 originals do not reproduce 3/3, and V1 misplaced
 variants are flaky in 7--10 of 41 directories. MDS, L1TF and V4 are clean.
 
+\paragraph{Independent replay check.}
+As a second, simpler confirmation that does not go through the variant
+generator, we replayed each recorded violation that reproduces on this box
+against a single \texttt{fence\_all} copy of \emph{its own} program, on the
+same recorded inputs (\texttt{oracle/revizor/scripts/\allowbreak
+reproduce\_fenced\_matrix.sh}; SMT on, matching the baseline matrix). The
+pairing is strict---baseline must leak (\texttt{violations=1}) and the fenced
+copy must not (\texttt{violations=0}) on the identical program and inputs. All
+\textbf{20/20} reproducing directories mitigate: L1TF 3/3, Spectre~V1 3/3, and
+Spectre~V4 14/14 across both SSBP masks (\texttt{4444444}, \texttt{5555555});
+source \texttt{rvzr\_runs/reproduce\_fenced\_summary.tsv}. This independently
+corroborates the two load-bearing results above---that an \texttt{lfence}
+closes the channel on silicon for every reproducing class, V4 included---on the
+unmodified recorded gadgets rather than synthesised variants. MDS does not
+appear here for the same reason it is absent from Table~\ref{tab:hwlabel}: its
+recorded violations do not reproduce on this part (0/6), so there is no
+baseline leak to mitigate. The \texttt{fence\_all} placement is maximal, so
+this confirms the channel \emph{can} be closed, not that any single targeted
+fence suffices---that is what the placement study above measures.
+
 \begin{table}[t]
 \centering
 \caption{Hardware labels for fenced variants (i5-8300H, \texttt{rvzr
