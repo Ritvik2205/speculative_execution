@@ -1,7 +1,13 @@
 # Spec: RISC-V functional oracle (QEMU-user / Spike)
 
-Status: design, not yet implemented. Target runtime: cluster (toolchain absent
-on the dev Mac). Author seam: `gen/precheck.py` stage C.
+Status: **QEMU-user backend implemented** (`gen/precheck.py` `RiscvQemuRunner`,
+dispatched in `PreCheck.check` for `arch == "riscv64"`; tests
+`tests/gen/test_riscv_qemu.py`). Spike cross-check backend: not yet built.
+Target runtime: cluster — the dev Mac has no qemu / riscv linker, so locally the
+backend is inert and stage C falls back to Unicorn (fail-open, verified by test).
+Needs on the cluster: `qemu-riscv64-static` + a riscv static linker
+(`clang`+`ld.lld` or `riscv64-linux-gnu-gcc`). Author seam: `gen/precheck.py`
+stage C.
 
 ## 1. Problem
 

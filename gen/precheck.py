@@ -393,6 +393,155 @@ class Emulator:
         return "ok", None, mapped[0]
 
 
+# ---------------------------------------------------------------------------
+# RISC-V functional backend: QEMU user-mode (see gen/RISCV_FUNCTIONAL_ORACLE_SPEC.md)
+#
+# Unicorn's RISC-V runs roughly RV64I and raises UC_ERR_INSN_INVALID on the
+# M/A/C/Zicbom forms the generator freely emits (and that llvm-mc assembles at
+# 1.00), so riscv emulates=0.02 with 176/180 fault_insn and 0 fault_mem -- an
+# executor limit, not a generator one. qemu-riscv64 implements RV64GC fully.
+#
+# Interface-compatible with Emulator.run(body: bytes, arch) -> (outcome, detail,
+# pages): we wrap the already-assembled body `.text` bytes (the same bytes
+# stage C hands Unicorn, truncated at the first exit) in a tiny static ELF via
+# `.incbin` -- an entry stub seeds every GPR to a large RW buffer and the stack
+# pointer to its top (mirroring Emulator._setup's seeding + the 256 MiB buffer
+# standing in for Unicorn's demand paging), then the body runs and falls into
+# exit(0). Outcome is read from the process's terminating signal, mapped to the
+# SAME vocabulary as Unicorn so this is a drop-in. pages has no analogue -> 0.
+# ---------------------------------------------------------------------------
+
+_QEMU_TIMEOUT_S = 1.0            # wall-clock cap; Unicorn uses an insn count
+_RISCV_BUF_BYTES = 0x1000_0000   # 256 MiB RW buffer, seeded into every GPR
+
+
+def _find_qemu_riscv() -> Optional[str]:
+    import shutil
+    for name in ("qemu-riscv64-static", "qemu-riscv64"):
+        p = shutil.which(name)
+        if p:
+            return p
+    return None
+
+
+def _find_riscv_cc() -> Optional[list]:
+    """A command prefix that assembles+links a freestanding static RV64GC ELF
+    from one .s file: `<cc> ... <in.s> -o <out>`. Tries clang (integrated as +
+    lld) then a GNU cross-gcc. None if neither is usable."""
+    import shutil
+    if shutil.which("clang") and (shutil.which("ld.lld") or shutil.which("ld")):
+        return ["clang", "-target", "riscv64-linux-gnu", "-march=rv64gc",
+                "-nostdlib", "-static",
+                *(["-fuse-ld=lld"] if shutil.which("ld.lld") else [])]
+    for gcc in ("riscv64-linux-gnu-gcc", "riscv64-unknown-linux-gnu-gcc"):
+        if shutil.which(gcc):
+            return [gcc, "-march=rv64gc", "-nostdlib", "-static"]
+    return None
+
+
+class RiscvQemuRunner:
+    """Functional execution of a riscv64 body under qemu-riscv64. No speculation
+    (same caveat as Emulator); it answers only 'is this real, executable RV64GC
+    machine code?'."""
+
+    def __init__(self):
+        self.qemu = _find_qemu_riscv()
+        self.cc = _find_riscv_cc()
+        self._ok = bool(self.qemu and self.cc) and self._canary()
+
+    @staticmethod
+    def available_tools() -> bool:
+        return bool(_find_qemu_riscv() and _find_riscv_cc())
+
+    def available(self) -> bool:
+        return self._ok
+
+    # entry stub: seed x1,x3..x31 to the buffer midpoint, sp(x2) to its top,
+    # then `.incbin` the body, then exit(0). x0 is hardwired zero. gp(x3)/tp(x4)
+    # are seeded like any other GPR -- a freestanding exec needs no valid gp/tp.
+    def _wrapper_asm(self, body_path: str) -> str:
+        seeds = []
+        for i in list(range(1, 32)):
+            if i == 2:
+                continue                      # sp handled below
+            seeds.append(f"\tla x{i}, _buf_mid")
+        seeds.append("\tla sp, _buf_top")
+        return (
+            ".section .text\n.globl _start\n_start:\n"
+            + "\n".join(seeds) + "\n"
+            + ".Lbody:\n"
+            + f'\t.incbin "{body_path}"\n'
+            + ".Lafter:\n"
+            + "\tli a7, 93\n\tli a0, 0\n\tecall\n"     # exit(0)
+            + ".section .bss\n.align 12\n_buf:\n"
+            + f"\t.space {_RISCV_BUF_BYTES}\n"
+            + "_buf_top:\n"
+            # midpoint symbol via a second reservation keeps `la` to a defined
+            # symbol (no arithmetic on externs in the integrated assembler)
+            + ".set _buf_mid, _buf + " + str(_RISCV_BUF_BYTES // 2) + "\n"
+        )
+
+    def _build_and_run(self, body: bytes) -> tuple[str, Optional[str]]:
+        with tempfile.TemporaryDirectory() as d:
+            bpath = os.path.join(d, "body.bin")
+            with open(bpath, "wb") as f:
+                f.write(body)
+            spath = os.path.join(d, "w.s")
+            with open(spath, "w") as f:
+                f.write(self._wrapper_asm(bpath))
+            prog = os.path.join(d, "prog")
+            try:
+                r = subprocess.run([*self.cc, spath, "-o", prog],
+                                   capture_output=True, text=True, timeout=30)
+            except (OSError, subprocess.SubprocessError) as e:
+                return "error", f"build did not run: {e}"
+            if r.returncode != 0:
+                # a link/assemble failure here is a toolchain issue, not a
+                # property of the gadget -> treat as error, not a fault verdict
+                return "error", (r.stderr.strip()[:200] or "build failed")
+            try:
+                p = subprocess.run([self.qemu, prog], capture_output=True,
+                                   timeout=_QEMU_TIMEOUT_S)
+            except subprocess.TimeoutExpired:
+                return "timeout", f"exceeded {_QEMU_TIMEOUT_S}s"
+            except (OSError, subprocess.SubprocessError) as e:
+                return "error", f"qemu did not run: {e}"
+            return self._rc_to_outcome(p.returncode)
+
+    @staticmethod
+    def _rc_to_outcome(rc: int) -> tuple[str, Optional[str]]:
+        """Map a qemu-user process return code to stage C's outcome vocabulary.
+        rc >= 0 is a normal exit (ran to completion, any code); rc < 0 is
+        termination by signal -rc."""
+        if rc >= 0:
+            return "ok", None                 # ran to completion (any exit code)
+        sig = -rc
+        if sig == 4:                          # SIGILL
+            return "fault_insn", "SIGILL"
+        if sig in (11, 7):                    # SIGSEGV / SIGBUS
+            return "fault_mem", f"signal {sig}"
+        if sig in (6, 8):                     # SIGABRT / SIGFPE -> instruction-level
+            return "fault_insn", f"signal {sig}"
+        return "error", f"signal {sig}"
+
+    def _canary(self) -> bool:
+        """Build+run an empty body: just the stub + exit(0). Confirms the whole
+        toolchain (assemble, link, qemu) works before we trust any verdict."""
+        try:
+            outcome, _ = self._build_and_run(b"")
+        except Exception:
+            return False
+        return outcome == "ok"
+
+    def run(self, code: bytes, arch: str) -> tuple[str, Optional[str], int]:
+        if arch != "riscv64":
+            raise ValueError(f"RiscvQemuRunner only runs riscv64, not {arch!r}")
+        if not code:
+            return "no_code", None, 0
+        outcome, detail = self._build_and_run(code)
+        return outcome, detail, 0
+
+
 class PreCheck:
     """Stages A (assemble), B (oracle front end) and C (emulate)."""
 
@@ -406,6 +555,13 @@ class PreCheck:
         self._obj_cache: dict = {}
         self.front_end = SpectectorFrontEnd(table_path) if Path(table_path).is_file() else None
         self.emulator = Emulator() if (emulate and Emulator.available()) else None
+        # Prefer QEMU-user for riscv64 (full RV64GC) over Unicorn's ~RV64I; see
+        # gen/RISCV_FUNCTIONAL_ORACLE_SPEC.md. None (tools absent / canary fail)
+        # -> stage C falls back to the Unicorn path for riscv64, unchanged.
+        self.riscv_runner = None
+        if emulate and RiscvQemuRunner.available_tools():
+            r = RiscvQemuRunner()
+            self.riscv_runner = r if r.available() else None
 
     @staticmethod
     def _find_objcopy() -> Optional[str]:
@@ -526,6 +682,7 @@ class PreCheck:
             "unsupported_instrs": [],
             "emulated": "skipped",
             "emulate_detail": None,
+            "emulate_backend": None,
             "pages_mapped": 0,
             "verdict": "pass",
             "reject_stage": None,
@@ -547,7 +704,13 @@ class PreCheck:
                 res.update(verdict="reject", reject_stage="oracle_supported")
                 return res
 
-        if self.emulator is not None:
+        # riscv64 prefers the QEMU-user backend (full RV64GC); every other arch,
+        # and riscv64 when QEMU is unavailable, uses Unicorn.
+        runner = (self.riscv_runner if (arch == "riscv64" and self.riscv_runner)
+                  else self.emulator)
+        if runner is not None:
+            res["emulate_backend"] = ("qemu" if runner is self.riscv_runner
+                                      else "unicorn")
             # same reachability notion as stage B, applied to the machine code:
             # stop at the first unconditional exit rather than running into an
             # uninitialised stack
@@ -556,7 +719,7 @@ class PreCheck:
                 res["emulated"] = "no_code"
                 res["emulate_detail"] = "nothing before the first exit"
             else:
-                outcome, detail, pages = self.emulator.run(body, arch)
+                outcome, detail, pages = runner.run(body, arch)
                 res["emulated"] = outcome
                 res["emulate_detail"] = detail
                 res["pages_mapped"] = pages
