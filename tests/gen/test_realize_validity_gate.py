@@ -92,10 +92,18 @@ def test_realize_sequence_drops_none_entries():
     assert None not in seq
 
 
-def test_arch_without_clang_target_is_unaffected():
-    """arm64/riscv64 realization is out of scope for this task -- the gate
-    must be a no-op there even with reject_invalid=True (default), same as
-    the old unchecked behavior."""
+def test_arm64_validity_gate_active():
+    """The inline gate now fires for arm64 (W6+): where this clang has the
+    aarch64 backend (canary passes), a well-formed arm instruction realizes and
+    an ill-formed one (wrong operand order / x86 token) is REJECTED (None).
+    Skips when the gate could not activate (no clang / no aarch64 backend), in
+    which case the fail-open behaviour is covered by the x86 tests."""
     r = Realizer(load_spec("arm64.json"), seed=7)
-    out = r.realize_instruction("add <imm> <reg>", reject_invalid=True)
-    assert out is not None
+    if r._gate is None:
+        import pytest
+        pytest.skip("clang lacks the aarch64 backend here; gate fails open")
+    # valid: a 2-register move realizes to `mov xD, xN` and must pass.
+    assert r.realize_instruction("mov <reg> <reg>", reject_invalid=True) is not None
+    # invalid: `add <imm> <reg>` -> `add #N, xR` (immediate first) is not legal
+    # arm, so the gate must reject it rather than emit garbage.
+    assert r.realize_instruction("add <imm> <reg>", reject_invalid=True) is None

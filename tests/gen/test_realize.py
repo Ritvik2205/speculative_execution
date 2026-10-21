@@ -95,10 +95,12 @@ def test_width_fix_leaves_call_target_64bit():
 
 
 def test_arm64_realization_unchanged_by_width_tables():
-    # arm64 has no register_widths table, so realization must be byte-identical
-    # to the pre-fix behaviour: every register stays as-emitted.
+    # arm64 has no register_widths table, so realization must not mangle
+    # registers into x86 width artifacts. reject_invalid=False isolates this
+    # from the (now active) arm64 validity gate: we check the register-shaping,
+    # not whether each norm form happens to be legal arm syntax.
     r = Realizer(load_spec("arm64.json"), seed=7)
     for norm in ["ldr <mem> <reg>", "add <imm> <reg>", "str <reg> <mem-idx>"]:
-        out = r.realize_instruction(norm)
+        out = r.realize_instruction(norm, reject_invalid=False)
         assert "%e" not in out and "%r" not in out  # no x86 width artifacts
         assert "x" in out or "w" in out              # arm registers intact

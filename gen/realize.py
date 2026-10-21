@@ -20,15 +20,32 @@ from typing import Dict, List, Optional
 
 CRITICAL_IMMS = ["0", "1", "64", "256", "4096", "0xff", "8", "16", "32"]
 
-# Assembler-in-the-loop validity gate (W6 Task 6.1). We use clang, not
-# llvm-mc: llvm-mc is not on PATH in this environment, and
-# `clang -target x86_64-linux-gnu -x assembler -c - -o /dev/null` gives the
-# same accept/reject signal (returncode 0/nonzero) for a single instruction
-# fed on stdin. If clang isn't installed at all, the gate degrades to a
-# no-op (see Realizer._assembles) rather than hard-failing the pipeline in a
-# clang-less environment.
+# Assembler-in-the-loop validity gate (W6 Task 6.1; arm64/riscv64 added W6+).
+# We use clang, not llvm-mc: llvm-mc is not on PATH in this environment, and
+# `clang -target <triple> <flags> -c - -o /dev/null` gives the same
+# accept/reject signal (returncode 0/nonzero) for a single instruction fed on
+# stdin, and shares no code with the generator/PDG/classifier. Per-arch triple
+# + flags below; an arch absent from the table, a clang that lacks the arch's
+# backend (detected by the per-arch canary probe in Realizer.__init__), or no
+# clang at all ALL make the gate fail OPEN (see Realizer._assembles) rather than
+# hard-fail the pipeline in a toolchain-poor environment.
 _CLANG = shutil.which("clang")
-_CLANG_TARGET_ARCH = "x86_64"  # the only arch the gate checks (see class docstring)
+_CLANG_GATE = {
+    # arch      -> (clang --target triple, extra flags)
+    "x86_64":  ("x86_64-linux-gnu",  ["-x", "assembler"]),
+    "arm64":   ("aarch64-linux-gnu", ["-x", "assembler"]),
+    # riscv64 needs the extension set the realizer targets (M/A/C...) or the
+    # integrated assembler rejects compressed/atomic/mul forms. Only fires
+    # where this clang actually has the RISC-V backend (canary-gated).
+    "riscv64": ("riscv64-linux-gnu", ["-march=rv64gc", "-x", "assembler"]),
+}
+# a known-valid instruction per arch, used once at construction to confirm this
+# clang can target the arch before the gate is allowed to REJECT anything.
+_CLANG_CANARY = {
+    "x86_64":  "movq %rax, %rbx",
+    "arm64":   "add x0, x1, x2",
+    "riscv64": "addi x1, x2, 1",
+}
 
 
 class Realizer:
@@ -104,6 +121,16 @@ class Realizer:
         # repeated concrete form (very common -- the register/immediate pools
         # are small) is served from cache instead of re-shelling clang.
         self._validity_cache: Dict[str, bool] = {}
+        # Resolve the inline-gate invocation for this arch, then CANARY-PROBE it:
+        # a clang that lacks the arch's backend (e.g. an x86/arm-only build asked
+        # for riscv64) does not raise, it exits nonzero on every input, which
+        # would reject EVERY instruction and collapse realization. Only keep the
+        # gate if a known-valid instruction actually assembles; otherwise fail
+        # open (self._gate = None), matching the clang-absent behaviour.
+        self._gate = _CLANG_GATE.get(self.arch)
+        if _CLANG is not None and self._gate is not None:
+            if not self._run_clang(_CLANG_CANARY[self.arch], self._gate):
+                self._gate = None
 
     def _suffix_widths(self, opcode):
         """-> (src_idx, dst_idx) width indices for a size-suffixed x86 opcode, or
@@ -179,29 +206,35 @@ class Realizer:
             return self.sym
         return kind
 
+    @staticmethod
+    def _run_clang(instr: str, gate) -> bool:
+        """Raw clang assemble of one instruction for `gate` = (triple, flags).
+        Returns True iff clang exits 0. Any execution error (clang missing at
+        call time, sandbox hiccup) fails OPEN (True) -- used by both the canary
+        probe and the cached gate so they agree on what "assembles" means."""
+        triple, flags = gate
+        try:
+            proc = subprocess.run(
+                ["clang", "-target", triple, *flags, "-c", "-", "-o", "/dev/null"],
+                input=instr, capture_output=True, text=True, timeout=10,
+            )
+            return proc.returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            return True
+
     def _assembles(self, instr: str) -> bool:
-        """Test-assemble one concrete instruction with clang. Cached by the
-        exact instruction text. Only meaningful for x86_64 (the oracle this
-        gate targets -- arm64/riscv64 realization is out of scope for W6
-        Task 6.1); other archs and a clang-less environment both fail OPEN
-        (treated as valid) rather than blocking the pipeline."""
-        if _CLANG is None or self.arch != _CLANG_TARGET_ARCH:
+        """Test-assemble one concrete instruction with clang for THIS arch.
+        Cached by the exact instruction text. Fires for any arch whose backend
+        this clang has (x86_64, arm64, and riscv64 where available -- confirmed
+        by the __init__ canary). When the gate is disabled (no clang, arch not
+        in the table, or canary failed) it fails OPEN (treats every instruction
+        as valid) rather than blocking the pipeline."""
+        if _CLANG is None or self._gate is None:
             return True
         cached = self._validity_cache.get(instr)
         if cached is not None:
             return cached
-        try:
-            proc = subprocess.run(
-                ["clang", "-target", "x86_64-linux-gnu", "-x", "assembler",
-                 "-c", "-", "-o", "/dev/null"],
-                input=instr, capture_output=True, text=True, timeout=10,
-            )
-            ok = proc.returncode == 0
-        except (OSError, subprocess.SubprocessError):
-            # clang present but failed to run for some other reason (e.g.
-            # transient sandbox/exec issue) -- fail open rather than reject
-            # every instruction because of an infrastructure hiccup.
-            ok = True
+        ok = self._run_clang(instr, self._gate)
         self._validity_cache[instr] = ok
         return ok
 
