@@ -1,0 +1,37 @@
+
+INFO: [fuzzer] Starting at 16:31:35
+1     ( 1%)| Stats: Cls:200/200,In:400,R:20,SF:0,OF:0,Fst:1,CN:0,CT:0,P1:0,CS:0,P2:0,V:02     ( 1%)| Stats: Cls:200/200,In:400,R:15,SF:0,OF:1,Fst:1,CN:0,CT:0,P1:0,CS:0,P2:0,V:03     ( 1%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:2,Fst:1,CN:0,CT:0,P1:0,CS:0,P2:0,V:04     ( 1%)| Stats: Cls:200/200,In:400,R:12,SF:0,OF:3,Fst:1,CN:0,CT:0,P1:0,CS:0,P2:0,V:05     ( 1%)| Stats: Cls:200/200,In:400,R:12,SF:0,OF:4,Fst:1,CN:0,CT:0,P1:0,CS:0,P2:0,V:06     ( 1%)| Stats: Cls:200/200,In:400,R:11,SF:0,OF:5,Fst:1,CN:0,CT:0,P1:0,CS:0,P2:0,V:07     ( 1%)| Stats: Cls:200/200,In:400,R:11,SF:0,OF:6,Fst:1,CN:0,CT:0,P1:0,CS:0,P2:0,V:08     ( 1%)| Stats: Cls:200/200,In:400,R:12,SF:0,OF:6,Fst:2,CN:0,CT:0,P1:0,CS:0,P2:0,V:09     ( 1%)| Stats: Cls:200/200,In:400,R:12,SF:0,OF:7,Fst:2,CN:0,CT:0,P1:0,CS:0,P2:0,V:010    ( 1%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:7,Fst:3,CN:0,CT:0,P1:0,CS:0,P2:0,V:011    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:7,Fst:4,CN:0,CT:0,P1:0,CS:0,P2:0,V:012    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:8,Fst:4,CN:0,CT:0,P1:0,CS:0,P2:0,V:013    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:8,Fst:5,CN:0,CT:0,P1:0,CS:0,P2:0,V:014    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:9,Fst:5,CN:0,CT:0,P1:0,CS:0,P2:0,V:014    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:9,Fst:5,CN:0,CT:0,P1:0,CS:0,P2:0,V:0> Entering slow path...14    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:9,Fst:5,CN:0,CT:0,P1:0,CS:0,P2:0,V:0> Priming  2             14    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:9,Fst:5,CN:0,CT:0,P1:0,CS:0,P2:0,V:0> Increasing sample size... to 5014    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:9,Fst:5,CN:0,CT:0,P1:0,CS:0,P2:0,V:0> Increasing sample size... to 10014    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:9,Fst:5,CN:0,CT:0,P1:0,CS:0,P2:0,V:0> Increasing sample size... to 50014    ( 2%)| Stats: Cls:200/200,In:400,R:13,SF:0,OF:9,Fst:5,CN:0,CT:0,P1:0,CS:0,P2:0,V:0> Priming  2             
+
+================================ Violations detected ==========================
+Violation Details:
+
+-----------------------------------------------------------------------------------
+                             HTrace                              | ID:7   | ID:207|
+-----------------------------------------------------------------------------------
+^...^..^.............^.^......^..^^.....^.......^^.^............ | 625    | 11    |
+^...^..^.....^.^.....^.^......^..^^.....^.....^.^^.^............ | 1      | 0     |
+^^..^..^......^......^.^......^..^^.^...^.......^^.^............ | 1      | 0     |
+^^..^..^.............^.^......^..^^.....^.......^^.^............ | 0      | 615   |
+^^..^..^.............^.^......^..^^^....^.......^^.^..^.....^..^ | 0      | 1     |
+
+
+================================ Statistics ===================================
+
+Test Cases: 15
+Inputs per test case: 400.0
+Violations: 1
+Effectiveness: 
+  Total Cls: 200.0
+  Effective Cls: 200.0
+Discarded Test Cases:
+  Speculation Filter: 0
+  Observation Filter: 9
+  Fast Path: 5
+  Max Nesting Check: 0
+  Tainting Check: 0
+  Early Priming Check: 0
+  Large Sample Check: 0
+  Priming Check: 0
+
+Duration: 222.3
+Finished at 16:35:17
