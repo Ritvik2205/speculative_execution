@@ -15,7 +15,7 @@ set -u
 
 RVZR="${RVZR:-/home/ritvik/sca-fuzzer/venv/bin/rvzr}"
 SPEC="${SPEC:-/home/ritvik/sca-fuzzer/base_x86.json}"
-CONFIG="${CONFIG:-/home/ritvik/sca-fuzzer/configs/detect-mds.yaml}"
+CONFIG="${CONFIG:-/home/ritvik/speculative_execution/oracle/revizor/demo_configs/detect-mds.yaml}"
 REPO="${REPO:-/home/ritvik/speculative_execution}"
 ROUNDS="${ROUNDS:-1000}"          # test cases to fuzz
 INPUTS="${INPUTS:-200}"           # inputs per test case
