@@ -30,7 +30,8 @@ mkdir -p "$OUT"
 smt_state() { cat /sys/devices/system/cpu/smt/control 2>/dev/null || echo "unknown"; }
 
 run() {
-  local tag="$1" dir="$OUT/$tag"
+  local tag="$1"
+  local dir="$OUT/$tag"
   mkdir -p "$dir"
   echo "=== MDS re-fuzz [$tag]  SMT=$(smt_state)  rounds=$ROUNDS inputs=$INPUTS ==="
   # --extensions ALL_SUPPORTED so the fenced-test-case builder has lfence/mfence
