@@ -1,0 +1,192 @@
+{
+ "config": {
+  "gen": "gen/generator.pt",
+  "n": 40,
+  "temperature": 0.9,
+  "top_k": 20,
+  "seed": 0,
+  "archs": [
+   "x86_64",
+   "arm64"
+  ],
+  "emulation": false
+ },
+ "arch_purity": "assembler",
+ "unique_realized": {
+  "x86_64|BRANCH_HISTORY_INJECTION": 40,
+  "x86_64|INCEPTION": 40,
+  "x86_64|L1TF": 40,
+  "x86_64|MDS": 40,
+  "x86_64|RETBLEED": 40,
+  "x86_64|SPECTRE_RSB": 40,
+  "x86_64|SPECTRE_V1": 40,
+  "x86_64|SPECTRE_V2": 40,
+  "x86_64|SPECTRE_V4": 40,
+  "arm64|BRANCH_HISTORY_INJECTION": 40,
+  "arm64|INCEPTION": 40,
+  "arm64|L1TF": 39,
+  "arm64|MDS": 40,
+  "arm64|RETBLEED": 40,
+  "arm64|SPECTRE_RSB": 40,
+  "arm64|SPECTRE_V1": 40,
+  "arm64|SPECTRE_V2": 40,
+  "arm64|SPECTRE_V4": 40
+ },
+ "counts": {
+  "x86_64|BRANCH_HISTORY_INJECTION": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 31
+  },
+  "x86_64|INCEPTION": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 37
+  },
+  "x86_64|L1TF": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 2
+  },
+  "x86_64|MDS": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 1
+  },
+  "x86_64|RETBLEED": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 38
+  },
+  "x86_64|SPECTRE_RSB": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 36
+  },
+  "x86_64|SPECTRE_V1": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 35
+  },
+  "x86_64|SPECTRE_V2": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 31
+  },
+  "x86_64|SPECTRE_V4": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40,
+   "oracle_supported": 33
+  },
+  "arm64|BRANCH_HISTORY_INJECTION": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40
+  },
+  "arm64|INCEPTION": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40
+  },
+  "arm64|L1TF": {
+   "sampled": 40,
+   "realized": 39,
+   "assembles": 39
+  },
+  "arm64|MDS": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40
+  },
+  "arm64|RETBLEED": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40
+  },
+  "arm64|SPECTRE_RSB": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40
+  },
+  "arm64|SPECTRE_V1": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40
+  },
+  "arm64|SPECTRE_V2": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40
+  },
+  "arm64|SPECTRE_V4": {
+   "sampled": 40,
+   "realized": 40,
+   "assembles": 40
+  }
+ },
+ "emulation_outcomes": {
+  "x86_64|BRANCH_HISTORY_INJECTION": {
+   "skipped": 40
+  },
+  "x86_64|INCEPTION": {
+   "skipped": 40
+  },
+  "x86_64|L1TF": {
+   "skipped": 40
+  },
+  "x86_64|MDS": {
+   "skipped": 40
+  },
+  "x86_64|RETBLEED": {
+   "skipped": 40
+  },
+  "x86_64|SPECTRE_RSB": {
+   "skipped": 40
+  },
+  "x86_64|SPECTRE_V1": {
+   "skipped": 40
+  },
+  "x86_64|SPECTRE_V2": {
+   "skipped": 40
+  },
+  "x86_64|SPECTRE_V4": {
+   "skipped": 40
+  },
+  "arm64|BRANCH_HISTORY_INJECTION": {
+   "skipped": 40
+  },
+  "arm64|INCEPTION": {
+   "skipped": 40
+  },
+  "arm64|L1TF": {
+   "skipped": 39
+  },
+  "arm64|MDS": {
+   "skipped": 40
+  },
+  "arm64|RETBLEED": {
+   "skipped": 40
+  },
+  "arm64|SPECTRE_RSB": {
+   "skipped": 40
+  },
+  "arm64|SPECTRE_V1": {
+   "skipped": 40
+  },
+  "arm64|SPECTRE_V2": {
+   "skipped": 40
+  },
+  "arm64|SPECTRE_V4": {
+   "skipped": 40
+  }
+ }
+}
