@@ -34,10 +34,13 @@ run() {
   local dir="$OUT/$tag"
   mkdir -p "$dir"
   echo "=== MDS re-fuzz [$tag]  SMT=$(smt_state)  rounds=$ROUNDS inputs=$INPUTS ==="
-  # --extensions ALL_SUPPORTED so the fenced-test-case builder has lfence/mfence
-  # (HARDWARE_VALIDATION_RESULTS.md: missing fences crash the fuzzer).
+  # The fenced-test-case builder needs lfence/mfence; those come from the
+  # instruction-set spec ($SPEC), which must be the ALL_SUPPORTED base_x86.json
+  # (HARDWARE_VALIDATION_RESULTS.md: a spec built without --extensions lacks
+  # fences and crashes the fuzzer with "Unknown instruction lfence"). That flag
+  # belongs to `rvzr download_spec`, NOT `rvzr fuzz`, which has no --extensions.
   "$RVZR" fuzz -s "$SPEC" -c "$CONFIG" -n "$ROUNDS" -i "$INPUTS" \
-      --extensions ALL_SUPPORTED -w "$dir" 2>&1 | tee "$dir/fuzz.log"
+      -w "$dir" 2>&1 | tee "$dir/fuzz.log"
   local v
   v=$(grep -oE 'Violations: *[0-9]+' "$dir/fuzz.log" | tail -1 | grep -oE '[0-9]+')
   echo "  [$tag] violations=${v:-?}  (artifacts in $dir)"
