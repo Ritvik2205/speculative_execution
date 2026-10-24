@@ -1,0 +1,23 @@
+staged sif -> /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+=== 5b oracle leak-cond eval: Sat 24 Oct 22:53:16 BST 2026 ===
+
+=== SPECTRE_V1 (n=60/arm) ===
+  mit=leak: realized=60 adjudicable=20 LEAK=20 SAFE=0  leak_rate(adj)=1.0 tally={'leak': 20, 'unrunnable': 40}
+  mit=safe: realized=60 adjudicable=53 LEAK=48 SAFE=5  leak_rate(adj)=0.9057 tally={'leak': 48, 'unrunnable': 7, 'safe': 5}
+  --> leak_rate(mit=leak) - leak_rate(mit=safe) = 0.0943
+
+=== SPECTRE_V4 (n=60/arm) ===
+  mit=leak: realized=60 adjudicable=20 LEAK=16 SAFE=4  leak_rate(adj)=0.8 tally={'unrunnable': 40, 'safe': 4, 'leak': 16}
+  mit=safe: realized=60 adjudicable=49 LEAK=2 SAFE=47  leak_rate(adj)=0.0408 tally={'safe': 47, 'unrunnable': 11, 'leak': 2}
+  --> leak_rate(mit=leak) - leak_rate(mit=safe) = 0.7592
+
+== 5b oracle verdict (Spectector) ==
+class         leak:adj   leak%  safe:adj   safe%     gap
+SPECTRE_V1          20     1.0        53  0.9057  0.0943
+SPECTRE_V4          20     0.8        49  0.0408  0.7592
+
+Positive gap with non-overlapping Wilson CIs = mit=leak produces oracle-confirmed leaks at a higher rate than mit=safe: the token steers toward UNMITIGATED, oracle-grounded. Low adjudicable counts mean Spectector couldn't model many gadgets (SAFE/UNSUPPORTED) -- report them, don't hide them.
+
+wrote /home/s2473583/speculative_execution/gen/leakcond_eval/leakcond_oracle.json + _rows.jsonl
+=== done rc=0 (Sat 24 Oct 23:01:27 BST 2026) ===

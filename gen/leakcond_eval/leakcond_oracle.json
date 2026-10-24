@@ -1,0 +1,79 @@
+{
+  "SPECTRE_V1": {
+    "arms": {
+      "leak": {
+        "tally": {
+          "leak": 20,
+          "unrunnable": 40
+        },
+        "realized": 60,
+        "adjudicable": 20,
+        "leak": 20,
+        "safe": 0,
+        "leak_rate_adjudicable": 1.0,
+        "ci_adjudicable": [
+          0.8389,
+          1.0
+        ],
+        "leak_rate_of_realized": 0.3333
+      },
+      "safe": {
+        "tally": {
+          "leak": 48,
+          "unrunnable": 7,
+          "safe": 5
+        },
+        "realized": 60,
+        "adjudicable": 53,
+        "leak": 48,
+        "safe": 5,
+        "leak_rate_adjudicable": 0.9057,
+        "ci_adjudicable": [
+          0.7975,
+          0.959
+        ],
+        "leak_rate_of_realized": 0.8
+      }
+    },
+    "leak_minus_safe_adjudicable": 0.0943
+  },
+  "SPECTRE_V4": {
+    "arms": {
+      "leak": {
+        "tally": {
+          "unrunnable": 40,
+          "safe": 4,
+          "leak": 16
+        },
+        "realized": 60,
+        "adjudicable": 20,
+        "leak": 16,
+        "safe": 4,
+        "leak_rate_adjudicable": 0.8,
+        "ci_adjudicable": [
+          0.584,
+          0.9193
+        ],
+        "leak_rate_of_realized": 0.2667
+      },
+      "safe": {
+        "tally": {
+          "safe": 47,
+          "unrunnable": 11,
+          "leak": 2
+        },
+        "realized": 60,
+        "adjudicable": 49,
+        "leak": 2,
+        "safe": 47,
+        "leak_rate_adjudicable": 0.0408,
+        "ci_adjudicable": [
+          0.0113,
+          0.1371
+        ],
+        "leak_rate_of_realized": 0.0333
+      }
+    },
+    "leak_minus_safe_adjudicable": 0.7592
+  }
+}
