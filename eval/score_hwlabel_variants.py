@@ -69,26 +69,49 @@ from gine_classifier_v38 import GINEClassifier, ARCH_VOCAB  # noqa: E402
 from pdg_builder import NUM_EDGE_TYPES  # noqa: E402
 from inline_features import get_feature_names  # noqa: E402
 
-# The checkpoint's recorded class ordering (v54/viz_v54_spec/gine_metrics.json).
+# The class ordering every v54 10-class checkpoint uses (sorted train labels).
 # label_to_id rebuilt from train labels MUST equal this, or argmax→name is wrong.
 EXPECTED_CLASSES = [
     "BENIGN", "BRANCH_HISTORY_INJECTION", "INCEPTION", "L1TF", "MDS",
     "RETBLEED", "SPECTRE_RSB", "SPECTRE_V1", "SPECTRE_V2", "SPECTRE_V4",
 ]
-EXPECTED_TEST_ACC = 0.9526946107784431  # locked v54_spec test accuracy
 
-# Model hyperparameters recovered from gine_metrics.json['args'] for this ckpt.
-CKPT_CFG = dict(
-    hidden_dim=128, num_layers=3, jk_mode="cat", arch_emb_dim=8,
-    dropout=0.5, arch_mode="embed", use_virtual_node=True,
-    use_handcrafted=True,
-)
-# Dataset kwargs the checkpoint was trained with (speculative_window=20,
-# strip boilerplate on, hand features, spec builder). The W4 edge knobs are
-# left at their defaults, which the dataset docstring states reproduce the
-# original SpecBackedPDGBuilder construction exactly.
-DS_KW = dict(speculative_window=20, strip_bp=True,
-             node_feature_mode="hand", use_spec_builder=True)
+# Reproduce-defaults for flags a run's metrics.json may not record (older runs
+# predate the flag). These values reproduce the original SpecBackedPDGBuilder
+# construction per the GINEDatasetV47 docstring. If a run DID record a flag we
+# use its recorded value; this only fills genuine absences.
+_W4_DEFAULTS = dict(taint_mode="shift", mem_order_edges=False,
+                    cfg_spec_edges=False, drop_nops=False)
+
+
+def load_run_config(metrics_path: Path):
+    """Read a run's gine_metrics.json → (expected_acc, model_cfg, ds_kw,
+    handcrafted_subset). Config comes from the CHECKPOINT ITSELF, not hardcoded,
+    so the gate is meaningful for any checkpoint and no config bias is injected."""
+    m = json.loads(metrics_path.read_text())
+    a = m.get("args", {})
+    expected = m["test_accuracy"]
+    model_cfg = dict(
+        hidden_dim=a.get("hidden_dim", 128),
+        num_layers=a.get("num_layers", 3),
+        jk_mode=a.get("jk_mode", "cat"),
+        arch_emb_dim=a.get("arch_emb_dim", m.get("arch_emb_dim", 8)),
+        dropout=a.get("dropout", 0.5),
+        arch_mode=a.get("arch_mode", "embed"),
+        use_virtual_node=not a.get("no_virtual_node", False),
+        use_handcrafted=not a.get("no_handcrafted", False),
+    )
+    ds_kw = dict(
+        speculative_window=a.get("speculative_window", 20),
+        strip_bp=not a.get("no_strip", False),
+        node_feature_mode=a.get("node_feature_mode", "hand"),
+        use_spec_builder=a.get("use_spec_builder", True),
+        taint_mode=a.get("taint_mode", _W4_DEFAULTS["taint_mode"]),
+        mem_order_edges=a.get("mem_order_edges", _W4_DEFAULTS["mem_order_edges"]),
+        cfg_spec_edges=a.get("cfg_spec_edges", _W4_DEFAULTS["cfg_spec_edges"]),
+        drop_nops=a.get("drop_nops", _W4_DEFAULTS["drop_nops"]),
+    )
+    return expected, model_cfg, ds_kw, a.get("handcrafted_subset", "all")
 
 FENCE_TOKENS = ("lfence", "mfence", "sfence", "dsb", "isb", "csdb")
 _BASE_RE = re.compile(r"violation-\d{6}-\d{6}")
@@ -98,14 +121,15 @@ def load_jsonl(p: Path) -> list[dict]:
     return [json.loads(l) for l in open(p) if l.strip()]
 
 
-def build_model(num_classes: int, handcrafted_dim: int, node_feat_dim: int):
+def build_model(num_classes: int, handcrafted_dim: int, node_feat_dim: int,
+                model_cfg: dict):
     model = GINEClassifier(
         node_feat_dim=node_feat_dim,
         num_edge_types=NUM_EDGE_TYPES,
         num_classes=num_classes,
         handcrafted_dim=max(handcrafted_dim, 1),
         global_feat_dim=GLOBAL_FEAT_DIM,
-        **CKPT_CFG,
+        **model_cfg,
     ).to(DEVICE)
     return model
 
@@ -138,26 +162,23 @@ def predict(model, dataset) -> tuple[np.ndarray, np.ndarray]:
 
 
 def reproduce_gate(model, label_to_id, feature_names, test_path: Path,
-                   tol: float) -> float:
+                   ds_kw: dict, expected_acc: float, tol: float) -> float:
     """Rebuild v54 test set through the identical pipeline; assert the model
-    reproduces its recorded locked accuracy. Hard abort on drift."""
+    reproduces its own recorded accuracy. Hard abort on drift."""
     recs = [r for r in load_jsonl(test_path)
             if r.get("label", "UNKNOWN") in label_to_id]
-    ds = GINEDatasetV47(recs, label_to_id, feature_names, **DS_KW)
-    nfd = ds.node_feature_dim
-    if nfd != 41:
-        print(f"[gate] WARNING node_feat_dim={nfd}, checkpoint used 41")
+    ds = GINEDatasetV47(recs, label_to_id, feature_names, **ds_kw)
     preds, _ = predict(model, ds)
     y = np.array([label_to_id[r["label"]] for r in recs])
     acc = float((preds == y).mean())
     print(f"[gate] v54 test reproduce accuracy = {acc:.10f} "
-          f"(expected {EXPECTED_TEST_ACC:.10f}, |Δ|={abs(acc-EXPECTED_TEST_ACC):.2e})")
-    if abs(acc - EXPECTED_TEST_ACC) > tol:
+          f"(expected {expected_acc:.10f}, |Δ|={abs(acc-expected_acc):.2e})")
+    if abs(acc - expected_acc) > tol:
         print(f"[gate] FAIL: pipeline drifted beyond tol={tol}. "
               f"Variant scores would be meaningless; refusing to report them.",
               file=sys.stderr)
         sys.exit(2)
-    print("[gate] PASS: preprocessing is faithful to the locked checkpoint.")
+    print("[gate] PASS: preprocessing is faithful to this checkpoint.")
     return acc
 
 
@@ -175,6 +196,9 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--checkpoint", default=str(ROOT / "v54/viz_v54_spec/gine_best.pt"))
+    ap.add_argument("--metrics", default=None,
+                    help="run's gine_metrics.json (config + expected acc); "
+                         "defaults to gine_metrics.json beside --checkpoint")
     ap.add_argument("--train-data", default=str(ROOT / "v54/data/v54_train.jsonl"),
                     help="only for rebuilding the label vocab (sorted train labels)")
     ap.add_argument("--test-data", default=str(ROOT / "v54/data/v54_test.jsonl"),
@@ -198,23 +222,35 @@ def main(argv=None) -> int:
         print(f"ERROR: train label ordering {train_labels} != checkpoint's "
               f"{EXPECTED_CLASSES}. argmax→name would be wrong.", file=sys.stderr)
         return 3
-    feature_names = get_feature_names()
+
+    # ---- config from the checkpoint's OWN metrics (no hardcoding) ----
+    metrics_path = Path(args.metrics) if args.metrics else Path(args.checkpoint).with_name("gine_metrics.json")
+    expected_acc, model_cfg, ds_kw, hc_subset = load_run_config(metrics_path)
+    if hc_subset == "neutral":
+        from inline_features import NEUTRAL_FEATURES
+        feature_names = list(NEUTRAL_FEATURES)
+    else:
+        feature_names = get_feature_names()
+    print(f"config from {metrics_path.name}: expected_acc={expected_acc:.6f} "
+          f"hc_subset={hc_subset} dim={len(feature_names)}")
+    print(f"  model_cfg={model_cfg}")
+    print(f"  ds_kw={ds_kw}")
 
     # ---- model ----
     ckpt = torch.load(args.checkpoint, map_location=DEVICE, weights_only=False)
     state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
-    # node_feat_dim is a property of the dataset; build a tiny probe dataset
     probe = GINEDatasetV47(load_jsonl(Path(args.test_data))[:1], label_to_id,
-                           feature_names, **DS_KW)
-    model = build_model(len(train_labels), len(feature_names), probe.node_feature_dim)
+                           feature_names, **ds_kw)
+    model = build_model(len(train_labels), len(feature_names),
+                        probe.node_feature_dim, model_cfg)
     model.load_state_dict(state)
     print(f"Loaded {args.checkpoint}  classes={len(train_labels)} "
           f"node_feat_dim={probe.node_feature_dim} params={sum(p.numel() for p in model.parameters()):,}")
 
-    # ---- anti-bias guard: reproduce the locked test accuracy ----
+    # ---- anti-bias guard: reproduce this checkpoint's recorded test accuracy ----
     if not args.skip_gate:
         reproduce_gate(model, label_to_id, feature_names,
-                       Path(args.test_data), args.acc_tol)
+                       Path(args.test_data), ds_kw, expected_acc, args.acc_tol)
     else:
         print("[gate] SKIPPED (--skip-gate): results are NOT trustworthy.")
 
@@ -223,7 +259,7 @@ def main(argv=None) -> int:
     for r in variants:
         r.setdefault("arch", "x86_64")
         r["source_file"] = r.get("src_path", r.get("group", "revizor_hw"))
-    vds = GINEDatasetV47(variants, label_to_id, feature_names, **DS_KW)
+    vds = GINEDatasetV47(variants, label_to_id, feature_names, **ds_kw)
     preds, probs = predict(model, vds)
     benign_id = label_to_id["BENIGN"]
 
@@ -329,7 +365,7 @@ def main(argv=None) -> int:
                                      acc=round(exact["correct"] / exact["n"], 4) if exact["n"] else None),
         per_variant=byvar,
         fence_median_per_class=med,
-        reproduce_gate=dict(expected=EXPECTED_TEST_ACC, skipped=args.skip_gate),
+        reproduce_gate=dict(expected=expected_acc, skipped=args.skip_gate),
     )
 
     out = Path(args.out_dir)
