@@ -98,7 +98,12 @@ def main(argv=None) -> int:
     spec = gen_decode.load_spec(f"{args.arch}.json")
     realizer = gen_decode.Realizer(spec, seed=args.seed)
     validator = SpectectorValidator(repo_root=str(ROOT))
-    out = Path(args.out_dir); out.mkdir(parents=True, exist_ok=True)
+    # Absolute, so realize_fn's spec_path.relative_to(repo_root) holds even when
+    # --out-dir is passed relative.
+    out = Path(args.out_dir)
+    if not out.is_absolute():
+        out = ROOT / out
+    out.mkdir(parents=True, exist_ok=True)
 
     report, rows = {}, []
     for cls in args.classes:
