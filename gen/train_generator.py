@@ -290,6 +290,16 @@ def main():
         def tokenize(rec):
             return tok.tokenize_sequence(rec["sequence"])
 
+    # leak-cond: stamp a mit on any record that lacks one (the v54 base rows and
+    # any extra without the field). BENIGN -> safe (ordinary non-gadget code),
+    # every other class -> unknown (class-labelled but leak-status unverified).
+    # HW-variant / pool extras already carry an oracle/HW-confirmed mit, left as
+    # is. No effect when --leak-cond is off (encode ignores mit with no tokens).
+    if args.leak_cond:
+        for r in train_rows:
+            if not r.get("mit"):
+                r["mit"] = "safe" if r.get("label") == "BENIGN" else "unknown"
+
     tr_tok = [tokenize(r) for r in train_rows]
     classes = sorted({r["label"] for r in train_rows})
 
