@@ -1,0 +1,62 @@
+{
+  "SPECTRE_V1": {
+    "leak": {
+      "mean_fence": 0.395,
+      "pct_with_fence": 0.195,
+      "mean_len": 29.85
+    },
+    "safe": {
+      "mean_fence": 8.995,
+      "pct_with_fence": 0.84,
+      "mean_len": 37.44
+    },
+    "fence_gap_safe_minus_leak": 8.6,
+    "opcode_jsd": 0.1732,
+    "exact_overlap_leak_in_safe": 0.0
+  },
+  "SPECTRE_V4": {
+    "leak": {
+      "mean_fence": 1.73,
+      "pct_with_fence": 0.145,
+      "mean_len": 53.12
+    },
+    "safe": {
+      "mean_fence": 17.605,
+      "pct_with_fence": 0.855,
+      "mean_len": 53.57
+    },
+    "fence_gap_safe_minus_leak": 15.875,
+    "opcode_jsd": 0.1783,
+    "exact_overlap_leak_in_safe": 0.0
+  },
+  "MDS": {
+    "leak": {
+      "mean_fence": 3.44,
+      "pct_with_fence": 0.215,
+      "mean_len": 38.85
+    },
+    "safe": {
+      "mean_fence": 21.76,
+      "pct_with_fence": 0.895,
+      "mean_len": 51.52
+    },
+    "fence_gap_safe_minus_leak": 18.32,
+    "opcode_jsd": 0.1534,
+    "exact_overlap_leak_in_safe": 0.0
+  },
+  "L1TF": {
+    "leak": {
+      "mean_fence": 2.995,
+      "pct_with_fence": 0.275,
+      "mean_len": 30.93
+    },
+    "safe": {
+      "mean_fence": 31.505,
+      "pct_with_fence": 0.98,
+      "mean_len": 51.13
+    },
+    "fence_gap_safe_minus_leak": 28.51,
+    "opcode_jsd": 0.291,
+    "exact_overlap_leak_in_safe": 0.005
+  }
+}

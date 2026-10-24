@@ -1,0 +1,15 @@
+=== leak-cond structural gate: Sat 24 Oct 22:02:30 BST 2026 ===
+model=gen/generator_leakcond.pt classes=['SPECTRE_V1', 'SPECTRE_V4', 'MDS', 'L1TF'] mit=['leak', 'safe', 'unknown'] n=200 temp=0.9 top_k=20
+
+== structural gate: did the <MIT_*> token move the output? ==
+class        fence_leak fence_safe    gap     JSD  overlap
+SPECTRE_V1        0.395      8.995  8.600  0.1732    0.000
+SPECTRE_V4        1.730     17.605 15.875  0.1783    0.000
+MDS               3.440     21.760 18.320  0.1534    0.000
+L1TF              2.995     31.505 28.510  0.2910    0.005
+
+classes where the token moved output in the expected direction: 4/4
+(this is a structural gate, NOT a leak measurement. Oracle-grounded leak-rate gap for V1/V4 is step 5b.)
+
+wrote /home/s2473583/speculative_execution/gen/leakcond_eval/leakcond_eval.json, leakcond_samples.jsonl
+=== done rc=0 (Sat 24 Oct 22:04:11 BST 2026) ===
