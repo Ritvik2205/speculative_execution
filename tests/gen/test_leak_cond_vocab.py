@@ -109,7 +109,7 @@ def test_leak_vs_safe_differ_only_at_mit_slot():
 # sample() + persistence (torch paths)
 # --------------------------------------------------------------------------
 def _tiny_model(vocab):
-    m = CondTransformerLM(len(vocab), dim=16, layers=1, heads=2, max_len=12)
+    m = CondTransformerLM(len(vocab), dim=16, max_len=12)  # layers=3,heads=4 defaults: load() rebuilds with defaults
     m.vocab = vocab
     return m
 
