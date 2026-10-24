@@ -1,0 +1,30 @@
+staged -> /disk/scratch/s2473583/spectector.sif
+=== triage UNRUNNABLE: Sun 25 Oct 00:20:17 BST 2026 ===
+
+=== SPECTRE_V4 (n=40/arm, mits=['leak', 'unknown']) ===
+  mit=leak: realized=40 adjudicable=9 LEAK=6 SAFE=3  leak_rate(adj)=0.6667 net_yield/K=0.15 tally={'unrunnable': 31, 'leak': 6, 'safe': 3}
+  mit=unknown: realized=40 adjudicable=18 LEAK=3 SAFE=15  leak_rate(adj)=0.1667 net_yield/K=0.075 tally={'unrunnable': 22, 'safe': 15, 'leak': 3}
+  --> net_yield(leak) - net_yield(unknown) = 0.075
+
+== 5b / step-6 oracle verdict (Spectector) ==
+class        arm       adj leak%(adj)  netyield/K               ci
+SPECTRE_V4   leak        9     0.6667      0.1500 [0.071,0.291]
+SPECTRE_V4   unknown    18     0.1667      0.0750 [0.026,0.199]
+  SPECTRE_V4: baseline=unknown  NET-YIELD gap leak-unknown = 0.075  (leak-rate(adj) gap leak-unknown = 0.5)
+
+NET YIELD (= confirmed leaks per SAMPLE) folds in the realization cost of fence-sparse mit=leak gadgets. Positive net-yield gap vs the neutral baseline (unknown) with non-overlapping CIs = leak-conditioning earns its place in the discovery loop: more real attacks per oracle call. leak_rate(adj) is the per-adjudicable rate (the 5b headline). Low adjudicable counts = Spectector couldn't model many gadgets.
+
+wrote /home/s2473583/speculative_execution/gen/leakcond_triage/leakcond_oracle.json + _rows.jsonl
+=== UNRUNNABLE reason histogram (V4, leak+unknown) ===
+     52 reason=status
+      1 reason=compile_or_run
+=== sample compile_or_run stderr tails (first 6) ===
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s33_9727f0e2] reason=compile_or_run rc=137 stderr_tail='WARNING: maximum number of steps reached -- ignoring remaining path\n/usr/bin/bash: line 1: 910014 Killed                  timeout -s KILL 30 run-spectector /work/oracle/build/rl_SPECTRE_V4_x86_64_r0_s33_9727f0e2.s -a noninter --stats /work/oracle/build/rl_SPECTRE_V4_x86_64_r0_s33_9727f0e2.json\n'
+=== sample status reasons (unsupported/bad status) ===
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s0_621bc7b2] reason=status status='data' unsupported_ins=1
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s1_537ab210] reason=status status='data' unsupported_ins=1
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s2_8a62ff24] reason=status status='safe' unsupported_ins=1
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s3_8704e348] reason=status status='safe' unsupported_ins=1
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s5_c89a2dec] reason=status status='safe' unsupported_ins=1
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s6_3d050144] reason=status status='safe' unsupported_ins=1
+=== done rc=0 (Sun 25 Oct 00:24:14 BST 2026) ===

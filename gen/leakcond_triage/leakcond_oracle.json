@@ -1,0 +1,54 @@
+{
+  "SPECTRE_V4": {
+    "arms": {
+      "leak": {
+        "tally": {
+          "unrunnable": 31,
+          "leak": 6,
+          "safe": 3
+        },
+        "realized": 40,
+        "adjudicable": 9,
+        "leak": 6,
+        "safe": 3,
+        "leak_rate_adjudicable": 0.6667,
+        "ci_adjudicable": [
+          0.3542,
+          0.8794
+        ],
+        "leak_rate_of_realized": 0.15,
+        "net_yield_per_sample": 0.15,
+        "net_yield_ci": [
+          0.0706,
+          0.2907
+        ]
+      },
+      "unknown": {
+        "tally": {
+          "unrunnable": 22,
+          "safe": 15,
+          "leak": 3
+        },
+        "realized": 40,
+        "adjudicable": 18,
+        "leak": 3,
+        "safe": 15,
+        "leak_rate_adjudicable": 0.1667,
+        "ci_adjudicable": [
+          0.0584,
+          0.3922
+        ],
+        "leak_rate_of_realized": 0.075,
+        "net_yield_per_sample": 0.075,
+        "net_yield_ci": [
+          0.0258,
+          0.1986
+        ]
+      }
+    },
+    "baseline_arm": "unknown",
+    "leak_minus_base_adjudicable": 0.5,
+    "net_yield_leak_minus_base": 0.075,
+    "leak_minus_safe_adjudicable": null
+  }
+}
