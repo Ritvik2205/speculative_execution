@@ -1,0 +1,159 @@
+staged variant records: 821
+==================================================================
+=== candidate: eval/cluster_out/rv_embed_specfix_s42  (Sat 24 Oct 19:54:42 BST 2026) ===
+config from gine_metrics.json: expected_acc=0.971856 hc_subset=all dim=58
+  model_cfg={'hidden_dim': 128, 'num_layers': 3, 'jk_mode': 'cat', 'arch_emb_dim': 8, 'dropout': 0.5, 'arch_mode': 'embed', 'use_virtual_node': True, 'use_handcrafted': True}
+  ds_kw={'speculative_window': 20, 'strip_bp': True, 'node_feature_mode': 'hand', 'use_spec_builder': True, 'taint_mode': 'shift', 'mem_order_edges': False, 'cfg_spec_edges': False, 'drop_nops': False}
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 10 -> 10 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        3 (15.8%)
+    CONTROL_FLOW        :        9 (47.4%)
+    SPEC_CONDITIONAL    :        1 (5.3%)
+    SPEC_INDIRECT       :        4 (21.1%)
+    FENCE_BOUNDARY      :        1 (5.3%)
+    RSB_CHAIN           :        1 (5.3%)
+Loaded eval/cluster_out/rv_embed_specfix_s42/gine_best.pt  classes=10 node_feat_dim=41 params=618,059
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1670/1670
+  Boilerplate stripped: 55 (3.3%) samples
+  Instructions: 52718 -> 52636 (0.2% reduction)
+  Edge type distribution:
+    DATA_DEP            :    23013 (25.2%)
+    CONTROL_FLOW        :    48834 (53.4%)
+    SPEC_CONDITIONAL    :     8986 (9.8%)
+    SPEC_INDIRECT       :     2152 (2.4%)
+    SPEC_RETURN         :     4380 (4.8%)
+    MEMORY_ORDER        :     1943 (2.1%)
+    CACHE_TEMPORAL      :      588 (0.6%)
+    FENCE_BOUNDARY      :     1023 (1.1%)
+    RSB_CHAIN           :      544 (0.6%)
+[gate] v54 test reproduce accuracy = 0.9718562874 (expected 0.9718562874, |Δ|=0.00e+00)
+[gate] PASS: preprocessing is faithful to this checkpoint.
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 821/821
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 39580 -> 39580 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :    26445 (33.7%)
+    CONTROL_FLOW        :    38759 (49.4%)
+    SPEC_CONDITIONAL    :       63 (0.1%)
+    MEMORY_ORDER        :     3665 (4.7%)
+    FENCE_BOUNDARY      :     9536 (12.2%)
+{
+  "n_variants": 821,
+  "n_bases_with_both_arms": 148,
+  "vuln_arm_recall": {
+    "rate": 1.0,
+    "n": 360
+  },
+  "benign_arm_specificity": {
+    "rate": 0.0,
+    "n": 461
+  },
+  "per_base_flip": {
+    "mean_separates": 0,
+    "strict_separates": 0,
+    "wrong_direction": 0,
+    "of_bases": 148,
+    "mean_separates_frac": 0.0,
+    "strict_separates_frac": 0.0
+  },
+  "fence_count_floor": {
+    "mean_separates": 54,
+    "of_bases": 148,
+    "mean_separates_frac": 0.3649
+  },
+  "exact_class_on_vuln_arm": {
+    "n": 360,
+    "acc": 0.3861
+  },
+  "per_variant": {
+    "after_load": {
+      "n": 93,
+      "hw_all_vuln": false,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 0.0,
+      "mean_p_benign": 0.196
+    },
+    "cf_fencepass": {
+      "n": 4,
+      "hw_all_vuln": true,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 1.0,
+      "mean_p_benign": 0.184
+    },
+    "cf_nonleak": {
+      "n": 4,
+      "hw_all_vuln": true,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 1.0,
+      "mean_p_benign": 0.116
+    },
+    "cf_wrong_path": {
+      "n": 34,
+      "hw_all_vuln": true,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 1.0,
+      "mean_p_benign": 0.129
+    },
+    "entry": {
+      "n": 147,
+      "hw_all_vuln": null,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 0.952,
+      "mean_p_benign": 0.164
+    },
+    "fence_all": {
+      "n": 153,
+      "hw_all_vuln": false,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 0.0,
+      "mean_p_benign": 0.106
+    },
+    "shifted": {
+      "n": 57,
+      "hw_all_vuln": false,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 0.0,
+      "mean_p_benign": 0.094
+    },
+    "tail": {
+      "n": 148,
+      "hw_all_vuln": null,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 0.986,
+      "mean_p_benign": 0.163
+    },
+    "twin": {
+      "n": 149,
+      "hw_all_vuln": false,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 0.0,
+      "mean_p_benign": 0.13
+    },
+    "v1_fallthrough": {
+      "n": 32,
+      "hw_all_vuln": true,
+      "model_leak_rate": 1.0,
+      "agree_with_hw": 1.0,
+      "mean_p_benign": 0.129
+    }
+  },
+  "fence_median_per_class": {
+    "SPECTRE_V1": 1,
+    "L1TF": 9,
+    "SPECTRE_V4": 12.0,
+    "MDS": 12
+  },
+  "reproduce_gate": {
+    "expected": 0.9718562874251497,
+    "skipped": false
+  }
+}
+
+wrote eval/hwlabel_variants/eval_cluster_out_rv_embed_specfix_s42/score.json, score.md, rows.jsonl
+=== GATE PASSED + SCORED with eval/cluster_out/rv_embed_specfix_s42 -> eval/hwlabel_variants/eval_cluster_out_rv_embed_specfix_s42 ===
+=== done: Sat 24 Oct 19:55:36 BST 2026 winner=eval/cluster_out/rv_embed_specfix_s42 ===
