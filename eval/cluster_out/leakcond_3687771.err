@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/home/s2473583/speculative_execution/gen/check_leak_cond.py", line 163, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/s2473583/speculative_execution/gen/check_leak_cond.py", line 157, in main
+    sample_tests()
+  File "/home/s2473583/speculative_execution/gen/check_leak_cond.py", line 136, in sample_tests
+    m4 = CondTransformerLM.load(p)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/gen/generator.py", line 192, in load
+    m.load_state_dict(ck["state"])
+  File "/home/s2473583/miniconda3/envs/specexec/lib/python3.11/site-packages/torch/nn/modules/module.py", line 2584, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for CondTransformerLM:
+	Missing key(s) in state_dict: "dec.layers.1.self_attn.in_proj_weight", "dec.layers.1.self_attn.in_proj_bias", "dec.layers.1.self_attn.out_proj.weight", "dec.layers.1.self_attn.out_proj.bias", "dec.layers.1.linear1.weight", "dec.layers.1.linear1.bias", "dec.layers.1.linear2.weight", "dec.layers.1.linear2.bias", "dec.layers.1.norm1.weight", "dec.layers.1.norm1.bias", "dec.layers.1.norm2.weight", "dec.layers.1.norm2.bias", "dec.layers.2.self_attn.in_proj_weight", "dec.layers.2.self_attn.in_proj_bias", "dec.layers.2.self_attn.out_proj.weight", "dec.layers.2.self_attn.out_proj.bias", "dec.layers.2.linear1.weight", "dec.layers.2.linear1.bias", "dec.layers.2.linear2.weight", "dec.layers.2.linear2.bias", "dec.layers.2.norm1.weight", "dec.layers.2.norm1.bias", "dec.layers.2.norm2.weight", "dec.layers.2.norm2.bias". 

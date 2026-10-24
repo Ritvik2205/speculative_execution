@@ -1,0 +1,24 @@
+=== leak-cond checks: Sat 24 Oct 21:04:15 BST 2026 ===
+== NO-OP (mits=None byte-identical to pre-leak-cond) ==
+  PASS  [lens=None] itos == pre-change construction
+  PASS  [lens=None] no <MIT_ token
+  PASS  [lens=None] mit_id empty
+  PASS  [lens=None] control_ids == pre-change
+  PASS  [lens=None] encode ignores mit= arg (all class x arch x seq)
+  PASS  [lens=['short', 'med', 'long']] itos == pre-change construction
+  PASS  [lens=['short', 'med', 'long']] no <MIT_ token
+  PASS  [lens=['short', 'med', 'long']] mit_id empty
+  PASS  [lens=['short', 'med', 'long']] control_ids == pre-change
+  PASS  [lens=['short', 'med', 'long']] encode ignores mit= arg (all class x arch x seq)
+== LEAK-COND ON ==
+  PASS  exactly 3 <MIT_> tokens
+  PASS  mit ids are control tokens
+  PASS  prefix order [cls, arch, mit, len]
+  PASS  unlabelled encode -> MIT_unknown
+  PASS  leak vs safe differ ONLY at mit slot
+== sample() + persistence (torch) ==
+  PASS  sample seeds [cls, arch, MIT_safe]
+  PASS  sample default mit == leak
+  PASS  no-mit model ignores mit=, prefix == [cls, arch]
+  PASS  sample never emits a control token
+=== done rc=1 (Sat 24 Oct 21:05:29 BST 2026) ===
