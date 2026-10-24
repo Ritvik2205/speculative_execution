@@ -77,6 +77,11 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", default=str(ROOT / "gen/generator_leakcond.pt"))
     ap.add_argument("--classes", nargs="+", default=DEFAULT_CLASSES)
+    ap.add_argument("--mits", nargs="+", default=["leak", "safe"],
+                    choices=["leak", "safe", "unknown"],
+                    help="which mit arms to sample. For the net-yield A/B pass "
+                         "'leak unknown safe' (unknown = the neutral baseline, "
+                         "same weights, isolates the token).")
     ap.add_argument("--arch", default="x86_64")
     ap.add_argument("--n", type=int, default=60, help="samples per (class, mit)")
     ap.add_argument("--temperature", type=float, default=0.9)
@@ -103,9 +108,9 @@ def main(argv=None) -> int:
         realize_fn = _build_realize_fn(cls, args.arch, realizer,
                                        gen_decode.spec_gadgets, gen_decode.build_gen_body,
                                        out / "build", ROOT)
-        print(f"\n=== {cls} (n={args.n}/arm) ===", flush=True)
+        print(f"\n=== {cls} (n={args.n}/arm, mits={args.mits}) ===", flush=True)
         arms = {}
-        for mit in ("leak", "safe"):
+        for mit in args.mits:
             t = eval_arm(model, realize_fn, validator, vcls, args.arch, mit,
                          args.n, args.temperature, args.top_k, rows)
             leak = t.get(LEAK, 0)
@@ -113,6 +118,10 @@ def main(argv=None) -> int:
             adj = leak + safe
             realized = args.n - t.get("unrealizable", 0)
             p_adj, lo_adj, hi_adj = wilson(leak, adj)
+            # net yield = confirmed leaks per SAMPLE (includes realization loss),
+            # with a Wilson CI over all n -- this is the A/B headline, since it
+            # folds in the realization cost of fence-sparse mit=leak gadgets.
+            y, ylo, yhi = wilson(leak, args.n)
             arms[mit] = {
                 "tally": dict(t),
                 "realized": realized, "adjudicable": adj,
@@ -120,36 +129,49 @@ def main(argv=None) -> int:
                 "leak_rate_adjudicable": round(p_adj, 4) if adj else None,
                 "ci_adjudicable": [round(lo_adj, 4), round(hi_adj, 4)] if adj else None,
                 "leak_rate_of_realized": round(leak / realized, 4) if realized else None,
+                "net_yield_per_sample": round(y, 4),
+                "net_yield_ci": [round(ylo, 4), round(yhi, 4)],
             }
             print(f"  mit={mit}: realized={realized} adjudicable={adj} "
                   f"LEAK={leak} SAFE={safe}  leak_rate(adj)={arms[mit]['leak_rate_adjudicable']} "
-                  f"tally={dict(t)}", flush=True)
-        # gap on the adjudicable leak-rate (the headline)
-        gap = None
-        if arms["leak"]["leak_rate_adjudicable"] is not None and \
-           arms["safe"]["leak_rate_adjudicable"] is not None:
-            gap = round(arms["leak"]["leak_rate_adjudicable"]
-                        - arms["safe"]["leak_rate_adjudicable"], 4)
-        report[cls] = {"arms": arms, "leak_minus_safe_adjudicable": gap}
-        print(f"  --> leak_rate(mit=leak) - leak_rate(mit=safe) = {gap}", flush=True)
+                  f"net_yield/K={arms[mit]['net_yield_per_sample']} tally={dict(t)}", flush=True)
+        # headline gaps: adjudicable leak-rate and net yield-per-sample
+        def _gap(field, a, b):
+            if a in arms and b in arms and arms[a][field] is not None and arms[b][field] is not None:
+                return round(arms[a][field] - arms[b][field], 4)
+            return None
+        base = "unknown" if "unknown" in arms else "safe"   # neutral baseline for the A/B
+        report[cls] = {
+            "arms": arms,
+            "baseline_arm": base,
+            "leak_minus_base_adjudicable": _gap("leak_rate_adjudicable", "leak", base),
+            "net_yield_leak_minus_base": _gap("net_yield_per_sample", "leak", base),
+            "leak_minus_safe_adjudicable": _gap("leak_rate_adjudicable", "leak", "safe"),
+        }
+        print(f"  --> net_yield(leak) - net_yield({base}) = "
+              f"{report[cls]['net_yield_leak_minus_base']}", flush=True)
 
     (out / "leakcond_oracle.json").write_text(json.dumps(report, indent=2))
     (out / "leakcond_oracle_rows.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
 
-    print("\n== 5b oracle verdict (Spectector) ==")
-    print(f"{'class':12s} {'leak:adj':>9s} {'leak%':>7s} {'safe:adj':>9s} {'safe%':>7s} {'gap':>7s}")
+    print("\n== 5b / step-6 oracle verdict (Spectector) ==")
+    print(f"{'class':12s} {'arm':8s} {'adj':>4s} {'leak%(adj)':>10s} {'netyield/K':>11s} {'ci':>16s}")
     for cls, d in report.items():
-        a = d["arms"]
-        print(f"{cls:12s} {a['leak']['adjudicable']:9d} "
-              f"{str(a['leak']['leak_rate_adjudicable']):>7s} "
-              f"{a['safe']['adjudicable']:9d} "
-              f"{str(a['safe']['leak_rate_adjudicable']):>7s} "
-              f"{str(d['leak_minus_safe_adjudicable']):>7s}")
-    print("\nPositive gap with non-overlapping Wilson CIs = mit=leak produces "
-          "oracle-confirmed leaks at a higher rate than mit=safe: the token "
-          "steers toward UNMITIGATED, oracle-grounded. Low adjudicable counts "
-          "mean Spectector couldn't model many gadgets (SAFE/UNSUPPORTED) -- "
-          "report them, don't hide them.")
+        for mit, a in d["arms"].items():
+            ci = a["net_yield_ci"]
+            print(f"{cls:12s} {mit:8s} {a['adjudicable']:4d} "
+                  f"{str(a['leak_rate_adjudicable']):>10s} "
+                  f"{a['net_yield_per_sample']:>11.4f} "
+                  f"[{ci[0]:.3f},{ci[1]:.3f}]")
+        print(f"  {cls}: baseline={d['baseline_arm']}  "
+              f"NET-YIELD gap leak-{d['baseline_arm']} = {d['net_yield_leak_minus_base']}  "
+              f"(leak-rate(adj) gap leak-{d['baseline_arm']} = {d['leak_minus_base_adjudicable']})")
+    print("\nNET YIELD (= confirmed leaks per SAMPLE) folds in the realization "
+          "cost of fence-sparse mit=leak gadgets. Positive net-yield gap vs the "
+          "neutral baseline (unknown) with non-overlapping CIs = leak-conditioning "
+          "earns its place in the discovery loop: more real attacks per oracle "
+          "call. leak_rate(adj) is the per-adjudicable rate (the 5b headline). "
+          "Low adjudicable counts = Spectector couldn't model many gadgets.")
     print(f"\nwrote {out}/leakcond_oracle.json + _rows.jsonl")
     return 0
 

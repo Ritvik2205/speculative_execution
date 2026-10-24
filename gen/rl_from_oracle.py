@@ -567,6 +567,11 @@ def main(argv=None) -> int:
     ap.add_argument("--repo-root", default=str(ROOT))
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--top-k", type=int, default=20)
+    ap.add_argument("--mit", default=None, choices=["leak", "safe", "unknown"],
+                    help="leak-conditioning: sample the generator with this "
+                         "<MIT_*> token (leak = steer toward unmitigated). "
+                         "Ignored for a generator without mit tokens (no-op). "
+                         "See gen/LEAK_CONDITIONING_SPEC.md.")
     ap.add_argument("--target-len", default=None,
                     choices=["short", "med", "long", "xlong"],
                     help="sample a target length bucket (needs a length-conditioned "
@@ -684,7 +689,8 @@ def main(argv=None) -> int:
         epochs_per_round=args.epochs_per_round,
         sample_kwargs={"temperature": args.temperature, "top_k": args.top_k,
                        **({"target_len": args.target_len} if args.target_len else {}),
-                       **({"max_len": args.max_len} if args.max_len else {})},
+                       **({"max_len": args.max_len} if args.max_len else {}),
+                       **({"mit": args.mit} if args.mit else {})},
         class_to_vocab=lambda c: _GEN_VOCAB_ALIAS.get(c, c),
         meta={"gen": args.gen, "arch": args.arch, "rounds": args.rounds, "k": args.k},
         samples_out=(args.samples_out or None),
