@@ -1,0 +1,6 @@
+staged sif -> /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+=== step-6 net-yield A/B (leak vs unknown vs safe): Sat 24 Oct 23:11:46 BST 2026 ===
+
+=== SPECTRE_V4 (n=80/arm, mits=['leak', 'unknown', 'safe']) ===
+=== done rc=1 (Sat 24 Oct 23:12:13 BST 2026) ===

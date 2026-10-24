@@ -1,0 +1,31 @@
+staged sif -> /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+using sif: /disk/scratch/s2473583/spectector.sif on saxa.inf.ed.ac.uk
+=== step-6 net-yield A/B (leak vs unknown vs safe): Sat 24 Oct 23:15:57 BST 2026 ===
+
+=== SPECTRE_V4 (n=80/arm, mits=['leak', 'unknown', 'safe']) ===
+  mit=leak: realized=80 adjudicable=21 LEAK=15 SAFE=6  leak_rate(adj)=0.7143 net_yield/K=0.1875 tally={'unrunnable': 59, 'leak': 15, 'safe': 6}
+  mit=unknown: realized=80 adjudicable=54 LEAK=9 SAFE=45  leak_rate(adj)=0.1667 net_yield/K=0.1125 tally={'leak': 9, 'unrunnable': 26, 'safe': 45}
+  mit=safe: realized=80 adjudicable=62 LEAK=3 SAFE=59  leak_rate(adj)=0.0484 net_yield/K=0.0375 tally={'unrunnable': 18, 'safe': 59, 'leak': 3}
+  --> net_yield(leak) - net_yield(unknown) = 0.075
+
+=== SPECTRE_V1 (n=80/arm, mits=['leak', 'unknown', 'safe']) ===
+  mit=leak: realized=80 adjudicable=30 LEAK=29 SAFE=1  leak_rate(adj)=0.9667 net_yield/K=0.3625 tally={'unrunnable': 50, 'leak': 29, 'safe': 1}
+  mit=unknown: realized=79 adjudicable=71 LEAK=68 SAFE=3  leak_rate(adj)=0.9577 net_yield/K=0.85 tally={'leak': 68, 'unrealizable': 1, 'unrunnable': 8, 'safe': 3}
+  mit=safe: realized=80 adjudicable=69 LEAK=64 SAFE=5  leak_rate(adj)=0.9275 net_yield/K=0.8 tally={'leak': 64, 'unrunnable': 11, 'safe': 5}
+  --> net_yield(leak) - net_yield(unknown) = -0.4875
+
+== 5b / step-6 oracle verdict (Spectector) ==
+class        arm       adj leak%(adj)  netyield/K               ci
+SPECTRE_V4   leak       21     0.7143      0.1875 [0.117,0.287]
+SPECTRE_V4   unknown    54     0.1667      0.1125 [0.060,0.200]
+SPECTRE_V4   safe       62     0.0484      0.0375 [0.013,0.104]
+  SPECTRE_V4: baseline=unknown  NET-YIELD gap leak-unknown = 0.075  (leak-rate(adj) gap leak-unknown = 0.5476)
+SPECTRE_V1   leak       30     0.9667      0.3625 [0.266,0.472]
+SPECTRE_V1   unknown    71     0.9577      0.8500 [0.756,0.912]
+SPECTRE_V1   safe       69     0.9275      0.8000 [0.700,0.873]
+  SPECTRE_V1: baseline=unknown  NET-YIELD gap leak-unknown = -0.4875  (leak-rate(adj) gap leak-unknown = 0.009)
+
+NET YIELD (= confirmed leaks per SAMPLE) folds in the realization cost of fence-sparse mit=leak gadgets. Positive net-yield gap vs the neutral baseline (unknown) with non-overlapping CIs = leak-conditioning earns its place in the discovery loop: more real attacks per oracle call. leak_rate(adj) is the per-adjudicable rate (the 5b headline). Low adjudicable counts = Spectector couldn't model many gadgets.
+
+wrote /home/s2473583/speculative_execution/gen/leakcond_netyield/leakcond_oracle.json + _rows.jsonl
+=== done rc=0 (Sat 24 Oct 23:35:07 BST 2026) ===
