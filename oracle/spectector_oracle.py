@@ -297,12 +297,17 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
 
         # Check if compilation/execution succeeded
         if result.returncode != 0:
-            # Compile or spectector execution failed
+            # Compile or spectector execution failed. Log the reason + a stderr
+            # tail so a triage run can tell gcc-compile failures from spectector
+            # failures (UNRUNNABLE otherwise hides which). Behaviour unchanged.
+            logging.warning("UNRUNNABLE[%s] reason=compile_or_run rc=%d stderr_tail=%r",
+                            gadget_id, result.returncode, (result.stderr or "")[-400:])
             return _unrunnable(row)
 
         # Read JSON output (written under oracle/build/ inside the mounted repo)
         json_path = Path(repo_root) / "oracle" / "build" / f"{gadget_id}.json"
         if not json_path.exists():
+            logging.warning("UNRUNNABLE[%s] reason=no_json", gadget_id)
             return _unrunnable(row)
 
         # Parse JSON and build record
@@ -325,12 +330,14 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
             or unsupported_ins is None
             or unsupported_ins > 0
         ):
+            logging.warning("UNRUNNABLE[%s] reason=status status=%r unsupported_ins=%s",
+                            gadget_id, status, unsupported_ins)
             return _unrunnable(row)
 
         return build_spec_record(row, status_json)
 
     except subprocess.TimeoutExpired:
-        # Timeout
+        logging.warning("UNRUNNABLE[%s] reason=timeout", gadget_id)
         return _unrunnable(row)
     except Exception as e:
         # Other errors (docker failures, malformed JSON, I/O errors, ...).
