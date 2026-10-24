@@ -68,7 +68,7 @@ from isa_spec import load_engine            # noqa: E402
 from asm_tokenizer import AsmTokenizer      # noqa: E402
 from train_mlm import MlmEncoder            # noqa: E402
 from generator import (GenVocab, CondTransformerLM, encode_record, train,  # noqa: E402
-                       LEN_BUCKETS, LEN_BUCKETS_X)
+                       LEN_BUCKETS, LEN_BUCKETS_X, MIT_VALUES)
 from inline_features import _X86_ONLY, _ARM_ONLY  # noqa: E402  ISA-decisive opcode sets
 
 TRAIN = ROOT / "v54" / "data" / "v54_train.jsonl"
@@ -235,6 +235,14 @@ def main():
                           "the riscv engine. It also changes ~8.5%% of x86 records, "
                           "so it is opt-in and changes the vocabulary -- a "
                           "checkpoint trained with it must be used with it.")
+    ap.add_argument("--leak-cond", action="store_true",
+                     help="add <MIT_leak|safe|unknown> conditioning tokens so the "
+                          "model can be steered to generate leaking vs mitigated "
+                          "gadgets of a class. Each record's mit comes from its "
+                          "'mit' field (oracle/HW-confirmed), defaulting to "
+                          "'unknown' for unverified records. OFF = byte-identical "
+                          "to the pre-leak-cond generator. See "
+                          "gen/LEAK_CONDITIONING_SPEC.md.")
     ap.add_argument("--length-cond", action="store_true",
                      help="add <LEN_short|med|long> conditioning tokens so the "
                           "generator can be asked for a target gadget length "
@@ -287,12 +295,14 @@ def main():
 
     vocab = GenVocab.build(tr_tok, classes, ARCHS, min_count=5,
                            lens=((LEN_BUCKETS_X if args.xlong else LEN_BUCKETS)
-                                 if args.length_cond else None))
+                                 if args.length_cond else None),
+                           mits=(MIT_VALUES if args.leak_cond else None))
     print(f"gen vocab={len(vocab)}  classes={len(classes)}  archs={ARCHS}  "
-          f"train={len(train_rows)}  length_cond={args.length_cond}")
+          f"train={len(train_rows)}  length_cond={args.length_cond}  "
+          f"leak_cond={args.leak_cond}")
 
     encoded = [encode_record(t, r["label"], norm_arch(r.get("arch", "x86_64")),
-                             vocab, MAX_LEN)
+                             vocab, MAX_LEN, mit=r.get("mit"))
                for t, r in zip(tr_tok, train_rows) if len(t) >= 2]
     model = _build_model(vocab, args.init_from, max_len=MAX_LEN)
     print(f"[train] lr={args.lr}" +

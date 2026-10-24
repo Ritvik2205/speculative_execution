@@ -35,31 +35,49 @@ sys.path.insert(0, str(ROOT / "spec"))
 
 PAD, EOS = "<pad>", "<eos>"
 
+# Mitigation-status conditioning values (leak-cond, step A). `leak` =
+# oracle/HW-confirmed leaking, `safe` = oracle/HW-confirmed mitigated, `unknown`
+# = class-labelled but leak-status never verified (the honest default for the
+# legacy v54 attack corpus). See gen/LEAK_CONDITIONING_SPEC.md.
+MIT_VALUES = ["leak", "safe", "unknown"]
+
 
 class GenVocab:
     def __init__(self, instr_tokens: List[str], classes: List[str],
-                 archs: List[str], lens: List[str] = None):
+                 archs: List[str], lens: List[str] = None,
+                 mits: List[str] = None):
         self.classes = list(classes)
         self.archs = list(archs)
         # length-bucket conditioning tokens (Step 4). Optional and additive: a
         # vocab built without `lens` is byte-identical to before, so old
         # checkpoints load and sample unchanged.
         self.lens = list(lens) if lens else []
+        # mitigation-status conditioning tokens (step A). Same optional/additive
+        # contract as `lens`: a vocab built without `mits` carries no <MIT_*>
+        # token and is byte-identical to a pre-leak-cond vocab, so old
+        # checkpoints load and sample unchanged.
+        self.mits = list(mits) if mits else []
         self.cls_tokens = [f"<CLS_{c}>" for c in self.classes]
         self.arch_tokens = [f"<ARCH_{a}>" for a in self.archs]
+        self.mit_tokens = [f"<MIT_{m}>" for m in self.mits]
         self.len_tokens = [f"<LEN_{l}>" for l in self.lens]
+        # Specials order: pad, eos, class, arch, mit, len, instr. mit sits
+        # before len so an empty `mits` leaves the block token-for-token
+        # identical to before (the no-op invariant).
         toks = ([PAD, EOS] + self.cls_tokens + self.arch_tokens
-                + self.len_tokens + list(instr_tokens))
+                + self.mit_tokens + self.len_tokens + list(instr_tokens))
         self.itos = toks
         self.stoi = {t: i for i, t in enumerate(toks)}
         self.pad_id = self.stoi[PAD]
         self.eos_id = self.stoi[EOS]
         self.cls_id = {c: self.stoi[f"<CLS_{c}>"] for c in self.classes}
         self.arch_id = {a: self.stoi[f"<ARCH_{a}>"] for a in self.archs}
+        self.mit_id = {m: self.stoi[f"<MIT_{m}>"] for m in self.mits}
         self.len_id = {l: self.stoi[f"<LEN_{l}>"] for l in self.lens}
         # control tokens never emitted mid-stream
         self.control_ids = ([self.pad_id] + list(self.cls_id.values())
                             + list(self.arch_id.values())
+                            + list(self.mit_id.values())
                             + list(self.len_id.values()))
 
     def __len__(self):
@@ -68,10 +86,10 @@ class GenVocab:
     @classmethod
     def build(cls, tokenized_seqs: List[List[str]], classes: List[str],
               archs: List[str], min_count: int = 5,
-              lens: List[str] = None) -> "GenVocab":
+              lens: List[str] = None, mits: List[str] = None) -> "GenVocab":
         c = Counter(t for seq in tokenized_seqs for t in seq)
         instr = sorted(t for t, n in c.items() if n >= min_count)
-        return cls(instr, classes, archs, lens=lens)
+        return cls(instr, classes, archs, lens=lens, mits=mits)
 
 
 class CondTransformerLM(nn.Module):
@@ -101,12 +119,19 @@ class CondTransformerLM(nn.Module):
     # ---- sampling -------------------------------------------------------
     @torch.no_grad()
     def sample(self, target_class: str, target_arch: str, temperature=1.0,
-               top_k=20, max_len=None, greedy=False, target_len=None) -> List[str]:
+               top_k=20, max_len=None, greedy=False, target_len=None,
+               mit=None) -> List[str]:
         self.eval()
         v = self.vocab
         dev = next(self.parameters()).device
         max_len = max_len or self.max_len
         ids = [v.cls_id[target_class], v.arch_id[target_arch]]  # class + arch prefix
+        # mitigation conditioning (step A): if the vocab carries <MIT_*> tokens,
+        # seed one after the arch token (prefix order cls, arch, mit, len). The
+        # sample-time default is "leak" (callers usually want attacks). Ignored
+        # (back-compatible) for a model trained without mit tokens.
+        if getattr(v, "mit_id", None):
+            ids.append(v.mit_id[mit or "leak"])
         # length conditioning (Step 4): if the vocab carries <LEN_*> tokens and a
         # target bucket is requested, seed it after the arch token. Ignored
         # (back-compatible) for a model trained without length tokens.
@@ -156,7 +181,8 @@ class CondTransformerLM(nn.Module):
                     "cfg": {"vocab_size": len(self.vocab), "dim": self.dim,
                             "max_len": self.max_len},
                     "itos": self.vocab.itos, "classes": self.vocab.classes,
-                    "archs": self.vocab.archs, "lens": self.vocab.lens}, path)
+                    "archs": self.vocab.archs, "lens": self.vocab.lens,
+                    "mits": self.vocab.mits}, path)
 
     @classmethod
     def load(cls, path, map_location="cpu"):
@@ -166,10 +192,11 @@ class CondTransformerLM(nn.Module):
         m.load_state_dict(ck["state"])
         instr = [t for t in ck["itos"] if t not in (PAD, EOS)
                  and not t.startswith("<CLS_") and not t.startswith("<ARCH_")
-                 and not t.startswith("<LEN_")]
-        # lens persisted since Step 4; older checkpoints omit it -> no length
-        # tokens, byte-identical behaviour.
-        m.vocab = GenVocab(instr, ck["classes"], ck["archs"], lens=ck.get("lens"))
+                 and not t.startswith("<MIT_") and not t.startswith("<LEN_")]
+        # lens persisted since Step 4, mits since step A; older checkpoints omit
+        # either -> no such tokens, byte-identical behaviour.
+        m.vocab = GenVocab(instr, ck["classes"], ck["archs"],
+                           lens=ck.get("lens"), mits=ck.get("mits"))
         return m
 
 
@@ -201,8 +228,14 @@ def length_bucket(n_instr: int, buckets: List[str] = None) -> str:
 
 
 def encode_record(seq_tokens: List[str], cls: str, arch: str, vocab: GenVocab,
-                  max_len: int) -> List[int]:
+                  max_len: int, mit: str = None) -> List[int]:
     prefix = [vocab.cls_id[cls], vocab.arch_id[arch]]
+    # if the vocab carries mit tokens, insert the record's mitigation status
+    # after the arch token (prefix order cls, arch, mit, len). An unlabelled
+    # record encodes as "unknown" -- never assert a leak status we did not
+    # verify. Ignored (no-op) for a vocab built without mit tokens.
+    if vocab.mit_id:
+        prefix.append(vocab.mit_id[mit or "unknown"])
     # if the vocab carries length tokens, insert the record's own length bucket
     # after the arch token so the model learns length as a conditioning signal.
     if vocab.len_id:
