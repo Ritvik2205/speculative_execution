@@ -1,0 +1,247 @@
+staged variants: 821
+=== assemble leak-cond corpus: Sat 24 Oct 21:23:54 BST 2026 ===
+bases: 154 total, 31 held out (20%), stratified by class
+
+train=1361  heldout=154  (dropped 0 seq-dups, 31 held-out-base pool originals)
+by (split, mit, source):
+  test  leak     hw_variant  64
+  test  safe     hw_variant  90
+  train leak     hw_pool     694
+  train leak     hw_variant  296
+  train safe     hw_variant  371
+
+train mit totals: {'safe': 371, 'leak': 990}
+heldout mit totals: {'safe': 90, 'leak': 64}
+train hw_variant (label, mit): {('SPECTRE_V1', 'safe'): 100, ('SPECTRE_V1', 'leak'): 121, ('SPECTRE_V4', 'safe'): 47, ('SPECTRE_V4', 'leak'): 28, ('MDS', 'safe'): 80, ('MDS', 'leak'): 50, ('L1TF', 'safe'): 144, ('L1TF', 'leak'): 97}
+
+integrity OK: no base and no sequence straddles train/heldout.
+=== train leak-cond generator: Sat 24 Oct 21:23:55 BST 2026 ===
+[extra-train] +1361 records from gen/data/leakcond_corpus_train.jsonl
+[extra-train] merged 1361 records; arch mix {'x86_64': 1361}
+gen vocab=941  classes=10  archs=['x86_64', 'arm64', 'riscv64']  train=6893  length_cond=True  leak_cond=True
+[train] lr=0.003  (from scratch)
+  [train] device=cpu records=6893 batches/epoch=108 bs=64
+    epoch 1/20  batch 10/108  lm_loss=5.1416
+    epoch 1/20  batch 20/108  lm_loss=4.4040
+    epoch 1/20  batch 30/108  lm_loss=4.0424
+    epoch 1/20  batch 40/108  lm_loss=3.7905
+    epoch 1/20  batch 50/108  lm_loss=3.6040
+    epoch 1/20  batch 60/108  lm_loss=3.4579
+    epoch 1/20  batch 70/108  lm_loss=3.3506
+    epoch 1/20  batch 80/108  lm_loss=3.2646
+    epoch 1/20  batch 90/108  lm_loss=3.1872
+    epoch 1/20  batch 100/108  lm_loss=3.1172
+  epoch 1/20  lm_loss=3.0742
+    epoch 2/20  batch 10/108  lm_loss=2.3457
+    epoch 2/20  batch 20/108  lm_loss=2.3082
+    epoch 2/20  batch 30/108  lm_loss=2.3130
+    epoch 2/20  batch 40/108  lm_loss=2.3005
+    epoch 2/20  batch 50/108  lm_loss=2.2952
+    epoch 2/20  batch 60/108  lm_loss=2.2772
+    epoch 2/20  batch 70/108  lm_loss=2.2694
+    epoch 2/20  batch 80/108  lm_loss=2.2568
+    epoch 2/20  batch 90/108  lm_loss=2.2376
+    epoch 2/20  batch 100/108  lm_loss=2.2184
+  epoch 2/20  lm_loss=2.2111
+    epoch 3/20  batch 10/108  lm_loss=1.9776
+    epoch 3/20  batch 20/108  lm_loss=1.9639
+    epoch 3/20  batch 30/108  lm_loss=1.9408
+    epoch 3/20  batch 40/108  lm_loss=1.9372
+    epoch 3/20  batch 50/108  lm_loss=1.9371
+    epoch 3/20  batch 60/108  lm_loss=1.9423
+    epoch 3/20  batch 70/108  lm_loss=1.9233
+    epoch 3/20  batch 80/108  lm_loss=1.9098
+    epoch 3/20  batch 90/108  lm_loss=1.9044
+    epoch 3/20  batch 100/108  lm_loss=1.9024
+  epoch 3/20  lm_loss=1.8932
+    epoch 4/20  batch 10/108  lm_loss=1.6951
+    epoch 4/20  batch 20/108  lm_loss=1.6832
+    epoch 4/20  batch 30/108  lm_loss=1.6795
+    epoch 4/20  batch 40/108  lm_loss=1.6808
+    epoch 4/20  batch 50/108  lm_loss=1.6948
+    epoch 4/20  batch 60/108  lm_loss=1.7025
+    epoch 4/20  batch 70/108  lm_loss=1.7044
+    epoch 4/20  batch 80/108  lm_loss=1.6958
+    epoch 4/20  batch 90/108  lm_loss=1.6916
+    epoch 4/20  batch 100/108  lm_loss=1.6899
+  epoch 4/20  lm_loss=1.6882
+    epoch 5/20  batch 10/108  lm_loss=1.5431
+    epoch 5/20  batch 20/108  lm_loss=1.5588
+    epoch 5/20  batch 30/108  lm_loss=1.5497
+    epoch 5/20  batch 40/108  lm_loss=1.5480
+    epoch 5/20  batch 50/108  lm_loss=1.5407
+    epoch 5/20  batch 60/108  lm_loss=1.5523
+    epoch 5/20  batch 70/108  lm_loss=1.5631
+    epoch 5/20  batch 80/108  lm_loss=1.5569
+    epoch 5/20  batch 90/108  lm_loss=1.5567
+    epoch 5/20  batch 100/108  lm_loss=1.5460
+  epoch 5/20  lm_loss=1.5462
+    epoch 6/20  batch 10/108  lm_loss=1.3551
+    epoch 6/20  batch 20/108  lm_loss=1.3791
+    epoch 6/20  batch 30/108  lm_loss=1.3795
+    epoch 6/20  batch 40/108  lm_loss=1.3809
+    epoch 6/20  batch 50/108  lm_loss=1.3995
+    epoch 6/20  batch 60/108  lm_loss=1.4041
+    epoch 6/20  batch 70/108  lm_loss=1.4113
+    epoch 6/20  batch 80/108  lm_loss=1.4187
+    epoch 6/20  batch 90/108  lm_loss=1.4167
+    epoch 6/20  batch 100/108  lm_loss=1.4251
+  epoch 6/20  lm_loss=1.4337
+    epoch 7/20  batch 10/108  lm_loss=1.3487
+    epoch 7/20  batch 20/108  lm_loss=1.3249
+    epoch 7/20  batch 30/108  lm_loss=1.3308
+    epoch 7/20  batch 40/108  lm_loss=1.3408
+    epoch 7/20  batch 50/108  lm_loss=1.3345
+    epoch 7/20  batch 60/108  lm_loss=1.3257
+    epoch 7/20  batch 70/108  lm_loss=1.3335
+    epoch 7/20  batch 80/108  lm_loss=1.3384
+    epoch 7/20  batch 90/108  lm_loss=1.3393
+    epoch 7/20  batch 100/108  lm_loss=1.3405
+  epoch 7/20  lm_loss=1.3465
+    epoch 8/20  batch 10/108  lm_loss=1.1950
+    epoch 8/20  batch 20/108  lm_loss=1.2150
+    epoch 8/20  batch 30/108  lm_loss=1.2195
+    epoch 8/20  batch 40/108  lm_loss=1.2385
+    epoch 8/20  batch 50/108  lm_loss=1.2453
+    epoch 8/20  batch 60/108  lm_loss=1.2481
+    epoch 8/20  batch 70/108  lm_loss=1.2458
+    epoch 8/20  batch 80/108  lm_loss=1.2464
+    epoch 8/20  batch 90/108  lm_loss=1.2517
+    epoch 8/20  batch 100/108  lm_loss=1.2599
+  epoch 8/20  lm_loss=1.2698
+    epoch 9/20  batch 10/108  lm_loss=1.1338
+    epoch 9/20  batch 20/108  lm_loss=1.1626
+    epoch 9/20  batch 30/108  lm_loss=1.1744
+    epoch 9/20  batch 40/108  lm_loss=1.1936
+    epoch 9/20  batch 50/108  lm_loss=1.1859
+    epoch 9/20  batch 60/108  lm_loss=1.1951
+    epoch 9/20  batch 70/108  lm_loss=1.1949
+    epoch 9/20  batch 80/108  lm_loss=1.2004
+    epoch 9/20  batch 90/108  lm_loss=1.2064
+    epoch 9/20  batch 100/108  lm_loss=1.2084
+  epoch 9/20  lm_loss=1.2148
+    epoch 10/20  batch 10/108  lm_loss=1.0626
+    epoch 10/20  batch 20/108  lm_loss=1.0951
+    epoch 10/20  batch 30/108  lm_loss=1.1051
+    epoch 10/20  batch 40/108  lm_loss=1.1090
+    epoch 10/20  batch 50/108  lm_loss=1.1076
+    epoch 10/20  batch 60/108  lm_loss=1.1092
+    epoch 10/20  batch 70/108  lm_loss=1.1264
+    epoch 10/20  batch 80/108  lm_loss=1.1347
+    epoch 10/20  batch 90/108  lm_loss=1.1495
+    epoch 10/20  batch 100/108  lm_loss=1.1581
+  epoch 10/20  lm_loss=1.1632
+    epoch 11/20  batch 10/108  lm_loss=1.0935
+    epoch 11/20  batch 20/108  lm_loss=1.0801
+    epoch 11/20  batch 30/108  lm_loss=1.0699
+    epoch 11/20  batch 40/108  lm_loss=1.0688
+    epoch 11/20  batch 50/108  lm_loss=1.0739
+    epoch 11/20  batch 60/108  lm_loss=1.0748
+    epoch 11/20  batch 70/108  lm_loss=1.0826
+    epoch 11/20  batch 80/108  lm_loss=1.0868
+    epoch 11/20  batch 90/108  lm_loss=1.0963
+    epoch 11/20  batch 100/108  lm_loss=1.1119
+  epoch 11/20  lm_loss=1.1165
+    epoch 12/20  batch 10/108  lm_loss=1.0105
+    epoch 12/20  batch 20/108  lm_loss=1.0085
+    epoch 12/20  batch 30/108  lm_loss=1.0317
+    epoch 12/20  batch 40/108  lm_loss=1.0329
+    epoch 12/20  batch 50/108  lm_loss=1.0294
+    epoch 12/20  batch 60/108  lm_loss=1.0498
+    epoch 12/20  batch 70/108  lm_loss=1.0612
+    epoch 12/20  batch 80/108  lm_loss=1.0657
+    epoch 12/20  batch 90/108  lm_loss=1.0697
+    epoch 12/20  batch 100/108  lm_loss=1.0689
+  epoch 12/20  lm_loss=1.0738
+    epoch 13/20  batch 10/108  lm_loss=0.9746
+    epoch 13/20  batch 20/108  lm_loss=0.9707
+    epoch 13/20  batch 30/108  lm_loss=0.9879
+    epoch 13/20  batch 40/108  lm_loss=1.0071
+    epoch 13/20  batch 50/108  lm_loss=1.0096
+    epoch 13/20  batch 60/108  lm_loss=1.0160
+    epoch 13/20  batch 70/108  lm_loss=1.0172
+    epoch 13/20  batch 80/108  lm_loss=1.0227
+    epoch 13/20  batch 90/108  lm_loss=1.0291
+    epoch 13/20  batch 100/108  lm_loss=1.0365
+  epoch 13/20  lm_loss=1.0410
+    epoch 14/20  batch 10/108  lm_loss=0.9759
+    epoch 14/20  batch 20/108  lm_loss=0.9735
+    epoch 14/20  batch 30/108  lm_loss=0.9644
+    epoch 14/20  batch 40/108  lm_loss=0.9655
+    epoch 14/20  batch 50/108  lm_loss=0.9766
+    epoch 14/20  batch 60/108  lm_loss=0.9890
+    epoch 14/20  batch 70/108  lm_loss=0.9989
+    epoch 14/20  batch 80/108  lm_loss=1.0054
+    epoch 14/20  batch 90/108  lm_loss=1.0080
+    epoch 14/20  batch 100/108  lm_loss=1.0100
+  epoch 14/20  lm_loss=1.0191
+    epoch 15/20  batch 10/108  lm_loss=0.9347
+    epoch 15/20  batch 20/108  lm_loss=0.9475
+    epoch 15/20  batch 30/108  lm_loss=0.9357
+    epoch 15/20  batch 40/108  lm_loss=0.9417
+    epoch 15/20  batch 50/108  lm_loss=0.9473
+    epoch 15/20  batch 60/108  lm_loss=0.9566
+    epoch 15/20  batch 70/108  lm_loss=0.9604
+    epoch 15/20  batch 80/108  lm_loss=0.9701
+    epoch 15/20  batch 90/108  lm_loss=0.9816
+    epoch 15/20  batch 100/108  lm_loss=0.9839
+  epoch 15/20  lm_loss=0.9885
+    epoch 16/20  batch 10/108  lm_loss=0.9271
+    epoch 16/20  batch 20/108  lm_loss=0.9173
+    epoch 16/20  batch 30/108  lm_loss=0.9112
+    epoch 16/20  batch 40/108  lm_loss=0.9321
+    epoch 16/20  batch 50/108  lm_loss=0.9387
+    epoch 16/20  batch 60/108  lm_loss=0.9447
+    epoch 16/20  batch 70/108  lm_loss=0.9461
+    epoch 16/20  batch 80/108  lm_loss=0.9560
+    epoch 16/20  batch 90/108  lm_loss=0.9560
+    epoch 16/20  batch 100/108  lm_loss=0.9598
+  epoch 16/20  lm_loss=0.9615
+    epoch 17/20  batch 10/108  lm_loss=0.8824
+    epoch 17/20  batch 20/108  lm_loss=0.8788
+    epoch 17/20  batch 30/108  lm_loss=0.8933
+    epoch 17/20  batch 40/108  lm_loss=0.8990
+    epoch 17/20  batch 50/108  lm_loss=0.9077
+    epoch 17/20  batch 60/108  lm_loss=0.9210
+    epoch 17/20  batch 70/108  lm_loss=0.9302
+    epoch 17/20  batch 80/108  lm_loss=0.9373
+    epoch 17/20  batch 90/108  lm_loss=0.9382
+    epoch 17/20  batch 100/108  lm_loss=0.9399
+  epoch 17/20  lm_loss=0.9459
+    epoch 18/20  batch 10/108  lm_loss=0.8709
+    epoch 18/20  batch 20/108  lm_loss=0.9026
+    epoch 18/20  batch 30/108  lm_loss=0.8968
+    epoch 18/20  batch 40/108  lm_loss=0.8884
+    epoch 18/20  batch 50/108  lm_loss=0.8773
+    epoch 18/20  batch 60/108  lm_loss=0.8888
+    epoch 18/20  batch 70/108  lm_loss=0.8986
+    epoch 18/20  batch 80/108  lm_loss=0.9073
+    epoch 18/20  batch 90/108  lm_loss=0.9130
+    epoch 18/20  batch 100/108  lm_loss=0.9130
+  epoch 18/20  lm_loss=0.9177
+    epoch 19/20  batch 10/108  lm_loss=0.8343
+    epoch 19/20  batch 20/108  lm_loss=0.8408
+    epoch 19/20  batch 30/108  lm_loss=0.8480
+    epoch 19/20  batch 40/108  lm_loss=0.8557
+    epoch 19/20  batch 50/108  lm_loss=0.8618
+    epoch 19/20  batch 60/108  lm_loss=0.8713
+    epoch 19/20  batch 70/108  lm_loss=0.8852
+    epoch 19/20  batch 80/108  lm_loss=0.8909
+    epoch 19/20  batch 90/108  lm_loss=0.8906
+    epoch 19/20  batch 100/108  lm_loss=0.8967
+  epoch 19/20  lm_loss=0.9028
+    epoch 20/20  batch 10/108  lm_loss=0.8192
+    epoch 20/20  batch 20/108  lm_loss=0.8160
+    epoch 20/20  batch 30/108  lm_loss=0.8314
+    epoch 20/20  batch 40/108  lm_loss=0.8313
+    epoch 20/20  batch 50/108  lm_loss=0.8474
+    epoch 20/20  batch 60/108  lm_loss=0.8524
+    epoch 20/20  batch 70/108  lm_loss=0.8606
+    epoch 20/20  batch 80/108  lm_loss=0.8623
+    epoch 20/20  batch 90/108  lm_loss=0.8707
+    epoch 20/20  batch 100/108  lm_loss=0.8785
+  epoch 20/20  lm_loss=0.8832
+saved generator -> gen/generator_leakcond.pt
+
+[verify] SKIPPED: no reference classifier at /home/s2473583/speculative_execution/spec/mlm.pt. The generator checkpoint is saved; this step is just a sanity check. To enable it, run `python3 spec/train_mlm.py --epochs 10 --save /home/s2473583/speculative_execution/spec/mlm.pt` first.
+=== done rc=0 (Sat 24 Oct 21:29:33 BST 2026) ===
