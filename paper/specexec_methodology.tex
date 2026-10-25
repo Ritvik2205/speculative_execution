@@ -190,7 +190,10 @@ Detector & GINE, locked cross-ISA version (Sec.~\ref{sec:detector}). \\
     it supplies non-learned bars that any mitigation-aware model must beat.
   \item An oracle-verified generation loop on x86 that produces distinct
     leaking gadgets at high yield, with a powered (n=5) diversity/yield
-    analysis of pretraining.
+    analysis of pretraining. Trained on the hardware mitigation labels, a
+    leak-conditioning token gives the first oracle-grounded control over
+    whether the generator emits leaking or mitigated code (Spectre~V4:
+    $0.80$ vs $0.04$ leak rate per adjudicable gadget).
   \item Negative results reported as such: learned node features lose to
     hand features; the classifier fails as a generation filter; simulator
     oracles fail for store bypass.
@@ -422,6 +425,23 @@ architecture. These numbers come from a classifier, not an oracle. An
 ISA-purity figure of 96--98\% is likely optimistic: the purity metric was blind
 to ARM load/store mnemonics (\texttt{ldr}, \texttt{str}, \ldots) appearing in
 x86 output.
+
+\paragraph{Leak-conditioning.}
+The class token conditions on \emph{which} vulnerability class to emit, not on
+whether a gadget actually leaks: the attack-class training records are labelled
+by provenance, not by an oracle verdict, so a class-conditioned sample is only
+class-\emph{shaped}. To steer the generator toward \emph{unmitigated} code we add
+an optional third conditioning token
+$\langle\textsc{mit}\rangle\in\{\textsc{leak},\textsc{safe},\textsc{unknown}\}$
+(prefix order class, arch, mit), trained on the hardware mitigation labels of
+Section~\ref{sec:hwlabel}: a leaking variant is labelled \textsc{leak}, its
+mitigated twin \textsc{safe} \emph{with the class token preserved} so the pair
+differs only in mit, and the 725 hardware-confirmed pool gadgets \textsc{leak};
+every unverified legacy record is \textsc{unknown}, so the token never asserts a
+leak status we did not confirm. Base gadgets are held out by violation id across
+\emph{every} source---the leaking variants are transforms of the pool originals,
+so a held-out base is withheld from the pool too. The token is additive: with it
+disabled the generator is byte-identical to before.
 
 \paragraph{Per-ISA architectural validity, and an ARM64 fix.}
 Because every leak oracle here is x86, the ARM64 and riscv64 arms of the
@@ -1476,6 +1496,33 @@ recorded violations do not reproduce on this part (0/6), so there is no
 baseline leak to mitigate. The \texttt{fence\_all} placement is maximal, so
 this confirms the channel \emph{can} be closed, not that any single targeted
 fence suffices---that is what the placement study above measures.
+
+\paragraph{These labels steer generation (leak-conditioning).}
+The 821 labelled variants are not only a detector test set; they are the
+training signal for the leak-conditioning token of Section~\ref{sec:gen}. With
+the token trained on them (leaking arm \textsc{leak}, mitigated twin
+\textsc{safe}, class preserved; held out by base), conditioning moves generation
+as intended. Structurally, across all four hardware classes the \textsc{leak}
+arm is fence-sparse and the \textsc{safe} arm heavily fenced (mean fence tokens
+per sequence, leak$\to$safe: V1 $0.4\!\to\!9.0$, V4 $1.7\!\to\!18$, MDS
+$3.4\!\to\!22$, L1TF $3.0\!\to\!32$; opcode Jensen--Shannon $0.15$--$0.29$; the
+sample sets do not overlap)---a structural readout, not a leak claim. Adjudicated
+by Spectector, the token controls whether a Spectre~V4 gadget actually leaks: the
+\textsc{leak} arm leaks in $0.80$ of adjudicable gadgets (16/20, Wilson
+$0.58$--$0.92$) against $0.04$ for \textsc{safe} (2/49, $0.01$--$0.14$), with
+non-overlapping intervals---the first oracle-grounded control over
+mitigated-versus-unmitigated generation here. Spectre~V1 is inconclusive by
+construction: its Spectector victim template carries the bounds-check bypass
+itself, so the spliced body and its fences do not gate the leak and both arms
+leak $\approx\!0.95$; V4's template routes the leak through the body, so body
+fences gate it. The result is \emph{per adjudicable gadget}. Raw discovery yield
+(confirmed leaks per sample drawn) rises only $1.7\times$ for V4 ($0.19$ vs
+$0.11$, overlapping intervals at $n{=}80$) because roughly two-thirds of
+fence-sparse \textsc{leak} gadgets carry at least one instruction outside
+Spectector's model (the \texttt{bt}/\texttt{bsf}/\texttt{cmov} forms common in
+real Revizor gadgets) and a single unmodelled instruction voids the verdict---an
+oracle-coverage limit, not a property of the token. We therefore report the
+per-adjudicable rate and leave net yield oracle-bound.
 
 \begin{table}[t]
 \centering
