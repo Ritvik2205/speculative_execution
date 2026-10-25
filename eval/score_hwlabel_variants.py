@@ -248,9 +248,10 @@ def main(argv=None) -> int:
           f"node_feat_dim={probe.node_feature_dim} params={sum(p.numel() for p in model.parameters()):,}")
 
     # ---- anti-bias guard: reproduce this checkpoint's recorded test accuracy ----
+    gate_acc = None
     if not args.skip_gate:
-        reproduce_gate(model, label_to_id, feature_names,
-                       Path(args.test_data), ds_kw, expected_acc, args.acc_tol)
+        gate_acc = reproduce_gate(model, label_to_id, feature_names,
+                                  Path(args.test_data), ds_kw, expected_acc, args.acc_tol)
     else:
         print("[gate] SKIPPED (--skip-gate): results are NOT trustworthy.")
 
@@ -365,7 +366,7 @@ def main(argv=None) -> int:
                                      acc=round(exact["correct"] / exact["n"], 4) if exact["n"] else None),
         per_variant=byvar,
         fence_median_per_class=med,
-        reproduce_gate=dict(expected=expected_acc, skipped=args.skip_gate),
+        reproduce_gate=dict(expected=expected_acc, measured=gate_acc, skipped=args.skip_gate),
     )
 
     out = Path(args.out_dir)
