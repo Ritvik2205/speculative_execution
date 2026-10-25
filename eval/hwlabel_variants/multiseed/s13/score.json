@@ -1,0 +1,1159 @@
+{
+  "summary": {
+    "n_variants": 821,
+    "n_bases_with_both_arms": 148,
+    "vuln_arm_recall": {
+      "rate": 0.9972,
+      "n": 360
+    },
+    "benign_arm_specificity": {
+      "rate": 0.0586,
+      "n": 461
+    },
+    "per_base_flip": {
+      "mean_separates": 25,
+      "strict_separates": 0,
+      "wrong_direction": 0,
+      "of_bases": 148,
+      "mean_separates_frac": 0.1689,
+      "strict_separates_frac": 0.0
+    },
+    "fence_count_floor": {
+      "mean_separates": 54,
+      "of_bases": 148,
+      "mean_separates_frac": 0.3649
+    },
+    "exact_class_on_vuln_arm": {
+      "n": 360,
+      "acc": 0.3944
+    },
+    "per_variant": {
+      "after_load": {
+        "n": 93,
+        "hw_all_vuln": false,
+        "model_leak_rate": 1.0,
+        "agree_with_hw": 0.0,
+        "mean_p_benign": 0.041
+      },
+      "cf_fencepass": {
+        "n": 4,
+        "hw_all_vuln": true,
+        "model_leak_rate": 0.75,
+        "agree_with_hw": 0.75,
+        "mean_p_benign": 0.128
+      },
+      "cf_nonleak": {
+        "n": 4,
+        "hw_all_vuln": true,
+        "model_leak_rate": 1.0,
+        "agree_with_hw": 1.0,
+        "mean_p_benign": 0.019
+      },
+      "cf_wrong_path": {
+        "n": 34,
+        "hw_all_vuln": true,
+        "model_leak_rate": 1.0,
+        "agree_with_hw": 1.0,
+        "mean_p_benign": 0.003
+      },
+      "entry": {
+        "n": 147,
+        "hw_all_vuln": null,
+        "model_leak_rate": 1.0,
+        "agree_with_hw": 0.952,
+        "mean_p_benign": 0.004
+      },
+      "fence_all": {
+        "n": 153,
+        "hw_all_vuln": false,
+        "model_leak_rate": 0.824,
+        "agree_with_hw": 0.176,
+        "mean_p_benign": 0.168
+      },
+      "shifted": {
+        "n": 57,
+        "hw_all_vuln": false,
+        "model_leak_rate": 1.0,
+        "agree_with_hw": 0.0,
+        "mean_p_benign": 0.002
+      },
+      "tail": {
+        "n": 148,
+        "hw_all_vuln": null,
+        "model_leak_rate": 1.0,
+        "agree_with_hw": 0.986,
+        "mean_p_benign": 0.011
+      },
+      "twin": {
+        "n": 149,
+        "hw_all_vuln": false,
+        "model_leak_rate": 1.0,
+        "agree_with_hw": 0.0,
+        "mean_p_benign": 0.026
+      },
+      "v1_fallthrough": {
+        "n": 32,
+        "hw_all_vuln": true,
+        "model_leak_rate": 1.0,
+        "agree_with_hw": 1.0,
+        "mean_p_benign": 0.002
+      }
+    },
+    "fence_median_per_class": {
+      "L1TF": 9,
+      "SPECTRE_V4": 12.0,
+      "SPECTRE_V1": 1,
+      "MDS": 12
+    },
+    "reproduce_gate": {
+      "expected": 0.9610778443113772,
+      "measured": 0.9598802395209581,
+      "skipped": false
+    }
+  },
+  "bases": [
+    {
+      "base": "SPECTRE_V1::violation-260925-134248",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-141638",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-141835",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-142001",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-143248",
+      "n_vuln": 3,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-135709",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-140046",
+      "n_vuln": 6,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-141247",
+      "n_vuln": 3,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-141444",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-143458",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260925-143643",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-190655",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-191055",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-191217",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-191405",
+      "n_vuln": 3,
+      "n_benign": 4,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.75
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-191551",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-191929",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-192119",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-174923",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-175049",
+      "n_vuln": 6,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-175232",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-175420",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-175610",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-175814",
+      "n_vuln": 3,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-180005",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-181906",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-182122",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-182835",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-183026",
+      "n_vuln": 1,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-183212",
+      "n_vuln": 2,
+      "n_benign": 4,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-195431",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-195620",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-195806",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-195959",
+      "n_vuln": 6,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-200119",
+      "n_vuln": 3,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-200438",
+      "n_vuln": 3,
+      "n_benign": 4,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.75
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-200603",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V1::violation-260918-200747",
+      "n_vuln": 3,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260907-191158",
+      "n_vuln": 1,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260907-191436",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260907-191654",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260907-192012",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260907-192539",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260907-192856",
+      "n_vuln": 1,
+      "n_benign": 4,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-110148",
+      "n_vuln": 1,
+      "n_benign": 4,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-110423",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-122640",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-122849",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-123049",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-123453",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-120147",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-120417",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-120902",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-121051",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-121946",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-122212",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "SPECTRE_V4::violation-260918-122358",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260925-104919",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260925-105105",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260925-105250",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260925-104140",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260925-105519",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260925-105717",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260925-105904",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "MDS::violation-260918-135358",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-135607",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "MDS::violation-260918-135815",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-140007",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-140200",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-140644",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "MDS::violation-260918-124008",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-124203",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-124413",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-124616",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-124849",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-125226",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-145556",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-145755",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-145947",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-150204",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-150440",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-150649",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-150902",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-144243",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-144434",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-144753",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-144943",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "MDS::violation-260918-145200",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "MDS::violation-260918-145402",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260811-080235",
+      "n_vuln": 2,
+      "n_benign": 1,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260811-083200",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260811-083353",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260811-083617",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-111619",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-112125",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260925-112421",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-130013",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260925-130214",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-130359",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-130558",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-130753",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260925-130937",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260925-131135",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-131354",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-131536",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-131726",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-131930",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-132225",
+      "n_vuln": 1,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260925-132433",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-132644",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-132810",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260925-133005",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-162902",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-163051",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-163236",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-163502",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-163632",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-163837",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-164047",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-164257",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-151028",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-151238",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260918-151432",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-151628",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-151841",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-152059",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-152323",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-152527",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260918-161346",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-161739",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-161954",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-162204",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260918-162359",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-162531",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-162730",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-154228",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-154449",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-154645",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-154820",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-155136",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-155425",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260918-171649",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-171828",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-172035",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-172250",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 1
+    },
+    {
+      "base": "L1TF::violation-260918-172455",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260918-172701",
+      "n_vuln": 2,
+      "n_benign": 3,
+      "leak_rate_vuln": 1,
+      "leak_rate_benign": 0.667
+    },
+    {
+      "base": "L1TF::violation-260918-172853",
+      "n_vuln": 4,
+      "n_benign": 3,
+      "leak_rate_vuln": 0.75,
+      "leak_rate_benign": 0.667
+    }
+  ],
+  "confusion": {
+    "SPECTRE_V1->SPECTRE_V1": 142,
+    "L1TF->SPECTRE_V1": 118,
+    "MDS->SPECTRE_V1": 64,
+    "SPECTRE_V4->SPECTRE_V1": 35,
+    "L1TF->BENIGN": 1
+  }
+}

@@ -100,8 +100,8 @@
       }
     },
     "fence_median_per_class": {
-      "SPECTRE_V1": 1,
       "SPECTRE_V4": 12.0,
+      "SPECTRE_V1": 1,
       "L1TF": 9,
       "MDS": 12
     },

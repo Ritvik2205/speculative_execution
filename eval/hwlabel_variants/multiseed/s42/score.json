@@ -100,10 +100,10 @@
       }
     },
     "fence_median_per_class": {
+      "SPECTRE_V1": 1,
       "MDS": 12,
       "SPECTRE_V4": 12.0,
-      "L1TF": 9,
-      "SPECTRE_V1": 1
+      "L1TF": 9
     },
     "reproduce_gate": {
       "expected": 0.9718562874251497,
