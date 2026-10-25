@@ -26,11 +26,13 @@ REPO="${REPO:-$HOME/speculative_execution}"; cd "$REPO"
 source "$HOME/miniconda3/etc/profile.d/conda.sh"; conda activate specexec
 mkdir -p eval/cluster_out eval/hwlabel_variants/multiseed
 
-STAGED="eval/hwlabel_variants/_variants_821.jsonl"
-git fetch -q origin hw-label-variants
-git show origin/hw-label-variants:eval/data/revizor_hwlabel_variants.jsonl > "$STAGED" \
-  || { echo "FATAL: stage variants" >&2; exit 1; }
-echo "staged variants: $(grep -c . "$STAGED")"
+# Use the IN-TREE fenced-variant set (the 806-record snapshot the paper's
+# whole mitigation analysis -- emulator eval, non-learned bars, allhw/allhw2 --
+# is pinned to). Staging the larger 821 set from hw-label-variants would make
+# the flip result inconsistent with the rest of sec:hwlabel/sec:hw-mitig.
+STAGED="eval/data/revizor_hwlabel_variants.jsonl"
+[ -s "$STAGED" ] || { echo "FATAL: $STAGED missing" >&2; exit 1; }
+echo "in-tree variants: $(grep -c . "$STAGED")  (paper's 806 snapshot)"
 
 SEEDS="${SEEDS:-s1 s7 s13 s21 s42}"
 for s in $SEEDS; do
