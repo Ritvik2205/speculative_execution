@@ -1200,6 +1200,27 @@ Revizor campaign}).
 
 \subsubsection{Mitigation awareness against hardware labels}
 \label{sec:hw-mitig}
+
+\paragraph{A detector not trained on mitigations has none.}
+Before any mitigation-aware model, we score the plain B1 detector
+(Section~\ref{sec:detresults}; no fence labels in its training) on the
+hardware-labelled variants by whether its leak/benign call \emph{flips} between
+a base gadget's leaking and mitigated arms---the measurement that isolates
+fence sensitivity, since the two arms share body and sandboxing and differ only
+in fence placement. Over five reproducing seeds (each gate-checked to reproduce
+its own locked-test accuracy on current code) the detector separates the two
+arms for only \textbf{0.21\,$\pm$\,0.14} of the 148 base gadgets---\emph{below}
+a fence-count baseline (0.365)---and achieves strict separation (every leaking
+arm flagged \emph{and} every mitigated arm cleared) for \textbf{0/148 in every
+seed}. The result is seed-dependent (0.00 to 0.41): the best seed clears the
+fence-count baseline only by flagging the many-fence \texttt{fence\_all}
+variant, still calling the single-fence \texttt{twin} and \texttt{shifted}
+mitigations leaky; the worst never separates. The detector flags fenced and
+unfenced gadgets alike---it keys on gadget shape, not on whether a fence
+neutralises the leak. This is the gap a mitigation-aware model must close, and
+the motivation for training on these labels directly (leak-conditioning,
+Section~\ref{sec:hwlabel}).
+
 Two models were trained with \emph{structural} fenced twins:
 \begin{itemize}[itemsep=1pt,leftmargin=1.2em]
   \item \textbf{allhw}: twins labelled \cls{Benign}.
