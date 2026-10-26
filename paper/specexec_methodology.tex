@@ -152,9 +152,10 @@ Stage & Status \\
 \midrule
 ISA description (DSL) & Built: declarative per-ISA specs drive graph
   construction, tokenisation and realisation (Sec.~\ref{sec:spec}). \\
-Generator & Built; class/arch-conditioned; three ISAs generated, x86
-  oracle-validated, ARM64 lifted to x86 parity on assemble/execute validity
-  (0.99/0.81) (Sec.~\ref{sec:gen}). \\
+Generator & Built; class/arch-conditioned. Leaks oracle-verified on x86
+  only (V1/V4); ARM64 lifted to x86 parity on assemble/execute validity
+  (0.99/0.81) but has no leak oracle; riscv64 assembles but barely executes
+  (0.02) (Sec.~\ref{sec:gen}). \\
 Oracles & Spectector (x86, V1/V4), InvisiSpec (x86, V1), Revizor on
   i5-8300H (x86, V1/V4/MDS/L1TF). Emulator-driven speculation covers ARM64 and
   riscv64 but is NOT validated against silicon
@@ -164,7 +165,7 @@ Filter / ranker & Pre-oracle gate measured (18.2\% of unadjudicable removed,
   beats the length bar on V4 (within-round AUC 0.656 vs 0.587), and wired into
   the loop sustains $\sim$1 confirmed leak per allowed oracle call for V4 while
   withholding 33--82\% of candidates (Sec.~\ref{sec:rank}). \\
-Loop & RL loop runs with Spectector, with the learned gate in front of the
+Loop & Rejection-sampling loop runs with Spectector, with the learned gate in front of the
   oracle (Sec.~\ref{sec:rank}). \\
 Minimality & Generated V1 and V4 leaks both minimise to 1 instruction (leak is
   in the fixed victim scaffold, not the body); real-violation Revizor pass
@@ -192,8 +193,10 @@ Detector & GINE, locked cross-ISA version (Sec.~\ref{sec:detector}). \\
     leaking gadgets at high yield, with a powered (n=5) diversity/yield
     analysis of pretraining. Trained on the hardware mitigation labels, a
     leak-conditioning token gives the first oracle-grounded control over
-    whether the generator emits leaking or mitigated code (Spectre~V4:
-    $0.80$ vs $0.04$ leak rate per adjudicable gadget).
+    whether the generator emits leaking or mitigated code, demonstrated on the
+    one class whose victim template routes the leak through the body
+    (Spectre~V4: $0.80$ vs $0.04$ leak rate per adjudicable gadget; V1's
+    template leaks on both arms by construction, so it cannot show steering).
   \item Negative results reported as such: learned node features lose to
     hand features; the classifier fails as a generation filter; simulator
     oracles fail for store bypass.
@@ -628,7 +631,7 @@ The generated V2 bodies leak rarely even when adjudicable: 4 of 485 (0.8\%),
 and all four are turned \textsc{safe} by a landing-pad fence (the second
 control, with zero fenced-leak anomalies). So the class-conditioned generator
 emits V2-shaped code that mostly does not actually leak under the V2 contract,
-consistent with the earlier near-zero V2 RL yield---the gap there was partly
+consistent with the earlier near-zero V2 rejection-sampling yield---the gap there was partly
 the oracle (now closed) and partly the generator, which the end-to-end
 bootstrap below now isolates as the binding one.
 
@@ -1634,13 +1637,13 @@ Two findings came from checking the classifier against the oracle data.
     leak and 187 safe. Results:
     \begin{itemize}[itemsep=0pt,leftmargin=1em]
       \item the locked classifier's attack probability has AUC 0.14 (0.27
-        within an RL round) and correlates $-0.66$ with sequence length;
+        within a round) and correlates $-0.66$ with sequence length;
       \item sequence length alone gives 0.75 (0.59 within round);
-      \item an opcode-bag logistic regression, evaluated leaving one RL run
+      \item an opcode-bag logistic regression, evaluated leaving one run
         out, gives 0.44.
     \end{itemize}
 \end{itemize}
-RL round confounds everything here: the V4 leak rate rises from 0.18 to 0.85
+The loop round confounds everything here: the V4 leak rate rises from 0.18 to 0.85
 across rounds, so we report within-round AUC.
 
 \subsubsection{A non-learned gate in front of the oracle}
@@ -1674,7 +1677,7 @@ therefore gate candidates with three fixed, non-learned stages
 Spectector reports unsupported instructions \emph{per analysed path}, and our
 oracle wrapper treats a nonzero count as unrunnable. Generated sequences are
 full of mid-sequence \texttt{ret}s, so an instruction Spectector cannot parse
-is usually in dead code and never counted. Over the 4,379 committed RL
+is usually in dead code and never counted. Over the 4,379 committed loop
 samples, an unparseable instruction appears \emph{anywhere} in 176 of 2,355
 leaks (7.5\%) but on the straight-line reachable prefix in only 15 (0.6\%),
 while still appearing on that prefix in 303 of 1,746 unrunnables (17.4\%).
@@ -1767,7 +1770,7 @@ artefact of round. The embedding carries usable leak signal where the
 classifier output did not---the fix was the target (binary leak, not trace
 length) and the representation (fused embedding, not the softmax). The gain
 over length is real but small, and the leaks-per-oracle-call headroom is
-limited precisely because the RL generator's own yield is already high by late
+limited precisely because the generator's own yield is already high by late
 rounds (the filter's value concentrates in early rounds and harder classes,
 as the head-room argument above predicts). The encoder built 360 of 460 PDGs;
 the other 100 are counted as unselectable, not dropped.
@@ -1775,7 +1778,7 @@ the other 100 are counted as unselectable, not dropped.
 \begin{table}[t]
 \centering
 \caption{SPECTRE\_V4 leak-vs-safe discrimination, 460 unique generated
-  gadgets. Within-round AUC controls for the RL-round confounder; prospective
+  gadgets. Within-round AUC controls for the loop-round confounder; prospective
   trains on rounds $\le r$ and tests on $r{+}1$. Both columns are AUC. Source:
   \texttt{rank/v4\_filter\_eval.md}.}
 \label{tab:v4filter}
@@ -1983,7 +1986,7 @@ actually needs.
 \paragraph{No new hardware.}
 \begin{enumerate}[itemsep=1pt,leftmargin=1.4em]
   \item \textbf{Build the Spectector-Combined image} and report SPECTRE\_V2
-    adjudicability and RL yield through it. Our side is integrated
+    adjudicability and rejection-sampling yield through it. Our side is integrated
     (Section~\ref{sec:oraclecoverage}); this is the largest single coverage
     gain available and costs nothing but build time. Settle the return-model
     question before extending it to RETBLEED.
@@ -2001,7 +2004,7 @@ actually needs.
     INCEPTION that needs no hardware and covers all three ISAs, but every
     verdict stays model-level until item~3 makes validation possible.
   \item \textbf{The V4 learned filter} on top of the measured pre-oracle gate,
-    plus V1 near-miss negatives, then the filter inside the RL loop measured as
+    plus V1 near-miss negatives, then the filter inside the loop measured as
     confirmed leaks per oracle call.
   \item \textbf{Minimality}: tabulate the Revizor instruction-removal results
     already produced, and delta-debug generated leaks against the oracle.
@@ -2080,7 +2083,7 @@ copies, this is the right trade.
 
 \begin{table}[t]
 \centering
-\caption{Baseline vs.\ pretrained generator after oracle RL (Spectre~V1,
+\caption{Baseline vs.\ pretrained generator after oracle-in-the-loop fine-tuning (Spectre~V1,
   x86, 5 seeds, mean $\pm$ 95\% CI). Source:
   \texttt{docs/GENERATION\_MODEL\_2026-09-24.md}.}
 \label{tab:pretrain}
@@ -2100,17 +2103,17 @@ Overall yield               & \textbf{0.839 $\pm$ 0.078} & 0.703 $\pm$ 0.030 \\
 \end{table}
 
 \subsection{Base multi-class loop, before length conditioning}
-This is the oracle-RL loop with \texttt{(class, arch)} conditioning only, before the
+This is the oracle-in-the-loop rejection-sampling loop with \texttt{(class, arch)} conditioning only, before the
 control-flow fixes and the length-conditioning token of Sec.~\ref{sec:adjud}; it is
 the baseline the final Spectre~V4 yield of $0.98$ (Table~\ref{tab:adjud}) should be
 read against. It also fixes the oracle-coverage boundary: Spectector adjudicates only
 V1 and V4, so V2 and Retbleed move to the hardware oracle (Sec.~\ref{sec:future}).
-Across 13 RL runs (about 2,600 generations) the loop produced about 2,048 confirmed
+Across 13 runs (about 2,600 generations) the loop produced about 2,048 confirmed
 leaks and about 1,594 distinct leaking gadgets (counted within each run).
 
 \begin{table}[t]
 \centering
-\caption{Oracle RL per class (Spectector, x86, 3 seeds, mean $\pm$ 95\% CI).
+\caption{Oracle-in-the-loop yield per class (Spectector, x86, 3 seeds, mean $\pm$ 95\% CI).
   Source: \texttt{gen/rl\_multiclass.md}.}
 \label{tab:rlmc}
 \footnotesize
@@ -2149,7 +2152,7 @@ x86 mnemonics leaking into ARM64 output (\texttt{pushq}, \texttt{movq},
 \texttt{leave}), and genuine operand-form errors (\texttt{mrs x0, \#1}). Most
 of it was a tool the project already had: a sampling mask that admits a token
 only if the target ISA's specification recognises its opcode. It was wired into
-one batch-generation script but \emph{not} into the RL loop that produces our
+one batch-generation script but \emph{not} into the loop that produces our
 actual results, nor into the decoder. Connecting it gives 0.75.
 
 What survived the specification rule was precisely what a specification cannot
