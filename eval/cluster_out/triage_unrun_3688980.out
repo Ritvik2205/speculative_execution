@@ -1,0 +1,45 @@
+staged -> /disk/scratch/s2473583/spectector.sif
+=== triage UNRUNNABLE: Mon 26 Oct 18:11:03 GMT 2026 ===
+
+=== SPECTRE_V4 (n=40/arm, mits=['leak', 'unknown']) ===
+  mit=leak: realized=40 adjudicable=9 LEAK=6 SAFE=3  leak_rate(adj)=0.6667 net_yield/K=0.15 tally={'unrunnable': 31, 'leak': 6, 'safe': 3}
+  mit=unknown: realized=40 adjudicable=18 LEAK=3 SAFE=15  leak_rate(adj)=0.1667 net_yield/K=0.075 tally={'unrunnable': 22, 'safe': 15, 'leak': 3}
+  --> net_yield(leak) - net_yield(unknown) = 0.075
+
+== 5b / step-6 oracle verdict (Spectector) ==
+class        arm       adj leak%(adj)  netyield/K               ci
+SPECTRE_V4   leak        9     0.6667      0.1500 [0.071,0.291]
+SPECTRE_V4   unknown    18     0.1667      0.0750 [0.026,0.199]
+  SPECTRE_V4: baseline=unknown  NET-YIELD gap leak-unknown = 0.075  (leak-rate(adj) gap leak-unknown = 0.5)
+
+NET YIELD (= confirmed leaks per SAMPLE) folds in the realization cost of fence-sparse mit=leak gadgets. Positive net-yield gap vs the neutral baseline (unknown) with non-overlapping CIs = leak-conditioning earns its place in the discovery loop: more real attacks per oracle call. leak_rate(adj) is the per-adjudicable rate (the 5b headline). Low adjudicable counts = Spectector couldn't model many gadgets.
+
+wrote /home/s2473583/speculative_execution/gen/leakcond_triage/leakcond_oracle.json + _rows.jsonl
+=== UNRUNNABLE reason histogram (V4, leak+unknown) ===
+     52 reason=status
+      1 reason=compile_or_run
+=== sample compile_or_run stderr tails (first 6) ===
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s33_9727f0e2] reason=compile_or_run rc=137 stderr_tail='WARNING: maximum number of steps reached -- ignoring remaining path\n/usr/bin/bash: line 1: 1445815 Killed                  timeout -s KILL 30 run-spectector /work/oracle/build/rl_SPECTRE_V4_x86_64_r0_s33_9727f0e2.s -a noninter --stats /work/oracle/build/rl_SPECTRE_V4_x86_64_r0_s33_9727f0e2.json\n'
+=== sample status reasons (unsupported/bad status) ===
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s0_621bc7b2] reason=status status='data' unsupported_ins=1 uns_lines=['89: unsupported_ins(\tcmovnoq\t(%r11,%r13), %r8)', '100: unsupported_ins(\tbtrq\t%r13, (%r8,%r12))', 'warning: pass through an unsupported instruction! \tcmovnoq\t(%r11,%r13), %r8']
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s1_537ab210] reason=status status='data' unsupported_ins=1 uns_lines=['56: unsupported_ins(\tbtcq\t$1, (%r11,%r9))', '94: unsupported_ins(\tcmovnoq\t(%r11,%r10), %r13)', 'warning: pass through an unsupported instruction! \tbtcq\t$1, (%r11,%r9)']
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s2_8a62ff24] reason=status status='safe' unsupported_ins=1 uns_lines=['58: unsupported_ins(\tbtl\t$1, (%r12,%r13))', '69: unsupported_ins(\tbtcq\t%r11, (%r9,%r9))', '80: unsupported_ins(\tdivb\t(%r11,%r8))', 'warning: pass through an unsupported instruction! \tbtl\t$1, (%r12,%r13)', 'warning: pass through an unsupported instruction! \tbtl\t$1, (%r12,%r13)']
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s3_8704e348] reason=status status='safe' unsupported_ins=1 uns_lines=['34: unsupported_ins(\tbtcq\t$8, (%r12,%r11))', '74: unsupported_ins(\tcmovnoq\t(%r12,%r8), %r9)', '82: unsupported_ins(\tbswapq\t%r13)', 'warning: pass through an unsupported instruction! \tbtcq\t$8, (%r12,%r11)', 'warning: pass through an unsupported instruction! \tbtcq\t$8, (%r12,%r11)']
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s5_c89a2dec] reason=status status='safe' unsupported_ins=1 uns_lines=['49: unsupported_ins(\tbtrl\t$1, (%r13,%r9))', '60: unsupported_ins(\tbsrq\t(%r13,%r12), %r8)', '64: unsupported_ins(\tbtcq\t$1, (%r11,%r12))', '65: unsupported_ins(\tbtcq\t%r12, %r10)', '68: unsupported_ins(\tbtcq\t%r13, %r10)']
+WARNING:root:UNRUNNABLE[rl_SPECTRE_V4_x86_64_r0_s6_3d050144] reason=status status='safe' unsupported_ins=1 uns_lines=['44: unsupported_ins(\tbsrq\t(%r10,%r8), %r11)', '45: unsupported_ins(\tcmovpq\t%r11, %r9)', '54: unsupported_ins(\tbsrq\t(%r11,%r8), %r12)', '62: unsupported_ins(\tbtl\t$1, (%r12,%r10))', 'warning: pass through an unsupported instruction! \tbsrq\t(%r10,%r8), %r11']
+=== UNSUPPORTED INSTRUCTION histogram (the guard-soundness question) ===
+     91 
+(if empty, print raw uns_lines samples:)
+      6 uns_lines=['33: unsupported_ins(\trdtsc)', '35: unsupported_ins(\trdtsc)', 'warning: pass through an unsupported instruction! \trdtsc', 'warning: pass through an unsupported instruction! \trdtsc']
+      2 uns_lines=['33: unsupported_ins(\trdtsc)', 'warning: pass through an unsupported instruction! \trdtsc', 'warning: pass through an unsupported instruction! \trdtsc']
+      1 uns_lines=['92: unsupported_ins(\tcmovpq\t(%r9,%r8), %r13)', 'warning: pass through an unsupported instruction! \tcmovpq\t(%r9,%r8), %r13', 'warning: pass through an unsupported instruction! \tcmovpq\t(%r9,%r8), %r13']
+      1 uns_lines=['89: unsupported_ins(\tcmovnoq\t(%r11,%r13), %r8)', '100: unsupported_ins(\tbtrq\t%r13, (%r8,%r12))', 'warning: pass through an unsupported instruction! \tcmovnoq\t(%r11,%r13), %r8']
+      1 uns_lines=['80: unsupported_ins(\tcmovnoq\t%r12, %r9)', 'warning: pass through an unsupported instruction! \tcmovnoq\t%r12, %r9', 'warning: pass through an unsupported instruction! \tcmovnoq\t%r12, %r9']
+      1 uns_lines=['72: unsupported_ins(\tcmovnpq\t(%r10,%r11), %r10)', '107: unsupported_ins(\tbtcq\t$16, (%r10,%r12))', 'warning: pass through an unsupported instruction! \tcmovnpq\t(%r10,%r11), %r10', 'warning: pass through an unsupported instruction! \tcmovnpq\t(%r10,%r11), %r10']
+      1 uns_lines=['70: unsupported_ins(\tcmovnpq\t%r10, %r10)', 'warning: pass through an unsupported instruction! \tcmovnpq\t%r10, %r10', 'warning: pass through an unsupported instruction! \tcmovnpq\t%r10, %r10']
+      1 uns_lines=['70: unsupported_ins(\tbtrq\t%r9, %r13)', 'warning: pass through an unsupported instruction! \tbtrq\t%r9, %r13', 'warning: pass through an unsupported instruction! \tbtrq\t%r9, %r13']
+      1 uns_lines=['62: unsupported_ins(\tbsfq\t(%r11,%r10), %r11)', '70: unsupported_ins(\tbtrl\t$16, (%r8,%r11))', 'warning: pass through an unsupported instruction! \tbsfq\t(%r11,%r10), %r11']
+      1 uns_lines=['60: unsupported_ins(\tbtw\t$1, (%r13,%r10))', '80: unsupported_ins(\tbtrq\t%r11, (%r11,%r10))', 'warning: pass through an unsupported instruction! \tbtw\t$1, (%r13,%r10)', 'warning: pass through an unsupported instruction! \tbtw\t$1, (%r13,%r10)']
+      1 uns_lines=['60: unsupported_ins(\tbtrq\t%r13, %r10)', '65: unsupported_ins(\tbtcq\t$16, (%r9,%r8))', '75: unsupported_ins(\tbtrq\t%r10, (%r9,%r13))', '77: unsupported_ins(\tbtcq\t$0xff, (%r12,%r9))', 'warning: pass through an unsupported instruction! \tbtrq\t%r13, %r10']
+      1 uns_lines=['60: unsupported_ins(\tbtcq\t%r13, (%r10,%r8))', '83: unsupported_ins(\tidivw\t(%r10,%r9))', 'warning: pass through an unsupported instruction! \tbtcq\t%r13, (%r10,%r8)']
+=== done rc=0 (Mon 26 Oct 18:14:58 GMT 2026) ===
