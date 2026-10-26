@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import re
 import subprocess
 from pathlib import Path
 from oracle.manifest import LeakRecord
@@ -188,8 +189,14 @@ def _unrunnable(row):
 
 
 def run_spec_gadget(row, repo_root, versions=None, image=None,
-                    window=None, steps=None, timeout=None):
+                    window=None, steps=None, timeout=None, diag_out=None):
     """Run Spectector on a gadget in Docker container.
+
+    `diag_out`: optional mutable dict. When a verdict is voided solely because
+    Spectector flagged unsupported instructions (status in {data,control} but
+    unsupported_ins>0), it is populated with {"would_be_status", "uns_mnemonics"}
+    so a guard can decide whether to reclaim the leak (see the net-yield guard).
+    Return value is unchanged (always a LeakRecord).
 
     Args:
         row: dict with gadget_id, path, vuln_class, adjudicable
@@ -341,6 +348,11 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
                     if "unsupported" in ln or "unknown instr" in ln or "not supported" in ln]
             logging.warning("UNRUNNABLE[%s] reason=status status=%r unsupported_ins=%s uns_lines=%r",
                             gadget_id, status, unsupported_ins, _uns[:5])
+            if diag_out is not None and status in ("data", "control") and (unsupported_ins or 0) > 0:
+                # mnemonics from lines like "NN: unsupported_ins(\tbtcq\t...)"
+                mnem = set(re.findall(r"unsupported_ins\(\s*([a-z][a-z0-9]*)", _blob))
+                diag_out["would_be_status"] = status
+                diag_out["uns_mnemonics"] = sorted(mnem)
             return _unrunnable(row)
 
         return build_spec_record(row, status_json)
