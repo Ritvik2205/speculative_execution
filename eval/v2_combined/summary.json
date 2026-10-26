@@ -1,20 +1,21 @@
 {
   "summary": {
-    "n": 590,
+    "n": 2830,
     "unfenced": {
-      "safe": 481,
-      "unrunnable": 105,
-      "leak": 4
+      "safe": 2142,
+      "unrunnable": 662,
+      "leak": 26
     },
-    "adjudicable": 485,
-    "adjudicable_rate": 0.8220338983050848,
-    "leak": 4,
-    "leak_rate_of_adjudicable": 0.008247422680412371,
+    "adjudicable": 2168,
+    "adjudicable_rate": 0.7660777385159011,
+    "leak": 26,
+    "leak_rate_of_adjudicable": 0.011992619926199263,
     "fenced_on_leaks": {
-      "safe": 4
+      "safe": 23,
+      "leak": 3
     },
-    "mitigated_rate": 1.0,
-    "fenced_leak_anomalies": 0
+    "mitigated_rate": 0.8846153846153846,
+    "fenced_leak_anomalies": 3
   },
   "anchors_failed": [],
   "budget": {
@@ -25,7 +26,7 @@
     },
     "anchors_ok": true,
     "window": 50,
-    "steps": 1000000,
+    "steps": 20000,
     "timeout": 300
   }
 }
