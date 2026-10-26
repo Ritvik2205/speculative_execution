@@ -172,8 +172,14 @@ plainly it is a scoping choice, not a hole a reviewer finds.
 
 ## Recommended order of attack (value per effort)
 
-1. **[CLUSTER] Spectector-Combined build** — unlocks V2 adjudicability (Tier 1.1,
-   1.4; items 4, 15). Biggest coverage gain, build-time only.
+1. ~~**[CLUSTER] Spectector-Combined build** — unlocks V2 adjudicability (Tier 1.1,
+   1.4; items 4, 15).~~ **DONE 2026-10-26.** Combined image built + staged; V2
+   adjudicability measured at **76.6%** over 2,830 bodies (anchors pass all 10
+   shards), folded into the paper (tab:v2adj, 82.2%→76.6% on the larger run).
+   16 distinct leaking gadgets, fence mitigates 15/16 (1 leaks through:
+   `7944e898`). **V2 yield stays dead (1.2% instances, <1%)** — positives must
+   come from hardware, not synthesis. Item 4/15 adjudicability leg closed;
+   V2/RETBLEED *yield* leg still open (hardware).
 2. **[HARDWARE] allhw3 + counterexample HW-labels** — fills the one cell the
    mitigation thesis depends on and the only shot at beating the 1-line rule
    (items 6, 9).
