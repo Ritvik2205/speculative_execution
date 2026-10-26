@@ -1,0 +1,6 @@
+staged -> /disk/scratch/s2473583/spectector.sif
+using sif: /disk/scratch/s2473583/spectector.sif
+=== guard validation: Mon 26 Oct 19:23:41 GMT 2026 ===
+
+=== SPECTRE_V4 (n=60, mit=leak) ===
+=== done rc=1 (Mon 26 Oct 19:24:57 GMT 2026) ===

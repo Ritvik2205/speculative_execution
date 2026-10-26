@@ -1,0 +1,74 @@
+{
+  "report": {
+    "SPECTRE_V4": {
+      "tally": {
+        "uns_wouldbe_leak": 14,
+        "guard_reclaimed": 14,
+        "unrunnable_other": 30,
+        "primary_leak": 11,
+        "primary_safe": 5
+      },
+      "net_yield": {
+        "discard": {
+          "rate": 0.1833,
+          "lo": 0.1056,
+          "hi": 0.2992
+        },
+        "naive": {
+          "rate": 0.4167,
+          "lo": 0.3006,
+          "hi": 0.5427
+        },
+        "guarded": {
+          "rate": 0.4167,
+          "lo": 0.3006,
+          "hi": 0.5427
+        }
+      },
+      "reclaimed": 14,
+      "rejected_would_be_false_positives": 0,
+      "refused_non_inert": 0,
+      "refused_mnemonics": {}
+    },
+    "SPECTRE_V1": {
+      "tally": {
+        "uns_wouldbe_leak": 31,
+        "guard_reclaimed": 26,
+        "primary_leak": 27,
+        "unrunnable_other": 2,
+        "guard_refused": 5
+      },
+      "net_yield": {
+        "discard": {
+          "rate": 0.45,
+          "lo": 0.3309,
+          "hi": 0.5751
+        },
+        "naive": {
+          "rate": 0.9667,
+          "lo": 0.8864,
+          "hi": 0.9908
+        },
+        "guarded": {
+          "rate": 0.8833,
+          "lo": 0.7782,
+          "hi": 0.9423
+        }
+      },
+      "reclaimed": 26,
+      "rejected_would_be_false_positives": 0,
+      "refused_non_inert": 5,
+      "refused_mnemonics": {
+        "cwtd": 4,
+        "add": 1,
+        "setno": 1
+      }
+    }
+  },
+  "controls": {
+    "anchor_SPECTRE_V4": "leak",
+    "anchor_fenced_SPECTRE_V4": "safe",
+    "anchor_SPECTRE_V1": "leak",
+    "anchor_fenced_SPECTRE_V1": "safe"
+  }
+}

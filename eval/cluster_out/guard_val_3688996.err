@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/s2473583/speculative_execution/gen/validate_netyield_guard.py", line 237, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/s2473583/speculative_execution/gen/validate_netyield_guard.py", line 151, in main
+    v, diag = adjudicate(concrete, cls, args.arch, gid, out / "build", repo_root)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/gen/validate_netyield_guard.py", line 95, in adjudicate
+    rec = run_spec_gadget(row, repo_root, diag_out=diag)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2473583/speculative_execution/oracle/spectector_oracle.py", line 224, in run_spec_gadget
+    rel_path = row["path"]  # relative path to victim .c file
+               ~~~^^^^^^^^
+KeyError: 'path'

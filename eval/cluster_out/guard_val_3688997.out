@@ -1,0 +1,145 @@
+staged -> /disk/scratch/s2473583/spectector.sif
+using sif: /disk/scratch/s2473583/spectector.sif
+=== guard validation: Mon 26 Oct 19:29:13 GMT 2026 ===
+
+=== SPECTRE_V4 (n=60, mit=leak) ===
+  [1/60] unrunnable uns=['btrq', 'cmovnoq']
+  [2/60] unrunnable uns=['btcq', 'cmovnoq']
+  [3/60] unrunnable
+  [4/60] unrunnable
+  [5/60] leak
+  [6/60] unrunnable
+  [7/60] unrunnable
+  [8/60] unrunnable
+  [9/60] unrunnable uns=['bsfq', 'btrl']
+  [10/60] safe
+  [11/60] unrunnable uns=['bsfq', 'btcq', 'btw']
+  [12/60] unrunnable
+  [13/60] unrunnable
+  [14/60] unrunnable uns=['btcq']
+  [15/60] unrunnable
+  [16/60] leak
+  [17/60] unrunnable
+  [18/60] unrunnable
+  [19/60] leak
+  [20/60] unrunnable
+  [21/60] unrunnable
+  [22/60] unrunnable
+  [23/60] unrunnable
+  [24/60] unrunnable
+  [25/60] unrunnable
+  [26/60] unrunnable uns=['btl', 'btrq']
+  [27/60] unrunnable uns=['btcq', 'btrq']
+  [28/60] unrunnable
+  [29/60] unrunnable
+  [30/60] leak
+  [31/60] unrunnable
+  [32/60] leak
+  [33/60] unrunnable uns=['btcq', 'idivw']
+  [34/60] unrunnable
+  [35/60] safe
+  [36/60] safe
+  [37/60] unrunnable
+  [38/60] leak
+  [39/60] unrunnable
+  [40/60] unrunnable
+  [41/60] safe
+  [42/60] unrunnable
+  [43/60] unrunnable
+  [44/60] unrunnable
+  [45/60] unrunnable
+  [46/60] unrunnable uns=['btsl']
+  [47/60] unrunnable
+  [48/60] unrunnable uns=['btcq']
+  [49/60] safe
+  [50/60] unrunnable uns=['bsrq', 'bswapq', 'btrw']
+  [51/60] leak
+  [52/60] unrunnable uns=['btcw', 'btsq', 'cmovpq']
+  [53/60] unrunnable
+  [54/60] unrunnable uns=['cmovpq']
+  [55/60] leak
+  [56/60] leak
+  [57/60] leak
+  [58/60] unrunnable uns=['btcl']
+  [59/60] leak
+  [60/60] unrunnable
+  discard=11 naive=25 guarded=25 (reclaimed=14 rejected=0 refused=0)
+
+=== SPECTRE_V1 (n=60, mit=leak) ===
+  [1/60] unrunnable uns=['btcq']
+  [2/60] unrunnable uns=['btrq']
+  [3/60] unrunnable uns=['btcq']
+  [4/60] unrunnable uns=['btcq']
+  [5/60] unrunnable uns=['bsfq']
+  [6/60] leak
+  [7/60] leak
+  [8/60] leak
+  [9/60] unrunnable uns=['btcq']
+  [10/60] unrunnable uns=['btcq', 'btsq']
+  [11/60] unrunnable
+  [12/60] leak
+  [13/60] unrunnable uns=['btcq', 'btrq', 'btrw']
+  [14/60] unrunnable uns=['bsfq']
+  [15/60] unrunnable uns=['btcq', 'divq']
+  [16/60] unrunnable uns=['btcq']
+  [17/60] leak
+  [18/60] unrunnable uns=['btq']
+  [19/60] leak
+  [20/60] leak
+  [21/60] unrunnable uns=['btcq', 'btsq', 'cmovnoq', 'cmovoq']
+  [22/60] leak
+  [23/60] leak
+  [24/60] leak
+  [25/60] unrunnable
+  [26/60] unrunnable uns=['btsq', 'cmovnoq', 'cwtd']
+  [27/60] leak
+  [28/60] leak
+  [29/60] leak
+  [30/60] leak
+  [31/60] leak
+  [32/60] unrunnable uns=['divb']
+  [33/60] leak
+  [34/60] leak
+  [35/60] unrunnable uns=['cmovnpq']
+  [36/60] unrunnable uns=['btcq']
+  [37/60] unrunnable uns=['btrw', 'cmovnoq']
+  [38/60] unrunnable uns=['bswapq', 'btcq']
+  [39/60] leak
+  [40/60] leak
+  [41/60] unrunnable uns=['bsfq']
+  [42/60] leak
+  [43/60] leak
+  [44/60] leak
+  [45/60] leak
+  [46/60] unrunnable uns=['divb']
+  [47/60] unrunnable uns=['btcq']
+  [48/60] unrunnable uns=['add', 'bswapq', 'btcq', 'cwtd']
+  [49/60] leak
+  [50/60] unrunnable uns=['btcq']
+  [51/60] unrunnable uns=['btcq', 'btsq']
+  [52/60] leak
+  [53/60] leak
+  [54/60] leak
+  [55/60] unrunnable uns=['btcq']
+  [56/60] unrunnable uns=['btq', 'setno']
+  [57/60] unrunnable uns=['btcq', 'btrw']
+  [58/60] unrunnable uns=['btsq']
+  [59/60] unrunnable uns=['cwtd']
+  [60/60] unrunnable uns=['bswapq', 'cwtd']
+  discard=27 naive=58 guarded=53 (reclaimed=26 rejected=0 refused=5)
+
+=== controls ===
+{
+  "anchor_SPECTRE_V4": "leak",
+  "anchor_fenced_SPECTRE_V4": "safe",
+  "anchor_SPECTRE_V1": "leak",
+  "anchor_fenced_SPECTRE_V1": "safe"
+}
+
+== SUMMARY ==
+SPECTRE_V4: net_yield discard=0.1833 naive=0.4167 guarded=0.4167 | reclaimed=14 false-pos-caught=0 refused=0 {}
+SPECTRE_V1: net_yield discard=0.45 naive=0.9667 guarded=0.8833 | reclaimed=26 false-pos-caught=0 refused=5 {'cwtd': 4, 'add': 1, 'setno': 1}
+controls: {'anchor_SPECTRE_V4': 'leak', 'anchor_fenced_SPECTRE_V4': 'safe', 'anchor_SPECTRE_V1': 'leak', 'anchor_fenced_SPECTRE_V1': 'safe'}
+
+wrote /home/s2473583/speculative_execution/gen/leakcond_guard/guard_validation.json
+=== done rc=0 (Mon 26 Oct 19:34:43 GMT 2026) ===
