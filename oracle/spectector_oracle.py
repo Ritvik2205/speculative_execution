@@ -330,8 +330,17 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
             or unsupported_ins is None
             or unsupported_ins > 0
         ):
-            logging.warning("UNRUNNABLE[%s] reason=status status=%r unsupported_ins=%s",
-                            gadget_id, status, unsupported_ins)
+            # Spectector names the instructions it cannot model on stdout/stderr
+            # (e.g. "unsupported instruction: bt"). Capture those lines so a
+            # guard-validation run can tell whether the unsupported ops are
+            # speculation-inert (bt/bsf/cmov ...) -- in which case a data/control
+            # leak is trustworthy despite the flag -- or potential barriers, in
+            # which case the relax would be unsound. See the net-yield guard.
+            _blob = ((result.stdout or "") + "\n" + (result.stderr or "")).lower()
+            _uns = [ln.strip() for ln in _blob.splitlines()
+                    if "unsupported" in ln or "unknown instr" in ln or "not supported" in ln]
+            logging.warning("UNRUNNABLE[%s] reason=status status=%r unsupported_ins=%s uns_lines=%r",
+                            gadget_id, status, unsupported_ins, _uns[:5])
             return _unrunnable(row)
 
         return build_spec_record(row, status_json)

@@ -33,4 +33,13 @@ echo "=== sample compile_or_run stderr tails (first 6) ==="
 grep 'reason=compile_or_run' "$LOG" | head -6
 echo "=== sample status reasons (unsupported/bad status) ==="
 grep -E 'reason=status' "$LOG" | head -6
+echo "=== UNSUPPORTED INSTRUCTION histogram (the guard-soundness question) ==="
+# pull mnemonics out of the uns_lines the oracle logged; a guard is only sound
+# if these are all speculation-inert (bt/bsf/cmov/...) and not barriers.
+grep -oE "uns_lines=\[.*\]" "$LOG" \
+  | grep -oE "(unsupported instruction:?|unknown instr[a-z]*:?|not supported:?)[^',\"]*" \
+  | sed -E 's/^[^:]*:?[[:space:]]*//' | tr 'A-Z' 'a-z' | awk '{print $1}' \
+  | sort | uniq -c | sort -rn | head -30
+echo "(if empty, print raw uns_lines samples:)"
+grep -oE "uns_lines=\[.*\]" "$LOG" | sort | uniq -c | sort -rn | head -12
 echo "=== done rc=$? ($(date)) ==="
