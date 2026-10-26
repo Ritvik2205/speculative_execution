@@ -81,7 +81,7 @@ def render_c(concrete, cls, arch, gid, out_dir, repo_root):
     p = out_dir / f"gen_spec_{gid}.c"
     p.write_text(spec_c)
     return {"gadget_id": gid, "vuln_class": cls,
-            "spectector_source": str(p.relative_to(repo_root)), "adjudicable": "yes"}
+            "path": str(p.relative_to(repo_root)), "adjudicable": "yes"}
 
 
 def adjudicate(concrete, cls, arch, gid, out_dir, repo_root):
@@ -198,12 +198,12 @@ def main(argv=None) -> int:
     for cls in args.classes:
         # positive anchor: the class template's own canonical leaking body
         row = {"gadget_id": f"anchor_{cls}", "vuln_class": cls, "adjudicable": "yes",
-               "spectector_source": None}
+               "path": None}
         # render the template with NO generated body (its built-in leaking body)
         spec_c = gen_decode.spec_gadgets.render_spec(cls, fenced=False, gen_body=None)
         p = out / "build" / f"anchor_{cls}.c"
         p.write_text(spec_c)
-        row["spectector_source"] = str(p.relative_to(ROOT))
+        row["path"] = str(p.relative_to(ROOT))
         rec = run_spec_gadget(row, repo_root)
         controls[f"anchor_{cls}"] = rec.status if rec.status != "ok" else (LEAK if rec.leak else SAFE)
         # fenced version must be SAFE
@@ -211,7 +211,7 @@ def main(argv=None) -> int:
         pf = out / "build" / f"anchor_fenced_{cls}.c"
         pf.write_text(spec_c_f)
         rowf = {"gadget_id": f"anchor_fenced_{cls}", "vuln_class": cls,
-                "adjudicable": "yes", "spectector_source": str(pf.relative_to(ROOT))}
+                "adjudicable": "yes", "path": str(pf.relative_to(ROOT))}
         recf = run_spec_gadget(rowf, repo_root)
         controls[f"anchor_fenced_{cls}"] = recf.status if recf.status != "ok" else (LEAK if recf.leak else SAFE)
     print(json.dumps(controls, indent=2), flush=True)
