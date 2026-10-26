@@ -1542,8 +1542,33 @@ $0.11$, overlapping intervals at $n{=}80$) because roughly two-thirds of
 fence-sparse \textsc{leak} gadgets carry at least one instruction outside
 Spectector's model (the \texttt{bt}/\texttt{bsf}/\texttt{cmov} forms common in
 real Revizor gadgets) and a single unmodelled instruction voids the verdict---an
-oracle-coverage limit, not a property of the token. We therefore report the
-per-adjudicable rate and leave net yield oracle-bound.
+oracle-coverage limit, not a property of the token.
+
+\paragraph{Recovering net yield with a sound guard.}
+Every unmodelled instruction we observed on these \textsc{leak} arms is
+speculation-inert---\texttt{cmov}, \texttt{bt}/\texttt{btc}/\texttt{btr}/\texttt{bts},
+\texttt{bsf}/\texttt{bsr}, \texttt{bswap}, \texttt{div}/\texttt{idiv},
+\texttt{rdtsc}---none of them a speculation barrier, so Spectector passing
+through them cannot hide a fence. The only residual risk is the opposite one:
+by ignoring such an instruction Spectector could \emph{over}-report a leak that
+the ignored instruction would in fact have suppressed. We therefore gate the
+reclaim with a strip-and-rerun differential: a \textsc{data}/\textsc{control}
+verdict with $\texttt{unsupported\_ins}>0$ is accepted as \textsc{leak} only if
+(a) every unsupported mnemonic is in the known-inert set---else the gadget is
+refused, as the op could be an unmodelled barrier---and (b) the gadget with all
+unsupported-mnemonic instructions deleted still leaks under the fully modelled
+oracle. Validated on 60 \textsc{leak} draws per class with positive and
+fenced controls passing (the canonical leaking template is \textsc{leak}, its
+fenced form \textsc{safe}), the differential never had to reject a leak over all
+40 reclaim candidates (the ignored inert ops never carried the leak), while the
+safety catch refused six draws whose unsupported ops---\texttt{cwtd},
+\texttt{setno}, and a realiser-malformed three-operand \texttt{add}---were not
+provably inert. Net yield, measured per sample drawn, then rises from $0.18$ to
+$0.42$ for V4 ($2.3\times$) and from $0.45$ to $0.88$ for V1, at zero admitted
+false positives. The guard ships behind a flag
+(\texttt{gen/validate\_netyield\_guard.py}); we keep the conservative
+discard as the default oracle behaviour and report the recovered rate as the
+achievable net yield when the relax is enabled.
 
 \begin{table}[t]
 \centering
