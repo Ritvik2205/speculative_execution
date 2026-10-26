@@ -611,6 +611,16 @@ def main(argv=None) -> int:
                           "exactly as before. Requires 'BENIGN' in the "
                           "checkpoint's vocab; otherwise warns once and falls "
                           "back to leak-only for the run.")
+    ap.add_argument("--netyield-guard", action="store_true",
+                     default=bool(int(os.environ.get("SPECEXEC_NETYIELD_GUARD", "0"))),
+                     help="wrap the validator with the net-yield guard "
+                          "(gen/validate_netyield_guard.py): an UNRUNNABLE "
+                          "verdict voided solely by inert unsupported ops on a "
+                          "would-be data/control leak is reclaimed as LEAK iff "
+                          "the leak survives deleting those ops (validated on "
+                          "V4/V1; see paper sec:hwlabel). Default OFF -- the "
+                          "conservative discard. Also enabled by "
+                          "SPECEXEC_NETYIELD_GUARD=1.")
     args = ap.parse_args(argv)
 
     reason = _docker_unavailable_reason(combined=args.combined_oracle)
@@ -662,6 +672,11 @@ def main(argv=None) -> int:
     else:
         validator = SpectectorValidator(repo_root=str(repo_root))
     out_dir = repo_root / "oracle" / "build"
+    if args.netyield_guard:
+        from gen.validate_netyield_guard import GuardedSpectectorValidator
+        validator = GuardedSpectectorValidator(validator, args.arch, out_dir, repo_root)
+        print("[netyield-guard] ON: inert-unsupported would-be leaks reclaimed "
+              "via strip-and-rerun (validated V4/V1); default discard overridden")
 
     classes = args.classes or _default_classes()
 

@@ -1565,10 +1565,11 @@ safety catch refused six draws whose unsupported ops---\texttt{cwtd},
 \texttt{setno}, and a realiser-malformed three-operand \texttt{add}---were not
 provably inert. Net yield, measured per sample drawn, then rises from $0.18$ to
 $0.42$ for V4 ($2.3\times$) and from $0.45$ to $0.88$ for V1, at zero admitted
-false positives. The guard ships behind a flag
-(\texttt{gen/validate\_netyield\_guard.py}); we keep the conservative
-discard as the default oracle behaviour and report the recovered rate as the
-achievable net yield when the relax is enabled.
+false positives. The guard is wired into the generate--adjudicate loop behind
+the \texttt{-{}-netyield-guard} flag (a validator wrapper that reclaims through
+the identical, validated differential); the conservative discard stays the
+default oracle behaviour, and we report the recovered rate as the achievable
+net yield when the relax is enabled.
 
 \begin{table}[t]
 \centering

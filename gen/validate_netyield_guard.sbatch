@@ -23,6 +23,11 @@ _LOCAL="/disk/scratch/$USER/$(basename "$SPECEXEC_SPECTECTOR_SIF")"
 if [ "$SPECEXEC_SPECTECTOR_SIF" != "$_LOCAL" ]; then mkdir -p "/disk/scratch/$USER"
   cp -f "$SPECEXEC_SPECTECTOR_SIF" "$_LOCAL" 2>/dev/null && export SPECEXEC_SPECTECTOR_SIF="$_LOCAL" && echo "staged -> $_LOCAL"; fi
 echo "using sif: $SPECEXEC_SPECTECTOR_SIF"
-echo "=== guard validation: $(date) ==="
+echo "=== guard validation (A/B: discard/naive/guarded): $(date) ==="
 python3 -u gen/validate_netyield_guard.py --model gen/generator_leakcond.pt --classes SPECTRE_V4 SPECTRE_V1 --n 60
+echo "=== wrapper smoke (PRODUCTION GuardedSpectectorValidator == the --netyield-guard flag): $(date) ==="
+# Proves the wired flag end-to-end (imports resolve, inner surfaces diag, the
+# wrapper reclaims via the same guard()). Smaller n -- plumbing check, the A/B
+# above is the quantitative validation.
+python3 -u gen/validate_netyield_guard.py --model gen/generator_leakcond.pt --classes SPECTRE_V4 SPECTRE_V1 --n 20 --mode wrapper
 echo "=== done rc=$? ($(date)) ==="

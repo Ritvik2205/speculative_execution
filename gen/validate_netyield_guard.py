@@ -45,7 +45,7 @@ import torch  # noqa: E402
 from generator import CondTransformerLM  # noqa: E402
 import gen.decode as gen_decode  # noqa: E402
 from oracle.spectector_oracle import run_spec_gadget  # noqa: E402
-from oracle.validators.base import LEAK, SAFE  # noqa: E402
+from oracle.validators.base import LEAK, SAFE, UNRUNNABLE, ValidationResult  # noqa: E402
 
 # Speculation-inert unsupported mnemonics (observed on V4 mit=leak), with size
 # suffixes. If an unsupported mnemonic is NOT matched here, the guard REFUSES
@@ -98,10 +98,18 @@ def adjudicate(concrete, cls, arch, gid, out_dir, repo_root):
     return "unrunnable", diag
 
 
-def guard(concrete, cls, arch, gid, out_dir, repo_root, diag):
+def guard(concrete, cls, arch, gid, out_dir, repo_root, diag, adjudicate_fn=None):
     """Strip-and-rerun differential. Returns ('reclaimed'|'rejected'|'refused').
     Only called when the primary verdict was unrunnable AND diag says the
-    would-be status was data/control with >0 unsupported instructions."""
+    would-be status was data/control with >0 unsupported instructions.
+
+    `adjudicate_fn(reduced_concrete, gid) -> verdict` re-adjudicates the
+    stripped body; default re-renders + runs the oracle directly with upstream
+    settings (what the standalone validation uses). The production wrapper
+    (GuardedSpectectorValidator) injects a closure that re-adjudicates through
+    the configured validator, so the reclaim honours the same oracle config
+    (combined/window/steps) as the primary verdict -- the guard LOGIC below is
+    identical in both, which is why the wired flag inherits the validation."""
     mnems = diag.get("uns_mnemonics") or []
     if not mnems or not all(INERT_RE.match(m) for m in mnems):
         return "refused"                      # a non-inert (possible barrier) op
@@ -109,8 +117,119 @@ def guard(concrete, cls, arch, gid, out_dir, repo_root, diag):
     reduced = [l for l in concrete if mnemonic(l) not in strip]
     if len([l for l in reduced if l.strip()]) < 2:
         return "rejected"                     # nothing left to carry the leak
-    v, _ = adjudicate(reduced, cls, arch, f"{gid}_stripped", out_dir, repo_root)
+    if adjudicate_fn is None:
+        v = adjudicate(reduced, cls, arch, f"{gid}_stripped", out_dir, repo_root)[0]
+    else:
+        v = adjudicate_fn(reduced, f"{gid}_stripped")
     return "reclaimed" if v == LEAK else "rejected"
+
+
+class GuardedSpectectorValidator:
+    """Production wrapper: delegates to an inner SpectectorValidator, and on an
+    UNRUNNABLE verdict that was voided solely by inert unsupported instructions
+    on a would-be data/control leak, applies the SAME validated `guard()` above
+    to the gadget's realised body (`gadget['_realized_asm']`), upgrading to
+    LEAK only if the leak survives deleting those ops. Verdict is byte-identical
+    to the inner validator for every gadget the guard does not reclaim.
+
+    Drop-in for SpectectorValidator in the generate->adjudicate loop: implements
+    validate(gadget) and sets the inner validator's guard_netyield so the diag
+    is available. Default OFF -- only constructed when --netyield-guard is set.
+    """
+    name = "spectector+netyield_guard"
+
+    def __init__(self, inner, arch, out_dir, repo_root):
+        self.inner = inner
+        inner.guard_netyield = True          # inner must surface the diag
+        self.arch = arch
+        self.out_dir = Path(out_dir)
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.repo_root = str(repo_root)
+        self.stats = Counter()               # reclaimed/rejected/refused tallies
+
+    def _reclaim_adjudicate(self, cls):
+        """A closure re-adjudicating a stripped body through the inner
+        validator, so the reclaim uses the same oracle config as the primary."""
+        def fn(reduced_concrete, gid):
+            try:
+                gen_body = gen_decode.build_gen_body(reduced_concrete, cls, self.arch,
+                                                     is_invisispec=False)
+            except Exception:
+                return SAFE                   # unbuildable stripped body -> not a leak
+            spec_c = gen_decode.spec_gadgets.render_spec(cls, fenced=False, gen_body=gen_body)
+            p = self.out_dir / f"gen_spec_{gid}.c"
+            p.write_text(spec_c)
+            g = {"gadget_id": gid, "vuln_class": cls, "adjudicable": "yes",
+                 "spectector_source": str(p.relative_to(Path(self.repo_root)))}
+            return self.inner.validate(g).verdict
+        return fn
+
+    def validate(self, gadget):
+        res = self.inner.validate(gadget)
+        if res.verdict != UNRUNNABLE:
+            return res
+        diag = {k: res.details[k] for k in ("would_be_status", "uns_mnemonics")
+                if k in res.details}
+        if diag.get("would_be_status") not in ("data", "control"):
+            return res                        # unrunnable for an unguardable reason
+        concrete = gadget.get("_realized_asm") or []
+        if len([l for l in concrete if l.strip()]) < 2:
+            return res
+        cls = gadget.get("vuln_class", "UNKNOWN")
+        g = guard(concrete, cls, self.arch, gadget["gadget_id"], self.out_dir,
+                  self.repo_root, diag, adjudicate_fn=self._reclaim_adjudicate(cls))
+        self.stats[g] += 1
+        if g == "reclaimed":
+            d = dict(res.details); d["netyield_guard"] = "reclaimed"
+            return ValidationResult(self.name, gadget["gadget_id"], cls, LEAK,
+                                    1.0, d)
+        d = dict(res.details); d["netyield_guard"] = g
+        return ValidationResult(res.validator, gadget["gadget_id"], cls,
+                                UNRUNNABLE, res.signal, d)
+
+
+def _wrapper_smoke(model, realizer, args, out, repo_root) -> int:
+    """Drive the same mit=leak draws through the PRODUCTION
+    GuardedSpectectorValidator (the --netyield-guard wiring), confirming the
+    flag plumbing end-to-end: inner surfaces the diag, the wrapper reclaims via
+    the shared guard(), and verdicts come back well-formed. Reports the
+    wrapper's own reclaimed/rejected/refused tally -- it should track the
+    abtest's reclaim counts, since both call the same guard()."""
+    from oracle.validators.spectector_validator import SpectectorValidator
+    build = out / "build"
+    total = Counter()
+    for cls in args.classes:
+        if cls not in model.vocab.cls_id:
+            print(f"skip {cls}: not in vocab"); continue
+        inner = SpectectorValidator(repo_root=repo_root)
+        wrapper = GuardedSpectectorValidator(inner, args.arch, build, repo_root)
+        verdicts = Counter()
+        print(f"\n=== wrapper smoke {cls} (n={args.n}, mit=leak) ===", flush=True)
+        for i in range(args.n):
+            toks = model.sample(cls, args.arch, mit="leak",
+                                temperature=args.temperature, top_k=args.top_k)
+            concrete = realizer.realize_sequence(toks)
+            gid = f"wrap_{cls}_{args.arch}_s{i}"
+            row = render_c(concrete, cls, args.arch, gid, build, Path(repo_root))
+            if row is None:
+                verdicts["unrealizable"] += 1; continue
+            # the loop's gadget dict: spectector_source for the inner validator,
+            # _realized_asm (the body) for the guard.
+            g = {"gadget_id": gid, "vuln_class": cls, "adjudicable": "yes",
+                 "spectector_source": row["path"], "_realized_asm": concrete}
+            res = wrapper.validate(g)
+            verdicts[res.verdict] += 1
+            print(f"  [{i+1}/{args.n}] {res.verdict}"
+                  + (f" guard={res.details.get('netyield_guard')}"
+                     if res.details.get("netyield_guard") else ""), flush=True)
+        print(f"  {cls}: verdicts={dict(verdicts)} guard_stats={dict(wrapper.stats)}",
+              flush=True)
+        total.update(wrapper.stats)
+    print(f"\n== WRAPPER SMOKE total guard stats: {dict(total)} ==")
+    ok = total.get("reclaimed", 0) > 0
+    print("PLUMBING OK: wrapper reclaimed >=1 leak via the wired path"
+          if ok else "PLUMBING SUSPECT: wrapper reclaimed 0 (expected some on V4/V1)")
+    return 0 if ok else 3
 
 
 def main(argv=None) -> int:
@@ -124,6 +243,11 @@ def main(argv=None) -> int:
     ap.add_argument("--top-k", type=int, default=20)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out-dir", default=str(ROOT / "gen/leakcond_guard"))
+    ap.add_argument("--mode", choices=["abtest", "wrapper"], default="abtest",
+                    help="abtest: the discard/naive/guarded A/B (validates the "
+                         "guard logic). wrapper: drive the same draws through "
+                         "the production GuardedSpectectorValidator and tally "
+                         "its .stats (validates the wired flag plumbing).")
     args = ap.parse_args(argv)
     torch.manual_seed(args.seed)
 
@@ -135,6 +259,9 @@ def main(argv=None) -> int:
         out = ROOT / out
     (out / "build").mkdir(parents=True, exist_ok=True)
     repo_root = str(ROOT)
+
+    if args.mode == "wrapper":
+        return _wrapper_smoke(model, realizer, args, out, repo_root)
 
     report = {}
     for cls in args.classes:
