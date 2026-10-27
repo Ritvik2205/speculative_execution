@@ -99,6 +99,68 @@ def train(samples_glob: str, cls: str, out_path: str, device: str = "cpu") -> di
             "safe": int((~y[built].astype(bool)).sum()), "out": out_path}
 
 
+def train_pairwise(samples_glob: str, cls: str, out_path: str, device: str = "cpu",
+                   hidden: int = 128, epochs: int = 200) -> dict:
+    """Train the PAIRWISE (order-aware) head: rank leak above safe within each
+    RL round (rank/pairwise_head.py). Saves the SAME pickle dict shape
+    {scaler, model, combined_dim, cls} with `model` a NumpyMLPScorer exposing
+    predict_proba, so LeakGate loads it unchanged. UNRUNNABLE excluded, same as
+    train(); needs >=1 within-round (leak, safe) pair."""
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler
+    from encoder_hook import EncoderHook
+    from pairwise_head import fit_pairwise
+
+    rows = []
+    for p in sorted(glob.glob(samples_glob)):
+        for line in open(p):
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            if r.get("class") != cls:
+                continue
+            v = str(r.get("verdict", "")).lower()
+            asm = _asm_from_record(r)
+            rnd = r.get("round")
+            if v in ("leak", "safe") and asm:
+                rows.append({"seq": tuple(asm), "y": int(v == "leak"),
+                             "round": rnd if rnd is not None else -1})
+    # dedup + drop conflicting labels (keep the round of the surviving row)
+    by = collections.defaultdict(set)
+    rounds = {}
+    for r in rows:
+        by[r["seq"]].add(r["y"])
+        rounds.setdefault(r["seq"], r["round"])
+    uniq = [{"seq": list(s), "y": next(iter(ys)), "round": rounds[s]}
+            for s, ys in by.items() if len(ys) == 1]
+    if len({r["y"] for r in uniq}) < 2:
+        raise SystemExit(f"{cls}: need both leak and safe examples, got "
+                         f"{collections.Counter(r['y'] for r in uniq)}")
+
+    hook = EncoderHook(device=device)
+    recs = [{"sequence": r["seq"], "arch": "x86_64"} for r in uniq]
+    emb = np.full((len(uniq), hook.combined_dim), np.nan)
+    for i, rc in enumerate(recs):
+        try:
+            emb[i] = hook.embed([rc])[0]
+        except Exception:
+            pass
+    built = ~np.isnan(emb).any(axis=1)
+    y = np.array([r["y"] for r in uniq])
+    rnd = np.array([r["round"] for r in uniq])
+    scaler = StandardScaler().fit(emb[built])
+    model = fit_pairwise(scaler.transform(emb[built]), y[built], rnd[built],
+                         hidden=hidden, epochs=epochs, device=device)
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "wb") as f:
+        pickle.dump({"scaler": scaler, "model": model,
+                     "combined_dim": hook.combined_dim, "cls": cls}, f)
+    return {"cls": cls, "head": "pairwise", "n": int(built.sum()),
+            "leak": int(y[built].sum()),
+            "safe": int((~y[built].astype(bool)).sum()),
+            "rounds": sorted(set(rnd[built].tolist())), "out": out_path}
+
+
 # ---------------------------------------------------------------------------
 # the gate used in the loop
 # ---------------------------------------------------------------------------
@@ -145,9 +207,19 @@ def main(argv=None) -> int:
     t.add_argument("--class", dest="cls", required=True)
     t.add_argument("--out", required=True)
     t.add_argument("--device", default="cpu")
+    tp = sub.add_parser("train-pairwise")
+    tp.add_argument("--samples", default=str(ROOT / "gen" / "rl_lencond_samples.jsonl"))
+    tp.add_argument("--class", dest="cls", required=True)
+    tp.add_argument("--out", required=True)
+    tp.add_argument("--device", default="cpu")
+    tp.add_argument("--hidden", type=int, default=128)
+    tp.add_argument("--epochs", type=int, default=200)
     a = ap.parse_args(argv)
     if a.cmd == "train":
         print(json.dumps(train(a.samples, a.cls, a.out, a.device), indent=2))
+    elif a.cmd == "train-pairwise":
+        print(json.dumps(train_pairwise(a.samples, a.cls, a.out, a.device,
+                                        a.hidden, a.epochs), indent=2))
     return 0
 
 

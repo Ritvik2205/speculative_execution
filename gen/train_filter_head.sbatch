@@ -30,11 +30,25 @@ conda activate specexec
 SAMPLES="${SAMPLES:-gen/rl_lencond_samples.jsonl}"
 DEVICE="${DEVICE:-cpu}"   # set DEVICE=cuda to use the GPU for the encoder
 
-echo "=== train filter heads: $(date) samples=$SAMPLES device=$DEVICE ==="
+# HEAD=pointwise (default, the logistic head) | pairwise (order-aware) | both
+HEAD="${HEAD:-both}"
+
+echo "=== train filter heads: $(date) samples=$SAMPLES device=$DEVICE head=$HEAD ==="
 for CLS in SPECTRE_V1 SPECTRE_V4; do
   echo "--- $CLS"
-  python3 -u rank/filter_gate.py train --class "$CLS" \
-    --samples "$SAMPLES" --device "$DEVICE" \
-    --out "rank/filter_head_${CLS}.pkl"
+  if [ "$HEAD" = "pointwise" ] || [ "$HEAD" = "both" ]; then
+    python3 -u rank/filter_gate.py train --class "$CLS" \
+      --samples "$SAMPLES" --device "$DEVICE" \
+      --out "rank/filter_head_${CLS}.pkl"
+  fi
+  if [ "$HEAD" = "pairwise" ] || [ "$HEAD" = "both" ]; then
+    # SPECTRE_V1 has no SAFE class in generated data, so a pairwise (leak vs
+    # safe) head is undefined for it; train-pairwise exits with the same
+    # both-classes-required error. Harmless under `set -uo pipefail` (no -e).
+    python3 -u rank/filter_gate.py train-pairwise --class "$CLS" \
+      --samples "$SAMPLES" --device "$DEVICE" \
+      --out "rank/filter_head_pairwise_${CLS}.pkl" || echo "  (pairwise $CLS skipped)"
+  fi
 done
-echo "=== done: $(date). Heads in rank/filter_head_SPECTRE_{V1,V4}.pkl ==="
+echo "=== done: $(date). pointwise -> rank/filter_head_SPECTRE_{V1,V4}.pkl;"
+echo "    pairwise -> rank/filter_head_pairwise_SPECTRE_{V1,V4}.pkl ==="

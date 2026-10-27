@@ -229,6 +229,17 @@ def main(argv=None) -> int:
         add("frozen-encoder head (prospective)", np.where(~np.isnan(enc_oof), enc_oof, 0.5),
             prosp=auc(enc_oof[ok2], y[ok2]) if ok2.any() else None)
         enc_note = f"encoder built {int(built.sum())}/{len(rows)} PDGs."
+        # pairwise (order-aware) head on the same frozen embedding
+        try:
+            from pairwise_head import make_pairwise_feat_fn
+            pw_fn = make_pairwise_feat_fn(emb, built, y, rnd, device=a.device)
+            pw_oof = prospective_oof(rows, pw_fn, y, rnd)
+            ok3 = ~np.isnan(pw_oof) & built
+            add("pairwise encoder head (prospective)",
+                np.where(~np.isnan(pw_oof), pw_oof, 0.5),
+                prosp=auc(pw_oof[ok3], y[ok3]) if ok3.any() else None)
+        except Exception as e:  # noqa: BLE001
+            enc_note += f" pairwise SKIPPED: {type(e).__name__}: {e}"
     except Exception as e:  # noqa: BLE001
         enc_note = f"encoder head SKIPPED: {type(e).__name__}: {e}"
 

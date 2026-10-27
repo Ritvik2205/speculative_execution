@@ -189,3 +189,25 @@ plainly it is a scoping choice, not a hole a reviewer finds.
 5. **[LOCAL] riscv realiser semantics** — lifts executes off 0.02 (item 2).
 6. **[HARDWARE] shared-config Revizor campaign** — breaks the class/config
    confound (item 7).
+
+
+---
+
+## CHANGELOG 2026-10-27 — F + G implemented/corrected
+
+- **F (riscv executes 0.02) — DIAGNOSIS CORRECTED, fix already in code.** It is
+  NOT faulting loads / a realiser address-sandbox (0 `fault_mem`); it is
+  Unicorn decoding only ~RV64I (176/180 `fault_insn`). The sanctioned fix
+  (`RiscvQemuRunner`, QEMU RV64GC) is already implemented + tested in
+  `gen/precheck.py`; it is fail-open when qemu/linker absent. Added
+  `gen/isa_runnability_riscv_qemu.sbatch` (loud guards: refuses to run under the
+  Unicorn fallback, and requires a riscv64-vocab checkpoint). Remaining work is
+  OPERATOR tooling (`qemu-user` + riscv static linker in `specexec`) + a
+  riscv-corpus generator, NOT code. Spec: `docs/SPEC_F_riscv_G_pairwise_2026-10-27.md`.
+- **G (pairwise ranker) — IMPLEMENTED.** `rank/pairwise_head.py`
+  (`NumpyMLPScorer` + `fit_pairwise` within-round RankNet loss + eval feat_fn),
+  `rank/filter_gate.py train-pairwise` (same pickle contract, LeakGate
+  untouched), pairwise row added to `rank/eval_v4_filter.py` +
+  `rank/eval_v2_filter.py`, `gen/train_filter_head.sbatch HEAD=pairwise|both`,
+  tests `tests/rank/test_pairwise_head.py` (9 pass locally). Cluster run pending:
+  `sbatch --export=ALL,HEAD=both gen/train_filter_head.sbatch` then the evals.
