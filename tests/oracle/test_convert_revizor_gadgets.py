@@ -87,6 +87,16 @@ def test_find_program_asm_files_dedups():
     assert len(paths) == len(set(p.resolve() for p in paths))
 
 
+def test_find_program_asm_files_skips_revizor_bugs_dir(tmp_path):
+    real = tmp_path / "l1tf" / "123" / "violation-1" / "program.asm"
+    bug = tmp_path / "l1tf" / "123" / "bugs" / "violation-2" / "program.asm"
+    for p in (real, bug):
+        p.parent.mkdir(parents=True)
+        p.write_text("nop\n")
+    paths = crg.find_program_asm_files([str(tmp_path)], repo_root=REPO_ROOT)
+    assert paths == [real]
+
+
 # ---------------------------------------------------------------------------
 # convert_for_classes (end-to-end on real fixtures)
 # ---------------------------------------------------------------------------

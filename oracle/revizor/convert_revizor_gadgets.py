@@ -106,6 +106,11 @@ def find_program_asm_files(roots: List[str], repo_root: Path = REPO_ROOT) -> Lis
     seen = set()
     out: List[Path] = []
     for p in sorted(found):
+        # Revizor writes `<workdir>/bugs/` when its own model is inconsistent
+        # ("Fast path contract traces do not match the full traces") -- a
+        # fuzzer self-check failure, not a hardware-confirmed violation.
+        if "bugs" in p.parts:
+            continue
         rp = p.resolve()
         if rp in seen:
             continue
