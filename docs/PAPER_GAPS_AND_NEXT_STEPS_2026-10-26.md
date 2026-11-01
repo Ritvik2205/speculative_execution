@@ -211,3 +211,19 @@ plainly it is a scoping choice, not a hole a reviewer finds.
   `rank/eval_v2_filter.py`, `gen/train_filter_head.sbatch HEAD=pairwise|both`,
   tests `tests/rank/test_pairwise_head.py` (9 pass locally). Cluster run pending:
   `sbatch --export=ALL,HEAD=both gen/train_filter_head.sbatch` then the evals.
+
+## CHANGELOG 2026-11-01 — F run completed (QEMU), result folded
+
+- **F (riscv executes) — QEMU backend validated; diagnosis confirmed; new
+  residual isolated.** Required `lld` on the cluster (clang+system-ld can't link
+  riscv64: `unrecognised emulation mode: elf64lriscv`). Under QEMU RV64GC:
+  `fault_insn 527->0` (decode wall gone, bodies are valid RV64GC) but executes
+  still ~0.01 — now `fault_mem 530/540`. Two residual causes: (1) RiscvQemuRunner
+  has NO demand-paging vs the Unicorn path (x86/ARM 0.52/0.84), so the riscv
+  rate is stricter and NOT comparable; (2) realiser emits riscv loads with
+  clobbered/out-of-range bases. Folded into paper tab:isavalid prose (two-stage
+  reading) + sharpened \todo. Writeup `gen/isa_runnability_riscv_qemu_result.md`.
+  Hardened the sbatch guard to the real canary (not just tool presence) so a
+  silent Unicorn fallback can't recur. NEW next steps: **F2** QEMU demand-paging
+  parity, **F3** riscv realiser load-base sandboxing (the original F idea, wrong
+  for the 0.02 decode but right for the fault_mem residual).

@@ -1362,14 +1362,30 @@ riscv64 & + assembler    & 1.00 & \textbf{1.00} & 0.02 \\
 \end{table}
 
 The riscv64 row is from a generator retrained with the riscv corpus; it is
-the first riscv64 generation this project has. Its \emph{executes} rate of
-0.02 is a real and separate finding: riscv64 output assembles perfectly yet
-almost never runs under emulation, because the realiser emits architecturally
-valid but faulting sequences (loads through uninitialised pointers that the
-riscv addressing modes do not sandbox the way the x86/ARM corpora do). So the
-riscv arm has reached ``assembles'' but not yet ``executes'', and the next
-realiser work on it is semantic, not syntactic.
-\todo{raise riscv64 executes rate; it is 0.02 against 0.52 (x86) / 0.84 (arm64)}
+the first riscv64 generation this project has. Its \emph{executes} rate needs a
+two-stage reading, because the two emulation backends fail for different
+reasons. Under Unicorn (the same backend as the x86/ARM rows) riscv64 executes
+at 0.02, but that is an \emph{executor} limit, not a generator one: Unicorn
+models roughly the RV64I base and raises an illegal-instruction fault on the
+M/A/C/Zicbom forms the RV64GC generator freely emits, so $527/540$ sampled
+bodies fail at instruction decode and $0$ reach a memory access. Re-running the
+identical protocol through a QEMU user-mode RV64GC backend
+(\texttt{gen/precheck.py:RiscvQemuRunner}) removes that wall entirely---
+\emph{zero} decode faults---confirming the bodies are valid RV64GC. What it
+exposes is the next layer: $530/540$ now fault on \emph{memory} and only $\sim$1\%
+run clean. Part of that gap is a backend asymmetry we flag rather than hide: the
+Unicorn path demand-maps faulting pages (as Revizor masks addresses into its
+sandbox), whereas the QEMU harness runs a freestanding ELF against a fixed
+buffer with no demand paging, so the riscv memory-fault rate is stricter than
+and not directly comparable to the x86 ($0.52$) and ARM ($0.84$) figures. The
+residual is therefore genuine---the realiser emits riscv loads whose base is
+clobbered or strides out of the sandboxed buffer---and the remaining work is
+realiser-semantic (pin/mask riscv load bases, as the x86 leak emulator already
+does) plus demand-paging parity in the QEMU harness, not the instruction-decode
+problem the raw 0.02 first suggested.
+\todo{after riscv load-base sandboxing + QEMU demand-paging parity, report a
+riscv64 executes rate comparable to x86/ARM; the decode wall is already removed
+(0 fault\_insn under QEMU).}
 
 %% =========================================================================
 
