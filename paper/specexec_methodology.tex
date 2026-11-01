@@ -1783,7 +1783,12 @@ over length is real but small, and the leaks-per-oracle-call headroom is
 limited precisely because the generator's own yield is already high by late
 rounds (the filter's value concentrates in early rounds and harder classes,
 as the head-room argument above predicts). The encoder built 360 of 460 PDGs;
-the other 100 are counted as unselectable, not dropped.
+the other 100 are counted as unselectable, not dropped. An order-aware
+\emph{pairwise} head (a RankNet-style loss over within-round leak/safe pairs on
+the same embedding) gave no improvement---within-round AUC 0.628 and prospective
+0.764, at or below the pointwise head---limited by the $262{:}17$ leak-to-safe
+imbalance, which starves the pairwise objective of negatives; we keep the
+pointwise head.
 
 \begin{table}[t]
 \centering
@@ -1800,6 +1805,7 @@ scorer & within-round & prospective \\
 sequence length (bar) & 0.587 & --- \\
 opcode-bag LR         & 0.650 & 0.627 \\
 frozen-encoder head   & \textbf{0.656} & \textbf{0.772} \\
+\quad pairwise (order-aware) & 0.628 & 0.764 \\
 \bottomrule
 \end{tabular}
 \end{table}
