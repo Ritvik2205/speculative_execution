@@ -413,6 +413,7 @@ class Emulator:
 
 _QEMU_TIMEOUT_S = 1.0            # wall-clock cap; Unicorn uses an insn count
 _RISCV_BUF_BYTES = 0x1000_0000   # 256 MiB RW buffer, seeded into every GPR
+_RISCV_DEMAND_CAP = 64           # F2: max pages mapped on demand (matches Unicorn)
 
 
 def _find_qemu_riscv() -> Optional[str]:
@@ -448,6 +449,18 @@ class RiscvQemuRunner:
         self.qemu = _find_qemu_riscv()
         self.cc = _find_riscv_cc()
         self._ok = bool(self.qemu and self.cc) and self._canary()
+        # F2 (opt-in, default OFF): a SIGSEGV->mmap handler in the wrapper gives
+        # the QEMU path the demand-paging the Unicorn Emulator has (map the
+        # faulting page, retry, cap at _RISCV_DEMAND_CAP), so a load through a
+        # clobbered base lands in freshly-mapped memory instead of SIGSEGV-ing.
+        # Enabled ONLY when (a) the env opt-in is set AND (b) a faulting-body
+        # canary actually comes back `ok` on THIS platform -- qemu-user signal
+        # support for a static -nostdlib riscv binary is the unknown, so the
+        # handler self-validates and falls back to the plain wrapper otherwise.
+        # A broken handler therefore cannot silently degrade a measurement.
+        self.demand = (self._ok
+                       and bool(int(os.environ.get("SPECEXEC_RISCV_DEMAND_PAGE", "0")))
+                       and self._demand_canary())
 
     @staticmethod
     def available_tools() -> bool:
@@ -456,10 +469,39 @@ class RiscvQemuRunner:
     def available(self) -> bool:
         return self._ok
 
-    # entry stub: seed x1,x3..x31 to the buffer midpoint, sp(x2) to its top,
-    # then `.incbin` the body, then exit(0). x0 is hardwired zero. gp(x3)/tp(x4)
-    # are seeded like any other GPR -- a freestanding exec needs no valid gp/tp.
-    def _wrapper_asm(self, body_path: str) -> str:
+    # SIGSEGV->mmap handler (F2). Installed before the body when demand paging
+    # is on. a1=siginfo; si_addr is at offset 16 on rv64 (si_signo/errno/code =
+    # 12 bytes + 4 pad). The kernel/qemu save and restore the full interrupted
+    # context around the handler, so it may clobber a*/t* freely; `ret` returns
+    # through the sigreturn trampoline the kernel set in ra. Past the page cap we
+    # restore SIG_DFL so the next fault terminates (mirrors the Unicorn cap).
+    _DEMAND_HANDLER = (
+        "_sigh:\n"
+        "\tld t0, 16(a1)\n"                       # si_addr
+        "\tli t1, -4096\n\tand t0, t0, t1\n"      # page base
+        "\tla t2, _pgcount\n\tld t3, 0(t2)\n\taddi t3, t3, 1\n\tsd t3, 0(t2)\n"
+        f"\tli t4, {_RISCV_DEMAND_CAP}\n\tbgeu t3, t4, _giveup\n"
+        "\tmv a0, t0\n\tli a1, 4096\n\tli a2, 3\n"      # addr,len,PROT_READ|WRITE
+        "\tli a3, 0x32\n\tli a4, -1\n\tli a5, 0\n"      # MAP_PRIVATE|ANON|FIXED
+        "\tli a7, 222\n\tecall\n\tret\n"                # mmap
+        "_giveup:\n"
+        "\tli a0, 11\n\tla a1, _dfl\n\tli a2, 0\n\tli a3, 8\n\tli a7, 134\n\tecall\n"
+        "\tret\n"
+    )
+    _DEMAND_DATA = (
+        ".section .data\n.align 3\n"
+        "_act:\t.dword _sigh\n\t.dword 4\n\t.dword 0\n"   # handler, SA_SIGINFO, mask
+        "_dfl:\t.dword 0\n\t.dword 0\n\t.dword 0\n"       # SIG_DFL
+        "_pgcount:\t.dword 0\n"
+    )
+    _DEMAND_INSTALL = (                                   # rt_sigaction(SIGSEGV,...)
+        "\tli a0, 11\n\tla a1, _act\n\tli a2, 0\n\tli a3, 8\n\tli a7, 134\n\tecall\n"
+    )
+
+    # entry stub: (optionally install the demand-page handler,) seed x1,x3..x31
+    # to the buffer midpoint, sp(x2) to its top, then run `body_asm` (an
+    # `.incbin` line or inline asm), then exit(0). x0 is hardwired zero.
+    def _wrapper_asm(self, body_asm: str, demand: bool = False) -> str:
         seeds = []
         for i in list(range(1, 32)):
             if i == 2:
@@ -468,27 +510,27 @@ class RiscvQemuRunner:
         seeds.append("\tla sp, _buf_top")
         return (
             ".section .text\n.globl _start\n_start:\n"
+            + (self._DEMAND_INSTALL if demand else "")
             + "\n".join(seeds) + "\n"
             + ".Lbody:\n"
-            + f'\t.incbin "{body_path}"\n'
+            + body_asm + "\n"
             + ".Lafter:\n"
             + "\tli a7, 93\n\tli a0, 0\n\tecall\n"     # exit(0)
+            + (self._DEMAND_HANDLER if demand else "")
             + ".section .bss\n.align 12\n_buf:\n"
             + f"\t.space {_RISCV_BUF_BYTES}\n"
             + "_buf_top:\n"
-            # midpoint symbol via a second reservation keeps `la` to a defined
-            # symbol (no arithmetic on externs in the integrated assembler)
             + ".set _buf_mid, _buf + " + str(_RISCV_BUF_BYTES // 2) + "\n"
+            + (self._DEMAND_DATA if demand else "")
         )
 
-    def _build_and_run(self, body: bytes) -> tuple[str, Optional[str]]:
+    def _exec_src(self, src: str) -> tuple[str, Optional[str]]:
+        """Assemble+link `src` (a full wrapper .s) and run it under qemu. Shared
+        by the body runner and both canaries."""
         with tempfile.TemporaryDirectory() as d:
-            bpath = os.path.join(d, "body.bin")
-            with open(bpath, "wb") as f:
-                f.write(body)
             spath = os.path.join(d, "w.s")
             with open(spath, "w") as f:
-                f.write(self._wrapper_asm(bpath))
+                f.write(src)
             prog = os.path.join(d, "prog")
             try:
                 r = subprocess.run([*self.cc, spath, "-o", prog],
@@ -496,8 +538,8 @@ class RiscvQemuRunner:
             except (OSError, subprocess.SubprocessError) as e:
                 return "error", f"build did not run: {e}"
             if r.returncode != 0:
-                # a link/assemble failure here is a toolchain issue, not a
-                # property of the gadget -> treat as error, not a fault verdict
+                # a link/assemble failure is a toolchain issue, not a property
+                # of the gadget -> error, not a fault verdict
                 return "error", (r.stderr.strip()[:200] or "build failed")
             try:
                 p = subprocess.run([self.qemu, prog], capture_output=True,
@@ -507,6 +549,25 @@ class RiscvQemuRunner:
             except (OSError, subprocess.SubprocessError) as e:
                 return "error", f"qemu did not run: {e}"
             return self._rc_to_outcome(p.returncode)
+
+    def _build_and_run(self, body: bytes, demand: bool = False) -> tuple[str, Optional[str]]:
+        with tempfile.TemporaryDirectory() as d:
+            bpath = os.path.join(d, "body.bin")
+            with open(bpath, "wb") as f:
+                f.write(body)
+            return self._exec_src(self._wrapper_asm(f'\t.incbin "{bpath}"', demand))
+
+    def _demand_canary(self) -> bool:
+        """F2 self-test: a body that loads through an out-of-sandbox address
+        must come back `ok` WITH demand paging (the handler maps the page and
+        the retried load succeeds). If qemu-user cannot deliver/return from the
+        handler on this platform, this is not `ok` and demand paging stays off."""
+        fault_body = "\tli t0, 0x40000000\n\tlw t1, 0(t0)\n"   # unmapped load
+        try:
+            outcome, _ = self._exec_src(self._wrapper_asm(fault_body, demand=True))
+        except Exception:
+            return False
+        return outcome == "ok"
 
     @staticmethod
     def _rc_to_outcome(rc: int) -> tuple[str, Optional[str]]:
@@ -538,7 +599,7 @@ class RiscvQemuRunner:
             raise ValueError(f"RiscvQemuRunner only runs riscv64, not {arch!r}")
         if not code:
             return "no_code", None, 0
-        outcome, detail = self._build_and_run(code)
+        outcome, detail = self._build_and_run(code, demand=self.demand)
         return outcome, detail, 0
 
 

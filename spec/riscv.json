@@ -49,6 +49,7 @@
   ],
   "mem": "0(BASE)",
   "mem_idx": "0(BASE)",
+  "mem_base_reg": "s11",
   "imm_prefix": "",
   "sym": ".L0",
   "fn_sym": "fn_target",

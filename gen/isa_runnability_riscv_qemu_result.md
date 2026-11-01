@@ -52,3 +52,39 @@ sbatch --export=ALL,GEN=gen/generator_expanded.pt gen/isa_runnability_riscv_qemu
 ```
 The sbatch guard runs the canary and aborts loud if the QEMU backend is not
 actually active (prevents a silent Unicorn fallback re-measuring 0.02).
+
+## F2 + F3 implemented (2026-11-01, pending cluster validation)
+
+- **F3 (realiser load-base sandbox) — DONE, tested local.** `spec/riscv.json`
+  adds `mem_base_reg: s11` (reserved, excluded from register_pool).
+  `gen/realize.py` gains `Realizer(..., sandbox_mem_base=False)`: when on, every
+  `<mem>`/`<mem-idx>` base is pinned to that reserved reg, which the body never
+  clobbers, so the wrapper's seeded in-sandbox value survives and the load
+  lands in-buffer. Default OFF (byte-identical to prior behaviour; the flag is
+  inert for ISAs with no `mem_base_reg`, e.g. x86). `isa_runnability.py
+  --sandbox-mem-base` runs it as the ablation column. Tests:
+  `tests/gen/test_mem_sandbox.py` (6 pass).
+- **F2 (QEMU demand paging) — DONE, self-validating, pending cluster.** A
+  SIGSEGV->mmap handler in the wrapper (map the faulting page, retry, cap 64)
+  gives the QEMU path the Unicorn demand paging. Opt-in via
+  `SPECEXEC_RISCV_DEMAND_PAGE=1` AND gated on a faulting-body canary that must
+  come back `ok` on the host (qemu-user signal delivery for a static -nostdlib
+  riscv ELF is the unknown); if the canary fails it falls back to the plain
+  wrapper, so a broken handler cannot silently degrade a measurement. Tests:
+  `tests/gen/test_riscv_qemu.py` wrapper-shape + demand-mode (pure; execution is
+  cluster-only).
+- **Comparability note:** both x86/ARM (Unicorn demand paging) and riscv
+  (F2 demand paging and/or F3 reserved base) ensure a load hits mapped memory;
+  F3 changes generator output so it is reported as an ablation column, not as
+  the headline comparable number, while F2 is the exact-mechanism match.
+
+## Run the ablation
+```
+# baseline + F3 sandbox column (CPU; qemu system-wide, lld in specexec):
+sbatch --export=ALL,GEN=gen/generator_expanded.pt gen/isa_runnability_riscv_qemu.sbatch
+# add F2 demand paging too:
+sbatch --export=ALL,GEN=gen/generator_expanded.pt,DEMAND=1 gen/isa_runnability_riscv_qemu.sbatch
+```
+Expected: F3 (`isa_runnability_riscv_sandbox.md`) drives fault_mem -> ~0 and
+executes up sharply if clobbered bases are the cause; F2 should do the same for
+the baseline (random-base) run IF its canary passes on the cluster.

@@ -227,3 +227,18 @@ plainly it is a scoping choice, not a hole a reviewer finds.
   silent Unicorn fallback can't recur. NEW next steps: **F2** QEMU demand-paging
   parity, **F3** riscv realiser load-base sandboxing (the original F idea, wrong
   for the 0.02 decode but right for the fault_mem residual).
+
+## CHANGELOG 2026-11-01b — F2 + F3 implemented (pending cluster validation)
+
+- **F3 (realiser load-base sandbox) DONE+tested.** spec/riscv.json mem_base_reg=s11
+  (reserved, not in pool); gen/realize.py Realizer(sandbox_mem_base=) pins mem
+  bases; isa_runnability.py --sandbox-mem-base ablation; default OFF (inert
+  without a mem_base_reg). tests/gen/test_mem_sandbox.py (6). Directly targets
+  the clobbered-base cause of fault_mem.
+- **F2 (QEMU demand paging) DONE, self-validating.** SIGSEGV->mmap handler in the
+  riscv wrapper, opt-in SPECEXEC_RISCV_DEMAND_PAGE=1, gated on a faulting-body
+  canary (falls back if qemu-user can't deliver the handler); matches the
+  Unicorn demand paging behind x86/ARM. tests/gen/test_riscv_qemu.py demand-mode.
+- Ablation sbatch: gen/isa_runnability_riscv_qemu.sbatch now runs baseline +
+  (SANDBOX=1) F3 column, honouring DEMAND=1 for F2. Validate on cluster, then
+  fold the lifted executes rate into tab:isavalid.

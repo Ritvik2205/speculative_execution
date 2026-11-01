@@ -78,8 +78,23 @@ PY
 rc=$?
 [ "$rc" -eq 0 ] || { echo "guard failed (rc=$rc) -- see FATAL above" >&2; exit "$rc"; }
 
-# --- run the same per-class protocol that produced the 0.02 number ---
+# --- baseline: random base, no demand paging (the comparable-in-spirit run) ---
+# DEMAND=1 turns on F2 (SIGSEGV->mmap handler; self-validates via a faulting
+# canary and falls back if qemu-user can't deliver the handler on this host).
+export SPECEXEC_RISCV_DEMAND_PAGE="${DEMAND:-0}"
+echo "--- baseline (random base, demand=$SPECEXEC_RISCV_DEMAND_PAGE)"
 python3 -u gen/isa_runnability.py --gen "$GEN" --archs riscv64 --n "$N" \
   --arch-purity assembler \
   --out gen/isa_runnability_riscv.md --json-out gen/isa_runnability_riscv.json
-echo "=== done rc=$? ($(date)). See gen/isa_runnability_riscv.md (backend qemu-riscv64) ==="
+
+# --- F3 ablation: pin the memory base to the reserved reg (s11) so a clobbered
+#     base cannot send a load out of the seeded sandbox. SANDBOX=0 skips it. ---
+if [ "${SANDBOX:-1}" = "1" ]; then
+  echo "--- F3 sandbox-mem-base (reserved s11 base, demand=$SPECEXEC_RISCV_DEMAND_PAGE)"
+  python3 -u gen/isa_runnability.py --gen "$GEN" --archs riscv64 --n "$N" \
+    --arch-purity assembler --sandbox-mem-base \
+    --out gen/isa_runnability_riscv_sandbox.md \
+    --json-out gen/isa_runnability_riscv_sandbox.json
+fi
+echo "=== done rc=$? ($(date)). baseline -> gen/isa_runnability_riscv.md;"
+echo "    F3 -> gen/isa_runnability_riscv_sandbox.md (backend qemu-riscv64) ==="

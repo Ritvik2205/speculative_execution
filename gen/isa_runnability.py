@@ -91,6 +91,12 @@ def main(argv=None) -> int:
                          "the token realizes to assemblable text")
     ap.add_argument("--out", default=str(ROOT / "gen" / "isa_runnability.md"))
     ap.add_argument("--json-out", default=str(ROOT / "gen" / "isa_runnability.json"))
+    ap.add_argument("--sandbox-mem-base", action="store_true",
+                    help="F3: pin memory-operand bases to the spec's reserved "
+                         "mem_base_reg (riscv s11), so a clobbered base cannot "
+                         "send a load out of the seeded sandbox. Ablation vs the "
+                         "default random base; only affects ISAs whose spec "
+                         "defines mem_base_reg (riscv64).")
     a = ap.parse_args(argv)
 
     import torch
@@ -121,7 +127,8 @@ def main(argv=None) -> int:
     realizers = {}
     for arch in archs:
         try:
-            realizers[arch] = Realizer(load_spec(_spec_name(arch)), seed=a.seed)
+            realizers[arch] = Realizer(load_spec(_spec_name(arch)), seed=a.seed,
+                                       sandbox_mem_base=a.sandbox_mem_base)
         except Exception as e:  # noqa: BLE001
             print(f"WARNING: no realizer for {arch}: {e}", file=sys.stderr)
 

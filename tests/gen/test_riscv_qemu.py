@@ -30,16 +30,33 @@ def test_rc_to_outcome_mapping():
 
 def test_wrapper_asm_shape():
     r = RiscvQemuRunner.__new__(RiscvQemuRunner)  # no toolchain needed for asm gen
-    asm = r._wrapper_asm("/tmp/body.bin")
+    # _wrapper_asm now takes the body ASM TEXT (the .incbin line is built by
+    # _build_and_run); demand defaults OFF.
+    asm = r._wrapper_asm('\t.incbin "/tmp/body.bin"')
     assert ".globl _start" in asm
     assert '.incbin "/tmp/body.bin"' in asm
     assert "li a7, 93" in asm and "ecall" in asm        # exit(0)
     assert "la sp, _buf_top" in asm                      # stack seeded
-    # every GPR except x0 and x2(sp) is seeded to the buffer midpoint
     for i in (1, 3, 5, 31):
         assert f"la x{i}, _buf_mid" in asm
     assert "la x0," not in asm                            # x0 is hardwired zero
     assert "la x2," not in asm                            # sp handled separately
+    # demand OFF -> no handler/install/data
+    assert "_sigh:" not in asm and "li a7, 134" not in asm
+
+
+def test_wrapper_asm_demand_mode():
+    r = RiscvQemuRunner.__new__(RiscvQemuRunner)
+    asm = r._wrapper_asm('\t.incbin "/tmp/body.bin"', demand=True)
+    # handler + install (rt_sigaction=134) + mmap (222) + data present
+    assert "_sigh:" in asm
+    assert "li a7, 134" in asm                           # rt_sigaction install
+    assert "li a7, 222" in asm                           # mmap in the handler
+    assert "ld t0, 16(a1)" in asm                        # si_addr at offset 16
+    assert "_act:" in asm and "_pgcount:" in asm
+    assert f"li t4, {64}" in asm                         # the page cap
+    # body + exit still present and ordered before the handler
+    assert asm.index(".Lbody:") < asm.index("_sigh:")
 
 
 def test_available_matches_tools_locally():

@@ -49,12 +49,23 @@ _CLANG_CANARY = {
 
 
 class Realizer:
-    def __init__(self, spec: dict, seed: int = 0):
+    def __init__(self, spec: dict, seed: int = 0, sandbox_mem_base: bool = False):
         r = spec["realize"]
         self.pool = r["register_pool"]
         self.mem = r["mem"]
         self.mem_idx = r["mem_idx"]
         self.imm_prefix = r["imm_prefix"]
+        # F3 (opt-in, default OFF): pin every memory operand's base to a reserved
+        # register that is NOT in register_pool, so the generated body never
+        # clobbers it and it keeps the emulator's seeded in-sandbox value. This
+        # is the realiser-side analogue of Revizor's r14-relative base and of the
+        # demand-paging the x86/ARM Unicorn path relies on: both ensure a load
+        # lands in mapped memory, so the executes rate measures code validity
+        # rather than whether the body happened to leave a base in range. Left
+        # OFF by default so every existing measurement is byte-identical; the
+        # riscv `mem_base_reg` is the only spec that defines one today.
+        self.sandbox_mem_base = bool(sandbox_mem_base) and bool(r.get("mem_base_reg"))
+        self.mem_base_reg = r.get("mem_base_reg")
         self.sym = r["sym"]
         self.fn_sym = r["fn_sym"]
         # Optional, x86-only: map a 64-bit register to its b/w/l/q width variants
@@ -196,10 +207,12 @@ class Realizer:
         if kind == "<imm>":
             return self.imm_prefix + self.rng.choice(CRITICAL_IMMS)
         if kind == "<mem>":
-            return self.mem.replace("BASE", self._reg(used).lstrip("%"))
+            base = self.mem_base_reg if self.sandbox_mem_base else self._reg(used).lstrip("%")
+            return self.mem.replace("BASE", base)
         if kind == "<mem-idx>":
-            b = self._reg(used); i = self._reg(used)
-            return self.mem_idx.replace("BASE", b.lstrip("%")).replace("IDX", i.lstrip("%"))
+            b = self.mem_base_reg if self.sandbox_mem_base else self._reg(used).lstrip("%")
+            i = self._reg(used)
+            return self.mem_idx.replace("BASE", b).replace("IDX", i.lstrip("%"))
         if kind == "<fn>":
             return self.fn_sym
         if kind == "<sym>":
