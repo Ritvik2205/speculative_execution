@@ -1,0 +1,4560 @@
+=== train filter heads: Thu 29 Oct 21:53:18 GMT 2026 samples=gen/rl_lencond_samples.jsonl device=cpu head=both ===
+--- SPECTRE_V1
+  (pairwise SPECTRE_V1 skipped)
+--- SPECTRE_V4
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 0/0
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 0 -> 0 (100.0% reduction)
+  Edge type distribution:
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       11 (21.6%)
+    CONTROL_FLOW        :       29 (56.9%)
+    SPEC_RETURN         :        8 (15.7%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        9 (18.0%)
+    CONTROL_FLOW        :       29 (58.0%)
+    SPEC_RETURN         :        8 (16.0%)
+    MEMORY_ORDER        :        1 (2.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (44.5%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       56 (48.3%)
+    CONTROL_FLOW        :       59 (50.9%)
+    MEMORY_ORDER        :        1 (0.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.9%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        6 (5.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 29 -> 29 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        9 (18.8%)
+    CONTROL_FLOW        :       28 (58.3%)
+    SPEC_RETURN         :        8 (16.7%)
+    FENCE_BOUNDARY      :        1 (2.1%)
+    RSB_CHAIN           :        2 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 51 -> 51 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (41.7%)
+    CONTROL_FLOW        :       50 (52.1%)
+    MEMORY_ORDER        :        6 (6.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 46 -> 46 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       25 (34.7%)
+    CONTROL_FLOW        :       45 (62.5%)
+    MEMORY_ORDER        :        2 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (43.9%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        5 (4.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (44.1%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (46.1%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (42.5%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       54 (45.4%)
+    CONTROL_FLOW        :       59 (49.6%)
+    MEMORY_ORDER        :        6 (5.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       60 (55.0%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (44.0%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.3%)
+    CONTROL_FLOW        :       60 (55.0%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (45.5%)
+    CONTROL_FLOW        :       60 (54.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (44.1%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (44.9%)
+    CONTROL_FLOW        :       59 (55.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (45.3%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        5 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.5%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 25 -> 25 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        8 (22.9%)
+    CONTROL_FLOW        :       24 (68.6%)
+    SPEC_RETURN         :        2 (5.7%)
+    MEMORY_ORDER        :        1 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       10 (19.6%)
+    CONTROL_FLOW        :       29 (56.9%)
+    SPEC_RETURN         :        8 (15.7%)
+    MEMORY_ORDER        :        1 (2.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        8 (16.7%)
+    CONTROL_FLOW        :       29 (60.4%)
+    SPEC_RETURN         :        8 (16.7%)
+    FENCE_BOUNDARY      :        1 (2.1%)
+    RSB_CHAIN           :        2 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       60 (56.1%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       33 (34.0%)
+    CONTROL_FLOW        :       59 (60.8%)
+    MEMORY_ORDER        :        5 (5.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (38.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.0%)
+    CONTROL_FLOW        :       60 (57.1%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       36 (36.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.0%)
+    CONTROL_FLOW        :       60 (53.6%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.5%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       13 (24.5%)
+    CONTROL_FLOW        :       29 (54.7%)
+    SPEC_RETURN         :        8 (15.1%)
+    FENCE_BOUNDARY      :        1 (1.9%)
+    RSB_CHAIN           :        2 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (44.4%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        6 (5.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       60 (55.0%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.8%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        4 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.8%)
+    CONTROL_FLOW        :       59 (60.2%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       55 (46.6%)
+    CONTROL_FLOW        :       59 (50.0%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (44.2%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.2%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       60 (49.2%)
+    CONTROL_FLOW        :       59 (48.4%)
+    MEMORY_ORDER        :        3 (2.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       10 (19.6%)
+    CONTROL_FLOW        :       29 (56.9%)
+    SPEC_RETURN         :        8 (15.7%)
+    MEMORY_ORDER        :        1 (2.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 34 -> 34 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       12 (18.5%)
+    CONTROL_FLOW        :       33 (50.8%)
+    SPEC_RETURN         :       17 (26.2%)
+    FENCE_BOUNDARY      :        1 (1.5%)
+    RSB_CHAIN           :        2 (3.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 29 -> 29 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        9 (18.0%)
+    CONTROL_FLOW        :       28 (56.0%)
+    SPEC_RETURN         :        8 (16.0%)
+    MEMORY_ORDER        :        2 (4.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (38.2%)
+    CONTROL_FLOW        :       60 (58.8%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (46.4%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        1 (0.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       58 (48.7%)
+    CONTROL_FLOW        :       60 (50.4%)
+    MEMORY_ORDER        :        1 (0.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       58 (48.3%)
+    CONTROL_FLOW        :       59 (49.2%)
+    MEMORY_ORDER        :        3 (2.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 29 -> 29 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       11 (26.8%)
+    CONTROL_FLOW        :       28 (68.3%)
+    MEMORY_ORDER        :        2 (4.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (44.6%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.5%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.3%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        5 (4.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 29 -> 29 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        5 (10.9%)
+    CONTROL_FLOW        :       28 (60.9%)
+    SPEC_RETURN         :        8 (17.4%)
+    MEMORY_ORDER        :        2 (4.3%)
+    FENCE_BOUNDARY      :        1 (2.2%)
+    RSB_CHAIN           :        2 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (43.4%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        1 (0.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        8 (16.3%)
+    CONTROL_FLOW        :       29 (59.2%)
+    SPEC_RETURN         :        8 (16.3%)
+    MEMORY_ORDER        :        1 (2.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (4.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        7 (14.9%)
+    CONTROL_FLOW        :       29 (61.7%)
+    SPEC_RETURN         :        8 (17.0%)
+    FENCE_BOUNDARY      :        1 (2.1%)
+    RSB_CHAIN           :        2 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       58 (48.7%)
+    CONTROL_FLOW        :       59 (49.6%)
+    MEMORY_ORDER        :        2 (1.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 7 -> 7 (0.0% reduction)
+  Edge type distribution:
+    CONTROL_FLOW        :        6 (85.7%)
+    FENCE_BOUNDARY      :        1 (14.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (42.5%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.0%)
+    CONTROL_FLOW        :       60 (52.6%)
+    MEMORY_ORDER        :        5 (4.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (38.1%)
+    CONTROL_FLOW        :       59 (60.8%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.0%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        6 (5.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.0%)
+    CONTROL_FLOW        :       60 (57.1%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (38.7%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        6 (5.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.9%)
+    CONTROL_FLOW        :       60 (54.5%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       56 (46.7%)
+    CONTROL_FLOW        :       59 (49.2%)
+    MEMORY_ORDER        :        5 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (46.0%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (38.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.4%)
+    CONTROL_FLOW        :       60 (53.1%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 40 -> 40 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       25 (37.3%)
+    CONTROL_FLOW        :       39 (58.2%)
+    MEMORY_ORDER        :        3 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 48 -> 48 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       23 (25.3%)
+    CONTROL_FLOW        :       47 (51.6%)
+    SPEC_RETURN         :       17 (18.7%)
+    MEMORY_ORDER        :        3 (3.3%)
+    FENCE_BOUNDARY      :        1 (1.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (43.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (38.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        5 (4.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (43.9%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        5 (4.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (38.9%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        7 (6.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (36.9%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        6 (5.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (46.0%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (36.9%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        6 (5.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       55 (46.6%)
+    CONTROL_FLOW        :       59 (50.0%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       31 (33.7%)
+    CONTROL_FLOW        :       59 (64.1%)
+    MEMORY_ORDER        :        2 (2.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (40.2%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        4 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (44.6%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (43.5%)
+    CONTROL_FLOW        :       60 (52.2%)
+    MEMORY_ORDER        :        5 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.6%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.0%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.3%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 40 -> 40 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       26 (38.8%)
+    CONTROL_FLOW        :       39 (58.2%)
+    MEMORY_ORDER        :        2 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.5%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        7 (6.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.3%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       36 (37.1%)
+    CONTROL_FLOW        :       59 (60.8%)
+    MEMORY_ORDER        :        2 (2.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (45.9%)
+    CONTROL_FLOW        :       59 (54.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.3%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        6 (5.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (40.0%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        7 (6.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (43.8%)
+    CONTROL_FLOW        :       59 (56.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (44.7%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (45.7%)
+    CONTROL_FLOW        :       59 (50.9%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.5%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (35.6%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        8 (7.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       36 (36.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.2%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (38.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (42.9%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (45.3%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        5 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (38.5%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        8 (7.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.3%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.4%)
+    CONTROL_FLOW        :       60 (53.1%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (41.8%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (40.2%)
+    CONTROL_FLOW        :       60 (58.8%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (40.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       60 (56.6%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.0%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (41.2%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (40.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       33 (34.4%)
+    CONTROL_FLOW        :       59 (61.5%)
+    MEMORY_ORDER        :        4 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (39.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (40.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.2%)
+    CONTROL_FLOW        :       60 (52.2%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.1%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        6 (5.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.2%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        5 (4.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.4%)
+    CONTROL_FLOW        :       60 (57.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       60 (54.5%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       60 (56.6%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.5%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        8 (16.7%)
+    CONTROL_FLOW        :       29 (60.4%)
+    SPEC_RETURN         :        8 (16.7%)
+    FENCE_BOUNDARY      :        1 (2.1%)
+    RSB_CHAIN           :        2 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (38.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        5 (4.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.5%)
+    CONTROL_FLOW        :       60 (56.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (45.3%)
+    CONTROL_FLOW        :       60 (51.3%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.6%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.4%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        5 (4.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 33 -> 33 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       22 (40.0%)
+    CONTROL_FLOW        :       32 (58.2%)
+    MEMORY_ORDER        :        1 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (39.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (44.4%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        6 (5.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (37.9%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        5 (4.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        4 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (39.2%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (37.9%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        5 (4.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (46.1%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.5%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        7 (6.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (43.5%)
+    CONTROL_FLOW        :       60 (52.2%)
+    MEMORY_ORDER        :        5 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.6%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (40.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 33 -> 33 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       17 (32.1%)
+    CONTROL_FLOW        :       32 (60.4%)
+    MEMORY_ORDER        :        4 (7.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (41.6%)
+    CONTROL_FLOW        :       60 (53.1%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.3%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (39.2%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.5%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (44.1%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.7%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       54 (46.2%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.9%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.8%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       60 (56.6%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       35 (35.7%)
+    CONTROL_FLOW        :       60 (61.2%)
+    MEMORY_ORDER        :        3 (3.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.9%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (37.5%)
+    CONTROL_FLOW        :       60 (57.7%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.9%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        6 (5.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (38.3%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        7 (6.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (39.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (42.6%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        7 (6.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (38.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (39.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.8%)
+    CONTROL_FLOW        :       60 (58.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (43.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (40.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.2%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        5 (4.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (44.9%)
+    CONTROL_FLOW        :       59 (55.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (41.8%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       35 (35.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        5 (5.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.5%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 26 -> 26 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       12 (31.6%)
+    CONTROL_FLOW        :       25 (65.8%)
+    MEMORY_ORDER        :        1 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       34 (35.1%)
+    CONTROL_FLOW        :       59 (60.8%)
+    MEMORY_ORDER        :        4 (4.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (40.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (44.2%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 34 -> 34 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       14 (21.2%)
+    CONTROL_FLOW        :       33 (50.0%)
+    SPEC_RETURN         :       15 (22.7%)
+    MEMORY_ORDER        :        1 (1.5%)
+    FENCE_BOUNDARY      :        1 (1.5%)
+    RSB_CHAIN           :        2 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.2%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+{
+  "cls": "SPECTRE_V4",
+  "n": 279,
+  "leak": 262,
+  "safe": 17,
+  "out": "rank/filter_head_SPECTRE_V4.pkl"
+}
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 0/0
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 0 -> 0 (100.0% reduction)
+  Edge type distribution:
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       11 (21.6%)
+    CONTROL_FLOW        :       29 (56.9%)
+    SPEC_RETURN         :        8 (15.7%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        9 (18.0%)
+    CONTROL_FLOW        :       29 (58.0%)
+    SPEC_RETURN         :        8 (16.0%)
+    MEMORY_ORDER        :        1 (2.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (44.5%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       56 (48.3%)
+    CONTROL_FLOW        :       59 (50.9%)
+    MEMORY_ORDER        :        1 (0.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.9%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        6 (5.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 29 -> 29 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        9 (18.8%)
+    CONTROL_FLOW        :       28 (58.3%)
+    SPEC_RETURN         :        8 (16.7%)
+    FENCE_BOUNDARY      :        1 (2.1%)
+    RSB_CHAIN           :        2 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 51 -> 51 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (41.7%)
+    CONTROL_FLOW        :       50 (52.1%)
+    MEMORY_ORDER        :        6 (6.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 46 -> 46 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       25 (34.7%)
+    CONTROL_FLOW        :       45 (62.5%)
+    MEMORY_ORDER        :        2 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (43.9%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        5 (4.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (44.1%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (46.1%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (42.5%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       54 (45.4%)
+    CONTROL_FLOW        :       59 (49.6%)
+    MEMORY_ORDER        :        6 (5.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       60 (55.0%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (44.0%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.3%)
+    CONTROL_FLOW        :       60 (55.0%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (45.5%)
+    CONTROL_FLOW        :       60 (54.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (44.1%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (44.9%)
+    CONTROL_FLOW        :       59 (55.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (45.3%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        5 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.5%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 25 -> 25 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        8 (22.9%)
+    CONTROL_FLOW        :       24 (68.6%)
+    SPEC_RETURN         :        2 (5.7%)
+    MEMORY_ORDER        :        1 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       10 (19.6%)
+    CONTROL_FLOW        :       29 (56.9%)
+    SPEC_RETURN         :        8 (15.7%)
+    MEMORY_ORDER        :        1 (2.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        8 (16.7%)
+    CONTROL_FLOW        :       29 (60.4%)
+    SPEC_RETURN         :        8 (16.7%)
+    FENCE_BOUNDARY      :        1 (2.1%)
+    RSB_CHAIN           :        2 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       60 (56.1%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       33 (34.0%)
+    CONTROL_FLOW        :       59 (60.8%)
+    MEMORY_ORDER        :        5 (5.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (38.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.0%)
+    CONTROL_FLOW        :       60 (57.1%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       36 (36.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.0%)
+    CONTROL_FLOW        :       60 (53.6%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.5%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       13 (24.5%)
+    CONTROL_FLOW        :       29 (54.7%)
+    SPEC_RETURN         :        8 (15.1%)
+    FENCE_BOUNDARY      :        1 (1.9%)
+    RSB_CHAIN           :        2 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (44.4%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        6 (5.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       60 (55.0%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.8%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        4 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.8%)
+    CONTROL_FLOW        :       59 (60.2%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       55 (46.6%)
+    CONTROL_FLOW        :       59 (50.0%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (44.2%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.2%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       60 (49.2%)
+    CONTROL_FLOW        :       59 (48.4%)
+    MEMORY_ORDER        :        3 (2.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       10 (19.6%)
+    CONTROL_FLOW        :       29 (56.9%)
+    SPEC_RETURN         :        8 (15.7%)
+    MEMORY_ORDER        :        1 (2.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 34 -> 34 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       12 (18.5%)
+    CONTROL_FLOW        :       33 (50.8%)
+    SPEC_RETURN         :       17 (26.2%)
+    FENCE_BOUNDARY      :        1 (1.5%)
+    RSB_CHAIN           :        2 (3.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 29 -> 29 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        9 (18.0%)
+    CONTROL_FLOW        :       28 (56.0%)
+    SPEC_RETURN         :        8 (16.0%)
+    MEMORY_ORDER        :        2 (4.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (38.2%)
+    CONTROL_FLOW        :       60 (58.8%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (46.4%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        1 (0.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       58 (48.7%)
+    CONTROL_FLOW        :       60 (50.4%)
+    MEMORY_ORDER        :        1 (0.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       58 (48.3%)
+    CONTROL_FLOW        :       59 (49.2%)
+    MEMORY_ORDER        :        3 (2.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 29 -> 29 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       11 (26.8%)
+    CONTROL_FLOW        :       28 (68.3%)
+    MEMORY_ORDER        :        2 (4.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (44.6%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.5%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.3%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        5 (4.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 29 -> 29 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        5 (10.9%)
+    CONTROL_FLOW        :       28 (60.9%)
+    SPEC_RETURN         :        8 (17.4%)
+    MEMORY_ORDER        :        2 (4.3%)
+    FENCE_BOUNDARY      :        1 (2.2%)
+    RSB_CHAIN           :        2 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (43.4%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        1 (0.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        8 (16.3%)
+    CONTROL_FLOW        :       29 (59.2%)
+    SPEC_RETURN         :        8 (16.3%)
+    MEMORY_ORDER        :        1 (2.0%)
+    FENCE_BOUNDARY      :        1 (2.0%)
+    RSB_CHAIN           :        2 (4.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        7 (14.9%)
+    CONTROL_FLOW        :       29 (61.7%)
+    SPEC_RETURN         :        8 (17.0%)
+    FENCE_BOUNDARY      :        1 (2.1%)
+    RSB_CHAIN           :        2 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       58 (48.7%)
+    CONTROL_FLOW        :       59 (49.6%)
+    MEMORY_ORDER        :        2 (1.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 7 -> 7 (0.0% reduction)
+  Edge type distribution:
+    CONTROL_FLOW        :        6 (85.7%)
+    FENCE_BOUNDARY      :        1 (14.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (42.5%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.0%)
+    CONTROL_FLOW        :       60 (52.6%)
+    MEMORY_ORDER        :        5 (4.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (38.1%)
+    CONTROL_FLOW        :       59 (60.8%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.0%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        6 (5.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.0%)
+    CONTROL_FLOW        :       60 (57.1%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (38.7%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        6 (5.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.9%)
+    CONTROL_FLOW        :       60 (54.5%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       56 (46.7%)
+    CONTROL_FLOW        :       59 (49.2%)
+    MEMORY_ORDER        :        5 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (46.0%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (38.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.4%)
+    CONTROL_FLOW        :       60 (53.1%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 40 -> 40 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       25 (37.3%)
+    CONTROL_FLOW        :       39 (58.2%)
+    MEMORY_ORDER        :        3 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 48 -> 48 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       23 (25.3%)
+    CONTROL_FLOW        :       47 (51.6%)
+    SPEC_RETURN         :       17 (18.7%)
+    MEMORY_ORDER        :        3 (3.3%)
+    FENCE_BOUNDARY      :        1 (1.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (43.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (38.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        5 (4.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (43.9%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        5 (4.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (38.9%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        7 (6.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (36.9%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        6 (5.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (46.0%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        2 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (36.9%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        6 (5.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       55 (46.6%)
+    CONTROL_FLOW        :       59 (50.0%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       31 (33.7%)
+    CONTROL_FLOW        :       59 (64.1%)
+    MEMORY_ORDER        :        2 (2.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (40.2%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        4 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (44.6%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (43.5%)
+    CONTROL_FLOW        :       60 (52.2%)
+    MEMORY_ORDER        :        5 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.6%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.0%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.3%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 40 -> 40 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       26 (38.8%)
+    CONTROL_FLOW        :       39 (58.2%)
+    MEMORY_ORDER        :        2 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.5%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        7 (6.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.3%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       36 (37.1%)
+    CONTROL_FLOW        :       59 (60.8%)
+    MEMORY_ORDER        :        2 (2.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (45.9%)
+    CONTROL_FLOW        :       59 (54.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.3%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        6 (5.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (40.0%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        7 (6.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (43.8%)
+    CONTROL_FLOW        :       59 (56.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (44.7%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (45.7%)
+    CONTROL_FLOW        :       59 (50.9%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.5%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (35.6%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        8 (7.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       36 (36.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.2%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (38.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (42.9%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (45.3%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        5 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.1%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (38.5%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        8 (7.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.3%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.4%)
+    CONTROL_FLOW        :       60 (53.1%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (41.8%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (40.2%)
+    CONTROL_FLOW        :       60 (58.8%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (40.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       60 (56.6%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.0%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (41.2%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (40.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       33 (34.4%)
+    CONTROL_FLOW        :       59 (61.5%)
+    MEMORY_ORDER        :        4 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (39.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (40.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.2%)
+    CONTROL_FLOW        :       60 (52.2%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.1%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        6 (5.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.2%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        5 (4.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.4%)
+    CONTROL_FLOW        :       60 (57.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       60 (54.5%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       60 (56.6%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (43.5%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 30 -> 30 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :        8 (16.7%)
+    CONTROL_FLOW        :       29 (60.4%)
+    SPEC_RETURN         :        8 (16.7%)
+    FENCE_BOUNDARY      :        1 (2.1%)
+    RSB_CHAIN           :        2 (4.2%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (38.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        5 (4.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.5%)
+    CONTROL_FLOW        :       60 (56.6%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (45.3%)
+    CONTROL_FLOW        :       60 (51.3%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.6%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.4%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        5 (4.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 33 -> 33 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       22 (40.0%)
+    CONTROL_FLOW        :       32 (58.2%)
+    MEMORY_ORDER        :        1 (1.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (39.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (44.4%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        6 (5.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (37.9%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        5 (4.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        4 (3.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (39.2%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (37.9%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        5 (4.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       53 (46.1%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.5%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        7 (6.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (43.5%)
+    CONTROL_FLOW        :       60 (52.2%)
+    MEMORY_ORDER        :        5 (4.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.6%)
+    CONTROL_FLOW        :       59 (51.8%)
+    MEMORY_ORDER        :        3 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (40.7%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.6%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 33 -> 33 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       17 (32.1%)
+    CONTROL_FLOW        :       32 (60.4%)
+    MEMORY_ORDER        :        4 (7.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (41.6%)
+    CONTROL_FLOW        :       60 (53.1%)
+    MEMORY_ORDER        :        6 (5.3%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (41.3%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        5 (4.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (39.2%)
+    CONTROL_FLOW        :       59 (57.8%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.5%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.2%)
+    CONTROL_FLOW        :       59 (54.1%)
+    MEMORY_ORDER        :        4 (3.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (44.1%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (41.7%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       37 (37.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       54 (46.2%)
+    CONTROL_FLOW        :       59 (50.4%)
+    MEMORY_ORDER        :        4 (3.4%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.9%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.4%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (43.8%)
+    CONTROL_FLOW        :       59 (52.7%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       47 (42.7%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (39.6%)
+    CONTROL_FLOW        :       60 (56.6%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       35 (35.7%)
+    CONTROL_FLOW        :       60 (61.2%)
+    MEMORY_ORDER        :        3 (3.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.9%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (37.5%)
+    CONTROL_FLOW        :       60 (57.7%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (37.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        4 (4.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (40.9%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        6 (5.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (43.2%)
+    CONTROL_FLOW        :       59 (53.2%)
+    MEMORY_ORDER        :        4 (3.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (38.3%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        7 (6.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       39 (39.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       49 (42.6%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        7 (6.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (42.6%)
+    CONTROL_FLOW        :       59 (54.6%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        3 (2.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       38 (38.0%)
+    CONTROL_FLOW        :       59 (59.0%)
+    MEMORY_ORDER        :        3 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (39.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        2 (2.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 61 -> 61 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (39.8%)
+    CONTROL_FLOW        :       60 (58.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (43.3%)
+    CONTROL_FLOW        :       59 (56.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       41 (40.6%)
+    CONTROL_FLOW        :       59 (58.4%)
+    MEMORY_ORDER        :        1 (1.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.2%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        5 (4.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       48 (44.9%)
+    CONTROL_FLOW        :       59 (55.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       46 (41.8%)
+    CONTROL_FLOW        :       59 (53.6%)
+    MEMORY_ORDER        :        5 (4.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       35 (35.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+    MEMORY_ORDER        :        5 (5.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (38.5%)
+    CONTROL_FLOW        :       59 (56.7%)
+    MEMORY_ORDER        :        5 (4.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       43 (40.6%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       45 (42.1%)
+    CONTROL_FLOW        :       59 (55.1%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 26 -> 26 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       12 (31.6%)
+    CONTROL_FLOW        :       25 (65.8%)
+    MEMORY_ORDER        :        1 (2.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       44 (41.5%)
+    CONTROL_FLOW        :       59 (55.7%)
+    MEMORY_ORDER        :        3 (2.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       34 (35.1%)
+    CONTROL_FLOW        :       59 (60.8%)
+    MEMORY_ORDER        :        4 (4.1%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       40 (40.4%)
+    CONTROL_FLOW        :       59 (59.6%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       50 (44.2%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.0%)
+    CONTROL_FLOW        :       59 (56.2%)
+    MEMORY_ORDER        :        4 (3.8%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       51 (45.1%)
+    CONTROL_FLOW        :       59 (52.2%)
+    MEMORY_ORDER        :        3 (2.7%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 34 -> 34 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       14 (21.2%)
+    CONTROL_FLOW        :       33 (50.0%)
+    SPEC_RETURN         :       15 (22.7%)
+    MEMORY_ORDER        :        1 (1.5%)
+    FENCE_BOUNDARY      :        1 (1.5%)
+    RSB_CHAIN           :        2 (3.0%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       52 (45.2%)
+    CONTROL_FLOW        :       59 (51.3%)
+    MEMORY_ORDER        :        4 (3.5%)
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 1/1
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 60 -> 60 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :       42 (40.8%)
+    CONTROL_FLOW        :       59 (57.3%)
+    MEMORY_ORDER        :        2 (1.9%)
+{
+  "cls": "SPECTRE_V4",
+  "head": "pairwise",
+  "n": 279,
+  "leak": 262,
+  "safe": 17,
+  "rounds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "out": "rank/filter_head_pairwise_SPECTRE_V4.pkl"
+}
+=== done: Thu 29 Oct 22:05:32 GMT 2026. pointwise -> rank/filter_head_SPECTRE_{V1,V4}.pkl;
+    pairwise -> rank/filter_head_pairwise_SPECTRE_{V1,V4}.pkl ===

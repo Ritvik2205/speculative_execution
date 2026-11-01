@@ -6,7 +6,8 @@
 |---|---|---|---|
 | sequence length (the bar) | 0.587 | --- | [0.708, 0.795] |
 | opcode-bag LR (prospective) | 0.650 | 0.627 | [0.588, 0.688] |
-| frozen-encoder head (prospective) | 0.656 | 0.772 | [0.667, 0.754] |
+| frozen-encoder head (prospective) | 0.656 | 0.771 | [0.667, 0.754] |
+| pairwise encoder head (prospective) | 0.628 | 0.764 | [0.631, 0.721] |
 
 encoder built 360/460 PDGs.
 
