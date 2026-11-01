@@ -42,16 +42,30 @@ GEN="${GEN:-gen/generator_expanded.pt}"
 N="${N:-60}"
 echo "=== riscv64 runnability via QEMU: $(date) gen=$GEN n=$N ==="
 
-# --- guard 1: QEMU backend tooling must be present (else fail-open -> 0.02) ---
+# --- guard 1: the QEMU backend CANARY must pass (not just tool presence) -----
+# PreCheck gates on RiscvQemuRunner.available(), which assembles+links+runs a
+# trivial RV64GC ELF under qemu. Checking only _find_* (tool presence) is NOT
+# enough: clang without ld.lld falls back to the system GNU ld, which cannot
+# link riscv64, so the canary fails and PreCheck SILENTLY uses Unicorn (~RV64I)
+# -> re-measures 0.02. So run the real canary here and abort loud on failure,
+# surfacing the build/run error for diagnosis.
 python3 - "$GEN" <<'PY'
 import sys
 sys.path.insert(0, "gen"); sys.path.insert(0, "spec"); sys.path.insert(0, ".")
-from precheck import _find_qemu_riscv, _find_riscv_cc
-qemu, cc = _find_qemu_riscv(), _find_riscv_cc()
-print(f"qemu-riscv64={qemu!r}  riscv-linker={cc!r}")
-if not (qemu and cc):
-    sys.exit("FATAL: QEMU RV64GC backend unavailable (install qemu-user + a riscv "
-             "static linker in specexec); refusing to re-measure 0.02 under Unicorn.")
+from precheck import RiscvQemuRunner, _find_qemu_riscv, _find_riscv_cc
+print(f"qemu-riscv64={_find_qemu_riscv()!r}  riscv-linker={_find_riscv_cc()!r}")
+r = RiscvQemuRunner()
+print("RiscvQemuRunner.available() (canary):", r.available())
+if not r.available():
+    try:
+        outcome, err = r._build_and_run(b"")      # surface WHY the canary failed
+        print(f"canary outcome={outcome!r} err={err!r}")
+    except Exception as e:  # noqa: BLE001
+        print("canary raised:", type(e).__name__, e)
+    sys.exit("FATAL: QEMU RV64GC canary failed -> PreCheck would fall back to "
+             "Unicorn and silently re-measure 0.02. Install a riscv linker: "
+             "`conda install -n specexec -c conda-forge lld` (adds ld.lld so "
+             "clang links riscv64) OR a riscv64-linux-gnu-gcc. Then re-run.")
 # --- guard 2: the checkpoint must have riscv64 in its vocab ---
 from generator import CondTransformerLM
 m = CondTransformerLM.load(sys.argv[1])
