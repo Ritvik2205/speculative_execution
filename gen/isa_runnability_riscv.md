@@ -8,13 +8,13 @@ Emulation: enabled. `oracle_supported` is blank where no symbolic oracle covers 
 
 | ISA | class | realized | assembles | oracle front end | emulates |
 |---|---|---|---|---|---|
-| riscv64 | BRANCH_HISTORY_INJECTION | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.03 [0.01,0.11] |
-| riscv64 | INCEPTION | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.07 [0.03,0.16] |
+| riscv64 | BRANCH_HISTORY_INJECTION | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.02 [0.00,0.09] |
+| riscv64 | INCEPTION | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.05 [0.02,0.14] |
 | riscv64 | L1TF | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.00 [-0.00,0.06] |
 | riscv64 | MDS | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.00 [-0.00,0.06] |
-| riscv64 | RETBLEED | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.03 [0.01,0.11] |
+| riscv64 | RETBLEED | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.02 [0.00,0.09] |
 | riscv64 | SPECTRE_RSB | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.00 [-0.00,0.06] |
-| riscv64 | SPECTRE_V1 | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.05 [0.02,0.14] |
+| riscv64 | SPECTRE_V1 | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.00 [-0.00,0.06] |
 | riscv64 | SPECTRE_V2 | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.00 [-0.00,0.06] |
 | riscv64 | SPECTRE_V4 | 1.00 [0.94,1.00] | 1.00 [0.94,1.00] | -- | 0.00 [-0.00,0.06] |
 
@@ -22,15 +22,15 @@ Emulation: enabled. `oracle_supported` is blank where no symbolic oracle covers 
 
 | ISA | sampled | realized | assembles | emulates | unique realized |
 |---|---|---|---|---|---|
-| riscv64 | 540 | 1.00 [0.99,1.00] | 1.00 [0.99,1.00] | 0.02 [0.01,0.04] | 540/540 = 1.00 |
+| riscv64 | 540 | 1.00 [0.99,1.00] | 1.00 [0.99,1.00] | 0.01 [0.00,0.02] | 540/540 = 1.00 |
 
 ## Emulation outcomes (why a sequence did not run)
 
 | ISA | outcome | count |
 |---|---|---|
-| riscv64 | fault_insn | 527 |
-| riscv64 | ok | 11 |
-| riscv64 | fault_mem | 2 |
+| riscv64 | fault_mem | 530 |
+| riscv64 | ok | 5 |
+| riscv64 | timeout | 5 |
 
 Note: the committed checkpoint was conditioned on x86_64, arm64, riscv64 only. riscv64 is supported by the code path (spec, realizer, tokenizer, emulator) but is not in this checkpoint's vocabulary, so it cannot be sampled here; that needs a generator retrained with the riscv corpus.
 

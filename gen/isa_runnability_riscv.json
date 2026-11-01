@@ -27,13 +27,13 @@
    "sampled": 60,
    "realized": 60,
    "assembles": 60,
-   "emulated_ok": 2
+   "emulated_ok": 1
   },
   "riscv64|INCEPTION": {
    "sampled": 60,
    "realized": 60,
    "assembles": 60,
-   "emulated_ok": 4
+   "emulated_ok": 3
   },
   "riscv64|L1TF": {
    "sampled": 60,
@@ -49,7 +49,7 @@
    "sampled": 60,
    "realized": 60,
    "assembles": 60,
-   "emulated_ok": 2
+   "emulated_ok": 1
   },
   "riscv64|SPECTRE_RSB": {
    "sampled": 60,
@@ -59,8 +59,7 @@
   "riscv64|SPECTRE_V1": {
    "sampled": 60,
    "realized": 60,
-   "assembles": 60,
-   "emulated_ok": 3
+   "assembles": 60
   },
   "riscv64|SPECTRE_V2": {
    "sampled": 60,
@@ -75,36 +74,37 @@
  },
  "emulation_outcomes": {
   "riscv64|BRANCH_HISTORY_INJECTION": {
-   "ok": 2,
-   "fault_insn": 58
+   "fault_mem": 59,
+   "ok": 1
   },
   "riscv64|INCEPTION": {
-   "fault_insn": 56,
-   "ok": 4
+   "fault_mem": 56,
+   "ok": 3,
+   "timeout": 1
   },
   "riscv64|L1TF": {
-   "fault_insn": 58,
-   "fault_mem": 2
+   "fault_mem": 60
   },
   "riscv64|MDS": {
-   "fault_insn": 60
+   "fault_mem": 60
   },
   "riscv64|RETBLEED": {
-   "fault_insn": 58,
-   "ok": 2
+   "fault_mem": 58,
+   "ok": 1,
+   "timeout": 1
   },
   "riscv64|SPECTRE_RSB": {
-   "fault_insn": 60
+   "fault_mem": 60
   },
   "riscv64|SPECTRE_V1": {
-   "fault_insn": 57,
-   "ok": 3
+   "fault_mem": 57,
+   "timeout": 3
   },
   "riscv64|SPECTRE_V2": {
-   "fault_insn": 60
+   "fault_mem": 60
   },
   "riscv64|SPECTRE_V4": {
-   "fault_insn": 60
+   "fault_mem": 60
   }
  }
 }
