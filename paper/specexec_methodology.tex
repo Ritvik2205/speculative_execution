@@ -1373,19 +1373,30 @@ identical protocol through a QEMU user-mode RV64GC backend
 (\texttt{gen/precheck.py:RiscvQemuRunner}) removes that wall entirely---
 \emph{zero} decode faults---confirming the bodies are valid RV64GC. What it
 exposes is the next layer: $530/540$ now fault on \emph{memory} and only $\sim$1\%
-run clean. Part of that gap is a backend asymmetry we flag rather than hide: the
-Unicorn path demand-maps faulting pages (as Revizor masks addresses into its
-sandbox), whereas the QEMU harness runs a freestanding ELF against a fixed
-buffer with no demand paging, so the riscv memory-fault rate is stricter than
-and not directly comparable to the x86 ($0.52$) and ARM ($0.84$) figures. The
-residual is therefore genuine---the realiser emits riscv loads whose base is
-clobbered or strides out of the sandboxed buffer---and the remaining work is
-realiser-semantic (pin/mask riscv load bases, as the x86 leak emulator already
-does) plus demand-paging parity in the QEMU harness, not the instruction-decode
-problem the raw 0.02 first suggested.
-\todo{after riscv load-base sandboxing + QEMU demand-paging parity, report a
-riscv64 executes rate comparable to x86/ARM; the decode wall is already removed
-(0 fault\_insn under QEMU).}
+run clean. Two interventions isolate the cause and, in doing so, show the
+\emph{executes} rate is ill-posed for this generator rather than merely low. We
+pinned every memory-operand base to a reserved register the body never clobbers
+(so a load cannot leave the seeded sandbox) and separately gave the QEMU harness
+demand paging (map the faulting page and retry, as the Unicorn path does): both
+leave the $530/540$ memory-fault count \emph{byte-identical}. So the faults are
+not clobbered load bases and not RW-demand-pageable. What remains is
+control-flow: the realiser retargets direct branches to a safe label but leaves
+\texttt{jalr}/\texttt{ret} indirect transfers untouched (for the
+return-speculation classes the indirect branch \emph{is} the gadget), and every
+register is seeded into a non-executable data sandbox, so an indirect transfer
+fetches from non-executable memory and faults. The x86 and ARM figures are not a
+clean baseline for this: Unicorn maps its sandbox executable, and an x86 jump
+into zeroed sandbox memory decodes as a benign \texttt{add}\,[\emph{mem}]\,, so
+it coasts to the instruction budget and scores as ``executes'', whereas the
+all-zero RV64 encoding is an illegal instruction, so the identical control-flow
+pattern faults. The riscv bodies are valid RV64GC (zero decode faults); what a
+bare user-mode emulator cannot score is a return/indirect-branch gadget without
+a harness that supplies a valid branch target---which is exactly what a real
+leak oracle, not a runnability check, would provide.
+\todo{the riscv executes rate is gated by return/indirect-branch targets, not
+decode (removed) or load addresses or paging (both shown no-op); a comparable
+number needs a harness that seeds valid branch targets, i.e. the riscv leak
+oracle, not a realiser or emulator tweak.}
 
 %% =========================================================================
 

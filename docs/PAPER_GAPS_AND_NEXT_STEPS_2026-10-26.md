@@ -242,3 +242,17 @@ plainly it is a scoping choice, not a hole a reviewer finds.
 - Ablation sbatch: gen/isa_runnability_riscv_qemu.sbatch now runs baseline +
   (SANDBOX=1) F3 column, honouring DEMAND=1 for F2. Validate on cluster, then
   fold the lifted executes rate into tab:isavalid.
+
+## CHANGELOG 2026-11-01c — riscv ablation: F2/F3 no-op, cause reframed
+
+- Ran the ablation: baseline + F3 (--sandbox-mem-base) + F2 (DEMAND=1) all
+  BYTE-IDENTICAL (fault_mem 530/ok 5/timeout 5). Load base and RW-demand paging
+  are NOT the cause. **Real cause = indirect control flow** (jalr/ret, untouched
+  by the realiser because the indirect branch IS the gadget for return classes)
+  into non-exec seeded sandbox memory. x86/ARM only score higher partly because
+  their all-zero encoding is a benign insn while RV64's is illegal -> the
+  executes metric is ILL-POSED for indirect/return gadgets under a bare
+  user-mode emulator. Folded into tab:isavalid; \todo now points at the riscv
+  LEAK ORACLE (seeds valid branch targets), not an emulator/realiser tweak.
+  F2/F3 kept in-tree (correct, tested) but inapplicable to this residual. F
+  (riscv executes) is CLOSED as a characterised result, not a number to raise.
