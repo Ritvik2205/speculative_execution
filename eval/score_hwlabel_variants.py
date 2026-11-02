@@ -68,6 +68,8 @@ from train_gine_v38 import (  # noqa: E402
 from gine_classifier_v38 import GINEClassifier, ARCH_VOCAB  # noqa: E402
 from pdg_builder import NUM_EDGE_TYPES  # noqa: E402
 from inline_features import get_feature_names  # noqa: E402
+sys.path.insert(0, str(ROOT))
+from eval.mechanism.bars import FENCE_TOKENS, fence_count  # noqa: E402,F401
 
 # The class ordering every v54 10-class checkpoint uses (sorted train labels).
 # label_to_id rebuilt from train labels MUST equal this, or argmax→name is wrong.
@@ -113,7 +115,6 @@ def load_run_config(metrics_path: Path):
     )
     return expected, model_cfg, ds_kw, a.get("handcrafted_subset", "all")
 
-FENCE_TOKENS = ("lfence", "mfence", "sfence", "dsb", "isb", "csdb")
 _BASE_RE = re.compile(r"violation-\d{6}-\d{6}")
 
 
@@ -188,10 +189,6 @@ def base_id(rec: dict) -> str:
     return f"{rec['vuln_class']}::{tag}"
 
 
-def fence_count(seq: list[str]) -> int:
-    return sum(1 for l in seq if any(t in l.lower() for t in FENCE_TOKENS))
-
-
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -206,6 +203,9 @@ def main(argv=None) -> int:
     ap.add_argument("--variants", default=str(ROOT / "eval/data/revizor_hwlabel_variants.jsonl"))
     ap.add_argument("--out-dir", default=str(ROOT / "eval/hwlabel_variants"))
     ap.add_argument("--acc-tol", type=float, default=1e-3)
+    ap.add_argument("--dump-preds", default=None, metavar="PATH",
+                    help="also write {data, group, variant, pred} per variant for "
+                         "eval/mechanism/scoreboard.py --preds NAME=PATH")
     ap.add_argument("--skip-gate", action="store_true",
                     help="DEBUG ONLY. Scores become untrustworthy; never use for a reported number.")
     args = ap.parse_args(argv)
@@ -263,6 +263,12 @@ def main(argv=None) -> int:
     vds = GINEDatasetV47(variants, label_to_id, feature_names, **ds_kw)
     preds, probs = predict(model, vds)
     benign_id = label_to_id["BENIGN"]
+    # GINEDatasetV47 drops records it cannot build (short seq, OOV label, <2
+    # PDG nodes); zip(variants, preds) would then pair predictions with the
+    # wrong record, and --dump-preds would publish them under wrong keys.
+    if len(preds) != len(variants):
+        sys.exit(f"dataset dropped {len(variants) - len(preds)}/{len(variants)} variants; "
+                 "predictions cannot be aligned to records")
 
     rows = []
     for r, pid, prob in zip(variants, preds, probs):
@@ -275,6 +281,13 @@ def main(argv=None) -> int:
             p_benign=float(prob[benign_id]),
             fence=fence_count(r["sequence"]), n_instr=len(r["sequence"]),
         ))
+
+    if args.dump_preds:
+        stem = Path(args.variants).stem
+        with open(args.dump_preds, "w") as fh:
+            for r, x in zip(variants, rows):
+                fh.write(json.dumps(dict(data=stem, group=r.get("group"), variant=r["variant"],
+                                         pred=x["pred"])) + "\n")
 
     # ---- metrics ----
     def rate(sel, pred_attr="model_leak", want=True):
