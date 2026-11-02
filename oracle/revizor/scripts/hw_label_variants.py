@@ -546,16 +546,37 @@ def cmd_minimize(a) -> int:
         src = Path(t["src_dir"])
         md = _vdir(out, t) / "_min"
         if (md / "status.json").is_file():
-            continue
+            old = json.loads((md / "status.json").read_text())
+            # retry a failure from before recorded-input replay existed
+            if old["min"]["ok"] or "recorded_inputs" in old:
+                continue
         md.mkdir(parents=True, exist_ok=True)
         cfg = md / "config.yaml"
         write_config(src, cfg, a.keep_filters)
-        n_inputs = len(glob.glob(str(src / "input_*.bin"))) or 100
-        status = {"group": t["group"], "cls": t["cls"], "n_inputs": n_inputs}
+        # Every candidate that still leaks walks Revizor's whole slow path, and
+        # the 500-rep `noise` + `priming_large` stages were ~95% of the ~1 h per
+        # dir on the i5. Capping the sample size here is safe: each variant
+        # derived from min.asm/fenced.asm is re-measured by `run` at the full
+        # default sizes, so a noisy minimize shows up as a label, not a silent
+        # error.
+        sizes = [int(x) for x in a.sample_sizes.split(",")]
+        with open(cfg, "a") as f:
+            f.write(f"\nexecutor_sample_sizes: {sizes}\n")
+        recorded = sorted(glob.glob(str(src / "input_*.bin")))
+        n_inputs = len(recorded) or 100
+        status = {"group": t["group"], "cls": t["cls"], "n_inputs": n_inputs,
+                  "recorded_inputs": bool(recorded), "sample_sizes": sizes}
+        # Stock `rvzr minimize` regenerates inputs from the seed and almost never
+        # reproduces the leak; replay the recorded ones (rvzr_minimize_recorded.py).
+        if recorded:
+            launcher = [str(Path(a.rvzr).with_name("python3")), str(HERE / "rvzr_minimize_recorded.py"),
+                        "--inputs", *recorded, "--"]
+        else:
+            launcher = [a.rvzr, "minimize"]
         for name, passes in (("min", ["--enable-instruction-pass", "true"]),
                              ("fenced", ["--enable-instruction-pass", "false",
                                          "--enable-fence-pass", "true"])):
-            cmd = [a.rvzr, "minimize", "-s", a.spec, "-c", str(cfg), "-t", str(src / "program.asm"),
+            cmd = [*launcher, "-s", a.spec, "-c", str(cfg), "-t", str(src / "program.asm"),
                    "-i", str(n_inputs), "-o", str(md / f"{name}.asm"),
                    "--enable-label-pass", "false", *passes]
             t0 = time.time()
@@ -765,6 +786,8 @@ def main(argv=None) -> int:
     m.add_argument("--spec", required=True)
     m.add_argument("--timeout", type=int, default=3600)
     m.add_argument("--keep-filters", action="store_true")
+    m.add_argument("--sample-sizes", default="10,50,100",
+                   help="executor_sample_sizes for the minimize configs only (rvzr default 10,50,100,500)")
     p = sub.add_parser("plan")
     target_args(p)
     p.add_argument("--variants", nargs="+", default=None, choices=ALL_VARIANTS,
