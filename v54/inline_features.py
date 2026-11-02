@@ -133,7 +133,12 @@ def _get_opcode(line: str) -> str:
     return op
 
 
-def compute_inline_features(sequence: List[str]) -> np.ndarray:
+def compute_inline_features(sequence: List[str], mech: bool = False) -> np.ndarray:
+    feats = _compute_inline_features(sequence)
+    return np.concatenate([feats, _mech_features(sequence)]) if mech else feats
+
+
+def _compute_inline_features(sequence: List[str]) -> np.ndarray:
     global FEATURE_NAMES
     if FEATURE_NAMES is None:
         FEATURE_NAMES = _build_feature_names()
@@ -294,11 +299,46 @@ NEUTRAL_FEATURES: List[str] = [
 ]
 
 
-def get_feature_names() -> List[str]:
+# Opt-in speculative-window ("mechanism") features — `--mech-features` in
+# train_gine_v38.py; off by default so the 58-dim vector is unchanged.
+# eval/mechanism/spec_window.py computed for EVERY trigger family (never from the
+# record's class, which the detector must not see): per family, whether a
+# window exists and the fraction of windows a fence on the executed path cuts.
+# x86 AT&T only; other ISAs get zeros. Plan: docs/superpowers/plans/
+# 2026-11-02-mechanism-vs-shape.md Task 5.
+_MECH_FAMILIES = (("v1", "SPECTRE_V1"), ("v4", "SPECTRE_V4"), ("load", "MDS"))
+MECH_FEATURE_NAMES: List[str] = [f"mech_{f}_{k}" for f, _ in _MECH_FAMILIES
+                                 for k in ("has_window", "frac_cut")]
+
+
+def _mech_features(sequence: List[str]) -> np.ndarray:
+    import sys
+    from pathlib import Path
+    root = str(Path(__file__).resolve().parents[1])
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    from eval.mechanism.spec_window import window_cut, windows
+    out = []
+    for _, cls in _MECH_FAMILIES:
+        ws = windows(sequence, cls)
+        out += [1.0 if ws else 0.0,
+                sum(window_cut(sequence, w) for w in ws) / len(ws) if ws else 0.0]
+    return np.asarray(out, dtype=np.float32)
+
+
+def get_feature_names(mech: bool = False) -> List[str]:
     global FEATURE_NAMES
     if FEATURE_NAMES is None:
         FEATURE_NAMES = _build_feature_names()
-    return FEATURE_NAMES
+    return FEATURE_NAMES + MECH_FEATURE_NAMES if mech else FEATURE_NAMES
+
+
+def feature_selection(names: List[str]):
+    """(mech, idx) for a requested feature-name list: whether the mechanism
+    features must be computed, and the column indices to keep (None = all)."""
+    mech = any(n in MECH_FEATURE_NAMES for n in names)
+    full = get_feature_names(mech=mech)
+    return mech, (None if list(names) == full else [full.index(n) for n in names])
 
 
 if __name__ == '__main__':

@@ -113,7 +113,7 @@ def load_run_config(metrics_path: Path):
         cfg_spec_edges=a.get("cfg_spec_edges", _W4_DEFAULTS["cfg_spec_edges"]),
         drop_nops=a.get("drop_nops", _W4_DEFAULTS["drop_nops"]),
     )
-    return expected, model_cfg, ds_kw, a.get("handcrafted_subset", "all")
+    return expected, model_cfg, ds_kw, a.get("handcrafted_subset", "all"), a.get("mech_features", False)
 
 _BASE_RE = re.compile(r"violation-\d{6}-\d{6}")
 
@@ -225,12 +225,15 @@ def main(argv=None) -> int:
 
     # ---- config from the checkpoint's OWN metrics (no hardcoding) ----
     metrics_path = Path(args.metrics) if args.metrics else Path(args.checkpoint).with_name("gine_metrics.json")
-    expected_acc, model_cfg, ds_kw, hc_subset = load_run_config(metrics_path)
+    expected_acc, model_cfg, ds_kw, hc_subset, mech = load_run_config(metrics_path)
     if hc_subset == "neutral":
         from inline_features import NEUTRAL_FEATURES
         feature_names = list(NEUTRAL_FEATURES)
     else:
         feature_names = get_feature_names()
+    if mech:
+        from inline_features import MECH_FEATURE_NAMES
+        feature_names = list(feature_names) + MECH_FEATURE_NAMES
     print(f"config from {metrics_path.name}: expected_acc={expected_acc:.6f} "
           f"hc_subset={hc_subset} dim={len(feature_names)}")
     print(f"  model_cfg={model_cfg}")

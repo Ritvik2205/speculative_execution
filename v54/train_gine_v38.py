@@ -39,7 +39,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from pdg_builder import PDGBuilder, EDGE_TYPES, NUM_EDGE_TYPES, INCLUDE_KASPER_FLAGS, NUM_KASPER_FLAGS
 from gine_classifier_v38 import GINEClassifier, SupervisedContrastiveLoss, ARCH_VOCAB, NUM_ARCHS, assert_arch_keys
 from strip_boilerplate import strip_boilerplate
-from inline_features import compute_inline_features, get_feature_names
+from inline_features import (compute_inline_features, get_feature_names,
+                             feature_selection, MECH_FEATURE_NAMES)
 
 # Task 5.1: Assert architecture key consistency at import time.
 # This guard prevents silent drift between ARCH_VOCAB and SPEC_FOR_ARCH.
@@ -177,9 +178,9 @@ class GINEDatasetV47(Dataset):
         self.handcrafted_feature_names = handcrafted_feature_names
         # A feature-name list that is a strict subset of the inline features
         # (e.g. inline_features.NEUTRAL_FEATURES) selects those columns.
-        _all = get_feature_names()
-        self._hc_idx = (None if list(handcrafted_feature_names) == _all
-                        else [_all.index(n) for n in handcrafted_feature_names])
+        # Mechanism names (inline_features.MECH_FEATURE_NAMES) switch the
+        # opt-in speculative-window features on (--mech-features).
+        self._mech, self._hc_idx = feature_selection(handcrafted_feature_names)
         # NOPs are ~8-12% of x86/arm attack tokens (alignment padding + the
         # insert_nops augmentation) vs ~1% on riscv — a corpus artifact, not
         # attack semantics. drop_nops removes them before every feature.
@@ -382,7 +383,7 @@ class GINEDatasetV47(Dataset):
         # Computed on raw sequence (before boilerplate strip) for consistency
         # between train and any future inference. No fitting on training set —
         # all features are instruction-count statistics or binary flags.
-        handcrafted = compute_inline_features(sequence_raw)
+        handcrafted = compute_inline_features(sequence_raw, mech=self._mech)
         if self._hc_idx is not None:
             handcrafted = handcrafted[self._hc_idx]
 
@@ -761,6 +762,9 @@ def main():
     parser.add_argument('--handcrafted-subset', choices=['all', 'neutral'], default='all',
                         help="neutral: only the 9 inline features that fire on every ISA "
                              "(inline_features.NEUTRAL_FEATURES)")
+    parser.add_argument('--mech-features', action='store_true',
+                        help="append the 6 label-free speculative-window features "
+                             "(inline_features.MECH_FEATURE_NAMES; default off = unchanged)")
     parser.add_argument('--drop-nops', action='store_true',
                         help="remove NOP instructions before graph/feature extraction")
     parser.add_argument('--node-drop', type=float, default=0.0,
@@ -910,6 +914,8 @@ def main():
         feature_names = list(NEUTRAL_FEATURES)
     else:
         feature_names = get_feature_names()
+    if args.mech_features:
+        feature_names = list(feature_names) + MECH_FEATURE_NAMES
     handcrafted_dim = len(feature_names)
     print(f"Handcrafted features (inline): {handcrafted_dim}")
 
