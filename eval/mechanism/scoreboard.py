@@ -133,6 +133,26 @@ def _table(recs, scorers) -> tuple[list[str], dict]:
     return L, S
 
 
+_SEED_RE = re.compile(r"^(.*)_s\d+$")
+
+
+def _arm_means(S: dict) -> list[str]:
+    """Scorers named <arm>_s<seed> (one per checkpoint) -> mean ± sample std of
+    headline acc per arm, the number H2 is read on (plan: 5 seeds)."""
+    arms: dict[str, list[float]] = defaultdict(list)
+    for k, s in S.items():
+        m = _SEED_RE.match(k)
+        if m:
+            arms[m.group(1)].append(s["acc"])
+    if not arms:
+        return []
+    L = ["", "| arm | acc mean ± std |", "|---|---|"]
+    for arm, xs in arms.items():
+        sd = statistics.stdev(xs) if len(xs) > 1 else float("nan")
+        L.append(f"| {arm} ({len(xs)} seeds) | {sum(xs) / len(xs):.3f} ± {_f(sd)} |")
+    return L
+
+
 def render(stem: str, recs: list[dict], scorers: dict[str, list[Optional[str]]]) -> list[str]:
     # Headline (table, paired diffs, per variant) over hardware-confirmed
     # classes only; MDS gets its own table (review I1).
@@ -145,6 +165,7 @@ def render(stem: str, recs: list[dict], scorers: dict[str, list[Optional[str]]])
          + (f"; headline excludes {', '.join(excl)})" if excl else ")"), ""]
     T, S = _table(recs, scorers)
     L += T
+    L += _arm_means(S)
     for ref in REFERENCES:
         if ref not in scorers:
             continue

@@ -11,7 +11,7 @@ Output `v54/data/v55h_allhw_train.jsonl` = v55h_train + tail of each
 per-class splits, so held-out files are unchanged. Run build_hw_transfer first.
 """
 from __future__ import annotations
-import argparse, importlib.util, json, random, sys
+import argparse, importlib.util, json, random, re, sys
 from collections import Counter
 from pathlib import Path
 
@@ -20,6 +20,10 @@ DEFAULT_CLASSES = ["mds", "l1tf", "spectre_v1", "spectre_v4"]
 BASE = ROOT / "v54" / "data" / "v55h_train.jsonl"
 DEFAULT_OUT = ROOT / "v54" / "data" / "v55h_allhw_train.jsonl"
 DEFAULT_OUT_MISFENCED = ROOT / "v54" / "data" / "v55h_allhw2_train.jsonl"
+DEFAULT_OUT_HW3 = ROOT / "v54" / "data" / "v55h_allhw3_train.jsonl"
+# every set any allhw3 number is reported on: no training record may share a base
+EVAL_SETS = [ROOT / "eval" / "data" / "revizor_hwlabel_variants.jsonl",
+             ROOT / "eval" / "data" / "revizor_hwlabel_cf_heldout.jsonl"]
 
 
 def load_jsonl(path):
@@ -107,6 +111,57 @@ def build_joint(base, class_files, heldout_files, with_misfenced=False, seed=0, 
     return joint, tails
 
 
+_VIOL_RE = re.compile(r"violation-\d{6}-\d{6}")
+
+
+def _base_key(r):
+    """Base-gadget identity: Revizor violation id (+ class) when present, else
+    the group with any _fenced/_misfenced suffix stripped."""
+    m = _VIOL_RE.search(str(r.get("src_path") or "") + " " + str(r.get("group") or ""))
+    if m:
+        cls = (r.get("vuln_class") or r.get("label") or "").upper()
+        return f"{cls}::{m.group(0)}" if cls and cls != "BENIGN" else m.group(0)
+    return _strip_fenced(r.get("group"))
+
+
+def _viol(k):
+    return k.split("::")[-1]
+
+
+def build_hw_labels_only(base, class_files, hw_labelled, forbidden):
+    """allhw3 training set: the synthetic base + every class's real, hardware-
+    confirmed positives (train-add records labelled with the class) + the
+    hardware-labelled variants as labelled. Structural twins and synthetic
+    misfenced variants are NOT used: their labels never came from hardware.
+
+    hw_labelled: records with hw_runs/hw_hits (rvzr reproduce xN); only 0/N or
+    N/N count as labels, anything else is dropped. forbidden: every record of
+    every evaluation set (held-out positives, dev-806, cf_heldout); a training
+    record sharing a base violation with one raises ValueError."""
+    n = len(base)
+    held = {_viol(_base_key(r)) for r in forbidden}
+    out = list(base)
+    for c, recs in class_files.items():
+        if recs[:n] != base:
+            raise ValueError(f"{c}: first {n} records != v55h_train base; run prep_hw_transfer first")
+        out += [r for r in recs[n:]
+                if r.get("label") == c.upper() and not str(r.get("group", "")).endswith(("_fenced", "_misfenced"))]
+    kept = dropped = 0
+    for r in hw_labelled:
+        runs, hits = r.get("hw_runs"), r.get("hw_hits")
+        if not runs or hits not in (0, runs):
+            dropped += 1
+            continue
+        out.append(r)
+        kept += 1
+    leak = sorted({_viol(_base_key(r)) for r in out[n:]} & held)
+    if leak:
+        raise ValueError(f"held-out base gadgets leak into allhw3 train: {leak[:5]}")
+    if dropped:
+        print(f"dropped {dropped} hw-labelled variants with inconsistent hits (not a label)")
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--classes", nargs="+", default=DEFAULT_CLASSES)
@@ -118,18 +173,36 @@ def main(argv=None):
     ap.add_argument("--with-shifted", action="store_true",
                     help="(diagnostic, MISLABELLED) add V1/V4 shifted-fence variants as attacks; "
                          "hardware says they are mitigated (hw_label_261007)")
+    ap.add_argument("--hw-labels-only", nargs="+", type=Path, default=None, metavar="JSONL",
+                    help="allhw3: base + real positives + these hardware-labelled variants "
+                         "(no structural twins, no misfenced) -> v55h_allhw3_train.jsonl")
     ap.add_argument("--data-dir", type=Path, default=None,
                     help="override v54/data (class train files) location")
     ap.add_argument("--heldout-dir", type=Path, default=None,
                     help="override eval/data (held-out files) location")
     a = ap.parse_args(argv)
     if a.out is None:
-        a.out = DEFAULT_OUT_MISFENCED if a.with_misfenced else DEFAULT_OUT
+        a.out = (DEFAULT_OUT_HW3 if a.hw_labels_only else
+                 DEFAULT_OUT_MISFENCED if a.with_misfenced else DEFAULT_OUT)
     ddir = a.data_dir or ROOT / "v54" / "data"
     edir = a.heldout_dir or ROOT / "eval" / "data"
     base = load_jsonl(ddir / "v55h_train.jsonl")
     cf = {c: load_jsonl(ddir / f"v55h_{c}hw_train.jsonl") for c in a.classes}
     hf = {c: load_jsonl(edir / f"revizor_{c}_heldout.jsonl") for c in a.classes}
+    if a.hw_labels_only:
+        forbidden = [r for recs in hf.values() for r in recs]
+        for p in EVAL_SETS:
+            if p.exists():
+                forbidden += load_jsonl(p)
+        hw = [r for p in a.hw_labels_only for r in load_jsonl(p)]
+        joint = build_hw_labels_only(base, cf, hw, forbidden)
+        a.out.parent.mkdir(parents=True, exist_ok=True)
+        with open(a.out, "w") as f:
+            for r in joint:
+                f.write(json.dumps(r) + "\n")
+        print(f"allhw3: base={len(base)} -> {len(joint)} -> {a.out}  "
+              f"added {dict(Counter(r.get('label') for r in joint[len(base):]))}")
+        return
     joint, tails = build_joint(base, cf, hf, a.with_misfenced, a.seed, a.with_shifted)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     with open(a.out, "w") as f:

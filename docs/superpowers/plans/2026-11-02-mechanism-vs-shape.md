@@ -205,13 +205,16 @@ sudo bash oracle/revizor/scripts/run_hw_label_variants.sh \
 python3 oracle/revizor/scripts/hw_label_variants.py emit --out ~/rvzr_hwlabel_cf
 ```
 
-- [ ] **Step 3: Training pool,** all variants. Use the same command with `--records "eval/data/revizor_*_real.jsonl"` and `--out ~/rvzr_hwlabel_train`. Then emit.
+- [ ] **Step 3: Training pool,** all variants. Use the same command with `--records "eval/data/revizor_spectre_v1_trainpool.jsonl eval/data/revizor_spectre_v4_trainpool.jsonl eval/data/revizor_mds_trainpool.jsonl eval/data/revizor_l1tf_trainpool.jsonl"` and `--out ~/rvzr_hwlabel_train`. Then emit.
+  - *(2026-11-02 correction)* Not `revizor_*_real.jsonl`: those contain every held-out base. The `_trainpool` files (`oracle/revizor/scripts/make_trainpool.py`) are real minus held-out minus dev, i.e. 552 bases (V1 166, V4 94, MDS 127, L1TF 165).
 - [ ] **Step 4: Validate each emitted file** (one-off script, results go in the commit message):
   - every record has `hw_runs == 3` and `hw_hits ∈ {0, 3}`;
   - every base has a reproducing `original`;
   - print counts per class × variant, and the % of `cf_*` that stay vulnerable.
   - **If every cf variant mitigates or every one leaks, H1 is untestable.** Report this before going on.
 - [ ] **Step 5:** Copy the jsonl files to the repo and commit (jsonl and md only, no `input_*.bin`).
+  - Held-out run → `eval/data/revizor_hwlabel_cf_heldout.jsonl`, **with the `original` rows removed.** They are the reproduce check only; kept in, they inflate always-attack and dilute H1.
+  - Training run → `eval/data/revizor_hwlabel_trainpool.jsonl` (all variants). These names are what `eval/cluster/submit_allhw3.sh` reads.
 
 ---
 

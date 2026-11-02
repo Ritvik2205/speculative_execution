@@ -133,3 +133,21 @@ def test_headline_excludes_unconfirmed_mds(tmp_path):
     md = out.read_text()
     assert "| good | 1.000 |" in md and "| bad | 1.000 |" in md
     assert "MDS (unconfirmed" in md
+
+
+def test_seed_runs_get_arm_mean(tmp_path):
+    recs = [json.loads(l) for l in open(DEV)][:20]
+    data = tmp_path / "d.jsonl"
+    data.write_text("".join(json.dumps(x) + "\n" for x in recs))
+    args = []
+    for s, right in (("1", True), ("7", False)):
+        p = tmp_path / f"p{s}.jsonl"
+        p.write_text("".join(json.dumps({"data": "d", "group": x["group"], "variant": x["variant"],
+                                         "pred": x["label"] if right else "NOPE"}) + "\n" for x in recs))
+        args += ["--preds", f"arm_s{s}={p}"]
+    out = tmp_path / "sb.md"
+    subprocess.run([sys.executable, "-m", "eval.mechanism.scoreboard", "--data", str(data), *args,
+                    "--out", str(out)], cwd=ROOT, check=True)
+    md = out.read_text()
+    assert "| arm_s1 | 1.000 |" in md and "| arm_s7 | 0.000 |" in md
+    assert "| arm (2 seeds) | 0.500 ± 0.707 |" in md
