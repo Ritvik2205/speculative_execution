@@ -213,7 +213,9 @@ python3 oracle/revizor/scripts/hw_label_variants.py emit --out ~/rvzr_hwlabel_cf
   - print counts per class × variant, and the % of `cf_*` that stay vulnerable.
   - **If every cf variant mitigates or every one leaks, H1 is untestable.** Report this before going on.
 - [ ] **Step 5:** Copy the jsonl files to the repo and commit (jsonl and md only, no `input_*.bin`).
-  - Held-out run → `eval/data/revizor_hwlabel_cf_heldout.jsonl`, **with the `original` rows removed.** They are the reproduce check only; kept in, they inflate always-attack and dilute H1.
+  - Held-out run → `eval/data/revizor_hwlabel_cf_heldout.jsonl`. `emit` already drops `original` rows and unstable verdicts.
+  - **Always pass `emit --jsonl`.** Its default is the pinned dev-806 file, which a bare `emit` overwrites.
+  - Validate with `python3 oracle/revizor/scripts/check_hw_labels.py <file>`: exit 1 = bad labels, exit 2 = H1 untestable.
   - Training run → `eval/data/revizor_hwlabel_trainpool.jsonl` (all variants). These names are what `eval/cluster/submit_allhw3.sh` reads.
 
 ---
