@@ -18,9 +18,15 @@
 #   sudo bash oracle/revizor/scripts/run_multiclass_campaign.sh \
 #     [--classes "SPECTRE_V4 MDS L1TF SPECTRE_V1"] \
 #     [--seeds "1234567 7654321 ..."] [--n-seeds N] \
-#     [--n 1000] [--inputs 100] [--timeout 900]
+#     [--n 1000] [--inputs 100] [--timeout 900] [--shared-config]
 #
 # --seeds and --n-seeds are mutually exclusive; one is required.
+#
+# --shared-config gives every class the same instruction set and program
+# shape (class_config.shared_overlay; COND_BR stays V1-only) and keeps only
+# the class-defining contract/actors -- the paper's sec:detector control for
+# the class<->config confound. Runs land in $RUNS/mcshared_<ts>/ instead of
+# mc_<ts>/.
 #
 # HOST: this only runs on the i5-8300H bare-metal Linux box. Revizor needs
 # a real x86-64 host with its rvzr_executor kernel module reading actual
@@ -55,6 +61,7 @@ TIMEOUT=900
 CLASSES="SPECTRE_V4 MDS L1TF SPECTRE_V1"
 SEEDS=""
 N_SEEDS=""
+SHARED=0
 
 usage() {
   cat <<'EOF'
@@ -72,6 +79,8 @@ Usage: run_multiclass_campaign.sh [--classes "C1 C2 ..."]
   --inputs, -i
               rvzr fuzz -i (inputs per test case; default 100)
   --timeout   rvzr fuzz --timeout in seconds (default 900)
+  --shared-config
+              one instruction set + program shape for every class (see header)
 
 --seeds and --n-seeds are mutually exclusive; exactly one is required.
 EOF
@@ -86,6 +95,7 @@ while [ $# -gt 0 ]; do
     --n|-n) N="$2"; shift 2;;
     --inputs|-i) I="$2"; shift 2;;
     --timeout) TIMEOUT="$2"; shift 2;;
+    --shared-config) SHARED=1; shift;;
     -h|--help) usage; exit 0;;
     *) echo "FATAL: unknown argument '$1'"; usage; exit 1;;
   esac
@@ -222,16 +232,27 @@ fi
 # SET UP RUN DIRECTORY + LOGGING
 # =============================================================================
 TS="$(date +%y%m%d_%H%M%S)"
-CAMPAIGN_ROOT="$RUNS/mc_$TS"
+if [ "$SHARED" -eq 1 ]; then CAMPAIGN_ROOT="$RUNS/mcshared_$TS"; else CAMPAIGN_ROOT="$RUNS/mc_$TS"; fi
 CFGDIR="/tmp/multiclass_configs_$TS"
 mkdir -p "$RUNS" "$CAMPAIGN_ROOT" "$CFGDIR"
+
+# per-class base config: the demo config, or its shared-config overlay
+declare -A CLASS_BASE
+for cls in $CLASSES; do
+  CLASS_BASE[$cls]="$DEMO_CONFIGS/${CLASS_CONFIG[$cls]}"
+  if [ "$SHARED" -eq 1 ]; then
+    CLASS_BASE[$cls]="$CFGDIR/shared_${CLASS_CONFIG[$cls]}"
+    $PYTHON "$SCRIPT_DIR/class_config.py" --shared-overlay \
+      "$DEMO_CONFIGS/${CLASS_CONFIG[$cls]}" "$cls" > "${CLASS_BASE[$cls]}" || exit 1
+  fi
+done
 LOG="$RUNS/campaign_$TS.log"
 exec > >(tee -a "$LOG") 2>&1
 
 echo "=== multiclass campaign start: $(date) ==="
 echo "classes: $CLASSES"
 echo "seeds:   $SEEDS"
-echo "n=$N inputs=$I timeout=$TIMEOUT"
+echo "n=$N inputs=$I timeout=$TIMEOUT shared_config=$SHARED"
 echo "campaign root: $CAMPAIGN_ROOT"
 echo ""
 echo "--- environment ---"
@@ -275,7 +296,7 @@ run_fuzz () {  # $1=config $2=workdir $3=label
 declare -A RESULT_COUNTS
 
 for cls in $CLASSES; do
-  cfg_base="$DEMO_CONFIGS/${CLASS_CONFIG[$cls]}"
+  cfg_base="${CLASS_BASE[$cls]}"
   cls_lower="$(echo "$cls" | tr '[:upper:]' '[:lower:]')"
 
   echo ""
@@ -305,7 +326,7 @@ case " $CLASSES " in
     echo "########## SPECTRE_V4 unmitigated total violations: $v4_total ##########"
 
     if [ "$v4_total" -gt 0 ]; then
-      cfg_base="$DEMO_CONFIGS/${CLASS_CONFIG[SPECTRE_V4]}"
+      cfg_base="${CLASS_BASE[SPECTRE_V4]}"
 
       echo ""
       echo "########## SPECTRE_V4 control: SSBP ON, expect 0 ##########"
