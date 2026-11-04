@@ -280,11 +280,24 @@ def test_minimize_with_fake_rvzr(tmp_path):
                     "fp = '--enable-fence-pass' in a and a[a.index('--enable-fence-pass') + 1] == 'true'\n"
                     f"shutil.copy({str(fenced)!r} if fp else {str(minimized)!r}, o)\n")
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    # recorded input_*.bin present -> cmd_minimize launches the rvzr venv's
+    # python3 on rvzr_minimize_recorded.py; fake it as "check the inputs, then
+    # behave like the fake rvzr on the args after --"
+    fake_py = tmp_path / "python3"
+    fake_py.write_text("#!/usr/bin/env python3\nimport sys, subprocess\n"
+                       "a = sys.argv; s = a.index('--')\n"
+                       "assert a[1].endswith('rvzr_minimize_recorded.py') and a[2] == '--inputs'\n"
+                       "assert a[3:s] and all(p.endswith('.bin') for p in a[3:s])\n"
+                       f"sys.exit(subprocess.call([{str(fake)!r}, 'minimize', *a[s + 1:]]))\n")
+    fake_py.chmod(fake_py.stat().st_mode | stat.S_IEXEC)
     out = tmp_path / "out"
     assert h.main(["minimize", "--records", str(recs), "--out", str(out),
                    "--rvzr", str(fake), "--spec", "x"]) == 0
     st = json.loads((out / "spectre_v4" / "violation-000" / "_min" / "status.json").read_text())
     assert st["min"]["ok"] and st["fenced"]["ok"]
+    assert st["recorded_inputs"] and st["sample_sizes"] == [10, 50, 100]
+    cfg = (out / "spectre_v4" / "violation-000" / "_min" / "config.yaml").read_text()
+    assert "executor_sample_sizes: [10, 50, 100]" in cfg
     assert st["n_body"] == 7 and st["n_essential"] == 3
     assert h.main(["plan", "--records", str(recs), "--out", str(out)]) == 0
     variants = {json.loads(l)["variant"] for l in (out / "plan.jsonl").read_text().splitlines()}
