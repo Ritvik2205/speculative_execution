@@ -28,6 +28,25 @@ The same window computation becomes 3 opt-in detector features, and `allhw3` is 
 - **H2 (learnable):** `allhw3_mech` beats the interior-fence rule on `cf_heldout` over 5 seeds (mean CI excludes the bar), and does not regress on dev-806.
 - **H2b (discoverable):** `allhw3` without mechanism features does the same. This tells whether the GNN finds the mechanism unaided.
 
+### Re-registration 2026-11-04 (after the H1 labels, before any allhw3 result)
+
+H1 result (`eval/mechanism/RESULTS.md` §3): **not established**. Mode "all" beats interior and always-attack; "any" does not beat always-attack. On `cf_heldout` the interior rule scores 0.274, the same as always-benign, so "beats interior" no longer means anything: always-attack clears it by +0.45. No allhw3 checkpoint existed when this section was written. The superseded H2/H2b above are kept for the record and are not tested.
+
+- **H2 (amended, learnable):** `allhw3_mech` beats **always-attack** on `cf_heldout` (MDS excluded) **and** on its `cf_nonleak` subset. `cf_nonleak` is the only held-out type with mixed hardware labels (n = 109, 56 vulnerable). Read on the 5-seed mean of the per-seed paired differences, with a base-clustered 95% CI excluding 0 on both sets. It must not regress on dev-806: mean acc ≥ interior − 0.01.
+  - **H2-strong:** additionally ≥ `mechanism-v2` on `cf_nonleak`, with the CI of (model − rule) lower bound > −0.05. This is the transfer claim the paper needs: a learned detector matching the mechanism on real hardware gadgets.
+  - Always report next to always-attack, interior, `mechanism` and `mechanism-v2`.
+- **H2b (amended, discoverable):** `allhw3` (no mechanism features) meets the same amended H2 criteria.
+- **H1b (v2 rule, re-registered):** `mechanism-v2` (`eval/mechanism/hybrid.py`: mode "any" for SPECTRE_V4, "all" otherwise; tag `mech-rule-frozen-v2`) beats always-attack and interior. Test set: the `cf_*` rows of `eval/data/revizor_hwlabel_trainpool.jsonl`, which did not exist when v2 was frozen. Same CI rule as H1, read per cf type. Its `cf_heldout` score (0.889, +0.163 vs always-attack) is post hoc and must never be quoted as a test.
+  - The trainpool bases are allhw3's training data. The rule does not learn, so testing it there is clean; models are never scored on trainpool.
+
+| H1b | H2 | H2b | Paper reading |
+|---|---|---|---|
+| ✗ | ✗ | ✗ | No transferable mechanism signal beyond "attack". The paper becomes a negative result on counterfactuals. |
+| ✓ | ✗ | ✗ | Mechanism is real, but the model can't use it. The rule is the contribution; next step is `cf_sweep` data. |
+| ✓ | ✓ | ✗ | Explicit mechanism features are needed for transfer. |
+| ✓ | ✓ | ✓ | The GNN learns the mechanism from hardware labels alone. |
+| any | H2-strong ✓ | – | Headline transfer result. |
+
 | H1 | H2 | H2b | Paper reading |
 |---|---|---|---|
 | ✗ | – | – | Counterfactuals don't separate mechanism from position. Fix the variant design before claiming anything. |

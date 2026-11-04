@@ -34,6 +34,7 @@ if str(ROOT) not in sys.path:
 
 from eval.group_stats import cluster_bootstrap_ci  # noqa: E402
 from eval.mechanism.bars import BARS, fence_count, fence_count_pred  # noqa: E402
+from eval.mechanism.hybrid import hybrid_pred  # noqa: E402
 from eval.mechanism.spec_window import mechanism_pred  # noqa: E402
 
 _BASE_RE = re.compile(r"violation-\d{6}-\d{6}")
@@ -98,6 +99,7 @@ def rule_preds(recs: list[dict]) -> dict[str, list[Optional[str]]]:
     out.update({k: [f(r) for r in recs] for k, f in BARS.items()})
     out["mechanism"] = [mechanism_pred(r, mode="all") for r in recs]
     out["mechanism-any"] = [mechanism_pred(r, mode="any") for r in recs]
+    out["mechanism-v2"] = [hybrid_pred(r) for r in recs]   # H1b, eval/mechanism/hybrid.py
     return out
 
 
@@ -175,6 +177,19 @@ def render(stem: str, recs: list[dict], scorers: dict[str, list[Optional[str]]])
             if k != ref:
                 d, lo, hi = paired_bootstrap(recs, p, scorers[ref])
                 L.append(f"| {k} | {d:+.3f} | {_f(lo)} | {_f(hi)} |")
+    # H2 (re-registered 2026-11-04) is read on cf_nonleak too: the only
+    # held-out type whose hardware labels go both ways.
+    nl = [i for i, r in enumerate(recs) if r["variant"] == "cf_nonleak"]
+    if nl:
+        R = [recs[i] for i in nl]
+        L += ["", f"### cf_nonleak: paired difference vs always-attack (n={len(R)}, "
+              f"vulnerable={sum(r['label'] != 'BENIGN' for r in R)})", "",
+              "| scorer | acc | diff | lo | hi |", "|---|---|---|---|---|"]
+        for k, p in scorers.items():
+            if k != "always-attack":
+                q = [p[i] for i in nl]
+                d, lo, hi = paired_bootstrap(R, q, [scorers["always-attack"][i] for i in nl])
+                L.append(f"| {k} | {_f(score(R, q)['acc'])} | {d:+.3f} | {_f(lo)} | {_f(hi)} |")
     for c in excl:
         idx = [i for i, r in enumerate(all_recs) if r["vuln_class"] == c]
         L += ["", f"### {c} (unconfirmed hardware replay; not in the headline, n={len(idx)})", ""]

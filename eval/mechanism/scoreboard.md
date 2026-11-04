@@ -13,6 +13,7 @@ Bars and the mechanism rule use no learning. acc = exact hardware-label match; a
 | interior | 0.992 | 1.000 | 0.987 | 1.000 | 0 |
 | mechanism | 0.992 | 1.000 | 0.987 | 1.000 | 0 |
 | mechanism-any | 0.992 | 1.000 | 0.987 | 1.000 | 0 |
+| mechanism-v2 | 0.992 | 1.000 | 0.987 | 1.000 | 0 |
 
 ### Paired difference vs interior (acc, base-clustered 95% CI)
 
@@ -24,6 +25,7 @@ Bars and the mechanism rule use no learning. acc = exact hardware-label match; a
 | adjacent | -0.129 | -0.147 | -0.113 |
 | mechanism | +0.000 | 0.000 | 0.000 |
 | mechanism-any | +0.000 | 0.000 | 0.000 |
+| mechanism-v2 | +0.000 | 0.000 | 0.000 |
 
 ### Paired difference vs always-attack (acc, base-clustered 95% CI)
 
@@ -35,6 +37,7 @@ Bars and the mechanism rule use no learning. acc = exact hardware-label match; a
 | interior | +0.591 | 0.579 | 0.604 |
 | mechanism | +0.591 | 0.579 | 0.604 |
 | mechanism-any | +0.591 | 0.579 | 0.604 |
+| mechanism-v2 | +0.591 | 0.579 | 0.604 |
 
 ### MDS (unconfirmed hardware replay; not in the headline, n=165)
 
@@ -47,6 +50,7 @@ Bars and the mechanism rule use no learning. acc = exact hardware-label match; a
 | interior | 0.988 | 1.000 | 0.980 | 1.000 | 0 |
 | mechanism | 0.988 | 1.000 | 0.980 | 1.000 | 0 |
 | mechanism-any | 0.988 | 1.000 | 0.980 | 1.000 | 0 |
+| mechanism-v2 | 0.988 | 1.000 | 0.980 | 1.000 | 0 |
 
 ### Per class (acc)
 
@@ -59,6 +63,7 @@ Bars and the mechanism rule use no learning. acc = exact hardware-label match; a
 | interior | 1.000 | 0.988 | 0.987 | 0.981 |
 | mechanism | 1.000 | 0.988 | 0.987 | 0.981 |
 | mechanism-any | 1.000 | 0.988 | 0.987 | 0.981 |
+| mechanism-v2 | 1.000 | 0.988 | 0.987 | 0.981 |
 
 † hardware replay unconfirmed (paper sec:replay) — report separately, not in the headline.
 
@@ -73,3 +78,4 @@ Bars and the mechanism rule use no learning. acc = exact hardware-label match; a
 | interior | 1.000 | 0.957 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
 | mechanism | 1.000 | 0.957 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
 | mechanism-any | 1.000 | 0.957 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| mechanism-v2 | 1.000 | 0.957 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
