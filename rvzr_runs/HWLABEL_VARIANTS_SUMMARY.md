@@ -5,21 +5,23 @@
 | class | variant | vulnerable | mitigated | flaky | error | unstable_original | incomplete |
 |---|---|---|---|---|---|---|---|
 | L1TF | after_load | 0 | 60 | 0 | 2 | 2 | 0 |
-| L1TF | cf_fencepass | 1 | 0 | 0 | 0 | 0 | 0 |
-| L1TF | cf_nonleak | 1 | 0 | 0 | 0 | 0 | 0 |
+| L1TF | cf_fencepass | 58 | 0 | 3 | 0 | 1 | 0 |
+| L1TF | cf_nonleak | 32 | 23 | 1 | 0 | 1 | 0 |
 | L1TF | entry | 58 | 1 | 1 | 2 | 2 | 0 |
 | L1TF | fence_all | 0 | 59 | 0 | 3 | 2 | 0 |
 | L1TF | original | 62 | 0 | 0 | 0 | 2 | 0 |
 | L1TF | tail | 59 | 1 | 0 | 2 | 2 | 0 |
 | L1TF | twin | 0 | 59 | 0 | 3 | 2 | 0 |
 | MDS | after_load | 0 | 33 | 0 | 0 | 0 | 0 |
+| MDS | cf_fencepass | 23 | 0 | 2 | 0 | 0 | 0 |
+| MDS | cf_nonleak | 2 | 6 | 0 | 0 | 0 | 0 |
 | MDS | entry | 32 | 1 | 0 | 0 | 0 | 0 |
 | MDS | fence_all | 0 | 33 | 0 | 0 | 0 | 0 |
 | MDS | original | 33 | 0 | 0 | 0 | 0 | 0 |
 | MDS | tail | 32 | 1 | 0 | 0 | 0 | 0 |
 | MDS | twin | 0 | 33 | 0 | 0 | 0 | 0 |
-| SPECTRE_V1 | cf_fencepass | 3 | 0 | 0 | 0 | 0 | 0 |
-| SPECTRE_V1 | cf_nonleak | 3 | 0 | 0 | 0 | 0 | 0 |
+| SPECTRE_V1 | cf_fencepass | 34 | 1 | 3 | 0 | 6 | 0 |
+| SPECTRE_V1 | cf_nonleak | 24 | 11 | 2 | 0 | 4 | 0 |
 | SPECTRE_V1 | cf_wrong_path | 34 | 0 | 4 | 0 | 12 | 0 |
 | SPECTRE_V1 | entry | 34 | 3 | 1 | 0 | 12 | 0 |
 | SPECTRE_V1 | fence_all | 0 | 42 | 0 | 0 | 12 | 0 |
@@ -28,6 +30,9 @@
 | SPECTRE_V1 | tail | 36 | 0 | 2 | 0 | 12 | 0 |
 | SPECTRE_V1 | twin | 0 | 38 | 0 | 0 | 12 | 0 |
 | SPECTRE_V1 | v1_fallthrough | 32 | 0 | 6 | 0 | 12 | 0 |
+| SPECTRE_V4 | cf_after_bypass | 0 | 19 | 0 | 0 | 2 | 0 |
+| SPECTRE_V4 | cf_fencepass | 14 | 1 | 4 | 0 | 2 | 0 |
+| SPECTRE_V4 | cf_nonleak | 0 | 19 | 0 | 0 | 2 | 0 |
 | SPECTRE_V4 | entry | 16 | 2 | 1 | 0 | 3 | 0 |
 | SPECTRE_V4 | fence_all | 0 | 19 | 0 | 0 | 3 | 0 |
 | SPECTRE_V4 | original | 19 | 0 | 0 | 0 | 3 | 0 |
@@ -35,4 +40,4 @@
 | SPECTRE_V4 | tail | 19 | 0 | 0 | 0 | 3 | 0 |
 | SPECTRE_V4 | twin | 0 | 19 | 0 | 0 | 3 | 0 |
 
-821 labelled variant records -> `/home/ritvik/speculative_execution/eval/data/revizor_hwlabel_variants.jsonl`
+1080 labelled variant records -> `/home/ritvik/speculative_execution/eval/data/revizor_hwlabel_variants.jsonl`
