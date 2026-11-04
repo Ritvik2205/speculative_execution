@@ -34,7 +34,9 @@ REAL_PATHS = {
 # campaign grows; the two use different `group` schemas on purpose.
 # +mc_260925_100840: SPECTRE_V1 3->40, L1TF 6->80, MDS 3->22.
 # +mc_260918_104145: SPECTRE_V1 40->130, L1TF 80->155, MDS 22->83.
-REAL_COUNTS = {"SPECTRE_V4": 16, "SPECTRE_V1": 130, "L1TF": 155, "MDS": 83}
+# +i5 multiclass campaign (352bed39, 2026-10-24): SPECTRE_V1 130->220,
+#   L1TF 155->229, MDS 83->160 (revizor_v4_real.jsonl unchanged at 16).
+REAL_COUNTS = {"SPECTRE_V4": 16, "SPECTRE_V1": 220, "L1TF": 229, "MDS": 160}
 
 
 def load_jsonl(path):
@@ -286,7 +288,10 @@ def test_v1_real_corpus_twins_fence_after_the_jmp():
             if ins == "lfence" and ins not in seq:
                 assert fenced[i - 1].startswith("jmp"), (r["group"], fenced[i - 2:i + 2])
                 checked += 1
-    assert checked == 122  # 121 single-jcc gadgets + the jrcxz one
+    # one fence per guarded record: 205 single-jcc gadgets + the jrcxz one;
+    # the other 14 of 220 have no jcc->jmp guard and get no fence
+    # (was 122 of 130 before the 352bed39 campaign)
+    assert checked == 206
 
 
 def test_v1_fallthrough_placement_is_old_twin_and_keeps_attack_label():

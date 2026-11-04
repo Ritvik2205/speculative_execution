@@ -17,6 +17,11 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
 sys.path.insert(0, str(ROOT / "v54"))
 from robustness_suite import evaluate_checkpoint  # noqa: E402
+sys.path.insert(0, str(ROOT))
+from eval.mechanism.bars import (  # noqa: E402
+    adjacent_fence_pred as _adjacent_fence_pred,
+    interior_fence_pred as _interior_fence_pred,
+)
 
 OUT = ROOT / "eval" / "cluster_out"
 TEST = str(ROOT / "v54" / "data" / "v54_test.jsonl")
@@ -187,37 +192,6 @@ def write_confusion_report():
     print("wrote real_transfer_confusion.md")
 
 HW_LABELS = ROOT / "eval" / "data" / "revizor_hwlabel_variants.jsonl"
-
-def _adjacent_fence_pred(r):
-    """Non-learned bar: BENIGN iff some lfence sits directly next to the class's
-    boundary instruction (jcc for V1, any memory op otherwise), skipping a
-    standalone `lock` line. Matches 702/806 HW labels (2026-10-07)."""
-    import re as _re
-    seq, cls = r["sequence"], r.get("vuln_class") or r["label"]
-    jcc = lambda x: bool(_re.match(r"j(?!mp)[a-z]+\s", x))
-    mem = lambda x: "(" in x and not x.split()[0].startswith("lea")
-    bnd = jcc if cls == "SPECTRE_V1" else mem
-    for i, x in enumerate(seq):
-        if x != "lfence":
-            continue
-        nb = [seq[j] for j in (i - 1, i + 1) if 0 <= j < len(seq) and seq[j] not in ("lfence", "lock")]
-        if i + 2 < len(seq) and seq[i + 1] == "lock":
-            nb.append(seq[i + 2])
-        if any(bnd(y) for y in nb):
-            return "BENIGN"
-    return cls
-
-def _interior_fence_pred(r):
-    """Non-learned bar: BENIGN iff some lfence is NOT in the leading/trailing
-    lfence run, i.e. sits inside the sequence. Matches 799/806 HW labels
-    (2026-10-08): the current variant set cannot tell structure from position."""
-    seq = r["sequence"]
-    i, j = 0, len(seq)
-    while i < j and seq[i] == "lfence":
-        i += 1
-    while j > i and seq[j - 1] == "lfence":
-        j -= 1
-    return "BENIGN" if "lfence" in seq[i:j] else (r.get("vuln_class") or r["label"])
 
 def _hw_label_section(tags, tmp):
     """Score every tag on HARDWARE-labelled fenced variants (rvzr reproduce x3 on

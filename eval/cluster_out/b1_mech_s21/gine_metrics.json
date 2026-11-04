@@ -1,0 +1,149 @@
+{
+  "test_accuracy": 0.9592814371257485,
+  "best_epoch": 12,
+  "total_params": 619595,
+  "num_classes": 10,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 4803,
+  "val_count": 729,
+  "test_count": 1670,
+  "best_val_acc": 0.9643347050754458,
+  "final_edge_type_scales": {
+    "DATA_DEP": 0.9137354493141174,
+    "CONTROL_FLOW": 0.9035347700119019,
+    "SPEC_CONDITIONAL": 1.0897853374481201,
+    "SPEC_INDIRECT": 1.04637610912323,
+    "SPEC_RETURN": 1.0355619192123413,
+    "MEMORY_ORDER": 0.938106119632721,
+    "CACHE_TEMPORAL": 1.0094530582427979,
+    "FENCE_BOUNDARY": 0.9231213927268982,
+    "RSB_CHAIN": 1.1399109363555908
+  },
+  "classification_report": {
+    "BENIGN": {
+      "precision": 0.9941520467836257,
+      "recall": 0.9893307468477207,
+      "f1-score": 0.9917355371900827,
+      "support": 1031.0
+    },
+    "BRANCH_HISTORY_INJECTION": {
+      "precision": 0.9193548387096774,
+      "recall": 0.8507462686567164,
+      "f1-score": 0.8837209302325582,
+      "support": 67.0
+    },
+    "INCEPTION": {
+      "precision": 0.85,
+      "recall": 0.9042553191489362,
+      "f1-score": 0.8762886597938144,
+      "support": 94.0
+    },
+    "L1TF": {
+      "precision": 0.9230769230769231,
+      "recall": 0.6486486486486487,
+      "f1-score": 0.7619047619047619,
+      "support": 37.0
+    },
+    "MDS": {
+      "precision": 0.8076923076923077,
+      "recall": 0.9333333333333333,
+      "f1-score": 0.865979381443299,
+      "support": 45.0
+    },
+    "RETBLEED": {
+      "precision": 0.8823529411764706,
+      "recall": 1.0,
+      "f1-score": 0.9375,
+      "support": 75.0
+    },
+    "SPECTRE_RSB": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "SPECTRE_V1": {
+      "precision": 0.9767441860465116,
+      "recall": 1.0,
+      "f1-score": 0.9882352941176471,
+      "support": 42.0
+    },
+    "SPECTRE_V2": {
+      "precision": 0.9366197183098591,
+      "recall": 0.8636363636363636,
+      "f1-score": 0.8986486486486487,
+      "support": 154.0
+    },
+    "SPECTRE_V4": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 124.0
+    },
+    "accuracy": 0.9592814371257485,
+    "macro avg": {
+      "precision": 0.8289992961795374,
+      "recall": 0.8189950680271719,
+      "f1-score": 0.8204013213330812,
+      "support": 1670.0
+    },
+    "weighted avg": {
+      "precision": 0.9655129924846548,
+      "recall": 0.9592814371257485,
+      "f1-score": 0.9613350884966665,
+      "support": 1670.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.7295440349781387,
+    "epoch1_val_acc": 0.8641975308641975
+  },
+  "args": {
+    "data": null,
+    "train_data": "v54/data/v54_train.jsonl",
+    "test_data": "v54/data/v54_test.jsonl",
+    "output_dir": "eval/cluster_out/b1_mech_s21",
+    "viz_dir": "eval/cluster_out/b1_mech_s21",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "class_boost": null,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "embed",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "all",
+    "mech_features": true,
+    "drop_nops": false,
+    "node_drop": 0.0,
+    "no_handcrafted": false,
+    "node_feature_mode": "hand",
+    "mlm_path": null,
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 21
+  }
+}

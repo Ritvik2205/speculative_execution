@@ -88,3 +88,31 @@ sbatch --export=ALL,GEN=gen/generator_expanded.pt,DEMAND=1 gen/isa_runnability_r
 Expected: F3 (`isa_runnability_riscv_sandbox.md`) drives fault_mem -> ~0 and
 executes up sharply if clobbered bases are the cause; F2 should do the same for
 the baseline (random-base) run IF its canary passes on the cluster.
+
+## Ablation result (2026-11-01, cluster) — F2 and F3 both no-op; cause reframed
+
+Ran baseline + F3 (`--sandbox-mem-base`) + F2 (`DEMAND=1`) on `generator_expanded.pt`,
+60/class. **All three are byte-identical: fault_mem 530, ok 5, timeout 5.**
+
+- **F3 (load-base sandbox) does nothing here** — verified the realiser DOES pin
+  the base to s11 (local), but the emu counts don't move, so clobbered load
+  bases are NOT the fault source.
+- **F2 (demand paging) does nothing here** — DEMAND=1 == DEMAND=0, so the faults
+  are not RW-demand-pageable.
+- **Real cause = indirect control flow.** The realiser retargets DIRECT branches
+  to a safe end-label but leaves `jalr`/`ret` untouched (for RETBLEED/RSB/
+  INCEPTION/BHI the indirect branch *is* the gadget). Every GPR is seeded to
+  `_buf_mid` (non-exec `.bss`), so an indirect transfer fetches non-executable
+  memory -> SIGSEGV -> fault_mem. F3/F2 can't touch control flow.
+- **x86/ARM are not a clean baseline.** Unicorn maps its sandbox RWX; an x86 jump
+  into zeroed sandbox decodes as a benign `add [mem],al` and coasts to the insn
+  budget = "executes", whereas the all-zero RV64 encoding is ILLEGAL, so the
+  identical pattern faults. So part of the x86 0.52 / ARM 0.84 is the forgiving
+  zero-encoding, not better generation.
+
+**Conclusion:** riscv bodies are valid RV64GC (0 decode faults). A bare
+user-mode emulator cannot score a return/indirect-branch gadget without a
+harness that supplies valid branch targets -- that is the job of the riscv LEAK
+ORACLE, not a runnability check. F2/F3 are kept in-tree (correct, tested) but do
+not address this residual. No emulator/realiser tweak raises the number; the
+metric is ill-posed for indirect/return classes under this emulator.

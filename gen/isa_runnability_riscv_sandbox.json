@@ -1,0 +1,110 @@
+{
+ "config": {
+  "gen": "gen/generator_expanded.pt",
+  "n": 60,
+  "temperature": 0.9,
+  "top_k": 20,
+  "seed": 0,
+  "archs": [
+   "riscv64"
+  ],
+  "emulation": true
+ },
+ "arch_purity": "assembler",
+ "unique_realized": {
+  "riscv64|BRANCH_HISTORY_INJECTION": 60,
+  "riscv64|INCEPTION": 60,
+  "riscv64|L1TF": 60,
+  "riscv64|MDS": 60,
+  "riscv64|RETBLEED": 60,
+  "riscv64|SPECTRE_RSB": 60,
+  "riscv64|SPECTRE_V1": 60,
+  "riscv64|SPECTRE_V2": 60,
+  "riscv64|SPECTRE_V4": 60
+ },
+ "counts": {
+  "riscv64|BRANCH_HISTORY_INJECTION": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60,
+   "emulated_ok": 1
+  },
+  "riscv64|INCEPTION": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60,
+   "emulated_ok": 3
+  },
+  "riscv64|L1TF": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60
+  },
+  "riscv64|MDS": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60
+  },
+  "riscv64|RETBLEED": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60,
+   "emulated_ok": 1
+  },
+  "riscv64|SPECTRE_RSB": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60
+  },
+  "riscv64|SPECTRE_V1": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60
+  },
+  "riscv64|SPECTRE_V2": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60
+  },
+  "riscv64|SPECTRE_V4": {
+   "sampled": 60,
+   "realized": 60,
+   "assembles": 60
+  }
+ },
+ "emulation_outcomes": {
+  "riscv64|BRANCH_HISTORY_INJECTION": {
+   "fault_mem": 59,
+   "ok": 1
+  },
+  "riscv64|INCEPTION": {
+   "fault_mem": 56,
+   "ok": 3,
+   "timeout": 1
+  },
+  "riscv64|L1TF": {
+   "fault_mem": 60
+  },
+  "riscv64|MDS": {
+   "fault_mem": 60
+  },
+  "riscv64|RETBLEED": {
+   "fault_mem": 58,
+   "ok": 1,
+   "timeout": 1
+  },
+  "riscv64|SPECTRE_RSB": {
+   "fault_mem": 60
+  },
+  "riscv64|SPECTRE_V1": {
+   "fault_mem": 57,
+   "timeout": 3
+  },
+  "riscv64|SPECTRE_V2": {
+   "fault_mem": 60
+  },
+  "riscv64|SPECTRE_V4": {
+   "fault_mem": 60
+  }
+ }
+}
