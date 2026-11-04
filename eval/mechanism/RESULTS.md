@@ -107,4 +107,46 @@ needs ≥ `mechanism-v2` on `cf_nonleak`. H1b tests the v2 rule
 counterfactuals. Its `cf_heldout` numbers (0.889 overall; `cf_nonleak` 0.899,
 +0.385 [0.294, 0.477] vs always-attack) are post hoc.
 
-## 5. H0 / H2 / H2b / H1b — pending (model preds on cf; training-pool labels; allhw3)
+## 5. H0: existing learned models on the held-out counterfactuals
+
+Cluster job `score_allhw3` (e606a5ca): all 20 checkpoints passed their
+reproduce gate. MDS is excluded. Each entry is the 5-seed mean; brackets are
+the base-clustered 95% CI of the seed-mean paired difference. Full tables:
+`eval/mechanism/scoreboard_allhw3.md`.
+
+| arm | dev-806 acc | cf acc | cf vs always-attack | cf_nonleak acc | cf_nonleak vs AA | cf leak-call rate |
+|---|---|---|---|---|---|---|
+| always-attack | 0.401 | 0.726 | — | 0.514 | — | 1.00 |
+| interior | 0.992 | 0.274 | −0.452 | 0.486 | −0.028 | 0.00 |
+| mechanism-v2 (post hoc) | 0.992 | 0.889 | +0.163 | 0.899 | +0.385 | — |
+| b1 | 0.198 ± 0.051 | 0.332 ± 0.021 | −0.394 [−0.463, −0.330] | 0.218 | −0.295 [−0.385, −0.215] | 0.99 |
+| b1_mech | 0.178 ± 0.071 | 0.324 ± 0.043 | −0.402 [−0.470, −0.338] | 0.198 | −0.316 [−0.404, −0.235] | 1.00 |
+| allhw | 0.621 ± 0.024 | 0.270 ± 0.015 | −0.456 [−0.568, −0.340] | 0.497 | −0.017 [−0.209, +0.169] | 0.02 |
+| allhw2 | 0.817 ± 0.024 | 0.266 ± 0.053 | −0.460 [−0.530, −0.391] | 0.426 | −0.088 [−0.206, +0.022] | 0.33 |
+
+Binary leak/safe accuracy (the class is ignored; B1 calls most real gadgets
+SPECTRE_V1, so exact-label accuracy also charges it for class errors):
+
+| arm | cf binary | vs AA | cf_nonleak binary | vs AA |
+|---|---|---|---|---|
+| b1 | 0.716 | −0.010 [−0.016, −0.004] | 0.512 | −0.002 |
+| b1_mech | 0.721 | −0.004 [−0.009, −0.001] | 0.514 | +0.000 |
+| allhw | 0.270 | −0.456 | 0.497 | −0.017 |
+| allhw2 | 0.269 | −0.457 | 0.433 | −0.081 |
+
+**H0 holds for every existing model.** None beats always-attack on cf or on
+`cf_nonleak`, on either metric. Two failure modes, both shape:
+- **B1 / b1_mech = always-attack.** They flag 99–100% of counterfactuals as
+  leaking, whatever the fence. Adding the mechanism features as inputs does
+  not change this, because B1's training data has no fence labels to learn
+  from.
+- **allhw / allhw2 = "has a fence ⇒ safe".** Every counterfactual contains a
+  fence, so they call 67–98% of them BENIGN. They score 0.00 on
+  `cf_wrong_path` (34/34 leak) and 0.02–0.17 on `cf_fencepass` (106/108
+  leak). allhw2's 0.817 on dev came from fence presence lining up with
+  labels in the old variant set; on cf it is 0.27.
+
+The non-learned v2 rule leads every learned model by ≥ 0.56 on cf. allhw3
+has to close this gap with hardware labels alone.
+
+## 6. H2 / H2b / H1b — pending (training-pool labels; allhw3)
