@@ -10,6 +10,7 @@
 #     [--limit N] [--reps 3] [--out ~/rvzr_hwlabel]
 #     [--skip-labelled "<results dir or labelled jsonl> ..."]   (skip dirs already run)
 #     [--stages "minimize plan run"] [--variants "cf_wrong_path cf_nonleak ..."]
+#     [--min-from <earlier out dir>]   (reuse its _min/; e.g. the cf_nofence_* pass)
 # minimize = rvzr minimize (instruction + fence pass) per dir; needed for the
 # cf_nonleak / cf_after_bypass / cf_fencepass counterfactuals.
 # Resumable: re-running with the same --out skips finished runs.
@@ -28,6 +29,7 @@ LIMIT=0
 SKIP=""
 STAGES="minimize plan run"
 VARIANTS=""
+MIN_FROM=""
 REPS=3
 OUT="$HOME_DIR/rvzr_hwlabel"
 
@@ -39,6 +41,7 @@ while [ $# -gt 0 ]; do
     --skip-labelled) SKIP="$2"; shift 2;;
     --stages) STAGES="$2"; shift 2;;
     --variants) VARIANTS="$2"; shift 2;;
+    --min-from) MIN_FROM="$2"; shift 2;;
     --reps) REPS="$2"; shift 2;;
     --out) OUT="$2"; shift 2;;
     -h|--help) sed -n 2,17p "$0"; exit 0;;
@@ -75,7 +78,7 @@ for st in $STAGES; do
     minimize) "$PY" "$SCRIPT_DIR/hw_label_variants.py" minimize "${TARGETS[@]}" \
                 --rvzr "$VENV/bin/rvzr" --spec "$SPEC" || exit 1;;
     plan) "$PY" "$SCRIPT_DIR/hw_label_variants.py" plan "${TARGETS[@]}" \
-            ${VARIANTS:+--variants $VARIANTS} || exit 1;;
+            ${VARIANTS:+--variants $VARIANTS} ${MIN_FROM:+--min-from $MIN_FROM} || exit 1;;
     run) "$PY" "$SCRIPT_DIR/hw_label_variants.py" run --out "$OUT" --rvzr "$VENV/bin/rvzr" \
            --spec "$SPEC" --reps "$REPS" || exit 1;;
     *) echo "FATAL: unknown stage $st"; exit 1;;

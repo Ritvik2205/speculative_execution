@@ -302,3 +302,95 @@ def test_minimize_with_fake_rvzr(tmp_path):
     assert h.main(["plan", "--records", str(recs), "--out", str(out)]) == 0
     variants = {json.loads(l)["variant"] for l in (out / "plan.jsonl").read_text().splitlines()}
     assert {"cf_nonleak", "cf_after_bypass", "cf_fencepass"} <= variants
+
+
+# ---------------------------------------------------------------------------
+# fence-free counterfactuals (2026-11-05): every variant above adds an lfence,
+# so "no fence => attack" was never contradicted by a hardware label. These
+# delete one instruction instead; both arms make the same kind of edit.
+# ---------------------------------------------------------------------------
+
+def _nofence(cls=None, asm=V4_ASM, minimized=V4_MIN, tmp_path=None):
+    md = tmp_path / "_min"
+    md.mkdir(exist_ok=True)
+    (md / "min.asm").write_text(minimized)
+    return h.make_variants(asm, cls or "SPECTRE_V4", md, only=set(h.NOFENCE_VARIANTS))
+
+
+def _deleted(asm_out, asm_in=V4_ASM):
+    a, b = asm_in.splitlines(), asm_out.splitlines()
+    assert len(b) == len(a) - 1
+    gone = [x for x in a if a.count(x) != b.count(x)]
+    assert len(gone) == 1
+    return gone[0]
+
+
+def test_nofence_variants_are_opt_in(tmp_path):
+    md = tmp_path / "_min"
+    md.mkdir()
+    (md / "min.asm").write_text(V4_MIN)
+    assert not set(h.NOFENCE_VARIANTS) & set(h.make_variants(V4_ASM, "SPECTRE_V4", md))
+    assert set(h.NOFENCE_VARIANTS) <= set(h.ALL_VARIANTS)
+
+
+def test_nofence_adds_no_fence_and_deletes_one_instruction(tmp_path):
+    v = _nofence(tmp_path=tmp_path)
+    assert set(v) == {"original", *h.NOFENCE_VARIANTS}
+    for name in h.NOFENCE_VARIANTS:
+        asm, pl = v[name]
+        assert "lfence" not in asm and pl.count() == 0
+        gone = _deleted(asm)
+        assert "instrumentation" not in gone and not gone.split()[0].startswith("j")
+
+
+def test_nofence_ess_deletes_an_essential_memory_op(tmp_path):
+    gone = _deleted(_nofence(tmp_path=tmp_path)["cf_nofence_ess"][0])
+    assert gone in {"mov qword ptr [r14 + rax], rbx", "mov rsi, qword ptr [r14 + rdx]",
+                    "mov rax, qword ptr [r14 + rsi]"}
+
+
+def test_nofence_non_deletes_a_removed_memory_op_mid_sequence(tmp_path):
+    # the only non-essential memory op is the rbx-indexed load (same pick as cf_nonleak)
+    gone = _deleted(_nofence(tmp_path=tmp_path)["cf_nofence_non"][0])
+    assert gone == "mov rcx, qword ptr [r14 + rbx]"
+
+
+def test_nofence_never_leaves_an_instruction_right_after_a_jump(tmp_path):
+    # V1: the taken block's first real instruction follows `jmp .exit_0`'s label
+    # boundary; deleting the jcc's neighbours must not glue code to a jump
+    minimized = "\n".join(l for l in V1_ASM.splitlines() if l != "sub rcx, rsi") + "\n"
+    v = _nofence("SPECTRE_V1", V1_ASM, minimized, tmp_path)
+    for name in h.NOFENCE_VARIANTS:
+        if name not in v:
+            continue
+        orig = [x for x in V1_ASM.splitlines() if x.strip()]
+        lines = [x for x in v[name][0].splitlines() if x.strip()]
+        before = set(zip(orig, orig[1:]))
+        for prev, cur in zip(lines, lines[1:]):
+            if prev.split()[0].startswith("j") and (prev, cur) not in before:
+                assert cur.endswith(":"), (name, prev, cur)
+
+
+def test_nofence_absent_without_minimize():
+    v = h.make_variants(V4_ASM, "SPECTRE_V4", only=set(h.NOFENCE_VARIANTS))
+    assert set(v) == {"original"}
+
+
+def test_plan_min_from_reads_an_earlier_out_dir(tmp_path):
+    d = tmp_path / "runs" / "spectre_v4" / "violation-000"
+    d.mkdir(parents=True)
+    (d / "program.asm").write_text(V4_ASM)
+    recs = tmp_path / "r.jsonl"
+    recs.write_text(json.dumps({"label": "SPECTRE_V4", "group": "g4", "source": "revizor_hw_i5_8300h",
+                                "src_path": str(d / "program.asm")}) + "\n")
+    old = tmp_path / "old"
+    md = old / "spectre_v4" / "violation-000" / "_min"
+    md.mkdir(parents=True)
+    (md / "min.asm").write_text(V4_MIN)
+    (old / "plan.jsonl").write_text("keep\n")
+    new = tmp_path / "new"
+    assert h.main(["plan", "--records", str(recs), "--out", str(new), "--min-from", str(old),
+                   "--variants", *h.NOFENCE_VARIANTS]) == 0
+    got = {json.loads(l)["variant"] for l in (new / "plan.jsonl").read_text().splitlines()}
+    assert got == {"original", *h.NOFENCE_VARIANTS}
+    assert (old / "plan.jsonl").read_text() == "keep\n"

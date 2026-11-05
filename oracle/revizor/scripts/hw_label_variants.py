@@ -39,6 +39,11 @@ reproduce.yaml):
                        an essential store (the load that may bypass it)
        cf_fencepass    Revizor's fence pass: lfences greedily inserted wherever
                        the violation survives during minimization
+     Fence-free counterfactuals (opt-in via --variants; every variant above
+     adds an lfence, so "no fence => attack" was never contradicted). Both
+     delete ONE body instruction, so the edit itself carries no label:
+       cf_nofence_ess  delete an instruction the leak needs (prefer a memory op)
+       cf_nofence_non  delete one it does not, chosen like cf_nonleak
   0. minimize (i5 only, root): `rvzr minimize` instruction pass and fence pass
      per dir, into <out>/<class>/<dir>/_min/ (also the first minimality data:
      original vs minimized instruction count)
@@ -104,8 +109,12 @@ MIN_VARIANTS = {
     "MDS": ("cf_nonleak", "cf_fencepass"),
     "L1TF": ("cf_nonleak", "cf_fencepass"),
 }
+# need minimize output too, but only planned when named in --variants (a
+# resumed default run must not grow by these)
+NOFENCE_VARIANTS = ("cf_nofence_ess", "cf_nofence_non")
 ALL_VARIANTS = sorted({v for vs in CLASS_VARIANTS.values() for v in vs}
-                      | {v for vs in MIN_VARIANTS.values() for v in vs} | set(CONTROL_VARIANTS))
+                      | {v for vs in MIN_VARIANTS.values() for v in vs} | set(CONTROL_VARIANTS)
+                      | set(NOFENCE_VARIANTS))
 VIOLATION_MARKER = "Violations detected"
 # The four per-class held-out sets the joint model is scored on. NOT a
 # revizor_*_heldout glob: that also matches the legacy revizor_v4_heldout.jsonl
@@ -201,6 +210,7 @@ class Placement:
         self.before: collections.Counter = collections.Counter()
         self.after_text: Dict[int, List[str]] = {}  # raw lines (label + lfence) after line i
         self.skipped: List[str] = []
+        self.drop: Set[int] = set()  # lines deleted (fence-free counterfactuals)
 
     def count(self) -> int:
         return (sum(self.after.values()) + sum(self.before.values())
@@ -239,6 +249,24 @@ def _label_index(lines, start, end, label) -> Optional[int]:
         if lines[i].label == label:
             return i
     return None
+
+
+def _pick_middle(cands: List[int], lines) -> Optional[int]:
+    """Middle candidate, memory ops first: deterministic, and the deleted
+    instruction is of the same kind in both nofence arms where possible."""
+    mem = [i for i in cands if lines[i].reads_mem or lines[i].writes_mem]
+    pool = mem or cands
+    return pool[len(pool) // 2] if pool else None
+
+
+def _deletable(lines, i) -> bool:
+    """Deleting line i must not empty a block or put code right after a
+    jump: the previous non-blank line must be a non-jump instruction."""
+    l = lines[i]
+    if not l.is_instr or l.is_jump or "instrumentation" in l.text:
+        return False
+    prev = _prev_code(lines, i)
+    return prev is not None and prev.is_instr and not prev.is_jump
 
 
 def place(variant: str, cls: str, lines, start, end, k: int = 0,
@@ -336,6 +364,24 @@ def place(variant: str, cls: str, lines, start, end, k: int = 0,
                 elif seen_store and l.reads_mem:
                     _add_after(pl, lines, i)
         return pl
+    if variant in NOFENCE_VARIANTS:
+        if essential is None:
+            pl.skipped.append("no minimize output")
+            return pl
+        core = [i for i in body if "instrumentation" not in lines[i].text]
+        if variant == "cf_nofence_ess":
+            cands = [i for i in core if i in essential and _deletable(lines, i)]
+        else:
+            cands = [i for n_, i in enumerate(core)
+                     if i not in essential and 0 < n_ < len(core) - 1
+                     and core[n_ - 1] not in essential and core[n_ + 1] not in essential
+                     and _deletable(lines, i)]
+        pick = _pick_middle(cands, lines)
+        if pick is None:
+            pl.skipped.append("no deletable instruction")
+        else:
+            pl.drop.add(pick)
+        return pl
     if variant == "entry":
         if k:
             pl.after[start] += k
@@ -351,7 +397,8 @@ def render(lines: List[Line], pl: Placement) -> str:
     out = []
     for i, l in enumerate(lines):
         out += [FENCE] * pl.before.get(i, 0)
-        out.append(l.text)
+        if i not in pl.drop:
+            out.append(l.text)
         out += [FENCE] * pl.after.get(i, 0)
         out += pl.after_text.get(i, [])
     return "\n".join(out) + "\n"
@@ -397,6 +444,8 @@ def make_variants(program_text: str, cls: str, min_dir: Optional[Path] = None,
         essential = essential_lines(program_text, (min_dir / "min.asm").read_text())
     out = {}
     names = CONTROL_VARIANTS + CLASS_VARIANTS[cls] + MIN_VARIANTS[cls]
+    if only:
+        names += tuple(v for v in NOFENCE_VARIANTS if v in only)
     for v in names:
         if only and v != "original" and v not in only:
             continue
@@ -409,7 +458,7 @@ def make_variants(program_text: str, cls: str, min_dir: Optional[Path] = None,
                 out[v] = (prog, pl)
             continue
         pl = twin if v == "twin" else place(v, cls, lines, start, end, k, essential)
-        if v != "original" and pl.count() == 0:
+        if v != "original" and pl.count() == 0 and not pl.drop:
             continue
         out[v] = (render(lines, pl), pl)
     return out
@@ -515,12 +564,13 @@ def cmd_plan(a) -> int:
     out.mkdir(parents=True, exist_ok=True)
     targets = select_targets(a)
     only = set(a.variants) if a.variants else None
+    min_root = Path(os.path.expanduser(a.min_from)) if a.min_from else out
     n_var = collections.Counter()
     plan = []
     for t in targets:
         text = (Path(t["src_dir"]) / "program.asm").read_text()
         vd = _vdir(out, t)
-        for v, (asm, pl) in make_variants(text, t["cls"], vd / "_min", only).items():
+        for v, (asm, pl) in make_variants(text, t["cls"], _vdir(min_root, t) / "_min", only).items():
             d = vd / v
             d.mkdir(parents=True, exist_ok=True)
             (d / "program.asm").write_text(asm)
@@ -792,6 +842,9 @@ def main(argv=None) -> int:
     target_args(p)
     p.add_argument("--variants", nargs="+", default=None, choices=ALL_VARIANTS,
                    help="only these variants (plus `original`, always kept as the stability control)")
+    p.add_argument("--min-from", default=None, metavar="OUT",
+                   help="read _min/ (minimize output) from this earlier --out dir instead of --out, "
+                        "so a later variant pass gets its own plan/runs without re-minimizing")
     r = sub.add_parser("run")
     r.add_argument("--out", required=True)
     r.add_argument("--rvzr", required=True)
