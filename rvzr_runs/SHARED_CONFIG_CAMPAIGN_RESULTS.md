@@ -29,7 +29,7 @@ counts as SMT on). V1 again yields a near-constant 8-9 per seed (cf. 9/seed in
 the per-class campaign; still unexplained, likely the 900 s timeout bounding a
 steady discovery rate).
 
-Corpus: `eval/data/shared_cfg/revizor_<class>_real.jsonl` (224 records), kept
+Corpus: `eval/data/revizor_<class>_shared.jsonl` (224 records; the input `eval/shared_config.py` reads), kept
 OUT of `eval/data/revizor_*_real.jsonl` so the confound test stays clean.
 Median length 42-44 instructions in every class (per-class configs: 16-47);
 conditional branches only in V1 (83/87).
