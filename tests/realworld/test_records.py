@@ -78,3 +78,17 @@ def test_has_mitigation():
 def test_normalise_drops_non_instructions():
     out = normalise([".cfi_startproc", "movq (%rax), %rbx"])
     assert out == ["movq (%rax), %rbx"]
+
+
+def test_has_mitigation_mnemonic_only():
+    assert not has_mitigation(["call overwrite_buf"])
+    assert not has_mitigation(["my_lfence_helper:"])
+    assert has_mitigation(["verw (%rax)"])
+    assert has_mitigation(["\tLFENCE"])
+
+
+def test_source_key_includes_file():
+    a = _rec(function="f", file="a.c")
+    b = _rec(function="f", file="b.c")
+    assert source_key(a) == "https://x/y@abc#a.c:f"
+    assert source_key(a) != source_key(b)

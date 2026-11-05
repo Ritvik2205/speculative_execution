@@ -1,6 +1,5 @@
 """Shared record, window and dedupe helpers for real-world data collectors."""
 import hashlib
-import re
 import sys
 from pathlib import Path
 
@@ -17,12 +16,11 @@ STRIDE = 10
 REQUIRED_PROVENANCE = ("url", "commit_or_version", "licence", "retrieved")
 PROVENANCE_KEYS = REQUIRED_PROVENANCE + ("cve", "paper")
 
-MITIGATIONS = (
-    "lfence", "mfence", "verw", "array_index_nospec",
-    "array_index_mask_nospec", "barrier_nospec",
+MNEMONIC_MITIGATIONS = ("lfence", "mfence", "verw")
+SYMBOL_MITIGATIONS = (
+    "array_index_nospec", "array_index_mask_nospec", "barrier_nospec",
     "__x86_indirect_thunk", "__x86_return_thunk",
 )
-_MIT_RE = re.compile("|".join(re.escape(m) for m in MITIGATIONS))
 
 
 def make_record(sequence, label, arch, group, source, provenance, **extra):
@@ -52,7 +50,10 @@ def normalise(asm_lines):
 
 def source_key(rec):
     p = rec["provenance"]
-    return f"{p['url']}@{p['commit_or_version']}#{rec.get('function', '')}"
+    fn = rec.get("function", "")
+    if rec.get("file"):
+        fn = f"{rec['file']}:{fn}"
+    return f"{p['url']}@{p['commit_or_version']}#{fn}"
 
 
 def _seq_hash(rec):
@@ -72,4 +73,10 @@ def split_leaks(train, evals):
 
 
 def has_mitigation(seq):
-    return any(_MIT_RE.search(line) for line in seq)
+    for line in seq:
+        toks = line.split()
+        if toks and toks[0].lower() in MNEMONIC_MITIGATIONS:
+            return True
+        if any(m in line for m in SYMBOL_MITIGATIONS):
+            return True
+    return False
