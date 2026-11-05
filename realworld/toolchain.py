@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 IMAGE = "specexec-toolchain"
-PLATFORM = "linux/amd64"  # x86_64 host userland so plain gcc/clang emit x86_64; riscv via cross
+CROSS_PREFIX = {"x86_64": "x86_64-linux-gnu-", "riscv64": "riscv64-linux-gnu-"}
 _DIR = Path(__file__).parent / "toolchain"
 
 
@@ -13,24 +13,28 @@ class CompileError(RuntimeError):
 
 
 def build() -> None:
-    subprocess.run(["docker", "build", "--platform", PLATFORM, "-t", IMAGE, str(_DIR)], check=True)
+    subprocess.run(["docker", "build", "-t", IMAGE, str(_DIR)], check=True)
 
 
-def _compiler_argv(arch: str, cc: str) -> list[str]:
-    if arch not in ("x86_64", "riscv64"):
+def compiler_argv(arch: str, cc: str) -> list[str]:
+    """Cross-compiler argv inside the image (native arm64 image, cross for both targets)."""
+    if arch not in CROSS_PREFIX:
         raise ValueError(f"unsupported arch {arch}")
+    prefix = CROSS_PREFIX[arch]
     if cc == "gcc":
-        return ["gcc"] if arch == "x86_64" else ["riscv64-linux-gnu-gcc"]
+        return [prefix + "gcc"]
     if cc == "clang":
-        return ["clang"] + ([] if arch == "x86_64" else ["--target=riscv64-linux-gnu"])
+        triple = prefix[:-1]
+        return ["clang", f"--target={triple}", f"--sysroot=/usr/{triple}",
+                f"--gcc-toolchain=/usr"]
     raise ValueError(f"unsupported cc {cc}")
 
 
 def compile_to_asm(src: Path, arch: str, cc: str, opt: str,
                    extra_flags=(), include_dirs=()) -> str:
     src = Path(src).resolve()
-    argv = _compiler_argv(arch, cc)
-    cmd = ["docker", "run", "--rm", "--platform", PLATFORM, "-v", f"{src.parent}:/src:ro"]
+    argv = compiler_argv(arch, cc)
+    cmd = ["docker", "run", "--rm", "-v", f"{src.parent}:/src:ro"]
     inc_args = []
     for i, d in enumerate(include_dirs):
         d = Path(d).resolve()

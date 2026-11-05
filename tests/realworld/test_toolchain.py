@@ -38,7 +38,9 @@ def test_compile_x86_and_riscv(need_docker, tmp_path):
             body = find_function(extract_named_functions(asm), "f")
             assert body is not None, (arch, cc)
             if arch == "x86_64":
-                assert any(("%e" in l or "%r" in l) for l in body), (cc, body)
+                txt = "\n".join(body)
+                assert any(m in txt for m in ("movl", "movslq", "ret")), (cc, body)
+                assert "ldr" not in txt, (cc, body)
             if arch == "riscv64":
                 assert any(("lw" in l or "ld" in l) for l in body)
 
@@ -48,3 +50,13 @@ def test_compile_error(need_docker, tmp_path):
     src.write_text("int f( {\n")
     with pytest.raises(CompileError):
         compile_to_asm(src, "x86_64", "gcc", "-O2")
+
+
+def test_libc_headers_all_combos(need_docker, tmp_path):
+    src = tmp_path / "h.c"
+    src.write_text("#include <stdint.h>\n#include <string.h>\n"
+                   "uint32_t f(char*a,char*b){memcpy(a,b,8);return (uint32_t)strlen(a);}\n")
+    for arch in ("x86_64", "riscv64"):
+        for cc in ("gcc", "clang"):
+            asm = compile_to_asm(src, arch, cc, "-O2")
+            assert find_function(extract_named_functions(asm), "f") is not None, (arch, cc)
