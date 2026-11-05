@@ -151,3 +151,20 @@ def test_seed_runs_get_arm_mean(tmp_path):
     md = out.read_text()
     assert "| arm_s1 | 1.000 |" in md and "| arm_s7 | 0.000 |" in md
     assert "| arm (2 seeds) | 0.500 ± 0.707 |" in md
+
+
+def test_rule_preds_include_hybrid_v2():
+    from eval.mechanism.hybrid import hybrid_pred
+    from eval.mechanism.scoreboard import rule_preds
+    recs = [json.loads(l) for l in open(ROOT / "eval/data/revizor_hwlabel_cf_heldout.jsonl")][:40]
+    p = rule_preds(recs)
+    assert p["mechanism-v2"] == [hybrid_pred(x) for x in recs]
+
+
+def test_render_has_cf_nonleak_paired_table():
+    from eval.mechanism.scoreboard import render, rule_preds
+    recs = [json.loads(l) for l in open(ROOT / "eval/data/revizor_hwlabel_cf_heldout.jsonl")]
+    text = "\n".join(render("cf", recs, rule_preds(recs)))
+    assert "### cf_nonleak: paired difference vs always-attack" in text
+    sec = text.split("### cf_nonleak: paired difference vs always-attack")[1]
+    assert "| mechanism-v2 |" in sec.split("###")[0]

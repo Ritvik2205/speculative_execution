@@ -40,6 +40,7 @@ for s in $SEEDS; do
   score "allhw2_s$s"      "eval/cluster_out/allhw2_s$s"      v54/data/v55h_allhw2_train.jsonl
   score "allhw_s$s"       "eval/cluster_out/allhw_s$s"       v54/data/v55h_allhw_train.jsonl
   score "b1_s$s"          "eval/cluster_out/rv_embed_specfix_s$s" v54/data/v54_train.jsonl
+  score "b1_mech_s$s"     "eval/cluster_out/b1_mech_s$s"     v54/data/v54_train.jsonl
 done
 # one preds NAME per seed (per-seed rows); arm means come from the per-seed rows
 python3 -m eval.mechanism.scoreboard --data $DATA "${args[@]}" --out eval/mechanism/scoreboard_allhw3.md
