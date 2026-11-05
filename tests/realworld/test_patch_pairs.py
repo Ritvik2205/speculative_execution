@@ -99,7 +99,7 @@ def test_pair_written_when_asm_differs(repo, tmp_path):
     d, shas = repo
 
     def fake(clone, rev, cfile, cfg):
-        if rev == shas[1]:
+        if rev in (shas[1], shas[2]):
             return _asm("\tcmpl %esi, %edx\n\tsbbl %eax, %eax\n\tret\n")
         return _asm("\tmovl (%rdi), %eax\n\tret\n")
     out = tmp_path / "o.jsonl"
