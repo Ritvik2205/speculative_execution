@@ -48,3 +48,17 @@ Opcode identity no longer gives the class away once the instruction set and
 shape are shared, i.e. the earlier 0.97 opcode bar was the config. The paper
 number needs the cluster: graph model vs the same bar, multi-seed, on these
 records (V4 has only 7, so class-balanced metrics there are noisy).
+
+## V4 top-up (2026-11-05, `mcshared_261105_145700`)
+
+`run_multiclass_campaign.sh --shared-config --classes SPECTRE_V4 --n-seeds 30`
+(14:57-21:53), same shared overlay as above.
+
+- Unmitigated: 22 violations over 30 fresh seeds (16 seeds with >= 1); all
+  22 new (no sequence match anywhere in `eval/data/`), appended to
+  `eval/data/revizor_spectre_v4_shared.jsonl` -> V4 7 -> 29, corpus 224 -> 246.
+- SSBP-on control: 0/30 seeds violate.
+- SMT-off re-test: 24 violations (per-seed within +-1 of SMT-on; 2 seeds
+  0 -> 1, 1 seed 2 -> 1, 1 seed 1 -> 2), so the leak is not cross-thread noise.
+  Control dirs stay out of the corpus.
+- `eval/shared_config.py` seed split: 125 train / 121 held-out, 13 V4 held out.
