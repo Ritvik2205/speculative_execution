@@ -121,8 +121,44 @@ sudo bash oracle/revizor/scripts/run_hw_label_variants.sh --records "$TP" --stag
 ```
 Then `hw_label_variants.py emit --out <out> --jsonl eval/data/<name>.jsonl` per run, always an explicit `--jsonl`.
 
+## 9. Shared-config cluster results (`33bd9332`, job 3700549) — T2 is a null
+
+`eval/shared_config_report.md` reports shared_gine at **+0.174 [0.058, 0.256]
+vs the opcode bar** (acc excl. V1). That number does not show class signal: the
+opcode bar is itself below chance there (0.309), and a constant "everything is
+MDS" scores 0.485 on the same 68 rows. shared_gine's 0.482 is that constant.
+The report now adds balanced accuracy excl. V1 (chance 1/3) and a majority row.
+
+| scorer (shared heldout, MDS 33 / L1TF 31 / V4 4) | acc excl. V1 | bal. acc excl. V1 |
+|---|---|---|
+| constant (train majority) | 0.485 | 0.333 |
+| opcode LR (within shared) | 0.309 | 0.221 |
+| shared_gine, 5 seeds | 0.482 ± 0.028 | **0.342 ± 0.022** |
+
+Per seed, shared_gine collapses onto one class: s1/s7 call MDS 97% of MDS and
+L1TF rows, s21/s42 call L1TF, s13 is mixed (MDS 0.33 / L1TF 0.81). V4 0/20.
+Which class wins is the seed, not the program. V1 recall 216/220 comes from
+the conditional branch, which only V1 has (branch tell 1.00 vs 0.00).
+
+Cross-config arms on all 224 shared gadgets: allhw / allhw2 send MDS to L1TF
+(bal. 0.31 / 0.30); b1 sends everything to SPECTRE_V1 or BENIGN (bal. 0.001)
+and misses 22% of the leaks as BENIGN (one seed, s42, calls only 3% leaking).
+Leak-call rate on this all-violation set: shared_gine / allhw / allhw2 ≈ 1.00.
+
+**Reading.** With the instruction menu and program shape held fixed, a graph
+model trained on 33+33 programs per class cannot tell MDS from L1TF on
+held-out seeds, matching §3 (every feature bar at or below chance). The
+in-distribution 0.97 opcode bar and the per-class-config transfer numbers were
+the config. Class identity for MDS vs L1TF is a property of the contract and
+actor setup, not of the code. V4 (n = 7) is untestable until the top-up.
+
+**Paper consequence.** Drop any T2 class-transfer claim for MDS/L1TF. State
+the shared-config null as a result (it explains the per-class 0.97) and keep
+leak/safe (T1, H1/H2 on counterfactuals) as the transfer claim. Do not quote
++0.174.
+
 ## Paper consequences (not edited here)
 - Say why H0 fails: no x86 BENIGN in synthetic training (§1), trigger-gated labels (§2).
-- Reframe class transfer (T2) for MDS/L1TF as ill-posed for code-only detectors (§3); keep leak/safe (T1) as the claim.
+- Reframe class transfer (T2) for MDS/L1TF as ill-posed for code-only detectors (§3); the shared-config GINE confirms it (bal. acc 0.342, chance 0.333, §9). Keep leak/safe (T1) as the claim.
 - Keep −9.55pp; add that V2 merges into BHI (§5).
 - Fix L1183–1187; qualify the 0/6 until run 8a is in (§7).

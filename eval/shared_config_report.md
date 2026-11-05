@@ -22,23 +22,24 @@ Old corpus: per-class Revizor configs (opcode bar 0.97 = class given away by con
 
 ## Opcode bar (scaled opcode-count LR)
 
-| scorer | acc | acc excl. V1 | MDS | L1TF | SPECTRE_V4 | SPECTRE_V1 |
-|---|---|---|---|---|---|---|
-| cross-config: train old, test all shared | 0.674 | 0.467 | 0.000 | 1.000 | 0.000 | 1.000 |
-| within shared: train shared-train, test heldout | 0.509 | 0.309 | 0.242 | 0.419 | 0.000 | 0.818 |
+| scorer | acc | acc excl. V1 | bal. acc excl. V1 | MDS | L1TF | SPECTRE_V4 | SPECTRE_V1 |
+|---|---|---|---|---|---|---|---|
+| cross-config: train old, test all shared | 0.674 | 0.467 | 0.333 | 0.000 | 1.000 | 0.000 | 1.000 |
+| within shared: train shared-train, test heldout | 0.509 | 0.309 | 0.221 | 0.242 | 0.419 | 0.000 | 0.818 |
+| constant: shared-train majority (MDS/L1TF/V4) | 0.295 | 0.485 | 0.333 | 1.000 | 0.000 | 0.000 | 0.000 |
 
-Reading: if cross-config drops far below 0.97 the old 0.97 was the config; if within-shared excl. V1 stays high, opcodes still carry class under one ISA.
+Reading: if cross-config drops far below 0.97 the old 0.97 was the config; if within-shared excl. V1 stays high, opcodes still carry class under one ISA. Balanced accuracy excl. V1 has chance 1/3 (any constant predictor scores it); plain acc excl. V1 is dominated by the MDS/L1TF split, so a model that calls everything one class scores ~0.48 there.
 
 ### Cross-config models (trained on old per-class configs) on all shared gadgets
 
-| arm | seeds | acc | acc excl. V1 | diff vs opcode bar excl. V1 [95% CI, by seed group] |
-|---|---|---|---|---|
-| allhw | 5 | 0.611 ± 0.055 | 0.375 ± 0.088 | -0.092 [-0.151, -0.038] |
-| allhw2 | 5 | 0.636 ± 0.035 | 0.412 ± 0.058 | -0.055 [-0.101, -0.019] |
-| b1 | 5 | 0.297 ± 0.167 | 0.001 ± 0.003 | -0.466 [-0.661, -0.254] |
+| arm | seeds | acc | acc excl. V1 | bal. acc excl. V1 | diff vs opcode bar excl. V1 [95% CI, by seed group] |
+|---|---|---|---|---|---|
+| allhw | 5 | 0.611 ± 0.055 | 0.375 ± 0.088 | 0.310 ± 0.024 | -0.092 [-0.151, -0.038] |
+| allhw2 | 5 | 0.636 ± 0.035 | 0.412 ± 0.058 | 0.302 ± 0.032 | -0.055 [-0.101, -0.019] |
+| b1 | 5 | 0.297 ± 0.167 | 0.001 ± 0.003 | 0.001 ± 0.002 | -0.466 [-0.661, -0.254] |
 
 ### Models trained on shared-train, scored on shared heldout (T2)
 
-| arm | seeds | acc | acc excl. V1 | diff vs opcode bar excl. V1 [95% CI, by seed group] |
-|---|---|---|---|---|
-| shared_gine | 5 | 0.679 ± 0.006 | 0.482 ± 0.028 | +0.174 [0.058, 0.256] |
+| arm | seeds | acc | acc excl. V1 | bal. acc excl. V1 | diff vs opcode bar excl. V1 [95% CI, by seed group] |
+|---|---|---|---|---|---|
+| shared_gine | 5 | 0.679 ± 0.006 | 0.482 ± 0.028 | 0.342 ± 0.022 | +0.174 [0.058, 0.256] |

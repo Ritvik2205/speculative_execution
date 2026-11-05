@@ -3,7 +3,7 @@ the shared-config campaign (one instruction set + program shape for all
 classes; COND_BR stays V1-only)."""
 import json
 
-from eval.shared_config import (CLASSES, branch_tell, is_control, opcode_lr_preds,
+from eval.shared_config import (CLASSES, _bal_acc, branch_tell, is_control, majority_preds, opcode_lr_preds,
                                 seed_group, split_by_seed, to_variant_rows)
 
 
@@ -75,3 +75,18 @@ def test_variant_rows_feed_score_hwlabel_variants():
         assert r["variant"] == "shared" and r["vuln_class"] == src["label"] == r["label"]
         assert r["group"] == src["group"] and r["sequence"] == src["sequence"]
     json.dumps(rows)
+
+
+def test_bal_acc_is_mean_recall_and_constant_scores_chance():
+    recs = [{"label": "MDS"}] * 3 + [{"label": "L1TF"}] * 1
+    assert _bal_acc(recs, ["MDS"] * 4, ("MDS", "L1TF")) == 0.5
+    assert _bal_acc(recs, ["MDS", "MDS", "L1TF", "L1TF"], ("MDS", "L1TF")) == (2 / 3 + 1) / 2
+    # absent class is not counted
+    assert _bal_acc(recs, ["MDS"] * 4, ("MDS", "L1TF", "SPECTRE_V4")) == 0.5
+
+
+def test_majority_preds_uses_train_majority_per_scope():
+    tr = toy()
+    tr = [r for r in tr if r["label"] != "SPECTRE_V4"] + [r for r in tr if r["label"] == "MDS"]
+    te = toy()[:5]
+    assert majority_preds(tr, te) == ["MDS"] * 5

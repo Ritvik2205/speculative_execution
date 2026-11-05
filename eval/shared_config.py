@@ -162,6 +162,22 @@ def _acc(recs, preds, classes=None) -> float:
     return sum(p == r["label"] for r, p in pairs) / len(pairs) if pairs else float("nan")
 
 
+def _bal_acc(recs, preds, classes) -> float:
+    """Mean per-class recall over the classes present; a constant predictor scores 1/k."""
+    rec = []
+    for c in classes:
+        ps = [p for r, p in zip(recs, preds) if r["label"] == c]
+        if ps:
+            rec.append(sum(p == c for p in ps) / len(ps))
+    return statistics.mean(rec) if rec else float("nan")
+
+
+def majority_preds(train: list[dict], test: list[dict]) -> list[str]:
+    """Constant bar: the most common CLEAN-class train label, for every test row."""
+    top = Counter(r["label"] for r in train if r["label"] in CLEAN).most_common(1)[0][0]
+    return [top] * len(test)
+
+
 def _f(x: float) -> str:
     return "n/a" if x != x else f"{x:.3f}"
 
@@ -169,7 +185,8 @@ def _f(x: float) -> str:
 def _bar_rows(name: str, recs: list[dict], preds: list[str]) -> str:
     present = [c for c in CLASSES if any(r["label"] == c for r in recs)]
     cells = " | ".join(_f(_acc(recs, preds, (c,))) for c in present)
-    return f"| {name} | {_f(_acc(recs, preds))} | {_f(_acc(recs, preds, CLEAN))} | {cells} |"
+    return (f"| {name} | {_f(_acc(recs, preds))} | {_f(_acc(recs, preds, CLEAN))} | "
+            f"{_f(_bal_acc(recs, preds, CLEAN))} | {cells} |")
 
 
 def _load_preds(specs: list[str], stem: str, recs: list[dict]) -> dict[str, list[Optional[str]]]:
@@ -191,18 +208,20 @@ def _model_section(title: str, recs: list[dict], preds: dict, bar: list[str]) ->
     for k in preds:
         arms[re.sub(r"_s\d+$", "", k)].append(k)
     g = [seed_group(r) for r in recs]
-    L = [f"### {title}", "", "| arm | seeds | acc | acc excl. V1 | diff vs opcode bar excl. V1 [95% CI, by seed group] |",
-         "|---|---|---|---|---|"]
+    L = [f"### {title}", "", "| arm | seeds | acc | acc excl. V1 | bal. acc excl. V1 | "
+         "diff vs opcode bar excl. V1 [95% CI, by seed group] |", "|---|---|---|---|---|---|"]
     keep = [i for i, r in enumerate(recs) if r["label"] in CLEAN]
     for arm, ks in sorted(arms.items()):
         a = [_acc(recs, preds[k]) for k in ks]
         a3 = [_acc(recs, preds[k], CLEAN) for k in ks]
+        b3 = [_bal_acc(recs, preds[k], CLEAN) for k in ks]
         sd = lambda xs: statistics.stdev(xs) if len(xs) > 1 else float("nan")
         d = [statistics.mean(float(preds[k][i] == recs[i]["label"]) for k in ks)
              - float(bar[i] == recs[i]["label"]) for i in keep]
         m, lo, hi = cluster_bootstrap_ci(d, [g[i] for i in keep], n_boot=2000, seed=0) if keep else (float("nan"),) * 3
         L.append(f"| {arm} | {len(ks)} | {statistics.mean(a):.3f} ± {_f(sd(a))} | "
-                 f"{statistics.mean(a3):.3f} ± {_f(sd(a3))} | {m:+.3f} [{_f(lo)}, {_f(hi)}] |")
+                 f"{statistics.mean(a3):.3f} ± {_f(sd(a3))} | {statistics.mean(b3):.3f} ± {_f(sd(b3))} | "
+                 f"{m:+.3f} [{_f(lo)}, {_f(hi)}] |")
     return L + [""]
 
 
@@ -213,8 +232,8 @@ def report(pred_specs: list[str], with_controls: bool = False, out: Path = ROOT 
         sys.exit("run `python3 -m eval.shared_config prepare` first")
     old = [r for c in CLASSES for r in load(OLD[c])]
     present = [c for c in CLASSES if any(r["label"] == c for r in recs)]
-    hdr = "| scorer | acc | acc excl. V1 | " + " | ".join(present) + " |"
-    sep = "|---|" + "---|" * (len(present) + 2)
+    hdr = "| scorer | acc | acc excl. V1 | bal. acc excl. V1 | " + " | ".join(present) + " |"
+    sep = "|---|" + "---|" * (len(present) + 3)
     L = ["# Shared-config confound test", "",
          "Old corpus: per-class Revizor configs (opcode bar 0.97 = class given away by config). "
          "Shared corpus: one instruction set + shape for all classes; COND_BR stays V1-only, so "
@@ -236,8 +255,12 @@ def report(pred_specs: list[str], with_controls: bool = False, out: Path = ROOT 
     if cross:
         L.append(_bar_rows("cross-config: train old, test all shared", recs, cross))
     L.append(_bar_rows("within shared: train shared-train, test heldout", te, within))
+    L.append(_bar_rows("constant: shared-train majority (MDS/L1TF/V4)", te, majority_preds(tr, te)))
     L += ["", "Reading: if cross-config drops far below 0.97 the old 0.97 was the config; "
-          "if within-shared excl. V1 stays high, opcodes still carry class under one ISA.", ""]
+          "if within-shared excl. V1 stays high, opcodes still carry class under one ISA. "
+          "Balanced accuracy excl. V1 has chance 1/3 (any constant predictor scores it); "
+          "plain acc excl. V1 is dominated by the MDS/L1TF split, so a model that calls "
+          "everything one class scores ~0.48 there.", ""]
     P_all = _load_preds(pred_specs, "revizor_shared_all_variants", recs)
     P_te = _load_preds(pred_specs, "revizor_shared_heldout_variants", te)
     cross_models = {k: v for k, v in P_all.items() if not k.startswith("shared_gine")}
