@@ -150,13 +150,20 @@ def _provenance(repo_cfg, sha, cve, today):
                 cve=cve, paper=None, licence=repo_cfg["licence"], retrieved=today)
 
 
-def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=print):
+def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=print,
+        commits_file=None):
     cfg = repo_cfg or load_config(repo)
     clone, out = Path(clone), Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     skipped_path = out.parent / "skipped.jsonl"
     today = date.today().isoformat()
-    commits = find_fix_commits(clone, cfg["terms"])
+    if commits_file and Path(commits_file).exists():
+        commits = Path(commits_file).read_text().split()  # git log -S over full history is ~20 min
+    else:
+        commits = find_fix_commits(clone, cfg["terms"])
+        if commits_file:
+            Path(commits_file).write_text("\n".join(commits) + "\n")
+    commits = list(reversed(commits))  # oldest first: the 2018 Spectre-v1 fixes before recent refactors
     log(f"{repo}: {len(commits)} fix commits")
     recs, skips = [], []
     pairs = 0
@@ -165,6 +172,7 @@ def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=pr
     def skip(commit, cfile, fn, reason, detail=""):
         skips.append(dict(repo=repo, commit=commit, file=cfile, function=fn,
                           reason=reason, detail=detail))
+        log(f"  skip {commit[:12]} {cfile}:{fn} {reason} {detail[-120:]!r}")
 
     for commit in commits:
         if limit is not None and pairs >= limit:
@@ -183,6 +191,9 @@ def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=pr
         for cfile, fn in funcs:
             if limit is not None and pairs >= limit:
                 break
+            if cfile.startswith("arch/") and not cfile.startswith("arch/x86/"):
+                skip(commit, cfile, fn, "foreign_arch")  # x86_64 build only
+                continue
             t0 = time.time()
             try:
                 bodies = {}
@@ -225,8 +236,10 @@ def main(argv=None):
     ap.add_argument("--clone", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--commits-file", type=Path,
+                    help="cache of fix-commit SHAs (written if absent, reused if present)")
     a = ap.parse_args(argv)
-    run(a.repo, a.clone.expanduser(), a.out, a.limit)
+    run(a.repo, a.clone.expanduser(), a.out, a.limit, commits_file=a.commits_file)
 
 
 if __name__ == "__main__":

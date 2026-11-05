@@ -156,3 +156,23 @@ def test_fixture_with_real_compiler(repo, tmp_path):
     pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=build)
     recs = [json.loads(l) for l in out.read_text().splitlines()]
     assert len(recs) == 2  # commit 2 yields a pair; comment-only commit is dropped
+
+
+def test_foreign_arch_file_skipped(tmp_path):
+    d = tmp_path / "r"
+    (d / "arch/powerpc").mkdir(parents=True)
+    _git(d, "init", "-q")
+    _git(d, "config", "user.email", "t@t")
+    _git(d, "config", "user.name", "t")
+    f = d / "arch/powerpc/x.c"
+    f.write_text("int other(void)\n{\n\treturn 1;\n}\n\nint f(int i)\n{\n\treturn i;\n}\n")
+    _git(d, "add", "-A")
+    _git(d, "commit", "-q", "-m", "a")
+    f.write_text(f.read_text().replace("return i;", "return barrier_nospec(i);"))
+    _git(d, "commit", "-q", "-am", "b")
+    called = []
+    out = tmp_path / "o.jsonl"
+    pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=lambda *a: called.append(a))
+    assert not called
+    skipped = [json.loads(l) for l in (tmp_path / "skipped.jsonl").read_text().splitlines()]
+    assert [s["reason"] for s in skipped] == ["foreign_arch"]
