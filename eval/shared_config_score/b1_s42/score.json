@@ -1,0 +1,62 @@
+{
+  "summary": {
+    "n_variants": 224,
+    "n_bases_with_both_arms": 0,
+    "vuln_arm_recall": {
+      "rate": 0.0312,
+      "n": 224
+    },
+    "benign_arm_specificity": {
+      "rate": NaN,
+      "n": 0
+    },
+    "per_base_flip": {
+      "mean_separates": 0,
+      "strict_separates": 0,
+      "wrong_direction": 0,
+      "of_bases": 0,
+      "mean_separates_frac": null,
+      "strict_separates_frac": null
+    },
+    "fence_count_floor": {
+      "mean_separates": 0,
+      "of_bases": 0,
+      "mean_separates_frac": null
+    },
+    "exact_class_on_vuln_arm": {
+      "n": 224,
+      "acc": 0.0
+    },
+    "per_variant": {
+      "shared": {
+        "n": 224,
+        "hw_all_vuln": true,
+        "model_leak_rate": 0.031,
+        "agree_with_hw": 0.031,
+        "mean_p_benign": 0.642
+      }
+    },
+    "fence_median_per_class": {
+      "SPECTRE_V1": 0,
+      "MDS": 0.0,
+      "L1TF": 0.0,
+      "SPECTRE_V4": 0
+    },
+    "reproduce_gate": {
+      "expected": 0.9718562874251497,
+      "measured": 0.9718562874251497,
+      "skipped": false
+    }
+  },
+  "bases": [],
+  "confusion": {
+    "SPECTRE_V1->BENIGN": 87,
+    "MDS->BENIGN": 65,
+    "L1TF->BENIGN": 59,
+    "SPECTRE_V4->BENIGN": 6,
+    "L1TF->SPECTRE_V2": 3,
+    "L1TF->SPECTRE_V1": 2,
+    "MDS->SPECTRE_V1": 1,
+    "SPECTRE_V4->SPECTRE_V1": 1
+  }
+}
