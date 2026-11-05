@@ -133,12 +133,16 @@ def _get_opcode(line: str) -> str:
     return op
 
 
-def compute_inline_features(sequence: List[str], mech: bool = False) -> np.ndarray:
-    feats = _compute_inline_features(sequence)
+def compute_inline_features(sequence: List[str], mech: bool = False,
+                            x86_indexed: bool = False) -> np.ndarray:
+    """x86_indexed (opt-in, default off = unchanged): count AT&T indexed loads
+    `(%base,%idx), %reg` in indexed_load_norm / has_indexed_load. The default
+    regex only matches ARM brackets, so both are 0 on every x86 row."""
+    feats = _compute_inline_features(sequence, x86_indexed)
     return np.concatenate([feats, _mech_features(sequence)]) if mech else feats
 
 
-def _compute_inline_features(sequence: List[str]) -> np.ndarray:
+def _compute_inline_features(sequence: List[str], x86_indexed: bool = False) -> np.ndarray:
     global FEATURE_NAMES
     if FEATURE_NAMES is None:
         FEATURE_NAMES = _build_feature_names()
@@ -215,7 +219,8 @@ def _compute_inline_features(sequence: List[str]) -> np.ndarray:
                 pending_calls = pending_calls[:-1]
     feats[idx] = call_ret_pairs / N; idx += 1
 
-    indexed_loads = sum(1 for line in raw_lines if _INDEXED_LOAD.search(line))
+    indexed_loads = sum(1 for line in raw_lines if _INDEXED_LOAD.search(line)
+                        or (x86_indexed and _INDEXED_LOAD_X86.search(line)))
     feats[idx] = indexed_loads / N; idx += 1
 
     clflush_load_count = 0

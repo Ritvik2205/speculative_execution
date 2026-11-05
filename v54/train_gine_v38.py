@@ -173,6 +173,7 @@ class GINEDatasetV47(Dataset):
         mem_order_edges: bool = False,
         cfg_spec_edges: bool = False,
         drop_nops: bool = False,
+        x86_mem_reads: bool = False,
     ):
         self.label_to_id = label_to_id
         self.handcrafted_feature_names = handcrafted_feature_names
@@ -185,6 +186,10 @@ class GINEDatasetV47(Dataset):
         # insert_nops augmentation) vs ~1% on riscv — a corpus artifact, not
         # attack semantics. drop_nops removes them before every feature.
         self.drop_nops = drop_nops
+        # Opt-in x86 memory-read fixes (default off = unchanged): flag non-LOAD
+        # reads in the spec PDG and count AT&T indexed loads in the inline
+        # features. See tests/spec/test_x86_mem_reads.py.
+        self.x86_mem_reads = x86_mem_reads
         self.max_nodes = max_nodes
         self.max_edges = max_edges
         self.strip_bp = strip_bp
@@ -235,7 +240,7 @@ class GINEDatasetV47(Dataset):
                 a: SpecBackedPDGBuilder(
                     load_engine(f), speculative_window=speculative_window,
                     taint_mode=taint_mode, mem_order_edges=mem_order_edges,
-                    cfg_spec_edges=cfg_spec_edges)
+                    cfg_spec_edges=cfg_spec_edges, x86_mem_reads=x86_mem_reads)
                 for a, f in _specs.items()}
         self.pdg_builder = PDGBuilder(speculative_window=speculative_window)
 
@@ -383,7 +388,8 @@ class GINEDatasetV47(Dataset):
         # Computed on raw sequence (before boilerplate strip) for consistency
         # between train and any future inference. No fitting on training set —
         # all features are instruction-count statistics or binary flags.
-        handcrafted = compute_inline_features(sequence_raw, mech=self._mech)
+        handcrafted = compute_inline_features(sequence_raw, mech=self._mech,
+                                              x86_indexed=self.x86_mem_reads)
         if self._hc_idx is not None:
             handcrafted = handcrafted[self._hc_idx]
 
@@ -796,6 +802,11 @@ def main():
                         help="SpecBackedPDGBuilder: add memory-ordering edges "
                              "(default off = current behavior; only used with "
                              "--use-spec-builder)")
+    parser.add_argument('--x86-mem-reads', action='store_true',
+                        help="flag x86 non-LOAD memory reads (cmov/ALU/compare) as "
+                             "memory/secret-source/transmitter nodes and count AT&T "
+                             "indexed loads in the inline features (default off = "
+                             "current behavior; graph part needs --use-spec-builder)")
     parser.add_argument('--cfg-spec-edges', action='store_true',
                         help="SpecBackedPDGBuilder: add CFG speculative edges "
                              "(default off = current behavior; only used with "
@@ -984,7 +995,8 @@ def main():
                   taint_mode=args.taint_mode,
                   mem_order_edges=args.mem_order_edges,
                   cfg_spec_edges=args.cfg_spec_edges,
-                  drop_nops=args.drop_nops)
+                  drop_nops=args.drop_nops,
+                  x86_mem_reads=args.x86_mem_reads)
     train_dataset = GINEDatasetV47(train_records, label_to_id, feature_names, **_ds_kw)
     val_dataset = GINEDatasetV47(val_records, label_to_id, feature_names, **_ds_kw)
     test_dataset = GINEDatasetV47(test_records, label_to_id, feature_names, **_ds_kw)

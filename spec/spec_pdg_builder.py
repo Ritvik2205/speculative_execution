@@ -121,6 +121,11 @@ _X86_RMW_WRITE_ROOTS = {
 _X86_SIZE_SUFFIXES = "qlwb"
 
 
+# x86 mnemonics that take a memory operand without accessing memory (lea
+# computes an address; nopl (%rax) is padding) or that only write it (setcc).
+_X86_NO_READ_RE = re.compile(r'^(lea[qlw]?|nop[qlw]?|set[a-z]+)$', re.IGNORECASE)
+
+
 def _strip_lock_prefix(instr: str) -> Tuple[str, bool]:
     """Split a leading AT&T `lock` prefix token off ``instr``. A `lock`
     prefix always means an atomic read-modify-write of the memory operand,
@@ -171,7 +176,7 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
     def __init__(self, engine: SpecEngine, speculative_window: int | None = None,
                  dataflow_taint: bool = True, dataflow_taint_max_hops: int = 4,
                  taint_mode: str = "shift", mem_order_edges: bool = False,
-                 cfg_spec_edges: bool = False):
+                 cfg_spec_edges: bool = False, x86_mem_reads: bool = False):
         pipe = engine.pipeline
         spec_win = speculative_window if speculative_window is not None \
             else int(pipe.get("speculative_window", 10))
@@ -224,6 +229,15 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         # since the recorded oracle baseline and per-class lift gate depend
         # on it.
         self.cfg_spec_edges = cfg_spec_edges
+        # Opt-in: on x86, a memory operand read by a non-LOAD mnemonic (cmov,
+        # ALU, compare, bt/bsf, ...) gets the is_memory_access /
+        # is_secret_source / is_transmitter flags a LOAD would, and counts as a
+        # read for MEMORY_ORDER edges. The spec flag rules gate on category
+        # LOAD, which left 91-93% of real Revizor reads unflagged
+        # (eval/graph_anatomy/stage12_report.md). DEFAULT OFF: every graph
+        # produced with the default is byte-identical to before, so existing
+        # checkpoints keep passing their reproduce gate.
+        self.x86_mem_reads = x86_mem_reads and engine.arch == "x86_64"
 
     # ---- delegate the four node decisions to the spec engine ------------
     def _classify_opcode(self, instr: str) -> int:
@@ -236,7 +250,26 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         return self.engine.memory_access_type(instr)
 
     def _compute_spec_flags(self, instr: str, category: int, mem_type: int) -> np.ndarray:
-        return self.engine.spec_flags_vector(instr, category, mem_type)
+        flags = self.engine.spec_flags_vector(instr, category, mem_type)
+        if self.x86_mem_reads and self._x86_operand_read(instr, category):
+            mem = self.engine._mem_name(mem_type)
+            flags[pb.SPEC_FLAGS['is_memory_access']] = 1.0
+            if mem == "INDEXED":
+                flags[pb.SPEC_FLAGS['is_secret_source']] = 1.0
+            if mem in ("INDEXED", "INDIRECT"):
+                flags[pb.SPEC_FLAGS['is_transmitter']] = 1.0
+        return flags
+
+    def _x86_operand_read(self, instr: str, category: int) -> bool:
+        """True if ``instr`` reads a memory operand without being category
+        LOAD or STORE (those are already handled by the spec flag rules)."""
+        if category in (pb.OPCODE_CATEGORIES['LOAD'], pb.OPCODE_CATEGORIES['STORE']):
+            return False
+        body, _ = _strip_lock_prefix(instr)
+        if self._parse_mem(body)[0] is None:
+            return False
+        parts = body.strip().split(None, 1)
+        return bool(parts) and not _X86_NO_READ_RE.match(parts[0])
 
     def _parse_mem(self, instr):
         """_parse_mem_operand with the base register normalised through the
@@ -336,6 +369,8 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         if node.opcode_category == pb.OPCODE_CATEGORIES['COMPARE']:
             return True
         if has_lock:
+            return True
+        if self.x86_mem_reads and self._x86_operand_read(instr, node.opcode_category):
             return True
         return _mnemonic_root(body) in _X86_RMW_WRITE_ROOTS
 

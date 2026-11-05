@@ -1,0 +1,131 @@
+
+=== MDS  ~/rvzr_runs/mcshared_261104_172321/mds/1047365372/violation-261104-203031/program.asm
+raw lines 46 -> after strip_boilerplate 46 -> nodes 46
+ id instruction                        category     mem      rd/wr src                dst    addr  flags
+  0 addb $0x52, %bl                    ARITHMETIC   NONE     --    rbx                rbx          
+  1 bswapl %eax                        OTHER        NONE     --                       rax          
+  2 andq $0x1fff, %rcx                 LOGIC        NONE     --    rcx                rcx          
+  3 cmovgq (%r14,%rcx), %rdi           MOVE         INDEXED  R-    r14,rcx            rdi    rcx   
+  4 negw %cx                           ARITHMETIC   NONE     --    rcx                rcx          
+  5 andq $0x1fff, %rcx                 LOGIC        NONE     --    rcx                rcx          
+  6 cmovaew (%r14,%rcx), %ax           MOVE         INDEXED  R-    r14,rcx            rax    rcx   
+  7 andq $0x1ff8, %rdi                 LOGIC        NONE     --    rdi                rdi          
+  8 xchgq %rax, (%r14,%rdi)            OTHER        INDEXED  RW    r14,rax,rdi               rdi   
+  9 leaw (%rsi), %dx                   ARITHMETIC   HEAP     --    rdx,rsi            rdx    rsi   
+ 10 subw $-0x3a, %cx                   ARITHMETIC   NONE     --    rcx                rcx          
+ 11 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+ 12 cmovnow (%r14,%rbx), %dx           MOVE         INDEXED  R-    r14,rbx            rdx    rbx   
+ 13 andq $0x1ff8, %rsi                 LOGIC        NONE     --    rsi                rsi          
+ 14 lock                               OTHER        NONE     --                                    
+ 15 xorl %edx, (%r14,%rsi)             LOGIC        INDEXED  RW    r14,rdx,rsi               rsi   
+ 16 orl %ebx, %ecx                     LOGIC        NONE     --    rbx,rcx            rcx          
+ 17 sbbb %cl, %bl                      ARITHMETIC   NONE     --    rbx,rcx            rbx          
+ 18 xchgw %cx, %dx                     OTHER        NONE     --    rcx                rdx          
+ 19 jmp 0x5d <.bb_0.1>                 BRANCH_UNCOND NONE     --                                    branch
+ 20 andq $0x1fff, %rcx                 LOGIC        NONE     --    rcx                rcx          
+ 21 subq %rsi, (%r14,%rcx)             ARITHMETIC   INDEXED  RW    r14,rcx,rsi               rcx   
+ 22 addq $-0xc, %rdi                   ARITHMETIC   NONE     --    rdi                rdi          
+ 23 andq $0x1fff, %rdi                 LOGIC        NONE     --    rdi                rdi          
+ 24 cmovnel (%r14,%rdi), %edx          MOVE         INDEXED  R-    r14,rdi            rdx    rdi   
+ 25 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+ 26 orl $0x1, (%r14,%rbx)              LOGIC        INDEXED  RW    r14,rbx                   rbx   
+ 27 andl (%r14,%rbx), %edx             LOGIC        INDEXED  R-    r14,rbx,rdx        rdx    rbx   
+ 28 shrl %edx                          SHIFT        NONE     --    rdx                rdx          
+ 29 divl (%r14,%rbx)                   ARITHMETIC   INDEXED  R-    r14,rbx                   rbx   
+ 30 imull %ecx, %eax                   ARITHMETIC   NONE     --    rax,rcx            rax          
+ 31 addb $-0x14, %bl                   ARITHMETIC   NONE     --    rbx                rbx          
+ 32 setne %sil                         MOVE         NONE     --                       rsi          
+ 33 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+ 34 orb %dl, (%r14,%rbx)               LOGIC        INDEXED  RW    r14,rbx,rdx               rbx   
+ 35 andq $0x1fff, %rcx                 LOGIC        NONE     --    rcx                rcx          
+ 36 andl $0x19, (%r14,%rcx)            LOGIC        INDEXED  RW    r14,rcx                   rcx   
+ 37 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+ 38 orl $0x8, (%r14,%rbx)              LOGIC        INDEXED  RW    r14,rbx                   rbx   
+ 39 andb $-0x8, (%r14,%rbx)            LOGIC        INDEXED  RW    r14,rbx                   rbx   
+ 40 andl $0x3, %edx                    LOGIC        NONE     --    rdx                rdx          
+ 41 idivl (%r14,%rbx)                  ARITHMETIC   INDEXED  R-    r14,rbx                   rbx   
+ 42 addb $0x30, %cl                    ARITHMETIC   NONE     --    rcx                rcx          
+ 43 cmovoq %rsi, %rdx                  MOVE         NONE     --    rsi                rdx          
+ 44 incw %di                           ARITHMETIC   NONE     --    rdi                rdi          
+ 45 cmoval %edi, %edi                  MOVE         NONE     --    rdi                rdi          
+edges by type: {'CONTROL_FLOW': 45, 'DATA_DEP': 46, 'MEMORY_ORDER': 8}
+DATA_DEP edges: [(2, 3), (2, 4), (4, 5), (5, 6), (3, 7), (7, 8), (6, 8), (5, 10), (0, 11), (11, 12), (12, 15), (13, 15), (11, 16), (10, 16), (11, 17), (16, 17), (16, 18), (16, 20), (20, 21), (13, 21), (7, 22), (22, 23), (23, 24), (17, 25), (25, 26), (24, 27), (25, 27), (27, 28), (25, 29), (6, 30), (20, 30), (25, 31), (31, 33), (28, 34), (33, 34), (20, 35), (35, 36), (33, 37), (37, 38), (37, 39), (28, 40), (37, 41), (35, 42), (32, 43), (23, 44), (44, 45)]
+MEMORY_ORDER edges: [(8, 15), (15, 21), (21, 26), (26, 27), (26, 34), (34, 36), (36, 38), (38, 39)]
+
+=== L1TF  ~/rvzr_runs/mcshared_261104_172321/l1tf/1047365372/violation-261104-230606/program.asm
+raw lines 55 -> after strip_boilerplate 55 -> nodes 55
+ id instruction                        category     mem      rd/wr src                dst    addr  flags
+  0 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+  1 orl $0x40000000, (%r14,%rbx)       LOGIC        INDEXED  RW    r14,rbx                   rbx   
+  2 bsfl (%r14,%rbx), %esi             OTHER        INDEXED  R-    r14,rbx            rsi    rbx   
+  3 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+  4 movsbw (%r14,%rbx), %di            LOAD         INDEXED  R-    r14,rbx            rdi    rbx   memory_access,secret_source,transmitter
+  5 andq $0x1fff, %rsi                 LOGIC        NONE     --    rsi                rsi          
+  6 cmpb (%r14,%rsi), %sil             COMPARE      INDEXED  R-    r14,rsi                   rsi   
+  7 cmovbw %ax, %di                    MOVE         NONE     --    rax                rdi          
+  8 andq $0x1ff8, %rsi                 LOGIC        NONE     --    rsi                rsi          
+  9 lock sbbw $-0xb, (%r14,%rsi)       ARITHMETIC   INDEXED  RW    r14,rsi                   rsi   
+ 10 andq $0x1ff8, %rax                 LOGIC        NONE     --    rax                rax          
+ 11 lock btcw $0x0, (%r14,%rax)        OTHER        INDEXED  RW    r14,rax                   rax   
+ 12 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+ 13 orl $-0x75, (%r14,%rbx)            LOGIC        INDEXED  RW    r14,rbx                   rbx   
+ 14 andq $0x1fff, %rsi                 LOGIC        NONE     --    rsi                rsi          
+ 15 orq $0x40000000, (%r14,%rsi)       LOGIC        INDEXED  RW    r14,rsi                   rsi   
+ 16 bsfq (%r14,%rsi), %rbx             OTHER        INDEXED  R-    r14,rsi            rbx    rsi   
+ 17 btrq %rsi, %rcx                    OTHER        NONE     --    rsi                rcx          
+ 18 andq $0x1fff, %rdx                 LOGIC        NONE     --    rdx                rdx          
+ 19 addq (%r14,%rdx), %rcx             ARITHMETIC   INDEXED  R-    r14,rcx,rdx        rcx    rdx   
+ 20 andq $0x1fff, %rcx                 LOGIC        NONE     --    rcx                rcx          
+ 21 incw (%r14,%rcx)                   ARITHMETIC   INDEXED  RW    r14,rcx                   rcx   
+ 22 andq $0x1ff8, %rdx                 LOGIC        NONE     --    rdx                rdx          
+ 23 lock                               OTHER        NONE     --                                    
+ 24 addb %dl, (%r14,%rdx)              ARITHMETIC   INDEXED  RW    r14,rdx                   rdx   
+ 25 jmp 0x9d <.bb_0.1>                 BRANCH_UNCOND NONE     --                                    branch
+ 26 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+ 27 orw $-0x20, (%r14,%rbx)            LOGIC        INDEXED  RW    r14,rbx                   rbx   
+ 28 andq $0x1fff, %rbx                 LOGIC        NONE     --    rbx                rbx          
+ 29 movl $0x20978e0a, (%r14,%rbx)      STORE        INDEXED  -W    r14,rbx                   rbx   memory_access
+ 30 andq $0x1fff, %rcx                 LOGIC        NONE     --    rcx                rcx          
+ 31 cmovow (%r14,%rcx), %di            MOVE         INDEXED  R-    r14,rcx            rdi    rcx   
+ 32 andq $0x1fff, %rax                 LOGIC        NONE     --    rax                rax          
+ 33 orw $0x1, (%r14,%rax)              LOGIC        INDEXED  RW    r14,rax                   rax   
+ 34 andw (%r14,%rax), %dx              LOGIC        INDEXED  R-    r14,rax,rdx        rdx    rax   
+ 35 shrw %dx                           SHIFT        NONE     --    rdx                rdx          
+ 36 divw (%r14,%rax)                   ARITHMETIC   INDEXED  R-    r14,rax                   rax   
+ 37 andq $0x1fff, %rax                 LOGIC        NONE     --    rax                rax          
+ 38 cmpl (%r14,%rax), %ebx             COMPARE      INDEXED  R-    r14,rax,rbx               rax   
+ 39 andq $0x1ff8, %rsi                 LOGIC        NONE     --    rsi                rsi          
+ 40 lock                               OTHER        NONE     --                                    
+ 41 decl (%r14,%rsi)                   ARITHMETIC   INDEXED  RW    r14,rsi                   rsi   
+ 42 andq $0x1fff, %rdi                 LOGIC        NONE     --    rdi                rdi          
+ 43 movq (%r14,%rdi), %rdx             LOAD         INDEXED  R-    r14,rdi            rdx    rdi   memory_access,secret_source,transmitter
+ 44 andq $0x1fff, %rcx                 LOGIC        NONE     --    rcx                rcx          
+ 45 setne (%r14,%rcx)                  MOVE         INDEXED  -W    r14,rcx                   rcx   
+ 46 andq $0x1ff8, %rdi                 LOGIC        NONE     --    rdi                rdi          
+ 47 lock                               OTHER        NONE     --                                    
+ 48 sbbb %cl, (%r14,%rdi)              ARITHMETIC   INDEXED  RW    r14,rcx,rdi               rdi   
+ 49 andq $0x1fff, %rdx                 LOGIC        NONE     --    rdx                rdx          
+ 50 movl %ebx, (%r14,%rdx)             STORE        INDEXED  -W    r14,rbx,rdx               rdx   memory_access
+ 51 andq $0x1fff, %rdi                 LOGIC        NONE     --    rdi                rdi          
+ 52 andl %eax, (%r14,%rdi)             LOGIC        INDEXED  RW    r14,rax,rdi               rdi   
+ 53 andq $0x1fff, %rcx                 LOGIC        NONE     --    rcx                rcx          
+ 54 cmpl (%r14,%rcx), %eax             COMPARE      INDEXED  R-    r14,rax,rcx               rcx   
+edges by type: {'CONTROL_FLOW': 54, 'DATA_DEP': 54, 'MEMORY_ORDER': 20}
+DATA_DEP edges: [(0, 1), (0, 2), (0, 3), (3, 4), (2, 5), (5, 6), (5, 8), (8, 9), (10, 11), (3, 12), (12, 13), (8, 14), (14, 15), (14, 16), (14, 17), (18, 19), (17, 19), (19, 20), (20, 21), (18, 22), (22, 24), (16, 26), (26, 27), (26, 28), (28, 29), (20, 30), (30, 31), (10, 32), (32, 33), (22, 34), (32, 34), (34, 35), (32, 36), (32, 37), (37, 38), (28, 38), (14, 39), (39, 41), (31, 42), (42, 43), (30, 44), (44, 45), (42, 46), (46, 48), (44, 48), (43, 49), (49, 50), (28, 50), (46, 51), (51, 52), (37, 52), (44, 53), (37, 54), (53, 54)]
+MEMORY_ORDER edges: [(1, 4), (1, 6), (1, 9), (9, 11), (11, 13), (13, 15), (15, 19), (15, 21), (21, 24), (24, 27), (27, 33), (29, 33), (33, 34), (33, 38), (33, 41), (41, 43), (41, 48), (48, 52), (50, 52), (52, 54)]
+Pre-computing PDGs (strip_boilerplate=True) ...
+  Valid samples: 224/224
+  Boilerplate stripped: 0 (0.0%) samples
+  Instructions: 9642 -> 9642 (0.0% reduction)
+  Edge type distribution:
+    DATA_DEP            :     8860 (44.8%)
+    CONTROL_FLOW        :     9418 (47.6%)
+    SPEC_CONDITIONAL    :       40 (0.2%)
+    MEMORY_ORDER        :     1460 (7.4%)
+
+reconstruction == GINEDatasetV47 tensors on 224/224 records (dataset kept 224/224)
+
+=== what the pipeline drops, per corpus
+shared  n=  224 unbuildable=0 label/directive lines=0/9642 strip_boilerplate removed 0 lines; >256 nodes: 0; >1024 edges: 0; truncated edge types {}; bare 'lock' lines (become an OTHER node, prefix lost): 433
+real    n=  725 unbuildable=0 label/directive lines=0/28116 strip_boilerplate removed 0 lines; >256 nodes: 0; >1024 edges: 0; truncated edge types {}; bare 'lock' lines (become an OTHER node, prefix lost): 1245
+synth   n= 1258 unbuildable=0 label/directive lines=0/41259 strip_boilerplate removed 103 lines; >256 nodes: 23; >1024 edges: 0; truncated edge types {}; bare 'lock' lines (become an OTHER node, prefix lost): 1

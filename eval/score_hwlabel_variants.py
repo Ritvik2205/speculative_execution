@@ -83,7 +83,7 @@ EXPECTED_CLASSES = [
 # construction per the GINEDatasetV47 docstring. If a run DID record a flag we
 # use its recorded value; this only fills genuine absences.
 _W4_DEFAULTS = dict(taint_mode="shift", mem_order_edges=False,
-                    cfg_spec_edges=False, drop_nops=False)
+                    cfg_spec_edges=False, drop_nops=False, x86_mem_reads=False)
 
 
 def load_run_config(metrics_path: Path):
@@ -112,6 +112,7 @@ def load_run_config(metrics_path: Path):
         mem_order_edges=a.get("mem_order_edges", _W4_DEFAULTS["mem_order_edges"]),
         cfg_spec_edges=a.get("cfg_spec_edges", _W4_DEFAULTS["cfg_spec_edges"]),
         drop_nops=a.get("drop_nops", _W4_DEFAULTS["drop_nops"]),
+        x86_mem_reads=a.get("x86_mem_reads", _W4_DEFAULTS["x86_mem_reads"]),
     )
     return expected, model_cfg, ds_kw, a.get("handcrafted_subset", "all"), a.get("mech_features", False)
 
