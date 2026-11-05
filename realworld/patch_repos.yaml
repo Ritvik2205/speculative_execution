@@ -1,0 +1,31 @@
+# Real Spectre-v1 fixes (pre-patch = vulnerable, post-patch = mitigated).
+# Kernel/Xen builds run in the native specexec-toolchain image as CROSS builds (ruling R7).
+# Clones/worktrees live under $HOME (Colima only mounts $HOME, ruling R8).
+# {target} in asm_cmd = <cfile minus .c, relative to make_dir>.s
+linux:
+  url_template: "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id={sha}"
+  licence: GPL-2.0-only
+  arch: x86_64
+  compiler: gcc
+  opt: "-O2"
+  terms: [array_index_nospec, barrier_nospec, array_index_mask_nospec]
+  default_label: SPECTRE_V1
+  make_dir: ""
+  config_cmd: >-
+    make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- x86_64_defconfig &&
+    make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- prepare
+  asm_cmd: "make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- {target}"
+  # CVE -> class when it is not plain Spectre-v1 bounds-check bypass
+  cve_labels: {}
+xen:
+  url_template: "https://xenbits.xen.org/gitweb/?p=xen.git;a=commit;h={sha}"
+  licence: GPL-2.0-only
+  arch: x86_64
+  compiler: gcc
+  opt: "-O2"
+  terms: [array_index_nospec, barrier_nospec, array_index_mask_nospec, block_speculation, evaluate_nospec]
+  default_label: SPECTRE_V1
+  make_dir: xen
+  config_cmd: "make -C xen XEN_TARGET_ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- defconfig"
+  asm_cmd: "make -C xen XEN_TARGET_ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- {target}"
+  cve_labels: {}
