@@ -5,8 +5,12 @@ Anything marked `[PENDING]` needs cluster checkpoints (`eval/cluster/submit_real
 
 Dataset note: the brief names a phantom-trails riscv64 file. It does **not exist**: phantom-trails was dropped
 (its `Samples` submodule is empty). Security-RISC is named `realworld_Security-RISC.jsonl` here, not `cispa-security-risc`.
-The riscv64 benign **train** cells have not been run (laptop job via `realworld/prepare_benign.sh`); the only
-riscv64 benign data is the 200 held-out zlib windows.
+The riscv64 benign **train** cells have not been run (laptop job via `realworld/prepare_benign.sh`; the only
+cached riscv64 cell, zlib, is a held-out package); the riscv64 held-out benign is 200 whole functions (zlib).
+
+**Disclosures.** (M2) Linux fix-commit `pre` rows are built from x86_64_defconfig and carry retpoline / return-thunk
+calls from the config, not the patch. (R43) Harness MDS rows (ZombieLoad, RIDL) are not held-out evidence
+(ZombieLoad's source is in the train pool) and must not be cited as held-out.
 
 ## 1. Inputs
 
@@ -17,10 +21,11 @@ riscv64 benign data is the 200 held-out zlib windows.
 | boom-attacks | `eval/data/realworld_boom-attacks.jsonl` | 12 | 0 | RETBLEED=4, SPECTRE_V1=4, SPECTRE_V2=4 | 1-20-48 | 4 |
 | riscv-transient-attacks | `eval/data/realworld_riscv-transient-attacks.jsonl` | 5 | 5 | L1TF=1, MDS=1, SPECTRE_V1=1, SPECTRE_V2=1, SPECTRE_V4=1 | 7-18-29 | 1 |
 | CTSRD-Transient | `eval/data/realworld_CTSRD-Transient.jsonl` | 4 | 4 | L1TF=1, SPECTRE_V1=1, SPECTRE_V2=1, SPECTRE_V4=1 | 74-86-121 | 0 |
-| zlib benign (held-out) | `eval/data/realworld_benign_riscv64.jsonl` | 200 | 0 | BENIGN=200 | 26-45-45 | 0 |
+| Debian benign (held-out, whole functions) | `eval/data/realworld_benign_riscv64.jsonl` | 200 | 0 | BENIGN=200 | 25-79-2277 | 0 |
 
-Row counts: the pooled gate run reads 237 records but reports 226 because the gate's stub filter (`--stub-max 10`)
-drops rows with <= 10 instructions (11 rows: 6 c_vulns, 4 boom, 1 riscv-transient-attacks); with `--stub-max 5` it keeps 235.
+Row counts: the pooled gate run reads 237 records; the gate's stub filter (`--stub-max 10`) drops rows with
+<= 10 instructions (11 rows by this script's count: 6 c_vulns-riscv64 (train), 4 boom-attacks, 1 riscv-transient-attacks);
+with `--stub-max 5` it would keep 235. The scorer drops rows with < 10 instructions (R42).
 
 ## 2. Step 1 -- ISA-independence gate (canonical-op bigram JS divergence)
 
@@ -40,8 +45,8 @@ on the known transliteration). `[LOW n]` rows are < 10 riscv records. Records wi
 | boom-attacks | 8 / 3 | 0/3 | 1.0000 |
 | riscv-transient-attacks | 4 / 4 | 0/3 | 1.0000 |
 | CTSRD-Transient | 4 / 4 | 0/3 | 1.0000 |
-| zlib benign (held-out) | 200 / 1 | no shared class | n/a |
-| ALL new sources pooled (c_vulns + 4 eval artifacts + zlib benign) | 226 / 15 | 0/4 | 1.0000 |
+| Debian benign (held-out, whole functions) | 200 / 1 | no shared class | n/a |
+| ALL new sources pooled (c_vulns + 4 eval artifacts + Debian benign) | 226 / 15 | 0/4 | 1.0000 |
 | ALL new sources pooled, --stub-max 5 (keeps the 6-10 instr c_vulns rows) | 235 / 20 | 0/4 | 1.0000 |
 
 What the test can and cannot say here:
@@ -55,7 +60,7 @@ What the test can and cannot say here:
   0.5 / 0.125 / 0.0625), most classes are LOW n, and several sources have 1-4 families (bootstrap CIs `nan`).
   The direction is 0 classes closer to arm64 in every run, the opposite of the transliteration signature, but
   "no signature, underpowered" is not "independent". We do not pool sources to manufacture significance.
-* Benign (zlib) has no attack class shared with x86/arm, so it contributes only to the pooled rows.
+* Benign (Debian) has no attack class shared with x86/arm, so it contributes only to the pooled rows.
 * Confound: arm64 and riscv64 are both load-store RISC ISAs; some closeness to arm is kinship, not translation.
 
 ### Raw output
@@ -166,7 +171,7 @@ riscv64 corpus OVERRIDDEN with eval/data/realworld_CTSRD-Transient.jsonl (4 reco
   -> UNDERPOWERED: with 3 shared classes the smallest reachable p is 0.125, so this test could NOT have fired whatever the data said.
 ```
 
-#### zlib benign (held-out)
+#### Debian benign (held-out, whole functions)
 
 `python3 eval/isa_independence_check.py --riscv-jsonl eval/data/realworld_benign_riscv64.jsonl`
 
@@ -176,11 +181,11 @@ riscv64 corpus OVERRIDDEN with eval/data/realworld_benign_riscv64.jsonl (200 rec
   arm64     3434 records,  123 families
   riscv64    200 records,    1 families
   x86_64   vs arm64     JS = 0.3566  95%CI [0.3240, 0.4186]  <-- YARDSTICK (independently built corpora)
-  x86_64   vs riscv64   JS = 0.5377  95%CI [nan, nan]
-  arm64    vs riscv64   JS = 0.3195  95%CI [nan, nan]
+  x86_64   vs riscv64   JS = 0.5326  95%CI [nan, nan]
+  arm64    vs riscv64   JS = 0.3163  95%CI [nan, nan]
 ```
 
-#### ALL new sources pooled (c_vulns + 4 eval artifacts + zlib benign)
+#### ALL new sources pooled (c_vulns + 4 eval artifacts + Debian benign)
 
 `python3 eval/isa_independence_check.py --riscv-jsonl <tmp>/all_new.jsonl`
 
@@ -190,8 +195,8 @@ riscv64 corpus OVERRIDDEN with <tmp>/all_new.jsonl (237 records)
   arm64     3434 records,  123 families
   riscv64    226 records,   15 families
   x86_64   vs arm64     JS = 0.3566  95%CI [0.3240, 0.4186]  <-- YARDSTICK (independently built corpora)
-  x86_64   vs riscv64   JS = 0.5083  95%CI [0.4874, 0.6611]
-  arm64    vs riscv64   JS = 0.2925  95%CI [0.2852, 0.5684]
+  x86_64   vs riscv64   JS = 0.5215  95%CI [0.4988, 0.6611]
+  arm64    vs riscv64   JS = 0.3059  95%CI [0.3004, 0.5684]
   RETBLEED                    0.5715    0.6402    0.7432       1.12x  LOW n
   classes where arm-vs-riscv < x86-vs-arm: 0/4
   one-sided sign test p = 1.0000
@@ -208,8 +213,8 @@ riscv64 corpus OVERRIDDEN with <tmp>/all_new.jsonl (237 records)
   arm64     3434 records,  123 families
   riscv64    235 records,   20 families
   x86_64   vs arm64     JS = 0.3566  95%CI [0.3240, 0.4186]  <-- YARDSTICK (independently built corpora)
-  x86_64   vs riscv64   JS = 0.5080  95%CI [0.4894, 0.6735]
-  arm64    vs riscv64   JS = 0.2920  95%CI [0.2858, 0.5564]
+  x86_64   vs riscv64   JS = 0.5213  95%CI [0.5013, 0.6735]
+  arm64    vs riscv64   JS = 0.3056  95%CI [0.3007, 0.5564]
   RETBLEED                    0.5715    0.6683    0.7506       1.17x  LOW n
   classes where arm-vs-riscv < x86-vs-arm: 0/4
   one-sided sign test p = 1.0000
@@ -240,7 +245,7 @@ inline         58        0.968                      0.439
 ALL           113        0.968                      0.377
 ```
 
-#### new eval artifacts (4 files, 29 rows)
+#### new eval artifacts (4 files, 29 rows; 16 scored in the headline)
 
 `python3 eval/isa_fingerprint.py --riscv <tmp>/eval_att.jsonl`
 
@@ -283,41 +288,40 @@ Command:
 python3 -m eval.score_realworld --bars-only --data eval/data/realworld_Security-RISC.jsonl eval/data/realworld_boom-attacks.jsonl eval/data/realworld_riscv-transient-attacks.jsonl eval/data/realworld_CTSRD-Transient.jsonl eval/data/realworld_benign_riscv64.jsonl --out-dir <tmp>
 ```
 
-Rows loaded 229; dropped for having no instruction line **0** (of which harness-flagged 0); dropped as dup_of (R17/R25) **1**; headline **219**; harness (R18, separate) 9; train_overlap (separate) 0. Unscorable by model: 0. Rows on which the mechanism rule abstained in every window/class (whole-function, counted safe): 228.  (`{'total': 229, 'no_instruction_dropped': 0, 'no_instruction_harness': 0, 'dup_dropped': 1, 'headline': 219, 'harness': 9, 'train_overlap': 0}`)
+Functions loaded 229; dropped for having no instruction line **0** (of which harness-flagged 0); dropped for having fewer than 10 instructions (R42) **5** (of which harness-flagged 1); dropped as dup_of (R17/R25) **0**; headline **216** functions; harness (R18, separate) 8; train_overlap (separate) 0. Unscorable by model: 0. Functions on which the mechanism rule abstained in every window/class (whole-function, counted safe): 224.  (`{'total': 229, 'no_instruction_dropped': 0, 'no_instruction_harness': 0, 'short_dropped': 5, 'short_dropped_harness': 1, 'dup_dropped': 0, 'headline': 216, 'harness': 8, 'train_overlap': 0}`)
 
-Reading the bars: with 19 leak rows from 5 clusters and a single benign cluster (200 windows, 1 family), every
-bar scores 0.500 balanced accuracy (all-attack, fence-count and opcode-LR flag every attack function and also all
-200 benign windows; `mechanism_v2` abstains everywhere and so calls everything safe). Bars therefore cannot separate
-the classes on this set; CIs are degenerate because there is effectively one cluster per class. The model must beat
-0.500 here to count as signal.
+Reading the bars: the riscv64 headline has 16 leak and 200 safe functions in 6 clusters
+(benign = whole held-out Debian functions, one cluster per package). See the arch=riscv64 rows below for every bar,
+including the length and compiler-shortcut bars; with so few clusters the CIs are wide or degenerate. The model must
+beat the best bar here to count as signal.
 
 ### Headline (clean: not harness, not train_overlap, not dup)
 
-| slice | n | leak | safe | groups | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| all | 219 | 19 | 200 | 6 | 656 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] |
-| subset=benign | 200 | 0 | 200 | 1 | 0 | 0 | 0.000 n/a | 0.000 n/a | 0.000 n/a | 1.000 n/a | n/a n/a (n=0) | 0.000 n/a | 1.000 n/a |
-| subset=riscv_artifact | 19 | 19 | 0 | 5 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| arch=riscv64 | 219 | 19 | 200 | 6 | 656 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] |
-| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | mechanism_v2_excl |
-|---|---|---|---|---|---|
-| all | 1.000 / 1.000 | 1.000 / 1.000 | 0.998 / 1.000 | 0.000 / 0.000 | n/a / n/a |
-| subset=benign | n/a / 1.000 | n/a / 1.000 | n/a / 1.000 | n/a / 0.000 | n/a / n/a |
-| subset=riscv_artifact | 1.000 / n/a | 1.000 / n/a | 0.998 / n/a | 0.000 / n/a | n/a / n/a |
-| arch=riscv64 | 1.000 / 1.000 | 1.000 / 1.000 | 0.998 / 1.000 | 0.000 / 0.000 | n/a / n/a |
+| slice | n (functions) | leak | safe | clusters | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn | length_wholefn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| all | 216 | 16 | 200 | 6 | 656 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.530 [0.530, 0.530] | 0.562 [0.500, 0.611] | 0.500 [0.500, 0.500] | 0.522 [0.522, 0.522] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.530 [0.530, 0.530] |
+| subset=benign | 200 | 0 | 200 | 1 | 0 | 0 | 0.000 n/a | 0.000 n/a | 0.000 n/a | 1.000 n/a | 0.060 n/a | 0.500 n/a | 1.000 n/a | 0.045 n/a | 0.000 n/a | n/a n/a (n=0) | 0.000 n/a | 1.000 n/a | 0.060 n/a |
+| subset=riscv_artifact | 16 | 16 | 0 | 5 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 0.625 [0.500, 0.722] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] |
+| arch=riscv64 | 216 | 16 | 200 | 6 | 656 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.530 [0.530, 0.530] | 0.562 [0.500, 0.611] | 0.500 [0.500, 0.500] | 0.522 [0.522, 0.522] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.530 [0.530, 0.530] |
+| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl |
+|---|---|---|---|---|---|---|---|---|---|---|
+| all | 1.000 / 1.000 | 1.000 / 1.000 | 0.998 / 0.999 | 0.000 / 0.000 | 1.000 / 0.940 | 0.480 / 0.313 | 0.000 / 0.000 | 0.962 / 0.900 | 1.000 / 1.000 | n/a / n/a |
+| subset=benign | n/a / 1.000 | n/a / 1.000 | n/a / 0.999 | n/a / 0.000 | n/a / 0.940 | n/a / 0.313 | n/a / 0.000 | n/a / 0.900 | n/a / 1.000 | n/a / n/a |
+| subset=riscv_artifact | 1.000 / n/a | 1.000 / n/a | 0.998 / n/a | 0.000 / n/a | 1.000 / n/a | 0.480 / n/a | 0.000 / n/a | 0.962 / n/a | 1.000 / n/a | n/a / n/a |
+| arch=riscv64 | 1.000 / 1.000 | 1.000 / 1.000 | 0.998 / 0.999 | 0.000 / 0.000 | 1.000 / 0.940 | 0.480 / 0.313 | 0.000 / 0.000 | 0.962 / 0.900 | 1.000 / 1.000 | n/a / n/a |
 
 ### Harness rows (R18) -- NOT headline
 
-| slice | n | leak | safe | groups | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| all | 9 | 9 | 0 | 9 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.778 [0.444, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| subset=riscv_artifact | 9 | 9 | 0 | 9 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.778 [0.444, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| arch=riscv64 | 9 | 9 | 0 | 9 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.778 [0.444, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | mechanism_v2_excl |
-|---|---|---|---|---|---|
-| all | 1.000 / n/a | 1.000 / n/a | 0.778 / n/a | 0.000 / n/a | n/a / n/a |
-| subset=riscv_artifact | 1.000 / n/a | 1.000 / n/a | 0.778 / n/a | 0.000 / n/a | n/a / n/a |
-| arch=riscv64 | 1.000 / n/a | 1.000 / n/a | 0.778 / n/a | 0.000 / n/a | n/a / n/a |
+| slice | n (functions) | leak | safe | clusters | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn | length_wholefn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| all | 8 | 8 | 0 | 8 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.750 [0.375, 1.000] | 0.000 [0.000, 0.000] | 0.875 [0.625, 1.000] | 0.375 [0.125, 0.750] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.875 [0.625, 1.000] |
+| subset=riscv_artifact | 8 | 8 | 0 | 8 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.750 [0.375, 1.000] | 0.000 [0.000, 0.000] | 0.875 [0.625, 1.000] | 0.375 [0.125, 0.750] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.875 [0.625, 1.000] |
+| arch=riscv64 | 8 | 8 | 0 | 8 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.750 [0.375, 1.000] | 0.000 [0.000, 0.000] | 0.875 [0.625, 1.000] | 0.375 [0.125, 0.750] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.875 [0.625, 1.000] |
+| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl |
+|---|---|---|---|---|---|---|---|---|---|---|
+| all | 1.000 / n/a | 1.000 / n/a | 0.750 / n/a | 0.000 / n/a | 0.875 / n/a | 0.271 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
+| subset=riscv_artifact | 1.000 / n/a | 1.000 / n/a | 0.750 / n/a | 0.000 / n/a | 0.875 / n/a | 0.271 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
+| arch=riscv64 | 1.000 / n/a | 1.000 / n/a | 0.750 / n/a | 0.000 / n/a | 0.875 / n/a | 0.271 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
 
 ### Cluster command for the model arms (R5)
 
@@ -342,16 +346,16 @@ Security-RISC provenance check (`vendor_riscv/Security-RISC/README.md`): C910 li
 "- `spectre`: Spectre exploit on the C910 processor". That documents the authors' hardware testing of their artifacts; it does not mean the specific
 compiled windows we score were run on hardware by us, so the text says "per its README".
 
-### Main text (88 words, limit 120)
+### Main text (91 words, limit 120)
 
-RISC-V is reported as a limited, caveated transfer result. Our original RISC-V corpus was produced by mnemonic translation from ARM64 and is excluded from evidence of generalisation. The data used here are compiled from published C with a RISC-V cross-compiler: 8 training rows (5 functions) and 29 attack rows from four public artifacts, plus 200 benign zlib windows. None is hardware-confirmed by us. On this set the model reaches balanced accuracy [PENDING] (n=[PENDING]); the sample is small and length-shifted, so we read it as indicative only (Appendix RISC-V).
+RISC-V is reported as a limited, caveated transfer result. Our original RISC-V corpus was produced by mnemonic translation from ARM64 and is excluded from evidence of generalisation. The data used here are compiled from published C with a RISC-V cross-compiler: 8 training rows (5 functions) and 16 scored attack functions from four public artifacts, plus 200 held-out benign Debian functions (zlib). None is hardware-confirmed by us. On this set the model reaches balanced accuracy [PENDING] (n=[PENDING]); the sample is small and length-shifted, so we read it as indicative only (Appendix RISC-V).
 
-### Appendix: RISC-V caveat (238 words, limit 300)
+### Appendix: RISC-V caveat (246 words, limit 300)
 
 Provenance. All RISC-V rows are compiled from published C, cross-compiled on a native arm64 Debian image; none was executed or labelled on RISC-V hardware by us. Security-RISC states that its experiments were run on the T-Head C906, C908, C910 and SiFive U74 (per its README; we did not reproduce them), so its labels are the authors' claim.
 
 Old corpus. The earlier RISC-V corpus was generated by a ~40-rule mnemonic substitution from ARM64. The recorded 2026-08-30 canonical-op bigram gate found RISC-V closer to ARM64 than x86_64 is to ARM64 in 6/6 shared classes (sign test p=0.016). A re-run today still has 5/6 classes pointing arm-ward, but the sign test is no longer significant (p=0.109); the shift in the x86/ARM64 yardstick is unexplained. The old corpus is excluded on provenance (the translation script) regardless.
 
-New corpus. 8 training rows (5 functions, 5 classes) and 29 attack rows (9 flagged harness and scored separately). Run on the new sources, the same gate shows 0 classes closer to ARM64 than the x86/ARM64 yardstick in every set, but it has at most 4 shared classes (minimum reachable p=0.062), so it is underpowered and does not certify independence. The pooled form of the test is not evidence either way.
+New corpus. 8 training rows (5 functions, 5 classes) and 29 attack rows (9 flagged harness and scored separately; 16 scored in the headline). Run on the new sources, the same gate shows 0 classes closer to ARM64 than the x86/ARM64 yardstick in every set, but it has at most 4 shared classes (minimum reachable p=0.062), so it is underpowered and does not certify independence. The pooled form of the test is not evidence either way.
 
-Caveats. Many rows are shorter than the 25-45 instruction training windows, benign rows are single 45-instruction windows while attacks span many windows, and harness rows are excluded from the headline. Model results: [PENDING cluster run].
+Caveats. Many rows are shorter than the 25-45 instruction training windows; attack and benign rows are both whole functions, windowed identically; rows under 10 instructions and harness rows are excluded from the headline. Model results: [PENDING cluster run].

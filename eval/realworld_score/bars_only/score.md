@@ -3,106 +3,126 @@
 - data: /Users/ritvikgupta/SpecExec/eval/data/realworld_*.jsonl
 - opcode-LR train pool: /Users/ritvikgupta/SpecExec/v54/data/v54_train.jsonl
 - model column: none (--bars-only)
+- length-bar IQR fallback: benign_x86_64_gcc.jsonl, benign_x86_64_gcc_O0_hoff.jsonl
 
-Rows loaded 2312; dropped for having no instruction line **0** (of which harness-flagged 0); dropped as dup_of (R17/R25) **285**; headline **1265**; harness (R18, separate) 104; train_overlap (separate) 658. Unscorable by model: 0. Rows on which the mechanism rule abstained in every window/class (whole-function, counted safe): 1434.
+Functions loaded 1888; dropped for having no instruction line **0** (of which harness-flagged 0); dropped for having fewer than 10 instructions (R42) **114** (of which harness-flagged 28); dropped as dup_of (R17/R25) **260**; headline **834** functions; harness (R18, separate) 76; train_overlap (separate) 604. Unscorable by model: 0. Functions on which the mechanism rule abstained in every window/class (whole-function, counted safe): 1032.
 
-Unit (R30): every method, model and bars, predicts per 25-45 window; a function is a leak iff ANY window predicts leak. `*_wholefn` rows are the old whole-function calls (secondary). Remaining asymmetry: benign holdout rows are single windows while attacks span many windows, so any-window rules have more chances to fire on attacks than on benign rows; `wrate` columns give the per-window leak rate (mean over a function's windows, averaged over leak-truth / safe-truth functions) as a length-insensitive view.
+**Disclosures.** (M2) Linux fix-commit `pre` rows are built from x86_64_defconfig, so they carry retpoline / return-thunk calls (`__x86_indirect_thunk_*`, `__x86_return_thunk`) that come from the kernel config, not from the patch; `mitigation_detected` fires on vulnerable sides for that reason (R12) and a thunk cue cannot be read as a fix. (R43) Harness MDS rows (ZombieLoad, RIDL) are NOT held-out evidence: ZombieLoad's source is in the train pool (I2, train_overlap), and harness rows are in their own section; never cite the harness section as held-out.
 
-Balanced accuracy = mean of leak recall and safe recall over the classes present in the cell; a one-class cell reports that class's recall only (see n_leak/n_safe). CI = 95% cluster bootstrap by family/group; n/a when only one cluster. Bootstrap replicates with no leak or no safe cluster are dropped (the `dropped` column counts them out of the resamples; `dropped` = max over all methods but mechanism_v2_excl, whose own count is `dropped (excl)` -- it has fewer valid rows so it drops more). **Limitation of the per-window rule bar:** `mechanism_v2` runs on each 25-45 window in isolation; a window that cuts the trigger-to-transmitter chain (e.g. MDS/L1TF load at one end, dependent read beyond the window) makes the rule abstain (counted safe, or excluded in `_excl`), so it can miss a leak the whole-function rule (`mechanism_v2_wholefn`) sees. On the current headline the two agree because benign rows are single windows and nearly all multi-window attacks abstain either way. `mitigation_detected` is never used (R12).
+Unit (R30, R39): every row is a WHOLE function, attacks and held-out Debian benign alike; `n` counts functions and `clusters` counts families/groups, never windows. Every method, model and bars, predicts per 25-45 window of the function; a function is a leak iff ANY window predicts leak. `*_wholefn` rows are whole-function calls (secondary). `wrate` columns give the per-window leak rate (mean over a function's windows, averaged over leak-truth / safe-truth functions) as a length-insensitive view.
+
+Shortcut bars (R39/R41), each a one-feature rule in the same per-window unit: `length` = window length outside the benign-train IQR of its arch (IQRs below); `has_ret` = window contains a ret -> leak; `push_rbp` = contains `push %rbp` -> leak; `has_LC` = contains a `.LC<n>` constant -> safe (leak iff absent); `has_fs` = contains a `%fs:` stack-canary access -> safe (leak iff absent). A model that does not beat these is not shown to use more than compiler/flag/length cues.
+
+Balanced accuracy = mean of leak recall and safe recall over the classes present in the cell; a one-class cell reports that class's recall only (see leak/safe). CI = 95% cluster bootstrap by family/group; n/a when only one cluster. Bootstrap replicates with no leak or no safe cluster are dropped (the `dropped` column counts them out of the resamples; `dropped` = max over all methods but mechanism_v2_excl, whose own count is `dropped (excl)` -- it has fewer valid rows so it drops more). **Limitation of the per-window rule bar:** `mechanism_v2` runs on each 25-45 window in isolation; a window that cuts the trigger-to-transmitter chain (e.g. MDS/L1TF load at one end, dependent read beyond the window) makes the rule abstain (counted safe, or excluded in `_excl`), so it can miss a leak the whole-function rule (`mechanism_v2_wholefn`) sees. `mitigation_detected` is never used (R12).
+
+Length-bar IQR (benign train instruction counts) per arch: arm64: [27, 30] from train pool (2820 benign rows); x86_64: [16, 33] from Debian benign train (6802 rows); *: [19, 30] from all arches pooled (9622 rows) (`*` is used for an arch with no benign train rows).
+
+## Length distribution (instructions per function)
+
+| section | class | n (functions) | p10 | p25 | median | p75 | p90 | exactly 45 |
+|---|---|---|---|---|---|---|---|---|
+| headline | leak | 37 | 14 | 20 | 30 | 57 | 166 | 0 |
+| headline | safe | 797 | 31 | 44 | 84 | 191 | 603 | 13 |
+| harness | leak | 67 | 12 | 13 | 96 | 150 | 185 | 0 |
+| harness | safe | 9 | 12 | 13 | 14 | 14 | 15 | 0 |
+| train_overlap | leak | 368 | 11 | 15 | 22 | 29 | 38 | 0 |
+| train_overlap | safe | 236 | 12 | 15 | 22 | 30 | 40 | 0 |
+
+Function-length AUC (shorter = leak; 0.5 = no length cue; the `length` bar is ONE fixed rule, this is what any length threshold could reach): headline 0.774; harness 0.234; train_overlap 0.527
 
 ## Headline (clean: not harness, not train_overlap, not dup)
 
-| slice | n | leak | safe | groups | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| all | 1265 | 43 | 1222 | 22 | 0 | 28 | 0.500 [0.500, 0.500] | 0.482 [0.439, 0.513] | 0.500 [0.500, 0.500] | 0.385 [0.283, 0.490] | 0.502 [0.500, 0.510] (n=489) | 0.483 [0.439, 0.515] | 0.385 [0.283, 0.490] |
-| subset=benign | 1200 | 0 | 1200 | 5 | 0 | 0 | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.603 [0.483, 0.722] | 0.000 [0.000, 0.000] (n=476) | 0.000 [0.000, 0.000] | 0.603 [0.483, 0.722] |
-| subset=patch_only | 10 | 5 | 5 | 5 | 0 | 680 | 0.500 [0.500, 0.500] | 0.600 [0.500, 0.800] | 0.500 [0.500, 0.500] | 0.200 [0.000, 0.400] | 0.500 [0.500, 0.500] (n=5) | 0.800 [0.600, 1.000] | 0.200 [0.000, 0.400] |
-| subset=poc | 6 | 6 | 0 | 3 | 0 | 0 | 1.000 [1.000, 1.000] | 0.667 [0.500, 1.000] | 1.000 [1.000, 1.000] | 0.667 [0.000, 1.000] | 1.000 [1.000, 1.000] (n=4) | 0.667 [0.500, 1.000] | 0.667 [0.000, 1.000] |
-| subset=riscv_artifact | 19 | 19 | 0 | 5 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| subset=vendor | 30 | 13 | 17 | 4 | 0 | 623 | 0.500 [0.500, 0.500] | 0.853 [0.722, 1.000] | 0.500 [0.500, 0.500] | 0.577 [0.500, 0.700] | 1.000 [1.000, 1.000] (n=4) | 0.853 [0.722, 1.000] | 0.577 [0.500, 0.700] |
-| family=V1 branch | 42 | 25 | 17 | 10 | 0 | 718 | 0.500 [0.500, 0.500] | 0.765 [0.500, 0.905] | 0.500 [0.500, 0.500] | 0.402 [0.068, 0.487] | 0.500 [0.500, 0.500] (n=5) | 0.824 [0.700, 1.000] | 0.402 [0.068, 0.487] |
-| family=V4 store-bypass | 8 | 4 | 4 | 1 | 0 | 0 | 0.500 n/a | 1.000 n/a | 0.500 n/a | 0.750 n/a | 1.000 n/a (n=4) | 1.000 n/a | 0.750 n/a |
-| family=fault/assist | 4 | 4 | 0 | 2 | 0 | 0 | 1.000 [1.000, 1.000] | 0.500 [0.500, 0.500] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.500 [0.500, 0.500] | 1.000 [1.000, 1.000] |
-| family=other | 11 | 10 | 1 | 4 | 623 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] |
-| family=safe-unpaired | 1200 | 0 | 1200 | 5 | 0 | 0 | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.603 [0.483, 0.722] | 0.000 [0.000, 0.000] (n=476) | 0.000 [0.000, 0.000] | 0.603 [0.483, 0.722] |
-| arch=riscv64 | 219 | 19 | 200 | 6 | 656 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] |
-| arch=x86_64 | 1046 | 24 | 1022 | 17 | 0 | 25 | 0.500 [0.500, 0.500] | 0.465 [0.395, 0.512] | 0.500 [0.500, 0.500] | 0.411 [0.300, 0.551] | 0.502 [0.500, 0.511] (n=489) | 0.466 [0.397, 0.514] | 0.411 [0.300, 0.551] |
+| slice | n (functions) | leak | safe | clusters | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn | length_wholefn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| all | 834 | 37 | 797 | 21 | 0 | 28 | 0.500 [0.500, 0.500] | 0.481 [0.433, 0.544] | 0.500 [0.500, 0.500] | 0.367 [0.202, 0.504] | 0.385 [0.267, 0.480] | 0.465 [0.367, 0.535] | 0.369 [0.188, 0.520] | 0.528 [0.509, 0.575] | 0.535 [0.524, 0.573] | 0.503 [0.500, 0.527] (n=372) | 0.482 [0.435, 0.552] | 0.362 [0.191, 0.502] | 0.385 [0.267, 0.480] |
+| subset=benign | 776 | 0 | 776 | 5 | 0 | 0 | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.537 [0.230, 0.705] | 0.112 [0.065, 0.138] | 0.148 [0.026, 0.227] | 0.442 [0.180, 0.631] | 0.058 [0.020, 0.130] | 0.071 [0.050, 0.152] | 0.000 [0.000, 0.000] (n=359) | 0.000 [0.000, 0.000] | 0.528 [0.207, 0.704] | 0.112 [0.065, 0.138] |
+| subset=patch_only | 10 | 5 | 5 | 5 | 0 | 680 | 0.500 [0.500, 0.500] | 0.600 [0.500, 0.800] | 0.500 [0.500, 0.500] | 0.200 [0.000, 0.400] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] (n=5) | 0.800 [0.600, 1.000] | 0.200 [0.000, 0.400] | 0.500 [0.500, 0.500] |
+| subset=poc | 6 | 6 | 0 | 3 | 0 | 0 | 1.000 [1.000, 1.000] | 0.667 [0.500, 1.000] | 1.000 [1.000, 1.000] | 0.667 [0.000, 1.000] | 0.667 [0.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] (n=4) | 0.667 [0.500, 1.000] | 0.667 [0.000, 1.000] | 0.667 [0.000, 1.000] |
+| subset=riscv_artifact | 16 | 16 | 0 | 5 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.750 [0.333, 1.000] | 0.625 [0.500, 0.722] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.750 [0.333, 1.000] |
+| subset=vendor | 26 | 10 | 16 | 3 | 0 | 594 | 0.500 [0.500, 0.500] | 0.875 [0.750, 1.000] | 0.500 [0.500, 0.500] | 0.600 [0.500, 0.750] | 0.450 [0.250, 0.500] | 0.500 [0.500, 0.500] | 0.550 [0.500, 0.750] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 1.000 [1.000, 1.000] (n=4) | 0.875 [0.750, 1.000] | 0.600 [0.500, 0.750] | 0.450 [0.250, 0.500] |
+| family=V1 branch | 40 | 23 | 17 | 10 | 0 | 718 | 0.500 [0.500, 0.500] | 0.765 [0.500, 0.905] | 0.500 [0.500, 0.500] | 0.404 [0.068, 0.491] | 0.597 [0.476, 0.667] | 0.428 [0.375, 0.563] | 0.372 [0.100, 0.568] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] (n=5) | 0.824 [0.700, 1.000] | 0.404 [0.068, 0.491] | 0.597 [0.476, 0.667] |
+| family=V4 store-bypass | 8 | 4 | 4 | 1 | 0 | 0 | 0.500 n/a | 1.000 n/a | 0.500 n/a | 0.750 n/a | 0.500 n/a | 0.500 n/a | 0.500 n/a | 0.500 n/a | 0.500 n/a | 1.000 n/a (n=4) | 1.000 n/a | 0.750 n/a | 0.500 n/a |
+| family=fault/assist | 4 | 4 | 0 | 2 | 0 | 0 | 1.000 [1.000, 1.000] | 0.500 [0.500, 0.500] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.500 [0.500, 0.500] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] |
+| family=other | 6 | 6 | 0 | 3 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.667 [0.500, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
+| family=safe-unpaired | 776 | 0 | 776 | 5 | 0 | 0 | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 0.537 [0.230, 0.705] | 0.112 [0.065, 0.138] | 0.148 [0.026, 0.227] | 0.442 [0.180, 0.631] | 0.058 [0.020, 0.130] | 0.071 [0.050, 0.152] | 0.000 [0.000, 0.000] (n=359) | 0.000 [0.000, 0.000] | 0.528 [0.207, 0.704] | 0.112 [0.065, 0.138] |
+| arch=riscv64 | 216 | 16 | 200 | 6 | 656 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.430 [0.222, 0.555] | 0.562 [0.500, 0.611] | 0.500 [0.500, 0.500] | 0.522 [0.522, 0.522] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.430 [0.222, 0.555] |
+| arch=x86_64 | 618 | 21 | 597 | 16 | 0 | 28 | 0.500 [0.500, 0.500] | 0.463 [0.385, 0.531] | 0.500 [0.500, 0.500] | 0.363 [0.220, 0.523] | 0.348 [0.240, 0.468] | 0.467 [0.376, 0.518] | 0.388 [0.268, 0.523] | 0.530 [0.508, 0.573] | 0.546 [0.529, 0.573] | 0.503 [0.500, 0.521] (n=372) | 0.465 [0.387, 0.538] | 0.357 [0.210, 0.517] | 0.348 [0.240, 0.468] |
 
 Per-window leak rate (headline): mean over functions of the fraction of windows predicted leak; first value over leak-truth functions, second over safe-truth.
 
-| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | mechanism_v2_excl |
-|---|---|---|---|---|---|
-| all | 1.000 / 1.000 | 0.953 / 0.989 | 0.999 / 1.000 | 0.141 / 0.391 | 1.000 / 0.996 |
-| subset=benign | n/a / 1.000 | n/a / 1.000 | n/a / 1.000 | n/a / 0.397 | n/a / 1.000 |
-| subset=patch_only | 1.000 / 1.000 | 1.000 / 0.713 | 1.000 / 1.000 | 0.015 / 0.444 | 1.000 / 1.000 |
-| subset=poc | 1.000 / n/a | 0.667 / n/a | 1.000 / n/a | 0.667 / n/a | 1.000 / n/a |
-| subset=riscv_artifact | 1.000 / n/a | 1.000 / n/a | 0.998 / n/a | 0.000 / n/a | n/a / n/a |
-| subset=vendor | 1.000 / 1.000 | 1.000 / 0.294 | 1.000 / 1.000 | 0.154 / 0.000 | 1.000 / 0.000 |
-| family=V1 branch | 1.000 / 1.000 | 1.000 / 0.445 | 0.998 / 1.000 | 0.003 / 0.131 | 1.000 / 1.000 |
-| family=V4 store-bypass | 1.000 / 1.000 | 1.000 / 0.000 | 1.000 / 1.000 | 0.500 / 0.000 | 1.000 / 0.000 |
-| family=fault/assist | 1.000 / n/a | 0.500 / n/a | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a |
-| family=other | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 | 0.000 / 0.000 | n/a / n/a |
-| family=safe-unpaired | n/a / 1.000 | n/a / 1.000 | n/a / 1.000 | n/a / 0.397 | n/a / 1.000 |
-| arch=riscv64 | 1.000 / 1.000 | 1.000 / 1.000 | 0.998 / 1.000 | 0.000 / 0.000 | n/a / n/a |
-| arch=x86_64 | 1.000 / 1.000 | 0.917 / 0.987 | 1.000 / 1.000 | 0.253 / 0.468 | 1.000 / 0.996 |
+| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl |
+|---|---|---|---|---|---|---|---|---|---|---|
+| all | 1.000 / 1.000 | 0.946 / 0.983 | 0.999 / 1.000 | 0.164 / 0.302 | 0.649 / 0.880 | 0.618 / 0.514 | 0.206 / 0.157 | 0.965 / 0.882 | 1.000 / 0.886 | 1.000 / 0.995 |
+| subset=benign | n/a / 1.000 | n/a / 1.000 | n/a / 1.000 | n/a / 0.307 | n/a / 0.888 | n/a / 0.506 | n/a / 0.149 | n/a / 0.880 | n/a / 0.883 | n/a / 1.000 |
+| subset=patch_only | 1.000 / 1.000 | 1.000 / 0.713 | 1.000 / 1.000 | 0.015 / 0.444 | 0.800 / 0.800 | 0.307 / 0.213 | 0.325 / 0.326 | 0.867 / 0.933 | 1.000 / 1.000 | 1.000 / 1.000 |
+| subset=poc | 1.000 / n/a | 0.667 / n/a | 1.000 / n/a | 0.667 / n/a | 0.667 / n/a | 0.611 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a |
+| subset=riscv_artifact | 1.000 / n/a | 1.000 / n/a | 0.998 / n/a | 0.000 / n/a | 0.750 / n/a | 0.480 / n/a | 0.000 / n/a | 0.962 / n/a | 1.000 / n/a | n/a / n/a |
+| subset=vendor | 1.000 / 1.000 | 1.000 / 0.250 | 1.000 / 1.000 | 0.200 / 0.000 | 0.400 / 0.500 | 1.000 / 1.000 | 0.600 / 0.500 | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 0.000 |
+| family=V1 branch | 1.000 / 1.000 | 1.000 / 0.445 | 0.998 / 1.000 | 0.003 / 0.131 | 0.783 / 0.588 | 0.574 / 0.768 | 0.244 / 0.449 | 0.944 / 0.980 | 1.000 / 1.000 | 1.000 / 1.000 |
+| family=V4 store-bypass | 1.000 / 1.000 | 1.000 / 0.000 | 1.000 / 1.000 | 0.500 / 0.000 | 0.500 / 0.500 | 1.000 / 1.000 | 0.500 / 0.500 | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 0.000 |
+| family=fault/assist | 1.000 / n/a | 0.500 / n/a | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a | 0.417 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a |
+| family=other | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a | 0.000 / n/a | 0.000 / n/a | 0.667 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
+| family=safe-unpaired | n/a / 1.000 | n/a / 1.000 | n/a / 1.000 | n/a / 0.307 | n/a / 0.888 | n/a / 0.506 | n/a / 0.149 | n/a / 0.880 | n/a / 0.883 | n/a / 1.000 |
+| arch=riscv64 | 1.000 / 1.000 | 1.000 / 1.000 | 0.998 / 0.999 | 0.000 / 0.000 | 0.750 / 0.890 | 0.480 / 0.313 | 0.000 / 0.000 | 0.962 / 0.900 | 1.000 / 1.000 | n/a / n/a |
+| arch=x86_64 | 1.000 / 1.000 | 0.905 / 0.977 | 1.000 / 1.000 | 0.289 / 0.403 | 0.571 / 0.876 | 0.724 / 0.581 | 0.363 / 0.210 | 0.968 / 0.876 | 1.000 / 0.848 | 1.000 / 0.995 |
 
 ## Harness rows (R18) -- NOT headline
 
-| slice | n | leak | safe | groups | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| all | 104 | 86 | 18 | 34 | 9 | 0 | 0.500 [0.500, 0.500] | 0.488 [0.471, 0.500] | 0.663 [0.617, 0.706] | 0.721 [0.626, 0.822] | 0.974 [0.914, 1.000] (n=39) | 0.320 [0.223, 0.408] | 0.721 [0.626, 0.822] |
-| subset=poc | 95 | 77 | 18 | 25 | 8 | 0 | 0.500 [0.500, 0.500] | 0.487 [0.469, 0.500] | 0.666 [0.614, 0.711] | 0.747 [0.632, 0.852] | 0.974 [0.917, 1.000] (n=39) | 0.299 [0.191, 0.400] | 0.747 [0.632, 0.852] |
-| subset=riscv_artifact | 9 | 9 | 0 | 9 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.778 [0.444, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| family=V1 branch | 2 | 2 | 0 | 2 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.500 [0.000, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| family=V4 store-bypass | 2 | 2 | 0 | 2 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.500 [0.000, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| family=fault/assist | 43 | 43 | 0 | 13 | 0 | 0 | 1.000 [1.000, 1.000] | 0.953 [0.891, 1.000] | 1.000 [1.000, 1.000] | 0.884 [0.757, 0.962] | 0.974 [0.917, 1.000] (n=39) | 0.279 [0.100, 0.500] | 0.884 [0.757, 0.962] |
-| family=other | 57 | 39 | 18 | 17 | 4 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.583 [0.534, 0.641] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] |
-| arch=arm64 | 1 | 1 | 0 | 1 | 0 | 0 | 1.000 n/a | 1.000 n/a | 1.000 n/a | 0.000 n/a | n/a n/a (n=0) | 1.000 n/a | 0.000 n/a |
-| arch=riscv64 | 9 | 9 | 0 | 9 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.778 [0.444, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| arch=x86_64 | 94 | 76 | 18 | 24 | 5 | 0 | 0.500 [0.500, 0.500] | 0.487 [0.467, 0.500] | 0.664 [0.612, 0.713] | 0.750 [0.639, 0.863] | 0.974 [0.917, 1.000] (n=39) | 0.296 [0.184, 0.402] | 0.750 [0.639, 0.863] |
+| slice | n (functions) | leak | safe | clusters | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn | length_wholefn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| all | 76 | 67 | 9 | 33 | 13 | 0 | 0.500 [0.500, 0.500] | 0.485 [0.465, 0.500] | 0.703 [0.636, 0.805] | 0.784 [0.681, 0.864] | 0.485 [0.459, 0.500] | 0.403 [0.315, 0.473] | 0.418 [0.357, 0.459] | 0.455 [0.409, 0.500] | 0.500 [0.500, 0.500] | 0.974 [0.917, 1.000] (n=39) | 0.269 [0.179, 0.371] | 0.784 [0.681, 0.864] | 0.485 [0.459, 0.500] |
+| subset=poc | 68 | 59 | 9 | 25 | 8 | 0 | 0.500 [0.500, 0.500] | 0.483 [0.460, 0.500] | 0.710 [0.641, 0.807] | 0.822 [0.702, 0.904] | 0.500 [0.500, 0.500] | 0.432 [0.339, 0.500] | 0.475 [0.443, 0.500] | 0.449 [0.398, 0.500] | 0.500 [0.500, 0.500] | 0.974 [0.917, 1.000] (n=39) | 0.237 [0.140, 0.352] | 0.822 [0.702, 0.904] | 0.500 [0.500, 0.500] |
+| subset=riscv_artifact | 8 | 8 | 0 | 8 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.750 [0.375, 1.000] | 0.000 [0.000, 0.000] | 0.750 [0.375, 1.000] | 0.375 [0.125, 0.750] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.750 [0.375, 1.000] |
+| family=V1 branch | 2 | 2 | 0 | 2 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.500 [0.000, 1.000] | 0.000 [0.000, 0.000] | 0.500 [0.000, 1.000] | 0.500 [0.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.500 [0.000, 1.000] |
+| family=V4 store-bypass | 2 | 2 | 0 | 2 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.500 [0.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] |
+| family=fault/assist | 42 | 42 | 0 | 12 | 0 | 0 | 1.000 [1.000, 1.000] | 0.952 [0.889, 1.000] | 1.000 [1.000, 1.000] | 0.905 [0.795, 0.979] | 1.000 [1.000, 1.000] | 0.762 [0.485, 0.978] | 0.905 [0.795, 0.979] | 0.857 [0.714, 1.000] | 1.000 [1.000, 1.000] | 0.974 [0.923, 1.000] (n=39) | 0.262 [0.077, 0.476] | 0.905 [0.795, 0.979] | 1.000 [1.000, 1.000] |
+| family=other | 30 | 21 | 9 | 17 | 4 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.587 [0.521, 0.696] | 0.500 [0.500, 0.500] | 0.476 [0.413, 0.500] | 0.500 [0.500, 0.500] | 0.429 [0.318, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.476 [0.413, 0.500] |
+| arch=arm64 | 1 | 1 | 0 | 1 | 0 | 0 | 1.000 n/a | 1.000 n/a | 1.000 n/a | 0.000 n/a | 1.000 n/a | 1.000 n/a | 0.000 n/a | 1.000 n/a | 1.000 n/a | n/a n/a (n=0) | 1.000 n/a | 0.000 n/a | 1.000 n/a |
+| arch=riscv64 | 8 | 8 | 0 | 8 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.750 [0.375, 1.000] | 0.000 [0.000, 0.000] | 0.750 [0.375, 1.000] | 0.375 [0.125, 0.750] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 0.750 [0.375, 1.000] |
+| arch=x86_64 | 67 | 58 | 9 | 24 | 5 | 0 | 0.500 [0.500, 0.500] | 0.483 [0.458, 0.500] | 0.709 [0.639, 0.807] | 0.828 [0.716, 0.915] | 0.500 [0.500, 0.500] | 0.431 [0.333, 0.500] | 0.483 [0.458, 0.500] | 0.448 [0.393, 0.500] | 0.500 [0.500, 0.500] | 0.974 [0.917, 1.000] (n=39) | 0.233 [0.132, 0.348] | 0.828 [0.716, 0.915] | 0.500 [0.500, 0.500] |
 
 Per-window leak rate (harness): mean over functions of the fraction of windows predicted leak; first value over leak-truth functions, second over safe-truth.
 
-| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | mechanism_v2_excl |
-|---|---|---|---|---|---|
-| all | 1.000 / 1.000 | 0.792 / 1.000 | 0.826 / 0.500 | 0.277 / 0.000 | 0.973 / n/a |
-| subset=poc | 1.000 / 1.000 | 0.768 / 1.000 | 0.831 / 0.500 | 0.310 / 0.000 | 0.973 / n/a |
-| subset=riscv_artifact | 1.000 / n/a | 1.000 / n/a | 0.778 / n/a | 0.000 / n/a | n/a / n/a |
-| family=V1 branch | 1.000 / n/a | 1.000 / n/a | 0.500 / n/a | 0.000 / n/a | n/a / n/a |
-| family=V4 store-bypass | 1.000 / n/a | 1.000 / n/a | 0.500 / n/a | 0.000 / n/a | n/a / n/a |
-| family=fault/assist | 1.000 / n/a | 0.585 / n/a | 1.000 / n/a | 0.555 / n/a | 0.973 / n/a |
-| family=other | 1.000 / 1.000 | 1.000 / 1.000 | 0.667 / 0.500 | 0.000 / 0.000 | n/a / n/a |
-| arch=arm64 | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a | 0.000 / n/a | n/a / n/a |
-| arch=riscv64 | 1.000 / n/a | 1.000 / n/a | 0.778 / n/a | 0.000 / n/a | n/a / n/a |
-| arch=x86_64 | 1.000 / 1.000 | 0.765 / 1.000 | 0.829 / 0.500 | 0.314 / 0.000 | 0.973 / n/a |
+| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl |
+|---|---|---|---|---|---|---|---|---|---|---|
+| all | 1.000 / 1.000 | 0.734 / 1.000 | 0.851 / 0.444 | 0.356 / 0.000 | 0.970 / 1.000 | 0.403 / 1.000 | 0.339 / 1.000 | 0.863 / 1.000 | 1.000 / 1.000 | 0.973 / n/a |
+| subset=poc | 1.000 / 1.000 | 0.697 / 1.000 | 0.864 / 0.444 | 0.404 / 0.000 | 1.000 / 1.000 | 0.421 / 1.000 | 0.385 / 1.000 | 0.844 / 1.000 | 1.000 / 1.000 | 0.973 / n/a |
+| subset=riscv_artifact | 1.000 / n/a | 1.000 / n/a | 0.750 / n/a | 0.000 / n/a | 0.750 / n/a | 0.271 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
+| family=V1 branch | 1.000 / n/a | 1.000 / n/a | 0.500 / n/a | 0.000 / n/a | 0.500 / n/a | 0.500 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
+| family=V4 store-bypass | 1.000 / n/a | 1.000 / n/a | 0.500 / n/a | 0.000 / n/a | 1.000 / n/a | 0.000 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
+| family=fault/assist | 1.000 / n/a | 0.575 / n/a | 1.000 / n/a | 0.568 / n/a | 1.000 / n/a | 0.139 / n/a | 0.113 / n/a | 0.782 / n/a | 1.000 / n/a | 0.973 / n/a |
+| family=other | 1.000 / 1.000 | 1.000 / 1.000 | 0.619 / 0.444 | 0.000 / 0.000 | 0.952 / 1.000 | 0.960 / 1.000 | 0.857 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 | n/a / n/a |
+| arch=arm64 | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
+| arch=riscv64 | 1.000 / n/a | 1.000 / n/a | 0.750 / n/a | 0.000 / n/a | 0.750 / n/a | 0.271 / n/a | 0.000 / n/a | 1.000 / n/a | 1.000 / n/a | n/a / n/a |
+| arch=x86_64 | 1.000 / 1.000 | 0.692 / 1.000 | 0.862 / 0.444 | 0.411 / 0.000 | 1.000 / 1.000 | 0.411 / 1.000 | 0.392 / 1.000 | 0.842 / 1.000 | 1.000 / 1.000 | 0.973 / n/a |
 
 ## train_overlap rows -- NOT headline
 
-| slice | n | leak | safe | groups | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| all | 658 | 411 | 247 | 39 | 0 | 0 | 0.500 [0.500, 0.500] | 0.611 [0.595, 0.628] | 0.501 [0.463, 0.543] | 0.517 [0.490, 0.556] | 0.500 [0.500, 0.500] (n=65) | 0.609 [0.591, 0.626] | 0.517 [0.490, 0.556] |
-| subset=benchmark | 648 | 401 | 247 | 34 | 0 | 0 | 0.500 [0.500, 0.500] | 0.611 [0.594, 0.628] | 0.499 [0.460, 0.541] | 0.514 [0.486, 0.555] | 0.500 [0.500, 0.500] (n=61) | 0.611 [0.594, 0.628] | 0.514 [0.486, 0.555] |
-| subset=poc | 10 | 10 | 0 | 5 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.400 [0.000, 0.800] | 1.000 [1.000, 1.000] (n=4) | 0.800 [0.400, 1.000] | 0.400 [0.000, 0.800] |
-| family=V1 branch | 568 | 329 | 239 | 16 | 0 | 0 | 0.500 [0.500, 0.500] | 0.615 [0.599, 0.632] | 0.502 [0.460, 0.548] | 0.473 [0.467, 0.479] | 0.000 [0.000, 0.000] (n=13) | 0.615 [0.599, 0.632] | 0.473 [0.467, 0.479] |
-| family=V4 store-bypass | 84 | 76 | 8 | 20 | 17 | 17 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.408 [0.352, 0.469] | 0.414 [0.238, 0.556] | 0.500 [0.500, 0.500] (n=50) | 0.500 [0.500, 0.500] | 0.414 [0.238, 0.556] |
-| family=fault/assist | 2 | 2 | 0 | 1 | 0 | 0 | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 0.000 n/a | 1.000 n/a |
-| family=other | 4 | 4 | 0 | 2 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] |
-| arch=riscv64 | 206 | 142 | 64 | 20 | 0 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.597 [0.498, 0.688] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] |
-| arch=x86_64 | 452 | 269 | 183 | 39 | 0 | 0 | 0.500 [0.500, 0.500] | 0.650 [0.632, 0.667] | 0.500 [0.500, 0.500] | 0.534 [0.494, 0.589] | 0.500 [0.500, 0.500] (n=65) | 0.647 [0.625, 0.664] | 0.534 [0.494, 0.589] |
+| slice | n (functions) | leak | safe | clusters | dropped | dropped (excl) | always_attack | fence_count | opcode_lr | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl (abstain excluded) | fence_count_wholefn | mechanism_v2_wholefn | length_wholefn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| all | 604 | 368 | 236 | 39 | 0 | 0 | 0.500 [0.500, 0.500] | 0.610 [0.590, 0.629] | 0.492 [0.452, 0.540] | 0.521 [0.491, 0.563] | 0.527 [0.501, 0.557] | 0.484 [0.476, 0.490] | 0.494 [0.477, 0.512] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] (n=64) | 0.607 [0.587, 0.626] | 0.521 [0.491, 0.563] | 0.527 [0.501, 0.557] |
+| subset=benchmark | 594 | 358 | 236 | 34 | 0 | 0 | 0.500 [0.500, 0.500] | 0.610 [0.590, 0.629] | 0.489 [0.448, 0.536] | 0.517 [0.487, 0.562] | 0.521 [0.494, 0.549] | 0.482 [0.474, 0.489] | 0.485 [0.470, 0.502] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] (n=60) | 0.610 [0.590, 0.629] | 0.517 [0.487, 0.562] | 0.521 [0.494, 0.549] |
+| subset=poc | 10 | 10 | 0 | 5 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.400 [0.000, 0.800] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] (n=4) | 0.800 [0.400, 1.000] | 0.400 [0.000, 0.800] | 1.000 [1.000, 1.000] |
+| family=V1 branch | 518 | 290 | 228 | 16 | 0 | 0 | 0.500 [0.500, 0.500] | 0.614 [0.595, 0.632] | 0.491 [0.447, 0.543] | 0.471 [0.466, 0.477] | 0.527 [0.499, 0.555] | 0.483 [0.480, 0.487] | 0.486 [0.477, 0.498] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.000 [0.000, 0.000] (n=13) | 0.614 [0.595, 0.632] | 0.471 [0.466, 0.477] | 0.527 [0.499, 0.555] |
+| family=V4 store-bypass | 80 | 72 | 8 | 20 | 17 | 17 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.403 [0.347, 0.466] | 0.424 [0.244, 0.572] | 0.618 [0.490, 0.771] | 0.451 [0.426, 0.483] | 0.347 [0.186, 0.481] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] (n=49) | 0.500 [0.500, 0.500] | 0.424 [0.244, 0.572] | 0.618 [0.490, 0.771] |
+| family=fault/assist | 2 | 2 | 0 | 1 | 0 | 0 | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 1.000 n/a | 0.000 n/a | 1.000 n/a | 1.000 n/a |
+| family=other | 4 | 4 | 0 | 2 | 0 | 0 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | n/a n/a (n=0) | 1.000 [1.000, 1.000] | 0.000 [0.000, 0.000] | 1.000 [1.000, 1.000] |
+| arch=riscv64 | 198 | 137 | 61 | 20 | 0 | 0 | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.597 [0.496, 0.700] | 0.500 [0.500, 0.500] | 0.563 [0.526, 0.597] | 0.496 [0.481, 0.506] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | n/a n/a (n=0) | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.563 [0.526, 0.597] |
+| arch=x86_64 | 406 | 231 | 175 | 39 | 0 | 0 | 0.500 [0.500, 0.500] | 0.649 [0.626, 0.668] | 0.500 [0.500, 0.500] | 0.543 [0.499, 0.604] | 0.488 [0.456, 0.529] | 0.500 [0.500, 0.500] | 0.539 [0.518, 0.562] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] | 0.500 [0.500, 0.500] (n=64) | 0.644 [0.619, 0.665] | 0.543 [0.499, 0.604] | 0.488 [0.456, 0.529] |
 
 Per-window leak rate (train_overlap): mean over functions of the fraction of windows predicted leak; first value over leak-truth functions, second over safe-truth.
 
-| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | mechanism_v2_excl |
-|---|---|---|---|---|---|
-| all | 1.000 / 1.000 | 0.998 / 0.777 | 0.805 / 0.806 | 0.106 / 0.075 | 1.000 / 1.000 |
-| subset=benchmark | 1.000 / 1.000 | 1.000 / 0.777 | 0.800 / 0.806 | 0.103 / 0.075 | 1.000 / 1.000 |
-| subset=poc | 1.000 / n/a | 0.912 / n/a | 1.000 / n/a | 0.198 / n/a | 1.000 / n/a |
-| family=V1 branch | 1.000 / 1.000 | 1.000 / 0.770 | 0.802 / 0.799 | 0.000 / 0.052 | n/a / 1.000 |
-| family=V4 store-bypass | 1.000 / 1.000 | 1.000 / 1.000 | 0.803 / 1.000 | 0.556 / 0.750 | 1.000 / 1.000 |
-| family=fault/assist | 1.000 / n/a | 0.562 / n/a | 1.000 / n/a | 0.625 / n/a | 1.000 / n/a |
-| family=other | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a | 0.000 / n/a | n/a / n/a |
-| arch=riscv64 | 1.000 / 1.000 | 1.000 / 1.000 | 0.437 / 0.250 | 0.000 / 0.000 | n/a / n/a |
-| arch=x86_64 | 1.000 / 1.000 | 0.997 / 0.699 | 1.000 / 1.000 | 0.162 / 0.101 | 1.000 / 1.000 |
+| slice | always_attack | fence_count | opcode_lr | mechanism_v2 | length | has_ret | push_rbp | has_LC | has_fs | mechanism_v2_excl |
+|---|---|---|---|---|---|---|---|---|---|---|
+| all | 1.000 / 1.000 | 0.998 / 0.780 | 0.783 / 0.801 | 0.115 / 0.078 | 0.562 / 0.508 | 0.872 / 0.897 | 0.361 / 0.376 | 0.995 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
+| subset=benchmark | 1.000 / 1.000 | 1.000 / 0.780 | 0.777 / 0.801 | 0.113 / 0.078 | 0.550 / 0.508 | 0.891 / 0.897 | 0.369 / 0.376 | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
+| subset=poc | 1.000 / n/a | 0.912 / n/a | 1.000 / n/a | 0.198 / n/a | 1.000 / n/a | 0.177 / n/a | 0.076 / n/a | 0.811 / n/a | 1.000 / n/a | 1.000 / n/a |
+| family=V1 branch | 1.000 / 1.000 | 1.000 / 0.772 | 0.776 / 0.794 | 0.000 / 0.055 | 0.572 / 0.518 | 0.889 / 0.894 | 0.352 / 0.363 | 0.999 / 1.000 | 1.000 / 1.000 | n/a / 1.000 |
+| family=V4 store-bypass | 1.000 / 1.000 | 1.000 / 1.000 | 0.792 / 1.000 | 0.573 / 0.750 | 0.486 / 0.250 | 0.859 / 1.000 | 0.419 / 0.750 | 0.996 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
+| family=fault/assist | 1.000 / n/a | 0.562 / n/a | 1.000 / n/a | 0.625 / n/a | 1.000 / n/a | 0.250 / n/a | 0.125 / n/a | 0.562 / n/a | 1.000 / n/a | 1.000 / n/a |
+| family=other | 1.000 / n/a | 1.000 / n/a | 1.000 / n/a | 0.000 / n/a | 1.000 / n/a | 0.144 / n/a | 0.050 / n/a | 0.897 / n/a | 1.000 / n/a | n/a / n/a |
+| arch=riscv64 | 1.000 / 1.000 | 1.000 / 1.000 | 0.416 / 0.230 | 0.000 / 0.000 | 0.781 / 0.656 | 0.719 / 0.713 | 0.000 / 0.000 | 1.000 / 1.000 | 1.000 / 1.000 | n/a / n/a |
+| arch=x86_64 | 1.000 / 1.000 | 0.996 / 0.703 | 1.000 / 1.000 | 0.184 / 0.106 | 0.433 / 0.457 | 0.962 / 0.962 | 0.575 / 0.507 | 0.992 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
 
 ## patched_window (Linux fix-commit pairs, R29)
 
@@ -114,4 +134,9 @@ Each side scored by max over its 25-45 windows overlapping a difflib-differing i
 | fence_count | 0.700 | [0.500, 0.900] | 0 |
 | mechanism_v2 (abstain=safe; NOT comparable to hwlabel) | 0.500 | [0.500, 0.500] | 0 |
 | mechanism_v2_excl (abstain excluded) | 0.500 | [0.500, 0.500] | 680 |
+| length | 0.500 | [0.500, 0.500] | 0 |
+| has_ret | 0.500 | [0.500, 0.500] | 0 |
+| push_rbp | 0.500 | [0.500, 0.500] | 0 |
+| has_LC | 0.500 | [0.500, 0.500] | 0 |
+| has_fs | 0.500 | [0.500, 0.500] | 0 |
 | opcode_lr | 0.500 | [0.500, 0.500] | 0 |
