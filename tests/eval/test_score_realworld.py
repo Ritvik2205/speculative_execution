@@ -89,12 +89,16 @@ def test_patched_window_covers_diff():
     for side in ("pre", "post"):
         seq, spans = ps[side]
         assert spans and all(s <= 92 and e > 90 for s, e in spans)
-        assert not sr.patched_leak(seq, spans, marker_predictor_lc)
+        assert not _patched_leak(seq, spans)
         # control: the same marker inside the region does fire
     pre2 = list(pre)
     pre2[91] = "leakmarker"
     seq, spans = sr.patched_spans(pre2, post)["pre"]
-    assert sr.patched_leak(seq, spans, marker_predictor_lc)
+    assert _patched_leak(seq, spans)
+
+
+def _patched_leak(seq, spans):
+    return any(p != "BENIGN" for p, _ in marker_predictor_lc([seq[s:e] for s, e in spans]))
 
 
 def marker_predictor_lc(windows):
@@ -215,3 +219,73 @@ def test_overlap_clean_rejects_empty_or_mismatched_pool(tmp_path):
     (run / "gine_metrics.json").write_text(json.dumps({"args": {}}))
     with pytest.raises(SystemExit):
         sr.check_overlap_pool(pool, tmp_path / "rw_train.jsonl", run)       # nothing recorded to verify
+
+
+# ---------------------------------------------------------------- final fix pass
+def _bench(n_leak=3, n_safe=3, leak_len=30, safe_len=60):
+    rows = [row(f"L{i}", "SPECTRE_V1", [f"addq ${i}, %rax"] * leak_len + ["ret"]) for i in range(n_leak)]
+    rows += [row(f"S{i}", "BENIGN", [f"movq ${i}, %rbx"] * safe_len + ["movq .LC0(%rip), %rax"],
+                 subset="benign") for i in range(n_safe)]
+    return rows
+
+
+def test_length_bar_printed():
+    # C1/R39: a `length` bar (per window: window length outside the benign-train IQR of its arch) and its
+    # whole-function secondary are scored and printed, with the per-class length distribution
+    ref = [dict(label="BENIGN", arch="x86_64", sequence=["nop"] * n) for n in range(25, 36)] * 3
+    out = sr.score(_bench(), predictor=None, lr_train=None, n_boot=50, length_ref=ref)
+    assert "length" in out["methods"] and "length_wholefn" in out["methods"]
+    assert out["length_iqr"]["x86_64"] == (27.0, 33.0)
+    cell = out["slices"]["headline"]["all"]
+    # 31-instr leaks fall inside [27, 33] -> called safe; 61-instr benign -> 45-instr windows outside -> leak
+    assert cell["length"]["bal_acc"] == 0.0 and cell["length_wholefn"]["bal_acc"] == 0.0
+    md = sr.render_md(out, {})
+    assert "| length" in md or " length |" in md
+    assert "Length distribution" in md and "IQR" in md
+    assert out["length_auc"]["headline"] == 1.0 and "Function-length AUC" in md   # all leaks shorter
+
+
+def test_shortcut_bars_printed():
+    # I3/R41 (b): one-feature shortcut bars, per window, printed beside every model
+    out = sr.score(_bench(safe_len=30), predictor=marker_predictor, lr_train=None, n_boot=50)
+    for b in ("has_ret", "push_rbp", "has_LC", "has_fs"):
+        assert b in out["methods"]
+    cell = out["slices"]["headline"]["all"]
+    assert cell["has_ret"]["bal_acc"] == 1.0         # ret only in the attacks
+    assert cell["has_LC"]["bal_acc"] == 1.0          # .LC present -> safe
+    md = sr.render_md(out, {})
+    for b in ("has_ret", "push_rbp", "has_LC", "has_fs"):
+        assert b in md
+    f = sr.shortcut_flags([["push %rbp", "movq %fs:40, %rax"], ["pushq %rbp"], ["ret"], ["leaq .LC12(%rip), %rdi"]])
+    assert f["push_rbp"] == [True, True, False, False]
+    assert f["has_fs"] == [False, True, True, True]     # %fs canary present -> safe
+    assert f["has_ret"] == [False, False, True, False]
+    assert f["has_LC"] == [True, True, True, False]
+
+
+def test_short_rows_dropped():
+    # I4/R42: rows with < 10 instructions are dropped and counted beside no_instruction_dropped
+    stub = row("st", "SPECTRE_V1", ["movq (%rax), %rbx"] * 9)
+    ok = row("ok", "SPECTRE_V1", ["movq (%rax), %rbx"] * 10)
+    out = sr.score([stub, ok, row("b")], predictor=None, lr_train=None, n_boot=20)
+    assert out["counts"]["short_dropped"] == 1 and out["counts"]["headline"] == 2
+    assert "fewer than 10 instructions" in sr.render_md(out, {})
+
+
+def test_recompute_overlap_case_insensitive_source():
+    # I2: --overlap-clean re-checks source paths for EVERY row (not only collector-flagged), case-insensitively
+    r = row("zl", "MDS", file="attacker/variant1_linux/main.c", source="ZombieLoad_poc", seq=["movq $3, %rax"] * 30)
+    pool = [dict(sequence=["nop"], label="MDS", arch="x86_64", group="g",
+                 source_file="zombieload/attacker/variant1_linux/main.c")]
+    out = sr.recompute_overlap([r], pool)[0]
+    assert out["train_overlap"] and out["train_overlap_reason"] == "source_path"
+    other = row("x", "MDS", file="main.c", source="ridl_poc", seq=["movq $4, %rax"] * 30)
+    assert not sr.recompute_overlap([other], pool)[0]["train_overlap"]
+
+
+def test_headers_count_functions_and_disclose():
+    # I5: n is functions + clusters, not windows; M2/R43 disclosures present
+    out = sr.score(_bench(), predictor=None, lr_train=None, n_boot=20)
+    md = sr.render_md(out, {})
+    assert "n (functions)" in md and "clusters" in md
+    assert "retpoline" in md and "ZombieLoad" in md and "not held-out" in md.lower()

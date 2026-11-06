@@ -14,6 +14,19 @@ Bars (scored on exactly the same rows as the model):
   opcode_lr      eval/shared_config.opcode_lr_preds fit on the model's own
                  training pool (--train-pool, ruling R4), applied per window,
                  any window != BENIGN -> leak
+  length         (R39) leak iff the window's instruction count is outside the
+                 interquartile range of the benign TRAIN lengths of its arch: the
+                 BENIGN rows of --train-pool for that arch, else the Debian benign
+                 train files v54/data/benign_<arch>_*.jsonl, else all arches
+                 pooled. Shows what length alone achieves. `length_wholefn` =
+                 same rule on the whole function's instruction count.
+  has_ret / push_rbp / has_LC / has_fs  (R41) one-feature compiler/flag
+                 shortcuts, per window: has_ret = window has a ret -> leak;
+                 push_rbp = `push %rbp` -> leak; has_LC = a `.LC<n>` constant
+                 -> SAFE (leak iff absent); has_fs = a `%fs:` (stack canary)
+                 -> SAFE (leak iff absent). Directions follow the reviewer-measured
+                 benign-train vs attack-base rates (ret/push rbp attack-heavy,
+                 .LC/%fs benign-heavy).
   mechanism_v2   eval/mechanism/hybrid.hybrid_pred (rule v2) on the whole
                  function. Class = vuln_class, else a non-BENIGN label; rows
                  with no known class (BENIGN, no vuln_class) are leak iff the
@@ -22,6 +35,7 @@ Bars (scored on exactly the same rows as the model):
                  counted as "safe"; the abstain count is reported.
 
 Row handling (rulings):
+  < 10 instructions dropped (R42; the bigram gate's stub max), count reported
   dup_of non-null  dropped from ALL metrics (R17/R25), count reported
   harness == True  reported separately, not in the headline (R18)
   train_overlap    reported separately, not in the headline
@@ -43,7 +57,8 @@ Fix round 1 (R29-R31):
     window predicts leak. `fence_count_wholefn` / `mechanism_v2_wholefn` keep the
     old whole-function calls as secondary rows. Per-window leak rate (mean over a
     function's windows) is averaged per truth class; `n_windows` is in rows.jsonl.
-    Remaining asymmetry: benign holdout rows are single windows, attacks span many.
+    Final fix pass (R39): held-out benign rows are whole functions too, so both classes
+    go through the same windows; `n` counts functions, not windows.
   * `mechanism_v2` counts abstention as safe (NOT comparable to hwlabel numbers);
     `mechanism_v2_excl` drops abstaining rows (scoreboard.py convention).
   * Bootstrap replicates with no leak or no safe cluster are dropped (count reported).
@@ -77,7 +92,14 @@ from eval.mechanism.hybrid import hybrid_pred  # noqa: E402
 from realworld.records import (WIN_HI, WIN_LO, STRIDE, windows, _seq_hash,  # noqa: E402
                                train_source_tokens)
 
-BARS = ("always_attack", "fence_count", "opcode_lr", "mechanism_v2")
+BARS = ("always_attack", "fence_count", "opcode_lr", "mechanism_v2", "length",
+        "has_ret", "push_rbp", "has_LC", "has_fs")
+SHORTCUTS = ("has_ret", "push_rbp", "has_LC", "has_fs")
+MIN_INSTR = 10          # R42
+_SC_RX = {"has_ret": re.compile(r"^\s*ret[qlw]?\b"), "push_rbp": re.compile(r"^\s*push[qlw]?\s+%rbp\b"),
+          "has_LC": re.compile(r"\.LC\d+"), "has_fs": re.compile(r"%fs:")}
+_SC_LEAK_IF_PRESENT = {"has_ret": True, "push_rbp": True, "has_LC": False, "has_fs": False}
+DEBIAN_BENIGN_TRAIN = str(ROOT / "v54/data/benign_{arch}_*.jsonl")
 FAMILY_OF = {"SPECTRE_V1": "V1 branch", "SPECTRE_V4": "V4 store-bypass",
              "MDS": "fault/assist", "L1TF": "fault/assist"}
 MECH_PROBE = ("SPECTRE_V1", "SPECTRE_V4", "MDS", "L1TF")
@@ -115,14 +137,14 @@ def recompute_overlap(rows, pool):
     (collector reason "family:<tok>") is still a source in the pool. Returns copies; the
     inputs (and so the H0 scoring of old checkpoints) are untouched."""
     thash = {_seq_hash(r) for r in pool}
-    tsrc = {r["source_file"] for r in pool if r.get("source_file")}
+    tsrc = {r["source_file"].lower() for r in pool if r.get("source_file")}
     ttok = train_source_tokens(pool)
     out = []
     for r in rows:
         reason = r.get("train_overlap_reason") or ""
         fam = reason.split(":", 1)[1].lower() if reason.startswith("family:") else None
         by_hash = _seq_hash(r) in thash
-        by_src = reason == "source_path" and any(sf.endswith("/" + r.get("file", "\0")) for sf in tsrc)
+        by_src = _source_path_overlap(r, tsrc)
         by_fam = fam is not None and fam in ttok
         c = dict(r)
         c["train_overlap"] = bool(by_hash or by_src or by_fam)
@@ -130,6 +152,16 @@ def recompute_overlap(rows, pool):
                                      else f"family:{fam}" if by_fam else None)
         out.append(c)
     return out
+
+
+def _source_path_overlap(r, tsrc):
+    """I2: every row, case-insensitive. The pool's source_file ends with the row's repo-relative file AND
+    contains the row's repo name (from `source` = <repo>_<subset>, `-asm` suffix dropped)."""
+    f = (r.get("file") or "").lower()
+    repo = (r.get("source") or "").rsplit("_", 1)[0].split("-asm")[0].lower()
+    if not f or not repo:
+        return False
+    return any(sf.endswith("/" + f) and repo in sf for sf in tsrc)
 
 
 def mech_families(rows):
@@ -334,7 +366,50 @@ def _f(x):
 
 
 # ------------------------------------------------- per-window flags (one unit)
-def window_flags(wins, archs, predictor, lr_train, classes=None):
+def shortcut_flags(wins):
+    """R41 one-feature shortcut bars, per window (see module docstring for directions)."""
+    out = {}
+    for name, rx in _SC_RX.items():
+        pres = [any(rx.search(l) for l in w) for w in wins]
+        out[name] = pres if _SC_LEAK_IF_PRESENT[name] else [not p for p in pres]
+    return out
+
+
+def _iqr(lens):
+    q1, q3 = np.percentile(lens, [25, 75])
+    return (float(q1), float(q3))
+
+
+def length_iqrs(primary, fallback=(), min_rows=20):
+    """{arch: (q1, q3)} of BENIGN instruction counts: per arch from `primary` (the train pool) when it has
+    >= min_rows benign rows of that arch, else from `fallback` (Debian benign train files); '*' = pooled
+    over all primary+fallback benign rows (used for an arch neither source has). Also returns the source
+    of each entry."""
+    def by_arch(rows):
+        d = defaultdict(list)
+        for r in rows:
+            if r.get("label") == "BENIGN" and r.get("sequence"):
+                d[r.get("arch", "x86_64")].append(len(r["sequence"]))
+        return d
+    p, f = by_arch(primary), by_arch(fallback)
+    out, src = {}, {}
+    for a in sorted(set(p) | set(f)):
+        if len(p.get(a, [])) >= min_rows:
+            out[a], src[a] = _iqr(p[a]), f"train pool ({len(p[a])} benign rows)"
+        elif len(f.get(a, [])) >= min_rows:
+            out[a], src[a] = _iqr(f[a]), f"Debian benign train ({len(f[a])} rows)"
+    allv = [x for d in (p, f) for v in d.values() for x in v]
+    if allv:
+        out["*"], src["*"] = _iqr(allv), f"all arches pooled ({len(allv)} rows)"
+    return out, src
+
+
+def length_flag(n, arch, iqr):
+    q = iqr.get(arch) or iqr.get("*")
+    return None if q is None else not (q[0] <= n <= q[1])
+
+
+def window_flags(wins, archs, predictor, lr_train, classes=None, iqr=None):
     """Per-window leak flags for every method: True / False / None(abstain or
     dropped by the model dataset). Also returns the model's per-window leak
     score (1 - p_benign)."""
@@ -351,6 +426,9 @@ def window_flags(wins, archs, predictor, lr_train, classes=None):
     mech = [mechanism_window(w, c) for w, c in zip(wins, classes)]
     f["mechanism_v2"] = [bool(m) for m in mech]       # abstain counted as safe
     f["mechanism_v2_excl"] = mech                     # abstain -> None
+    if iqr:
+        f["length"] = [length_flag(len(w), a, iqr) for w, a in zip(wins, archs)]
+    f.update(shortcut_flags(wins))
     if lr_train:
         from eval.shared_config import opcode_lr_preds
         preds = opcode_lr_preds(lr_train, [dict(sequence=w, label="BENIGN") for w in wins])
@@ -452,13 +530,7 @@ def patched_spans(pre_seq, post_seq):
             "post": (list(post_seq), spans(len(post_seq), hit_b))}
 
 
-def patched_leak(seq, spans, predictor):
-    """Function call from the patched windows only: any window predicts leak."""
-    res = predictor([seq[s:e] for s, e in spans])
-    return any(x is not None and x[0] != "BENIGN" for x in res)
-
-
-def patched_window_scores(rows, predictor, lr_train, n_boot, seed):
+def patched_window_scores(rows, predictor, lr_train, n_boot, seed, iqr=None):
     """rows: kept headline rows. Pairs = same group with side pre and post."""
     by = defaultdict(dict)
     for r in rows:
@@ -481,7 +553,7 @@ def patched_window_scores(rows, predictor, lr_train, n_boot, seed):
             owner.append(i)
             archs.append(it[3])
             cls.append(it[4])
-    fl, _ = window_flags(wins, archs, predictor, lr_train, cls)
+    fl, _ = window_flags(wins, archs, predictor, lr_train, cls, iqr)
     stub_rows = [None] * len(items)
     agg, rate = flags_to_rows(stub_rows, fl, owner)
     truth = [it[1] for it in items]
@@ -505,7 +577,7 @@ def _slices(rows, fams):
     return out
 
 
-SECONDARY = ("fence_count_wholefn", "mechanism_v2_wholefn")
+SECONDARY = ("fence_count_wholefn", "mechanism_v2_wholefn", "length_wholefn")
 PAIR_BARS = BARS
 
 
@@ -513,19 +585,32 @@ def has_instruction(r):
     return any(is_instruction_line(l) for l in r["sequence"])
 
 
-def score(rows, predictor=None, lr_train=None, n_boot=2000, seed=0):
+def n_instructions(r):
+    return sum(is_instruction_line(l) for l in r["sequence"])
+
+
+def score(rows, predictor=None, lr_train=None, n_boot=2000, seed=0, length_ref=None, length_fallback=()):
     """Score raw loaded records. predictor: callable(list of windows[, archs=])
-    -> list of (pred_label, p_benign) or None per window; None = bars only."""
+    -> list of (pred_label, p_benign) or None per window; None = bars only.
+    length_ref: benign rows whose per-arch length IQR drives the `length` bar (default: lr_train);
+    length_fallback: rows used for an arch length_ref lacks (main() passes the Debian benign train files)."""
     noinstr = [r for r in rows if not has_instruction(r)]
     rows = [r for r in rows if has_instruction(r)]
+    short = [r for r in rows if n_instructions(r) < MIN_INSTR]
+    rows = [r for r in rows if n_instructions(r) >= MIN_INSTR]
     parts = partition(rows)
-    out = dict(counts=dict(total=len(rows) + len(noinstr), no_instruction_dropped=len(noinstr),
+    iqr, iqr_src = length_iqrs(length_ref if length_ref is not None else (lr_train or []), length_fallback)
+    out = dict(counts=dict(total=len(rows) + len(noinstr) + len(short), no_instruction_dropped=len(noinstr),
                            no_instruction_harness=sum(bool(r.get("harness")) for r in noinstr),
+                           short_dropped=len(short),
+                           short_dropped_harness=sum(bool(r.get("harness")) for r in short),
                            dup_dropped=parts["n_dup_dropped"],
                            **{k: len(parts[k]) for k in ("headline", "harness", "train_overlap")}),
-               slices={}, diffs={}, rows=[], unscorable=0, mech_abstain_rows=0)
-    methods = (["model"] if predictor else []) + [b for b in BARS if b != "opcode_lr" or lr_train] \
-        + ["mechanism_v2_excl"] + list(SECONDARY)
+               slices={}, diffs={}, rows=[], unscorable=0, mech_abstain_rows=0,
+               length_iqr=iqr, length_iqr_source=iqr_src, length_dist={})
+    methods = (["model"] if predictor else []) + [b for b in BARS if (b != "opcode_lr" or lr_train)
+                                                  and (b != "length" or iqr)] \
+        + ["mechanism_v2_excl"] + [m for m in SECONDARY if m != "length_wholefn" or iqr]
     for sec in ("headline", "harness", "train_overlap"):
         rs = parts[sec]
         out["slices"][sec], out["diffs"][sec] = {}, {}
@@ -537,7 +622,7 @@ def score(rows, predictor=None, lr_train=None, n_boot=2000, seed=0):
                 wins.append(w)
                 owner.append(i)
         fl, pb = window_flags(wins, [rs[i].get("arch", "x86_64") for i in owner],
-                              predictor, lr_train, [row_class(rs[i]) for i in owner])
+                              predictor, lr_train, [row_class(rs[i]) for i in owner], iqr)
         agg, score_ = flags_to_rows(rs, fl, owner, pb)
         pred = {m: v[0] for m, v in agg.items()}
         rate = {m: v[1] for m, v in agg.items()}
@@ -556,7 +641,15 @@ def score(rows, predictor=None, lr_train=None, n_boot=2000, seed=0):
         pred["mechanism_v2_wholefn"] = [m[0] for m in mw]
         out["mech_abstain_rows"] += sum(m[1] for m in mw)
         rate["fence_count_wholefn"] = rate["mechanism_v2_wholefn"] = [None] * len(rs)
+        if iqr:
+            pred["length_wholefn"] = [length_flag(len(r["sequence"]), r.get("arch", "x86_64"), iqr) for r in rs]
+            rate["length_wholefn"] = [None] * len(rs)
         truth = [is_leak(r) for r in rs]
+        out["length_dist"][sec] = {
+            cls: _length_summary([len(r["sequence"]) for r, t in zip(rs, truth) if t == want])
+            for cls, want in (("leak", True), ("safe", False))}
+        out.setdefault("length_auc", {})[sec] = length_auc(
+            [len(r["sequence"]) for r, t in zip(rs, truth) if t], [len(r["sequence"]) for r, t in zip(rs, truth) if not t])
         fams = mech_families(rs)
         groups = [cluster_of(r) for r in rs]
         for i, r in enumerate(rs):
@@ -592,9 +685,27 @@ def score(rows, predictor=None, lr_train=None, n_boot=2000, seed=0):
                     b: dict(diff=cell["model"]["bal_acc"] - cell[b]["bal_acc"],
                             ci=bt["diff_ci"][("model", b)]) for _, b in pairs}
         if sec == "headline":
-            out["patched_window"] = patched_window_scores(rs, predictor, lr_train, n_boot, seed)
+            out["patched_window"] = patched_window_scores(rs, predictor, lr_train, n_boot, seed, iqr)
     out["methods"] = methods
     return out
+
+
+def length_auc(leak_lens, safe_lens):
+    """Threshold-free view of the length cue: AUC of 'shorter function = leak' (0.5 = no cue; < 0.5 means
+    longer = leak). None when a class is absent."""
+    if not leak_lens or not safe_lens:
+        return None
+    s = np.asarray(safe_lens)[None, :]
+    l_ = np.asarray(leak_lens)[:, None]
+    return float(((l_ < s).sum() + 0.5 * (l_ == s).sum()) / (l_.size * s.size))
+
+
+def _length_summary(lens):
+    if not lens:
+        return dict(n=0)
+    p = np.percentile(lens, [10, 25, 50, 75, 90])
+    return dict(n=len(lens), p10=float(p[0]), p25=float(p[1]), median=float(p[2]), p75=float(p[3]),
+                p90=float(p[4]), n_eq_45=int(sum(x == 45 for x in lens)))
 
 
 # ---------------------------------------------------------------------- report
@@ -607,25 +718,58 @@ def render_md(res, meta):
     for k, v in meta.items():
         L.append(f"- {k}: {v}")
     c = res["counts"]
-    L += ["", f"Rows loaded {c['total']}; dropped for having no instruction line "
+    L += ["", f"Functions loaded {c['total']}; dropped for having no instruction line "
           f"**{c['no_instruction_dropped']}** (of which harness-flagged {c['no_instruction_harness']}); "
+          f"dropped for having fewer than {MIN_INSTR} instructions (R42) **{c.get('short_dropped', 0)}** "
+          f"(of which harness-flagged {c.get('short_dropped_harness', 0)}); "
           f"dropped as dup_of (R17/R25) **{c['dup_dropped']}**; "
-          f"headline **{c['headline']}**; harness (R18, separate) {c['harness']}; "
+          f"headline **{c['headline']}** functions; harness (R18, separate) {c['harness']}; "
           f"train_overlap (separate) {c['train_overlap']}. "
           f"Unscorable by model: {res['unscorable']}. "
-          f"Rows on which the mechanism rule abstained in every window/class (whole-function, counted safe): "
+          f"Functions on which the mechanism rule abstained in every window/class (whole-function, counted safe): "
           f"{res['mech_abstain_rows']}.",
-          "", "Unit (R30): every method, model and bars, predicts per 25-45 window; a function is a "
-          "leak iff ANY window predicts leak. `*_wholefn` rows are the old whole-function calls (secondary). "
-          "Remaining asymmetry: benign holdout rows are single windows while attacks span many windows, "
-          "so any-window rules have more chances to fire on attacks than on benign rows; "
-          "`wrate` columns give the per-window leak rate (mean over a function's windows, averaged over "
-          "leak-truth / safe-truth functions) as a length-insensitive view.",
+          "", "**Disclosures.** (M2) Linux fix-commit `pre` rows are built from x86_64_defconfig, so they "
+          "carry retpoline / return-thunk calls (`__x86_indirect_thunk_*`, `__x86_return_thunk`) that come from "
+          "the kernel config, not from the patch; `mitigation_detected` fires on vulnerable sides for that reason "
+          "(R12) and a thunk cue cannot be read as a fix. (R43) Harness MDS rows (ZombieLoad, RIDL) are NOT "
+          "held-out evidence: ZombieLoad's source is in the train pool (I2, train_overlap), and harness rows "
+          "are in their own section; never cite the harness section as held-out.",
+          "", "Unit (R30, R39): every row is a WHOLE function, attacks and held-out Debian benign alike; `n` "
+          "counts functions and `clusters` counts families/groups, never windows. Every method, model and bars, "
+          "predicts per 25-45 window of the function; a function is a leak iff ANY window predicts leak. "
+          "`*_wholefn` rows are whole-function calls (secondary). `wrate` columns give the per-window leak "
+          "rate (mean over a function's windows, averaged over leak-truth / safe-truth functions) as a "
+          "length-insensitive view.",
+          "", "Shortcut bars (R39/R41), each a one-feature rule in the same per-window unit: `length` = window "
+          "length outside the benign-train IQR of its arch (IQRs below); `has_ret` = window contains a ret -> "
+          "leak; `push_rbp` = contains `push %rbp` -> leak; `has_LC` = contains a `.LC<n>` constant -> safe "
+          "(leak iff absent); `has_fs` = contains a `%fs:` stack-canary access -> safe (leak iff absent). "
+          "A model that does not beat these is not shown to use more than compiler/flag/length cues.",
           "", "Balanced accuracy = mean of leak recall and safe recall over the classes present "
-          "in the cell; a one-class cell reports that class's recall only (see n_leak/n_safe). "
+          "in the cell; a one-class cell reports that class's recall only (see leak/safe). "
           "CI = 95% cluster bootstrap by family/group; n/a when only one cluster. Bootstrap replicates "
           "with no leak or no safe cluster are dropped (the `dropped` column counts them out of the "
-          "resamples; `dropped` = max over all methods but mechanism_v2_excl, whose own count is `dropped (excl)` -- it has fewer valid rows so it drops more). **Limitation of the per-window rule bar:** `mechanism_v2` runs on each 25-45 window in isolation; a window that cuts the trigger-to-transmitter chain (e.g. MDS/L1TF load at one end, dependent read beyond the window) makes the rule abstain (counted safe, or excluded in `_excl`), so it can miss a leak the whole-function rule (`mechanism_v2_wholefn`) sees. On the current headline the two agree because benign rows are single windows and nearly all multi-window attacks abstain either way. `mitigation_detected` is never used (R12).", ""]
+          "resamples; `dropped` = max over all methods but mechanism_v2_excl, whose own count is `dropped (excl)` -- it has fewer valid rows so it drops more). **Limitation of the per-window rule bar:** `mechanism_v2` runs on each 25-45 window in isolation; a window that cuts the trigger-to-transmitter chain (e.g. MDS/L1TF load at one end, dependent read beyond the window) makes the rule abstain (counted safe, or excluded in `_excl`), so it can miss a leak the whole-function rule (`mechanism_v2_wholefn`) sees. `mitigation_detected` is never used (R12).", ""]
+    iq = res.get("length_iqr") or {}
+    if iq:
+        L += ["Length-bar IQR (benign train instruction counts) per arch: " + "; ".join(
+            f"{a}: [{q[0]:.0f}, {q[1]:.0f}] from {res['length_iqr_source'][a]}" for a, q in iq.items())
+            + " (`*` is used for an arch with no benign train rows).", ""]
+    ld = res.get("length_dist") or {}
+    if ld:
+        L += ["## Length distribution (instructions per function)", "",
+              "| section | class | n (functions) | p10 | p25 | median | p75 | p90 | exactly 45 |",
+              "|---|---|---|---|---|---|---|---|---|"]
+        for sec, d in ld.items():
+            for cls, x in d.items():
+                if not x.get("n"):
+                    L.append(f"| {sec} | {cls} | 0 | | | | | | |")
+                    continue
+                L.append(f"| {sec} | {cls} | {x['n']} | {x['p10']:.0f} | {x['p25']:.0f} | {x['median']:.0f} | "
+                         f"{x['p75']:.0f} | {x['p90']:.0f} | {x['n_eq_45']} |")
+        au = res.get("length_auc") or {}
+        L += ["", "Function-length AUC (shorter = leak; 0.5 = no length cue; the `length` bar is ONE fixed rule, this is "
+              "what any length threshold could reach): " + "; ".join(f"{k} {_f(v)}" for k, v in au.items()), ""]
     ms = res["methods"]
     for sec, title in (("headline", "Headline (clean: not harness, not train_overlap, not dup)"),
                        ("harness", "Harness rows (R18) -- NOT headline"),
@@ -635,7 +779,7 @@ def render_md(res, meta):
         if not cells:
             L += ["(no rows)", ""]
             continue
-        L += ["| slice | n | leak | safe | groups | dropped | dropped (excl) | " + " | ".join(DISPLAY.get(m, m) for m in ms) + " |",
+        L += ["| slice | n (functions) | leak | safe | clusters | dropped | dropped (excl) | " + " | ".join(DISPLAY.get(m, m) for m in ms) + " |",
               "|---|---|---|---|---|---|---|" + "---|" * len(ms)]
         for name, cell in cells.items():
             a = cell[ms[0]]
@@ -828,7 +972,11 @@ def main(argv=None):
         meta["model column"] = f"{a.run_dir} (reproduce gate acc {predictor.gate_acc})"
     else:
         meta["model column"] = "none (--bars-only)"
-    res = score(rows, predictor=predictor, lr_train=pool, n_boot=a.n_boot)
+    fb_files = sorted({f for arch in {r.get("arch", "x86_64") for r in rows}
+                       for f in glob.glob(DEBIAN_BENIGN_TRAIN.format(arch=arch))})
+    fallback = [json.loads(l) for f in fb_files for l in open(f) if l.strip()]
+    meta["length-bar IQR fallback"] = ", ".join(Path(f).name for f in fb_files) or "none"
+    res = score(rows, predictor=predictor, lr_train=pool, n_boot=a.n_boot, length_fallback=fallback)
     out = Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     with open(out / "rows.jsonl", "w") as f:
