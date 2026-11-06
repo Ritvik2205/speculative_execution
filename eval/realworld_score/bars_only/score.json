@@ -1,0 +1,1507 @@
+{
+ "counts": {
+  "total": 2312,
+  "dup_dropped": 285,
+  "headline": 1265,
+  "harness": 104,
+  "train_overlap": 658
+ },
+ "slices": {
+  "headline": {
+   "all": {
+    "always_attack": {
+     "n": 1265,
+     "n_leak": 43,
+     "n_safe": 1222,
+     "n_groups": 22,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 1265,
+     "n_leak": 43,
+     "n_safe": 1222,
+     "n_groups": 22,
+     "bal_acc": 0.4828816655882465,
+     "ci": [
+      0.43915248611518826,
+      0.5154290218806854
+     ]
+    },
+    "mechanism_v2": {
+     "n": 1265,
+     "n_leak": 43,
+     "n_safe": 1222,
+     "n_groups": 22,
+     "bal_acc": 0.3849960035016937,
+     "ci": [
+      0.2832121403615649,
+      0.4898788562545279
+     ]
+    },
+    "opcode_lr": {
+     "n": 1265,
+     "n_leak": 43,
+     "n_safe": 1222,
+     "n_groups": 22,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    }
+   },
+   "subset=benign": {
+    "always_attack": {
+     "n": 1200,
+     "n_leak": 0,
+     "n_safe": 1200,
+     "n_groups": 5,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "fence_count": {
+     "n": 1200,
+     "n_leak": 0,
+     "n_safe": 1200,
+     "n_groups": 5,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 1200,
+     "n_leak": 0,
+     "n_safe": 1200,
+     "n_groups": 5,
+     "bal_acc": 0.6033333333333334,
+     "ci": [
+      0.483,
+      0.721875
+     ]
+    },
+    "opcode_lr": {
+     "n": 1200,
+     "n_leak": 0,
+     "n_safe": 1200,
+     "n_groups": 5,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "subset=patch_only": {
+    "always_attack": {
+     "n": 10,
+     "n_leak": 5,
+     "n_safe": 5,
+     "n_groups": 5,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 10,
+     "n_leak": 5,
+     "n_safe": 5,
+     "n_groups": 5,
+     "bal_acc": 0.8,
+     "ci": [
+      0.6,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 10,
+     "n_leak": 5,
+     "n_safe": 5,
+     "n_groups": 5,
+     "bal_acc": 0.2,
+     "ci": [
+      0.0,
+      0.4
+     ]
+    },
+    "opcode_lr": {
+     "n": 10,
+     "n_leak": 5,
+     "n_safe": 5,
+     "n_groups": 5,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    }
+   },
+   "subset=poc": {
+    "always_attack": {
+     "n": 6,
+     "n_leak": 6,
+     "n_safe": 0,
+     "n_groups": 3,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 6,
+     "n_leak": 6,
+     "n_safe": 0,
+     "n_groups": 3,
+     "bal_acc": 0.6666666666666666,
+     "ci": [
+      0.5,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 6,
+     "n_leak": 6,
+     "n_safe": 0,
+     "n_groups": 3,
+     "bal_acc": 0.6666666666666666,
+     "ci": [
+      0.0,
+      1.0
+     ]
+    },
+    "opcode_lr": {
+     "n": 6,
+     "n_leak": 6,
+     "n_safe": 0,
+     "n_groups": 3,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "subset=riscv_artifact": {
+    "always_attack": {
+     "n": 19,
+     "n_leak": 19,
+     "n_safe": 0,
+     "n_groups": 5,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 19,
+     "n_leak": 19,
+     "n_safe": 0,
+     "n_groups": 5,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 19,
+     "n_leak": 19,
+     "n_safe": 0,
+     "n_groups": 5,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "opcode_lr": {
+     "n": 19,
+     "n_leak": 19,
+     "n_safe": 0,
+     "n_groups": 5,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "subset=vendor": {
+    "always_attack": {
+     "n": 30,
+     "n_leak": 13,
+     "n_safe": 17,
+     "n_groups": 4,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 30,
+     "n_leak": 13,
+     "n_safe": 17,
+     "n_groups": 4,
+     "bal_acc": 0.8529411764705883,
+     "ci": [
+      0.7222222222222222,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 30,
+     "n_leak": 13,
+     "n_safe": 17,
+     "n_groups": 4,
+     "bal_acc": 0.5769230769230769,
+     "ci": [
+      0.5,
+      0.7
+     ]
+    },
+    "opcode_lr": {
+     "n": 30,
+     "n_leak": 13,
+     "n_safe": 17,
+     "n_groups": 4,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    }
+   },
+   "family=V1 branch": {
+    "always_attack": {
+     "n": 42,
+     "n_leak": 25,
+     "n_safe": 17,
+     "n_groups": 10,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 42,
+     "n_leak": 25,
+     "n_safe": 17,
+     "n_groups": 10,
+     "bal_acc": 0.8235294117647058,
+     "ci": [
+      0.7,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 42,
+     "n_leak": 25,
+     "n_safe": 17,
+     "n_groups": 10,
+     "bal_acc": 0.4023529411764706,
+     "ci": [
+      0.06803977272727273,
+      0.4866151669000933
+     ]
+    },
+    "opcode_lr": {
+     "n": 42,
+     "n_leak": 25,
+     "n_safe": 17,
+     "n_groups": 10,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    }
+   },
+   "family=V4 store-bypass": {
+    "always_attack": {
+     "n": 8,
+     "n_leak": 4,
+     "n_safe": 4,
+     "n_groups": 1,
+     "bal_acc": 0.5,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "fence_count": {
+     "n": 8,
+     "n_leak": 4,
+     "n_safe": 4,
+     "n_groups": 1,
+     "bal_acc": 1.0,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "mechanism_v2": {
+     "n": 8,
+     "n_leak": 4,
+     "n_safe": 4,
+     "n_groups": 1,
+     "bal_acc": 0.75,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "opcode_lr": {
+     "n": 8,
+     "n_leak": 4,
+     "n_safe": 4,
+     "n_groups": 1,
+     "bal_acc": 0.5,
+     "ci": [
+      null,
+      null
+     ]
+    }
+   },
+   "family=fault/assist": {
+    "always_attack": {
+     "n": 4,
+     "n_leak": 4,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 4,
+     "n_leak": 4,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "mechanism_v2": {
+     "n": 4,
+     "n_leak": 4,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "opcode_lr": {
+     "n": 4,
+     "n_leak": 4,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "family=other": {
+    "always_attack": {
+     "n": 11,
+     "n_leak": 10,
+     "n_safe": 1,
+     "n_groups": 4,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 11,
+     "n_leak": 10,
+     "n_safe": 1,
+     "n_groups": 4,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 11,
+     "n_leak": 10,
+     "n_safe": 1,
+     "n_groups": 4,
+     "bal_acc": 0.5,
+     "ci": [
+      0.0,
+      0.5
+     ]
+    },
+    "opcode_lr": {
+     "n": 11,
+     "n_leak": 10,
+     "n_safe": 1,
+     "n_groups": 4,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      1.0
+     ]
+    }
+   },
+   "family=safe-unpaired": {
+    "always_attack": {
+     "n": 1200,
+     "n_leak": 0,
+     "n_safe": 1200,
+     "n_groups": 5,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "fence_count": {
+     "n": 1200,
+     "n_leak": 0,
+     "n_safe": 1200,
+     "n_groups": 5,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 1200,
+     "n_leak": 0,
+     "n_safe": 1200,
+     "n_groups": 5,
+     "bal_acc": 0.6033333333333334,
+     "ci": [
+      0.483,
+      0.721875
+     ]
+    },
+    "opcode_lr": {
+     "n": 1200,
+     "n_leak": 0,
+     "n_safe": 1200,
+     "n_groups": 5,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "arch=riscv64": {
+    "always_attack": {
+     "n": 219,
+     "n_leak": 19,
+     "n_safe": 200,
+     "n_groups": 6,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 219,
+     "n_leak": 19,
+     "n_safe": 200,
+     "n_groups": 6,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 219,
+     "n_leak": 19,
+     "n_safe": 200,
+     "n_groups": 6,
+     "bal_acc": 0.5,
+     "ci": [
+      0.0,
+      0.5
+     ]
+    },
+    "opcode_lr": {
+     "n": 219,
+     "n_leak": 19,
+     "n_safe": 200,
+     "n_groups": 6,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      1.0
+     ]
+    }
+   },
+   "arch=x86_64": {
+    "always_attack": {
+     "n": 1046,
+     "n_leak": 24,
+     "n_safe": 1022,
+     "n_groups": 17,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 1046,
+     "n_leak": 24,
+     "n_safe": 1022,
+     "n_groups": 17,
+     "bal_acc": 0.46567188519243313,
+     "ci": [
+      0.39673031071683373,
+      0.5139062639750867
+     ]
+    },
+    "mechanism_v2": {
+     "n": 1046,
+     "n_leak": 24,
+     "n_safe": 1022,
+     "n_groups": 17,
+     "bal_acc": 0.41099967384213965,
+     "ci": [
+      0.300455098403102,
+      0.550624552778016
+     ]
+    },
+    "opcode_lr": {
+     "n": 1046,
+     "n_leak": 24,
+     "n_safe": 1022,
+     "n_groups": 17,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    }
+   }
+  },
+  "harness": {
+   "all": {
+    "always_attack": {
+     "n": 104,
+     "n_leak": 86,
+     "n_safe": 18,
+     "n_groups": 34,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 104,
+     "n_leak": 86,
+     "n_safe": 18,
+     "n_groups": 34,
+     "bal_acc": 0.31976744186046513,
+     "ci": [
+      0.22339347326049452,
+      0.41140852086263474
+     ]
+    },
+    "mechanism_v2": {
+     "n": 104,
+     "n_leak": 86,
+     "n_safe": 18,
+     "n_groups": 34,
+     "bal_acc": 0.7209302325581395,
+     "ci": [
+      0.6231788710907704,
+      0.8218410486537554
+     ]
+    },
+    "opcode_lr": {
+     "n": 104,
+     "n_leak": 86,
+     "n_safe": 18,
+     "n_groups": 34,
+     "bal_acc": 0.6627906976744187,
+     "ci": [
+      0.6170886075949367,
+      0.707147212543554
+     ]
+    }
+   },
+   "subset=poc": {
+    "always_attack": {
+     "n": 95,
+     "n_leak": 77,
+     "n_safe": 18,
+     "n_groups": 25,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 95,
+     "n_leak": 77,
+     "n_safe": 18,
+     "n_groups": 25,
+     "bal_acc": 0.2987012987012987,
+     "ci": [
+      0.19117647058823528,
+      0.4047779922779922
+     ]
+    },
+    "mechanism_v2": {
+     "n": 95,
+     "n_leak": 77,
+     "n_safe": 18,
+     "n_groups": 25,
+     "bal_acc": 0.7467532467532467,
+     "ci": [
+      0.6265427215189874,
+      0.8518518518518519
+     ]
+    },
+    "opcode_lr": {
+     "n": 95,
+     "n_leak": 77,
+     "n_safe": 18,
+     "n_groups": 25,
+     "bal_acc": 0.6655844155844156,
+     "ci": [
+      0.6142857142857143,
+      0.71296977124183
+     ]
+    }
+   },
+   "subset=riscv_artifact": {
+    "always_attack": {
+     "n": 9,
+     "n_leak": 9,
+     "n_safe": 0,
+     "n_groups": 9,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 9,
+     "n_leak": 9,
+     "n_safe": 0,
+     "n_groups": 9,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 9,
+     "n_leak": 9,
+     "n_safe": 0,
+     "n_groups": 9,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "opcode_lr": {
+     "n": 9,
+     "n_leak": 9,
+     "n_safe": 0,
+     "n_groups": 9,
+     "bal_acc": 0.7777777777777778,
+     "ci": [
+      0.4444444444444444,
+      1.0
+     ]
+    }
+   },
+   "family=V1 branch": {
+    "always_attack": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "opcode_lr": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 0.5,
+     "ci": [
+      0.0,
+      1.0
+     ]
+    }
+   },
+   "family=V4 store-bypass": {
+    "always_attack": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "opcode_lr": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 0.5,
+     "ci": [
+      0.0,
+      1.0
+     ]
+    }
+   },
+   "family=fault/assist": {
+    "always_attack": {
+     "n": 43,
+     "n_leak": 43,
+     "n_safe": 0,
+     "n_groups": 13,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 43,
+     "n_leak": 43,
+     "n_safe": 0,
+     "n_groups": 13,
+     "bal_acc": 0.27906976744186046,
+     "ci": [
+      0.1,
+      0.5
+     ]
+    },
+    "mechanism_v2": {
+     "n": 43,
+     "n_leak": 43,
+     "n_safe": 0,
+     "n_groups": 13,
+     "bal_acc": 0.8837209302325582,
+     "ci": [
+      0.7567567567567568,
+      0.9615384615384616
+     ]
+    },
+    "opcode_lr": {
+     "n": 43,
+     "n_leak": 43,
+     "n_safe": 0,
+     "n_groups": 13,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "family=other": {
+    "always_attack": {
+     "n": 57,
+     "n_leak": 39,
+     "n_safe": 18,
+     "n_groups": 17,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 57,
+     "n_leak": 39,
+     "n_safe": 18,
+     "n_groups": 17,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "mechanism_v2": {
+     "n": 57,
+     "n_leak": 39,
+     "n_safe": 18,
+     "n_groups": 17,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "opcode_lr": {
+     "n": 57,
+     "n_leak": 39,
+     "n_safe": 18,
+     "n_groups": 17,
+     "bal_acc": 0.5833333333333333,
+     "ci": [
+      0.5337837837837838,
+      0.6406419836956521
+     ]
+    }
+   },
+   "arch=arm64": {
+    "always_attack": {
+     "n": 1,
+     "n_leak": 1,
+     "n_safe": 0,
+     "n_groups": 1,
+     "bal_acc": 1.0,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "fence_count": {
+     "n": 1,
+     "n_leak": 1,
+     "n_safe": 0,
+     "n_groups": 1,
+     "bal_acc": 1.0,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "mechanism_v2": {
+     "n": 1,
+     "n_leak": 1,
+     "n_safe": 0,
+     "n_groups": 1,
+     "bal_acc": 0.0,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "opcode_lr": {
+     "n": 1,
+     "n_leak": 1,
+     "n_safe": 0,
+     "n_groups": 1,
+     "bal_acc": 1.0,
+     "ci": [
+      null,
+      null
+     ]
+    }
+   },
+   "arch=riscv64": {
+    "always_attack": {
+     "n": 9,
+     "n_leak": 9,
+     "n_safe": 0,
+     "n_groups": 9,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 9,
+     "n_leak": 9,
+     "n_safe": 0,
+     "n_groups": 9,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 9,
+     "n_leak": 9,
+     "n_safe": 0,
+     "n_groups": 9,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "opcode_lr": {
+     "n": 9,
+     "n_leak": 9,
+     "n_safe": 0,
+     "n_groups": 9,
+     "bal_acc": 0.7777777777777778,
+     "ci": [
+      0.4444444444444444,
+      1.0
+     ]
+    }
+   },
+   "arch=x86_64": {
+    "always_attack": {
+     "n": 94,
+     "n_leak": 76,
+     "n_safe": 18,
+     "n_groups": 24,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 94,
+     "n_leak": 76,
+     "n_safe": 18,
+     "n_groups": 24,
+     "bal_acc": 0.29605263157894735,
+     "ci": [
+      0.18421052631578946,
+      0.4028186274509802
+     ]
+    },
+    "mechanism_v2": {
+     "n": 94,
+     "n_leak": 76,
+     "n_safe": 18,
+     "n_groups": 24,
+     "bal_acc": 0.75,
+     "ci": [
+      0.6333088235294118,
+      0.8625
+     ]
+    },
+    "opcode_lr": {
+     "n": 94,
+     "n_leak": 76,
+     "n_safe": 18,
+     "n_groups": 24,
+     "bal_acc": 0.6644736842105263,
+     "ci": [
+      0.611842105263158,
+      0.7142857142857143
+     ]
+    }
+   }
+  },
+  "train_overlap": {
+   "all": {
+    "always_attack": {
+     "n": 658,
+     "n_leak": 411,
+     "n_safe": 247,
+     "n_groups": 39,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 658,
+     "n_leak": 411,
+     "n_safe": 247,
+     "n_groups": 39,
+     "bal_acc": 0.6089029423643331,
+     "ci": [
+      0.5911051767418269,
+      0.6264828087051764
+     ]
+    },
+    "mechanism_v2": {
+     "n": 658,
+     "n_leak": 411,
+     "n_safe": 247,
+     "n_groups": 39,
+     "bal_acc": 0.5174995320980723,
+     "ci": [
+      0.4897343792416916,
+      0.5558112405300285
+     ]
+    },
+    "opcode_lr": {
+     "n": 658,
+     "n_leak": 411,
+     "n_safe": 247,
+     "n_groups": 39,
+     "bal_acc": 0.5010589359417634,
+     "ci": [
+      0.4629848315314268,
+      0.5432946000581956
+     ]
+    }
+   },
+   "subset=benchmark": {
+    "always_attack": {
+     "n": 648,
+     "n_leak": 401,
+     "n_safe": 247,
+     "n_groups": 34,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 648,
+     "n_leak": 401,
+     "n_safe": 247,
+     "n_groups": 34,
+     "bal_acc": 0.611336032388664,
+     "ci": [
+      0.5944438483547926,
+      0.6283783783783784
+     ]
+    },
+    "mechanism_v2": {
+     "n": 648,
+     "n_leak": 401,
+     "n_safe": 247,
+     "n_groups": 34,
+     "bal_acc": 0.5139075388451947,
+     "ci": [
+      0.48625636210464257,
+      0.554756912870058
+     ]
+    },
+    "opcode_lr": {
+     "n": 648,
+     "n_leak": 401,
+     "n_safe": 247,
+     "n_groups": 34,
+     "bal_acc": 0.49866225125445496,
+     "ci": [
+      0.46030177989623844,
+      0.540574980763486
+     ]
+    }
+   },
+   "subset=poc": {
+    "always_attack": {
+     "n": 10,
+     "n_leak": 10,
+     "n_safe": 0,
+     "n_groups": 5,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 10,
+     "n_leak": 10,
+     "n_safe": 0,
+     "n_groups": 5,
+     "bal_acc": 0.8,
+     "ci": [
+      0.4,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 10,
+     "n_leak": 10,
+     "n_safe": 0,
+     "n_groups": 5,
+     "bal_acc": 0.4,
+     "ci": [
+      0.0,
+      0.8
+     ]
+    },
+    "opcode_lr": {
+     "n": 10,
+     "n_leak": 10,
+     "n_safe": 0,
+     "n_groups": 5,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "family=V1 branch": {
+    "always_attack": {
+     "n": 568,
+     "n_leak": 329,
+     "n_safe": 239,
+     "n_groups": 16,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 568,
+     "n_leak": 329,
+     "n_safe": 239,
+     "n_groups": 16,
+     "bal_acc": 0.6150627615062761,
+     "ci": [
+      0.598789051911087,
+      0.6322754288561464
+     ]
+    },
+    "mechanism_v2": {
+     "n": 568,
+     "n_leak": 329,
+     "n_safe": 239,
+     "n_groups": 16,
+     "bal_acc": 0.47280334728033474,
+     "ci": [
+      0.46651759014012306,
+      0.47884868421052634
+     ]
+    },
+    "opcode_lr": {
+     "n": 568,
+     "n_leak": 329,
+     "n_safe": 239,
+     "n_groups": 16,
+     "bal_acc": 0.5016342155129656,
+     "ci": [
+      0.4603810564693886,
+      0.548010180072541
+     ]
+    }
+   },
+   "family=V4 store-bypass": {
+    "always_attack": {
+     "n": 84,
+     "n_leak": 76,
+     "n_safe": 8,
+     "n_groups": 20,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 84,
+     "n_leak": 76,
+     "n_safe": 8,
+     "n_groups": 20,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "mechanism_v2": {
+     "n": 84,
+     "n_leak": 76,
+     "n_safe": 8,
+     "n_groups": 20,
+     "bal_acc": 0.4144736842105263,
+     "ci": [
+      0.23837209302325582,
+      0.5625363372093021
+     ]
+    },
+    "opcode_lr": {
+     "n": 84,
+     "n_leak": 76,
+     "n_safe": 8,
+     "n_groups": 20,
+     "bal_acc": 0.40789473684210525,
+     "ci": [
+      0.3522727272727273,
+      0.47297900579150576
+     ]
+    }
+   },
+   "family=fault/assist": {
+    "always_attack": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 1,
+     "bal_acc": 1.0,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "fence_count": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 1,
+     "bal_acc": 0.0,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "mechanism_v2": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 1,
+     "bal_acc": 1.0,
+     "ci": [
+      null,
+      null
+     ]
+    },
+    "opcode_lr": {
+     "n": 2,
+     "n_leak": 2,
+     "n_safe": 0,
+     "n_groups": 1,
+     "bal_acc": 1.0,
+     "ci": [
+      null,
+      null
+     ]
+    }
+   },
+   "family=other": {
+    "always_attack": {
+     "n": 4,
+     "n_leak": 4,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "fence_count": {
+     "n": 4,
+     "n_leak": 4,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    },
+    "mechanism_v2": {
+     "n": 4,
+     "n_leak": 4,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "opcode_lr": {
+     "n": 4,
+     "n_leak": 4,
+     "n_safe": 0,
+     "n_groups": 2,
+     "bal_acc": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "arch=riscv64": {
+    "always_attack": {
+     "n": 206,
+     "n_leak": 142,
+     "n_safe": 64,
+     "n_groups": 20,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 206,
+     "n_leak": 142,
+     "n_safe": 64,
+     "n_groups": 20,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "mechanism_v2": {
+     "n": 206,
+     "n_leak": 142,
+     "n_safe": 64,
+     "n_groups": 20,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "opcode_lr": {
+     "n": 206,
+     "n_leak": 142,
+     "n_safe": 64,
+     "n_groups": 20,
+     "bal_acc": 0.596830985915493,
+     "ci": [
+      0.4981478723729228,
+      0.687983524988943
+     ]
+    }
+   },
+   "arch=x86_64": {
+    "always_attack": {
+     "n": 452,
+     "n_leak": 269,
+     "n_safe": 183,
+     "n_groups": 39,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    },
+    "fence_count": {
+     "n": 452,
+     "n_leak": 269,
+     "n_safe": 183,
+     "n_groups": 39,
+     "bal_acc": 0.6465557519247567,
+     "ci": [
+      0.6249922188671475,
+      0.6637439503932244
+     ]
+    },
+    "mechanism_v2": {
+     "n": 452,
+     "n_leak": 269,
+     "n_safe": 183,
+     "n_groups": 39,
+     "bal_acc": 0.5335892904300485,
+     "ci": [
+      0.4937882008846728,
+      0.5887077275600505
+     ]
+    },
+    "opcode_lr": {
+     "n": 452,
+     "n_leak": 269,
+     "n_safe": 183,
+     "n_groups": 39,
+     "bal_acc": 0.5,
+     "ci": [
+      0.5,
+      0.5
+     ]
+    }
+   }
+  }
+ },
+ "diffs": {
+  "headline": {},
+  "harness": {},
+  "train_overlap": {}
+ },
+ "unscorable": 0,
+ "mech_abstain": 1434,
+ "methods": [
+  "always_attack",
+  "fence_count",
+  "opcode_lr",
+  "mechanism_v2"
+ ],
+ "meta": {
+  "data": "/Users/ritvikgupta/SpecExec/eval/data/realworld_*.jsonl",
+  "opcode-LR train pool": "/Users/ritvikgupta/SpecExec/v54/data/v54_train.jsonl",
+  "model column": "none (--bars-only)"
+ }
+}
