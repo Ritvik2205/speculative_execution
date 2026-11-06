@@ -5,6 +5,7 @@ The image is native arm64, so BOTH targets are cross builds: `dpkg --add-archite
 (package, arch, cc) cell, never a crash.
 """
 import argparse
+import hashlib
 import json
 import random
 import shutil
@@ -22,6 +23,8 @@ from realworld.toolchain import IMAGE
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PACKAGES = Path(__file__).parent / "benign_packages.txt"
 DEFAULT_SNAPSHOT = "20261101T000000Z"
+DEFAULT_LENGTH_REF = ROOT / "eval" / "data" / "revizor_hwlabel_variants.jsonl"
+DEFAULT_CACHE = Path.home() / "specexec_realworld" / "debian_asm"
 DEFAULT_WORK = Path.home() / "specexec_realworld" / "debian"
 CAP_PER_PACKAGE = 200
 DEB_ARCH = {"amd64": "amd64", "x86_64": "amd64", "riscv64": "riscv64"}
@@ -102,7 +105,34 @@ def read_packages(path):
     return out
 
 
-def records_from_asm(asm_items, arch, cc, pkg, version, snapshot, retrieved, cap=CAP_PER_PACKAGE, hi=WIN_HI):
+def read_length_ref(path):
+    """Instruction counts of the non-BENIGN rows of the reference pool (the attack-length histogram)."""
+    out = []
+    for l in open(path):
+        r = json.loads(l)
+        if r.get("label") != "BENIGN" and r.get("sequence"):
+            out.append(len(r["sequence"]))
+    if not out:
+        raise ValueError(f"no non-BENIGN rows in {path}")
+    return out
+
+
+def tile_windows(seq, length_ref, key):
+    """R23: non-overlapping tiles whose lengths are drawn from the empirical reference histogram,
+    each capped at the remaining function length. RNG seeded from the function's source key.
+    Stride = window length (no overlap). A tail shorter than min(smallest reference length, 25) is dropped."""
+    rng = random.Random(int.from_bytes(hashlib.sha256(key.encode()).digest()[:8], "big"))
+    lo = min(min(length_ref), WIN_LO)
+    out, pos = [], 0
+    while len(seq) - pos >= lo:
+        n = min(rng.choice(length_ref), len(seq) - pos)
+        out.append(seq[pos:pos + n])
+        pos += n
+    return out
+
+
+def records_from_asm(asm_items, arch, cc, pkg, version, snapshot, retrieved, cap=CAP_PER_PACKAGE, hi=WIN_HI,
+                     length_ref=None):
     """asm_items: [(file, asm_text)]. Per function: drop mitigated, drop <WIN_LO instructions (R2),
     window, dedupe by normalised hash, cap per package."""
     arch = REC_ARCH.get(arch, arch)
@@ -119,7 +149,11 @@ def records_from_asm(asm_items, arch, cc, pkg, version, snapshot, retrieved, cap
             seq = normalise_for_arch(body, arch)
             if len(seq) < WIN_LO:
                 continue
-            for w in windows(seq, hi=hi):
+            if length_ref:
+                wins = tile_windows(seq, length_ref, f"{prov['url']}@{tag}#{fname}:{fn}")
+            else:
+                wins = windows(seq, hi=hi)
+            for w in wins:
                 rec = make_record(w, "BENIGN", arch, f"debian:{pkg}", "debian_benign", prov,
                                   subset="benign", package=pkg, file=fname, function=fn,
                                   compiler=cc, opt="O2(debian)", safe=False,
@@ -134,10 +168,18 @@ def records_from_asm(asm_items, arch, cc, pkg, version, snapshot, retrieved, cap
     return recs
 
 
-def build_package(pkg, arch, cc, snapshot, work=DEFAULT_WORK, keep=False, timeout=BUILD_TIMEOUT):
+def build_package(pkg, arch, cc, snapshot, work=DEFAULT_WORK, keep=False, timeout=BUILD_TIMEOUT,
+                  cache=None, from_existing=False):
     """Cross-build one Debian source package; return (version, [(relpath, asm_text)]) or raise BuildSkip."""
     work = Path(work)
     cell = f"{pkg}-{arch}-{cc}"
+    cpath = Path(cache) / cell if cache else None
+    if from_existing and cpath and (cpath / "version.txt").exists():
+        items = [(str(p.relative_to(cpath / "asm")), p.read_text(errors="replace"))
+                 for p in sorted((cpath / "asm").rglob("*.s"))]
+        if items:
+            return (cpath / "version.txt").read_text().strip(), items, (cpath / "partial.txt").read_text() \
+                if (cpath / "partial.txt").exists() else ""
     work.mkdir(parents=True, exist_ok=True)
     cdir = work / cell
     if cdir.exists():
@@ -177,6 +219,15 @@ def build_package(pkg, arch, cc, snapshot, work=DEFAULT_WORK, keep=False, timeou
             _rm(cdir)
     if not items:
         raise BuildSkip("no_asm", "build succeeded but produced no .s files")
+    if cpath:  # keep extracted asm so later re-windowing needs no rebuild
+        _rm(cpath)
+        (cpath / "asm").mkdir(parents=True)
+        for rel, text in items:
+            (cpath / "asm" / rel).parent.mkdir(parents=True, exist_ok=True)
+            (cpath / "asm" / rel).write_text(text)
+        (cpath / "version.txt").write_text(version)
+        if partial:
+            (cpath / "partial.txt").write_text(partial)
     return version, items, partial
 
 
@@ -188,9 +239,11 @@ def _rm(path):
 
 
 def run(packages_file, arch, cc, snapshot, out_dir, eval_dir, work=DEFAULT_WORK, build_fn=None,
-        only=None, log=print, win_hi=WIN_HI):
-    build_fn = build_fn or (lambda pkg, a, c, s, w: build_package(pkg, a, c, s, w))
+        only=None, log=print, win_hi=WIN_HI, length_ref=None,
+        cache=DEFAULT_CACHE, from_existing=False):
+    build_fn = build_fn or (lambda pkg, a, c, s, w: build_package(pkg, a, c, s, w, cache=cache, from_existing=from_existing))
     rarch = REC_ARCH[arch]
+    ref_lens = read_length_ref(length_ref) if length_ref else None
     pkgs = read_packages(packages_file)
     train_pkgs, eval_pkgs = split_packages(pkgs)  # split on the FULL list, so it is identical for every cell
     todo = [p for p in pkgs if only is None or p in only]
@@ -229,8 +282,9 @@ def run(packages_file, arch, cc, snapshot, out_dir, eval_dir, work=DEFAULT_WORK,
                 fs.flush()
                 log(f"  skip {pkg} {rarch}/{cc} error {ex!r}")
                 continue
-            recs = records_from_asm(items, arch, cc, pkg, version, snapshot, retrieved, hi=win_hi)
             held_out = pkg in eval_pkgs
+            recs = records_from_asm(items, arch, cc, pkg, version, snapshot, retrieved, hi=win_hi,
+                                    length_ref=None if held_out else ref_lens)
             f = fe if held_out else ft
             for r in recs:
                 f.write(json.dumps(r) + "\n")
@@ -251,9 +305,13 @@ def main(argv=None):
     ap.add_argument("--eval-dir", type=Path, default=ROOT / "eval" / "data")
     ap.add_argument("--work", type=Path, default=DEFAULT_WORK)
     ap.add_argument("--win-hi", type=int, default=WIN_HI, help="max window length (default 45, per the plan)")
+    ap.add_argument("--length-ref", type=Path, default=DEFAULT_LENGTH_REF,
+                    help="pool whose non-BENIGN row lengths define the TRAIN window-length histogram (R23)")
+    ap.add_argument("--from-existing", action="store_true", help="re-extract from cached .s files, build only what is missing")
     ap.add_argument("--only", nargs="*", default=None)
     a = ap.parse_args(argv)
-    stats = run(a.packages, a.arch, a.cc, a.snapshot, a.out_dir, a.eval_dir, a.work, only=a.only, win_hi=a.win_hi)
+    stats = run(a.packages, a.arch, a.cc, a.snapshot, a.out_dir, a.eval_dir, a.work, only=a.only, win_hi=a.win_hi,
+                length_ref=a.length_ref, from_existing=a.from_existing)
     print(f"{a.arch}/{a.cc}: train {sum(n for n, h in stats.values() if not h)} windows, "
           f"eval {sum(n for n, h in stats.values() if h)} windows, {len(stats)} packages built")
 
