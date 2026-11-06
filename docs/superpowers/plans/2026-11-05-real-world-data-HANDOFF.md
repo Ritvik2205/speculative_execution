@@ -4,9 +4,9 @@ Plan: `docs/superpowers/plans/2026-11-05-real-world-data.md`. Spec: `docs/superp
 
 ## Commands for the user, in order
 
-1. Laptop, optional now (needs Docker + `~/specexec_realworld/debian_asm`): riscv64 benign train cells
+1. DONE 2026-11-06 (riscv64 benign train, 24 pkgs / 3400 windows). To redo: riscv64 benign train cells
    `CELLS=riscv64 REBUILD=1 bash realworld/prepare_benign.sh` (~50 min/cell). Commit `v54/data/benign_riscv64_*` + skip logs (re-add old skip lines per the script header).
-2. Laptop, optional: full Linux patch-pair run (~1–2 h): `python3 -m realworld.patch_pairs --repo linux --clone ~/specexec_realworld/linux --out eval/data/realworld_patch_linux.jsonl --commits-file ~/specexec_realworld/linux_fix_commits.txt`. Xen is unvalidated (R9).
+2. DONE 2026-11-06 (105 pairs / 210 rows, 7428 s). To redo: full Linux patch-pair run (~2 h): `python3 -m realworld.patch_pairs --repo linux --clone ~/specexec_realworld/linux --out eval/data/realworld_patch_linux.jsonl --commits-file ~/specexec_realworld/linux_fix_commits.txt`. Xen is unvalidated (R9).
 3. Push the branch.
 4. After the i5 trainpool lands (`eval/data/revizor_hwlabel_trainpool.jsonl`), on the cluster:
    `cd ~/speculative_execution && git pull && bash eval/cluster/submit_realworld.sh`
@@ -16,7 +16,7 @@ Plan: `docs/superpowers/plans/2026-11-05-real-world-data.md`. Spec: `docs/superp
 
 ## Reading the numbers (must-print caveats)
 
-- Bars-only headline now: 834 functions (37 leak / 797 safe), 21 clusters; every bar ≤ 0.535 balanced accuracy. A model must beat all bars, including **length AUC 0.774** (held-out benign functions are longer than the attacks, R44). Below that, a model result can be length, not mechanism.
+- Bars-only headline now (R47 length-matched): 899 functions (135 leak / 764 safe), 107 clusters; every bar 0.409–0.560 balanced accuracy; function-length AUC 0.472 (was 0.774 before R47). RISC-V slice: `has_ret` bar 0.641 — a RISC-V model must beat it. Linux pairs: 105, all `patch_only` (0 CVE-tagged); mechanism_v2 scores 0.212 on them (it fires on the fixed side: array_index_nospec compiles to cmp/sbb/and, not a fence).
 - Harness rows (PoC `main`s) are never held-out evidence; ZombieLoad is in train (R43).
 - `train_overlap` rows count as clean only for the new `rw*` arms (`--overlap-clean`); H0 comparisons use the `_h0set` tables.
 - Old RISC-V transliteration test no longer reaches significance (5/6, p=0.109; cause of yardstick shift not isolated). New RISC-V rows: no ARM signature, underpowered.
@@ -87,3 +87,9 @@ Plan: `docs/superpowers/plans/2026-11-05-real-world-data.md`. Spec: `docs/superp
 - Task 6: minor (deferred): per-window rule bar under-calls long attacks by construction (wholefn rows kept); model checkpoint path unrun locally (R28); round-1 tests written after code; headline leak side 43 rows / ~17 clusters; V4 cell single cluster.
 - Task 7: minor (deferred): benign_debian DEFAULT_SNAPSHOT 20261101T000000Z mismatches trixie cache (prepare_benign.sh defaults trixie); skip-log merge for uncached packages manual; 46% of x86 benign train windows < 25 instrs (R36, state in paper); exact-match preference / usage.json-after-gates untested; family removal name-based; --overlap-clean unrun on a real checkpoint.
 - Task 8: minor (deferred): wholefn/mechanism riscv CIs n=0; riscv benign = 1 zlib family until user runs riscv cells; arm-ward pattern on old corpus unexplained.
+
+## Added after the handoff (2026-11-06)
+
+- R47: headline Debian benign length-matched per arch to the leak-length histogram (quantile bins, deterministic); `headline_all` = unmatched reference. Held-out benign floor 10 instructions (= scorer MIN_INSTR). Cost: smaller safe side.
+- R48: an arch with < 50 attack rows is length-gated against its proxy arches (riscv64 -> riscv64+arm64), the same reference its benign was matched to. Cost: the gate is only as good as the arm64 proxy.
+- Build-system probe programs (CMake CompilerId/TryCompile, autoconf conftest) are never collected — one leaked a held-out json-c `main` into train by hash.
