@@ -125,3 +125,52 @@ def test_rows_without_instructions_dropped():
     prose = row("p", "SPECTRE_V1", ["/* license */", " * text", ""] )
     out = sr.score([prose, row("a", "SPECTRE_V1")], predictor=marker_predictor, lr_train=None, n_boot=20)
     assert out["counts"]["no_instruction_dropped"] == 1
+
+
+def test_patched_windows_align_with_headline_windows():
+    def raw(variant):
+        out = []
+        for i in range(120):
+            if i % 7 == 0:
+                out.append(f"\t# comment {i}")       # non-instruction line in the raw field
+            if i % 11 == 0:
+                out.append(f".L{i}:")
+            out.append(f"addq ${i}, %rax" if not (variant and 60 <= i < 63) else f"subq ${i}, %rbx")
+        return out
+    pre, post = raw(False), raw(True)
+    ps = sr.patched_spans(pre, post)
+    for side, seq_raw in (("pre", pre), ("post", post)):
+        seq, spans = ps[side]
+        assert seq == seq_raw                         # indexes the RAW sequence
+        assert spans
+        head = sr.windows_for(row("g", "SPECTRE_V1", seq_raw))
+        for s, e in spans:
+            assert seq[s:e] in head                   # element for element
+        assert len(spans) < len(head)
+
+
+def test_mechanism_per_window_differs_when_chain_split():
+    # L (idx 5) -> dependent read (idx 70): the whole function holds the MDS
+    # chain; no 45-instruction window contains both ends, so the rule abstains.
+    seq = [f"addq ${i}, %rcx" for i in range(100)]
+    seq[5] = "movq (%rax), %rbx"
+    seq[70] = "movq (%r8,%rbx), %rdx"
+    r = row("g", "MDS", seq)
+    calls = sr.bar_function_calls([r])
+    assert calls["mechanism_v2_wholefn"] == [True]
+    assert calls["mechanism_v2"] == [False]
+    assert calls["mechanism_v2_excl"] == [None]
+    # chain inside one window: per-window == whole-function
+    seq2 = list(seq)
+    seq2[70], seq2[20] = "addq $1, %rcx", "movq (%r8,%rbx), %rdx"
+    c2 = sr.bar_function_calls([row("g", "MDS", seq2)])
+    assert c2["mechanism_v2"] == c2["mechanism_v2_wholefn"] == [True]
+
+
+def test_dropped_reported_per_method():
+    rows = [row("L", "SPECTRE_V1"), row("S1"), row("S2"), row("S3")]
+    out = sr.score(rows, predictor=marker_predictor, lr_train=None, n_boot=200)
+    cell = out["slices"]["headline"]["all"]
+    assert all("n_dropped" in cell[m] for m in cell)
+    md = sr.render_md(out, {})
+    assert "dropped (excl)" in md

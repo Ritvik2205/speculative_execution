@@ -74,7 +74,7 @@ for _p in (ROOT, ROOT / "v54"):
 
 from eval.mechanism.bars import fence_count  # noqa: E402
 from eval.mechanism.hybrid import hybrid_pred  # noqa: E402
-from realworld.records import WIN_HI, WIN_LO, STRIDE, normalise, windows  # noqa: E402
+from realworld.records import WIN_HI, WIN_LO, STRIDE, windows  # noqa: E402
 
 BARS = ("always_attack", "fence_count", "opcode_lr", "mechanism_v2")
 FAMILY_OF = {"SPECTRE_V1": "V1 branch", "SPECTRE_V4": "V4 store-bypass",
@@ -394,22 +394,37 @@ def window_spans(n, lo=WIN_LO, hi=WIN_HI, stride=STRIDE):
     return out
 
 
+def _norm_with_map(seq):
+    """Normalised lines plus, for each, its index in the RAW sequence. Uses the
+    same two steps as realworld.records.normalise (neutralise, then drop
+    non-instruction lines) but keeps the index map."""
+    from build_dataset import _neutralize, is_instruction_line as _isi
+    seq = list(seq)
+    neu = _neutralize(seq)
+    if len(neu) != len(seq):          # never expected; fall back to identity
+        return seq, list(range(len(seq)))
+    keep = [i for i, l in enumerate(neu) if _isi(l)]
+    return [neu[i] for i in keep], keep
+
+
 def patched_spans(pre_seq, post_seq):
-    """Diff the NORMALISED pre/post sequences; return {side: (seq, spans)} where
-    spans are the 25-45 windows overlapping any differing instruction on that
-    side (an insertion marks its two neighbouring instructions)."""
-    a, b = normalise(pre_seq), normalise(post_seq)
+    """Diff the NORMALISED pre/post sequences, map every differing index back
+    to the RAW sequence, and return {side: (raw_seq, spans)}: the 25-45 windows
+    of the raw sequence (the very windows windows_for() yields for the headline)
+    that overlap a differing instruction. An insertion marks its two neighbours."""
+    (a, ka), (b, kb) = _norm_with_map(pre_seq), _norm_with_map(post_seq)
     sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
     hit_a, hit_b = set(), set()
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == "equal":
             continue
-        hit_a.update(range(i1, i2) if i2 > i1 else (x for x in (i1 - 1, i1) if 0 <= x < len(a)))
-        hit_b.update(range(j1, j2) if j2 > j1 else (x for x in (j1 - 1, j1) if 0 <= x < len(b)))
+        hit_a.update(ka[x] for x in (range(i1, i2) if i2 > i1 else (i1 - 1, i1)) if 0 <= x < len(a))
+        hit_b.update(kb[x] for x in (range(j1, j2) if j2 > j1 else (j1 - 1, j1)) if 0 <= x < len(b))
 
     def spans(n, hit):
-        return [(s, e) for s, e in window_spans(n) if any(s <= h < e for h in hit)]
-    return {"pre": (a, spans(len(a), hit_a)), "post": (b, spans(len(b), hit_b))}
+        return [(s_, e_) for s_, e_ in window_spans(n) if any(s_ <= h < e_ for h in hit)]
+    return {"pre": (list(pre_seq), spans(len(pre_seq), hit_a)),
+            "post": (list(post_seq), spans(len(post_seq), hit_b))}
 
 
 def patched_leak(seq, spans, predictor):
@@ -585,7 +600,7 @@ def render_md(res, meta):
           "in the cell; a one-class cell reports that class's recall only (see n_leak/n_safe). "
           "CI = 95% cluster bootstrap by family/group; n/a when only one cluster. Bootstrap replicates "
           "with no leak or no safe cluster are dropped (the `dropped` column counts them out of the "
-          "resamples). `mitigation_detected` is never used (R12).", ""]
+          "resamples; `dropped` = max over all methods but mechanism_v2_excl, whose own count is `dropped (excl)` -- it has fewer valid rows so it drops more). **Limitation of the per-window rule bar:** `mechanism_v2` runs on each 25-45 window in isolation; a window that cuts the trigger-to-transmitter chain (e.g. MDS/L1TF load at one end, dependent read beyond the window) makes the rule abstain (counted safe, or excluded in `_excl`), so it can miss a leak the whole-function rule (`mechanism_v2_wholefn`) sees. On the current headline the two agree because benign rows are single windows and nearly all multi-window attacks abstain either way. `mitigation_detected` is never used (R12).", ""]
     ms = res["methods"]
     for sec, title in (("headline", "Headline (clean: not harness, not train_overlap, not dup)"),
                        ("harness", "Harness rows (R18) -- NOT headline"),
@@ -595,12 +610,13 @@ def render_md(res, meta):
         if not cells:
             L += ["(no rows)", ""]
             continue
-        L += ["| slice | n | leak | safe | groups | dropped | " + " | ".join(DISPLAY.get(m, m) for m in ms) + " |",
-              "|---|---|---|---|---|---|" + "---|" * len(ms)]
+        L += ["| slice | n | leak | safe | groups | dropped | dropped (excl) | " + " | ".join(DISPLAY.get(m, m) for m in ms) + " |",
+              "|---|---|---|---|---|---|---|" + "---|" * len(ms)]
         for name, cell in cells.items():
             a = cell[ms[0]]
             L.append(f"| {name} | {a['n']} | {a['n_leak']} | {a['n_safe']} | {a['n_groups']} | "
-                     f"{max(x['n_dropped'] for m_, x in cell.items() if m_ != 'mechanism_v2_excl')} | " +
+                     f"{max(x['n_dropped'] for m_, x in cell.items() if m_ != 'mechanism_v2_excl')} | "
+                     f"{cell['mechanism_v2_excl']['n_dropped']} | " +
                      " | ".join(f"{_f(cell[m]['bal_acc'])} {fmt_ci(cell[m]['ci'])}"
                                 + ("" if cell[m]["n"] == a["n"] else f" (n={cell[m]['n']})")
                                 for m in ms) + " |")
