@@ -1,5 +1,6 @@
 """Shared record, window and dedupe helpers for real-world data collectors."""
 import hashlib
+import re
 import sys
 from pathlib import Path
 
@@ -70,6 +71,18 @@ def split_leaks(train, evals):
         if (k in tkeys or _seq_hash(r) in thash) and k not in leaks:
             leaks.append(k)
     return leaks
+
+
+def train_source_tokens(trows):
+    """Lowercased external-source names seen in the train file: the `ext_<tool>_` prefix of
+    `group` and every path component of `source_file`."""
+    toks = set()
+    for r in trows:
+        m = re.match(r"ext_([a-z0-9]+)_", (r.get("group") or "").lower())
+        if m:
+            toks.add(m.group(1))
+        toks.update(c.lower() for c in (r.get("source_file") or "").split("/") if c)
+    return toks
 
 
 def has_mitigation(seq):

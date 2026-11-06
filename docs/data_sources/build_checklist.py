@@ -5,6 +5,7 @@ One row per catalogued source, for the supervisor review: licence, whether it
 was used, how many records it contributed, and a sign-off box. Re-run after a
 collection pipeline fills `used` / `records` in USAGE (path -> (records, note)).
 """
+import json
 import re
 from pathlib import Path
 
@@ -23,8 +24,10 @@ NAME_COLS = ("name", "source", "title", "dataset")
 URL_COLS = ("url", "artifact url", "repo url")
 LIC_COLS = ("licence", "license")
 
-# Filled in as data is collected: catalogue name (as in its table) -> (records, note)
-USAGE: dict[str, tuple[int, str]] = {}
+# catalogue name (as in its table) -> (records, note); written by `python3 -m realworld.build_pools`
+USAGE_JSON = HERE.parent.parent / "realworld" / "usage.json"
+USAGE: dict[str, tuple[int, str]] = (
+    {k: (v[0], v[1]) for k, v in json.loads(USAGE_JSON.read_text()).items()} if USAGE_JSON.exists() else {})
 
 
 def _cells(line: str) -> list[str]:
@@ -56,6 +59,24 @@ def rows(md: Path):
             continue
         url = re.search(r"https?://[^\s)|>]+", " ".join(cells))
         yield name, url.group(0) if url else _pick(header, cells, URL_COLS), _pick(header, cells, LIC_COLS)
+
+
+def row_urls(md: Path):
+    """(name, every URL in the row): lets a source be matched by any of its catalogued URLs."""
+    header = None
+    for line in md.read_text().splitlines():
+        if not line.startswith("|"):
+            header = None
+            continue
+        cells = _cells(line)
+        if header is None:
+            header = cells
+            continue
+        if set("".join(cells)) <= set("-: "):
+            continue
+        name = _pick(header, cells, NAME_COLS)
+        if name:
+            yield name, [u.rstrip(".,;") for u in re.findall(r"https?://[^\s)|>]+", " ".join(cells))]
 
 
 def main() -> None:

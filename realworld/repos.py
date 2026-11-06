@@ -16,7 +16,7 @@ from pathlib import Path
 import yaml
 
 from realworld.asm import extract_named_functions, find_function
-from realworld.records import make_record, normalise, has_mitigation, _seq_hash
+from realworld.records import make_record, normalise, has_mitigation, _seq_hash, train_source_tokens  # noqa: F401
 from realworld.toolchain import compile_to_asm
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -93,18 +93,6 @@ def _train_rows(train_file):
 def _resolve(repo_dir, d):
     """`@name` = a directory shipped under realworld/ (shims, vendor_snippets)."""
     return ROOT / "realworld" / d[1:] if d.startswith("@") else Path(repo_dir) / d
-
-
-def train_source_tokens(trows):
-    """Lowercased external-source names seen in the train file: the `ext_<tool>_` prefix of
-    `group` and every path component of `source_file`."""
-    toks = set()
-    for r in trows:
-        m = re.match(r"ext_([a-z0-9]+)_", (r.get("group") or "").lower())
-        if m:
-            toks.add(m.group(1))
-        toks.update(c.lower() for c in (r.get("source_file") or "").split("/") if c)
-    return toks
 
 
 def out_path(e, out_dir, train_dir):

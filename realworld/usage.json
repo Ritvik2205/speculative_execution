@@ -1,0 +1,62 @@
+{
+ "CTSRD Test-Suite-Transient-Execution": [
+  4,
+  "CTSRD-Transient_riscv_artifact: 4"
+ ],
+ "Google security-research `pocs/cpus/*` (multi-PoC directory)": [
+  2,
+  "security-research-cpus_poc: 2"
+ ],
+ "Google: Retpoline (Google Help FAQ, \"a software construct for preventing branch-target-injection\")": [
+  2,
+  "vendor-google-retpoline_vendor: 2"
+ ],
+ "Haunted / haunted_bench": [
+  297,
+  "haunted_bench_benchmark: 297"
+ ],
+ "Meltdown demos (libkdump)": [
+  4,
+  "meltdown_poc: 4"
+ ],
+ "Microsoft: C++ Developer Guidance for Speculative Execution Side Channels": [
+  28,
+  "vendor-microsoft-cpp_vendor: 28"
+ ],
+ "Pitchfork test cases": [
+  155,
+  "pitchfork-angr_benchmark: 155"
+ ],
+ "RETBleed artifact": [
+  54,
+  "retbleed_poc: 54"
+ ],
+ "RIDL test suite and exploits": [
+  28,
+  "ridl_poc: 28"
+ ],
+ "Security-RISC (A Security RISC)": [
+  8,
+  "Security-RISC_riscv_artifact: 8"
+ ],
+ "Spectector benchmarks": [
+  196,
+  "spectector-benchmarks-asm_benchmark: 196"
+ ],
+ "Spectre v1 / v2 / v4 demos (SafeSide)": [
+  10,
+  "safeside_poc: 10"
+ ],
+ "Spectre-BHB / BHI exploits": [
+  1,
+  "bhi-spectre-bhb_poc: 1"
+ ],
+ "ZombieLoad PoC": [
+  12,
+  "ZombieLoad_poc: 12"
+ ],
+ "boom-attacks": [
+  11,
+  "boom-attacks_riscv_artifact: 11"
+ ]
+}

@@ -74,7 +74,8 @@ for _p in (ROOT, ROOT / "v54"):
 
 from eval.mechanism.bars import fence_count  # noqa: E402
 from eval.mechanism.hybrid import hybrid_pred  # noqa: E402
-from realworld.records import WIN_HI, WIN_LO, STRIDE, windows  # noqa: E402
+from realworld.records import (WIN_HI, WIN_LO, STRIDE, windows, _seq_hash,  # noqa: E402
+                               train_source_tokens)
 
 BARS = ("always_attack", "fence_count", "opcode_lr", "mechanism_v2")
 FAMILY_OF = {"SPECTRE_V1": "V1 branch", "SPECTRE_V4": "V4 store-bypass",
@@ -104,6 +105,30 @@ def partition(rows):
             out["train_overlap"].append(r)
         else:
             out["headline"].append(r)
+    return out
+
+
+def recompute_overlap(rows, pool):
+    """--overlap-clean: re-derive train_overlap against THIS run's own train pool instead of
+    trusting the collector's flag (computed vs the old v54_train). A row overlaps iff its
+    normalised sequence is in the pool, its source file is in the pool, or its family token
+    (collector reason "family:<tok>") is still a source in the pool. Returns copies; the
+    inputs (and so the H0 scoring of old checkpoints) are untouched."""
+    thash = {_seq_hash(r) for r in pool}
+    tsrc = {r["source_file"] for r in pool if r.get("source_file")}
+    ttok = train_source_tokens(pool)
+    out = []
+    for r in rows:
+        reason = r.get("train_overlap_reason") or ""
+        fam = reason.split(":", 1)[1].lower() if reason.startswith("family:") else None
+        by_hash = _seq_hash(r) in thash
+        by_src = reason == "source_path" and any(sf.endswith("/" + r.get("file", "\0")) for sf in tsrc)
+        by_fam = fam is not None and fam in ttok
+        c = dict(r)
+        c["train_overlap"] = bool(by_hash or by_src or by_fam)
+        c["train_overlap_reason"] = ("sequence_hash" if by_hash else "source_path" if by_src
+                                     else f"family:{fam}" if by_fam else None)
+        out.append(c)
     return out
 
 
@@ -749,6 +774,10 @@ def main(argv=None):
                     help="opcode-LR bar training pool (R4); default = run's recorded train data, "
                          "else v54/data/v54_train.jsonl")
     ap.add_argument("--predictor", default=None, help="stub:<json file> instead of a checkpoint")
+    ap.add_argument("--overlap-clean", action="store_true",
+                    help="recompute train_overlap against the run's own train pool (new retrain arms whose "
+                         "pool had the overlapping Spectector/SafeSide/FastSpec rows removed); default keeps "
+                         "the collector's flags (H0 checkpoints trained on the old pool)")
     ap.add_argument("--bars-only", action="store_true")
     ap.add_argument("--test-data", default=str(ROOT / "v54/data/v54_test.jsonl"))
     ap.add_argument("--acc-tol", type=float, default=1e-3)
@@ -762,6 +791,11 @@ def main(argv=None):
     pool = [r for r in (json.loads(l) for l in open(pool_path) if l.strip())
             if r.get("label", "UNKNOWN") != "UNKNOWN"]
     meta = {"data": ", ".join(a.data), "opcode-LR train pool": str(pool_path)}
+    if a.overlap_clean:
+        before = sum(bool(r.get("train_overlap")) for r in rows)
+        rows = recompute_overlap(rows, pool)
+        meta["train_overlap"] = (f"recomputed vs the run's own pool (--overlap-clean): "
+                                 f"{before} flagged by collector -> {sum(r['train_overlap'] for r in rows)}")
     predictor = None
     if a.predictor:
         if not a.predictor.startswith("stub:"):

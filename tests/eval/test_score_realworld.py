@@ -174,3 +174,24 @@ def test_dropped_reported_per_method():
     assert all("n_dropped" in cell[m] for m in cell)
     md = sr.render_md(out, {})
     assert "dropped (excl)" in md
+
+
+def test_overlap_clean_for_new_arms():
+    """--overlap-clean: train_overlap is recomputed against the run's own train pool."""
+    fam = row("fam", "SPECTRE_V1", train_overlap=True, train_overlap_reason="family:spectector",
+              seq=["movq $1, %rax"] * 30)
+    hsh = row("hsh", "SPECTRE_V1", train_overlap=True, train_overlap_reason="sequence_hash",
+              seq=["movq $7, %rax"] * 30)
+    plain = row("pl", "BENIGN", seq=["movq $9, %rax"] * 30)
+    rows = [fam, hsh, plain]
+    # new-arm pool: spectector removed, hash row's sequence gone too
+    pool = [dict(sequence=["movq $5, %rax"] * 30, label="BENIGN", arch="x86_64", group="debian:x")]
+    out = {r["group"]: r["train_overlap"] for r in sr.recompute_overlap(rows, pool)}
+    assert out == {"fam": False, "hsh": False, "pl": False}
+    # old-style pool still carrying spectector rows and the hash-equal sequence: stays overlap
+    pool2 = pool + [dict(sequence=["movq $7, %rax"] * 30, label="SPECTRE_V1", arch="x86_64",
+                         group="ext_spectector_01")]
+    out2 = {r["group"]: r["train_overlap"] for r in sr.recompute_overlap(rows, pool2)}
+    assert out2 == {"fam": True, "hsh": True, "pl": False}
+    # input rows are not mutated (H0 keeps the original flags)
+    assert fam["train_overlap"] is True
