@@ -38,12 +38,26 @@ CIs: 95% percentile cluster bootstrap resampling `family` (== group) clusters;
 paired differences vs each bar use the same resampled clusters. One cluster ->
 CI is n/a (never a 0-width interval).
 
+Fix round 1 (R29-R31):
+  * Every method is scored in the SAME unit: per window, function = leak iff any
+    window predicts leak. `fence_count_wholefn` / `mechanism_v2_wholefn` keep the
+    old whole-function calls as secondary rows. Per-window leak rate (mean over a
+    function's windows) is averaged per truth class; `n_windows` is in rows.jsonl.
+    Remaining asymmetry: benign holdout rows are single windows, attacks span many.
+  * `mechanism_v2` counts abstention as safe (NOT comparable to hwlabel numbers);
+    `mechanism_v2_excl` drops abstaining rows (scoreboard.py convention).
+  * Bootstrap replicates with no leak or no safe cluster are dropped (count reported).
+  * patched_window (Linux pre/post pairs): difflib the normalised pair, score each
+    side by max over the 25-45 windows overlapping a differing instruction.
+  * Rows with no instruction lines are dropped at scoring time (count reported).
+
 torch is imported lazily and only on the checkpoint path; --bars-only and
 --predictor stub:<json> run without torch / torch_geometric.
 """
 from __future__ import annotations
 
 import argparse
+import difflib
 import glob
 import json
 import re
@@ -60,7 +74,7 @@ for _p in (ROOT, ROOT / "v54"):
 
 from eval.mechanism.bars import fence_count  # noqa: E402
 from eval.mechanism.hybrid import hybrid_pred  # noqa: E402
-from realworld.records import windows  # noqa: E402
+from realworld.records import WIN_HI, WIN_LO, STRIDE, normalise, windows  # noqa: E402
 
 BARS = ("always_attack", "fence_count", "opcode_lr", "mechanism_v2")
 FAMILY_OF = {"SPECTRE_V1": "V1 branch", "SPECTRE_V4": "V4 store-bypass",
@@ -153,7 +167,7 @@ def fence_bar(r):
 
 def mechanism_bar(r):
     """(leak, abstained)."""
-    c = r.get("vuln_class") or (r["label"] if is_leak(r) else None)
+    c = row_class(r)
     classes = [c] if c else list(MECH_PROBE)
     abst = True
     for cls in classes:
@@ -166,6 +180,28 @@ def mechanism_bar(r):
             if p != "BENIGN":
                 return True, False
     return False, abst
+
+
+_MNEM = re.compile(r"^[A-Za-z][A-Za-z0-9_.]*$")
+_NOT_INSTR = ("/*", "*", "//", "#", ";", "@", "--", ".")
+
+
+def is_instruction_line(line):
+    """Cheap parse: a mnemonic-looking first token, not a comment/directive/label."""
+    t = line.strip()
+    if not t or t.startswith(_NOT_INSTR) or t.endswith(":"):
+        return False
+    return bool(_MNEM.match(t.split()[0]))
+
+
+def row_class(r):
+    return r.get("vuln_class") or (r["label"] if is_leak(r) else None)
+
+
+def mechanism_window(w, cls=None):
+    """True/False/None(abstain) for one window; cls None -> probe V1/V4/MDS/L1TF."""
+    leak, abst = mechanism_bar(dict(sequence=w, label="BENIGN", vuln_class=cls))
+    return None if (abst and not leak) else leak
 
 
 def opcode_lr_leaks(rows, train):
@@ -184,6 +220,10 @@ def opcode_lr_leaks(rows, train):
 
 
 # ----------------------------------------------------------------- statistics
+def _valid(pred):
+    return np.array([x is not None for x in pred], bool)
+
+
 def _bal(lc, ln, sc, sn):
     with np.errstate(divide="ignore", invalid="ignore"):
         a = np.where(ln > 0, lc / np.maximum(ln, 1), np.nan)
@@ -192,7 +232,10 @@ def _bal(lc, ln, sc, sn):
 
 
 def bal_acc(truth, pred):
-    t, p = np.asarray(truth, bool), np.asarray(pred, bool)
+    """pred may hold None (abstain): those rows are excluded."""
+    v = _valid(pred)
+    t = np.asarray(truth, bool)[v]
+    p = np.array([bool(x) for x in pred], bool)[v]
     if len(t) == 0:
         return float("nan")
     return float(_bal(np.array([(t & p).sum()]), np.array([t.sum()]),
@@ -200,42 +243,60 @@ def bal_acc(truth, pred):
 
 
 def _group_counts(truth, pred, groups, ug):
-    t, p, g = np.asarray(truth, bool), np.asarray(pred, bool), np.asarray(groups)
+    v = _valid(pred)
+    t = np.asarray(truth, bool)
+    p = np.array([bool(x) for x in pred], bool)
+    g = np.asarray(groups)
     m = np.zeros((len(ug), 4))
     for k, u in enumerate(ug):
-        s = g == u
+        s = (g == u) & v
         m[k] = [(t & p & s).sum(), (t & s).sum(), (~t & ~p & s).sum(), (~t & s).sum()]
     return m
 
 
 def cluster_boot(truth, preds, groups, n_boot=2000, seed=0, alpha=0.05, pairs=()):
     """Cluster bootstrap of balanced accuracy for each predictor in `preds`
-    ({name: bool list}); `pairs` = [(a, b)] adds paired a-b differences on the
-    SAME resampled clusters. Returns samples, ci, diff_ci, diff_samples."""
+    ({name: list of bool/None}); `pairs` = [(a, b)] adds paired a-b differences
+    on the SAME resampled clusters. When the full data has both a leak and a
+    safe row, replicates lacking a leak or a safe row are dropped (NaN) and
+    counted in `n_dropped[name]`. Returns samples, ci, diff_ci, n_dropped."""
     ug = np.unique(np.asarray(groups))
-    res = dict(samples={}, ci={}, diff_ci={}, diff_samples={}, n_groups=len(ug))
+    res = dict(samples={}, ci={}, diff_ci={}, diff_samples={}, n_groups=len(ug), n_dropped={})
     if len(truth) == 0:
         return res
     if len(ug) < 2:
         for k in preds:
             res["samples"][k] = np.array([bal_acc(truth, preds[k])])
             res["ci"][k] = (None, None)
+            res["n_dropped"][k] = 0
         for a, b in pairs:
             res["diff_ci"][(a, b)] = (None, None)
         return res
     rng = np.random.RandomState(seed)
     idx = rng.randint(0, len(ug), size=(n_boot, len(ug)))
     for k, p in preds.items():
-        S = _group_counts(truth, p, groups, ug)[idx].sum(axis=1)
+        C = _group_counts(truth, p, groups, ug)
+        S = C[idx].sum(axis=1)
         v = _bal(S[:, 0], S[:, 1], S[:, 2], S[:, 3])
+        res["n_dropped"][k] = 0
+        if C[:, 1].sum() > 0 and C[:, 3].sum() > 0:
+            ok = (S[:, 1] > 0) & (S[:, 3] > 0)
+            v = np.where(ok, v, np.nan)
+            res["n_dropped"][k] = int((~ok).sum())
         res["samples"][k] = v
-        lo, hi = np.nanpercentile(v, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-        res["ci"][k] = (float(lo), float(hi))
+        if np.isnan(v).all():
+            res["ci"][k] = (None, None)
+        else:
+            lo, hi = np.nanpercentile(v, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+            res["ci"][k] = (float(lo), float(hi))
     for a, b in pairs:
         d = res["samples"][a] - res["samples"][b]
         res["diff_samples"][(a, b)] = d
-        lo, hi = np.nanpercentile(d, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-        res["diff_ci"][(a, b)] = (float(lo), float(hi))
+        if np.isnan(d).all():
+            res["diff_ci"][(a, b)] = (None, None)
+        else:
+            lo, hi = np.nanpercentile(d, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+            res["diff_ci"][(a, b)] = (float(lo), float(hi))
     return res
 
 
@@ -245,6 +306,152 @@ def fmt_ci(ci):
 
 def _f(x):
     return "n/a" if x is None or x != x else f"{x:.3f}"
+
+
+# ------------------------------------------------- per-window flags (one unit)
+def window_flags(wins, archs, predictor, lr_train, classes=None):
+    """Per-window leak flags for every method: True / False / None(abstain or
+    dropped by the model dataset). Also returns the model's per-window leak
+    score (1 - p_benign)."""
+    n = len(wins)
+    f, pb = {}, None
+    if predictor:
+        res = predictor(wins, archs=archs) if getattr(predictor, "wants_arch", False) \
+            else predictor(wins)
+        f["model"] = [None if x is None else x[0] != "BENIGN" for x in res]
+        pb = [None if x is None else 1.0 - x[1] for x in res]
+    f["always_attack"] = [True] * n
+    f["fence_count"] = [fence_count(w) == 0 for w in wins]
+    classes = classes or [None] * n
+    mech = [mechanism_window(w, c) for w, c in zip(wins, classes)]
+    f["mechanism_v2"] = [bool(m) for m in mech]       # abstain counted as safe
+    f["mechanism_v2_excl"] = mech                     # abstain -> None
+    if lr_train:
+        from eval.shared_config import opcode_lr_preds
+        preds = opcode_lr_preds(lr_train, [dict(sequence=w, label="BENIGN") for w in wins])
+        f["opcode_lr"] = [p != "BENIGN" for p in preds]
+    return f, pb
+
+
+def aggregate(vals_by_owner):
+    """any True -> True; all None -> None; else False. Also mean window rate."""
+    leak, rate = [], []
+    for vs in vals_by_owner:
+        real = [v for v in vs if v is not None]
+        if any(real):
+            leak.append(True)
+        elif not real:
+            leak.append(None)
+        else:
+            leak.append(False)
+        rate.append(sum(real) / len(real) if real else None)
+    return leak, rate
+
+
+def flags_to_rows(rows, flags, owner, pb=None):
+    """Aggregate per-window flags to per-row (leak, rate) for each method."""
+    out = {}
+    for m, fl in flags.items():
+        by = [[] for _ in rows]
+        for i, v in zip(owner, fl):
+            by[i].append(v)
+        out[m] = aggregate(by)
+    score = None
+    if pb is not None:
+        by = [[] for _ in rows]
+        for i, v in zip(owner, pb):
+            if v is not None:
+                by[i].append(v)
+        score = [max(x) if x else None for x in by]
+    return out, score
+
+
+def bar_function_calls(rows, lr_train=None):
+    """Bars only, per-window unit (+ the whole-function secondaries).
+    Returns {method: list of function-level leak (True/False/None)}."""
+    wins, owner = [], []
+    for i, r in enumerate(rows):
+        for w in windows_for(r):
+            wins.append(w)
+            owner.append(i)
+    fl, _ = window_flags(wins, [rows[i].get("arch", "x86_64") for i in owner], None, lr_train,
+                         [row_class(rows[i]) for i in owner])
+    agg, _ = flags_to_rows(rows, fl, owner)
+    out = {m: v[0] for m, v in agg.items()}
+    out["fence_count_wholefn"] = [fence_bar(r) for r in rows]
+    out["mechanism_v2_wholefn"] = [mechanism_bar(r)[0] for r in rows]
+    return out
+
+
+# --------------------------------------------------------- patched windows R29
+def window_spans(n, lo=WIN_LO, hi=WIN_HI, stride=STRIDE):
+    """(start, end) spans identical to realworld.records.windows."""
+    if n < lo or n <= hi:
+        return [(0, n)]
+    out = [(i, i + hi) for i in range(0, n - hi + 1, stride)]
+    if (n - hi) % stride:
+        out.append((n - hi, n))
+    return out
+
+
+def patched_spans(pre_seq, post_seq):
+    """Diff the NORMALISED pre/post sequences; return {side: (seq, spans)} where
+    spans are the 25-45 windows overlapping any differing instruction on that
+    side (an insertion marks its two neighbouring instructions)."""
+    a, b = normalise(pre_seq), normalise(post_seq)
+    sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    hit_a, hit_b = set(), set()
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            continue
+        hit_a.update(range(i1, i2) if i2 > i1 else (x for x in (i1 - 1, i1) if 0 <= x < len(a)))
+        hit_b.update(range(j1, j2) if j2 > j1 else (x for x in (j1 - 1, j1) if 0 <= x < len(b)))
+
+    def spans(n, hit):
+        return [(s, e) for s, e in window_spans(n) if any(s <= h < e for h in hit)]
+    return {"pre": (a, spans(len(a), hit_a)), "post": (b, spans(len(b), hit_b))}
+
+
+def patched_leak(seq, spans, predictor):
+    """Function call from the patched windows only: any window predicts leak."""
+    res = predictor([seq[s:e] for s, e in spans])
+    return any(x is not None and x[0] != "BENIGN" for x in res)
+
+
+def patched_window_scores(rows, predictor, lr_train, n_boot, seed):
+    """rows: kept headline rows. Pairs = same group with side pre and post."""
+    by = defaultdict(dict)
+    for r in rows:
+        if r.get("side") in ("pre", "post"):
+            by[r["group"]][r["side"]] = r
+    items = []   # (group, truth_leak, window list, arch)
+    for g, d in by.items():
+        if "pre" in d and "post" in d:
+            ps = patched_spans(d["pre"]["sequence"], d["post"]["sequence"])
+            for side in ("pre", "post"):
+                seq, sp = ps[side]
+                items.append((g, side == "pre", [seq[s:e] for s, e in sp],
+                              d[side].get("arch", "x86_64"), row_class(d["pre"])))
+    if not items:
+        return None
+    wins, owner, archs, cls = [], [], [], []
+    for i, it in enumerate(items):
+        for w in it[2]:
+            wins.append(w)
+            owner.append(i)
+            archs.append(it[3])
+            cls.append(it[4])
+    fl, _ = window_flags(wins, archs, predictor, lr_train, cls)
+    stub_rows = [None] * len(items)
+    agg, rate = flags_to_rows(stub_rows, fl, owner)
+    truth = [it[1] for it in items]
+    groups = [it[0] for it in items]
+    pred = {m: v[0] for m, v in agg.items()}
+    bt = cluster_boot(truth, pred, groups, n_boot=n_boot, seed=seed)
+    cells = {m: dict(n=len(items), n_pairs=len(items) // 2, bal_acc=bal_acc(truth, pred[m]),
+                     ci=bt["ci"].get(m, (None, None)), n_dropped=bt["n_dropped"].get(m, 0),
+                     n_patched_windows=len(wins)) for m in pred}
+    return cells
 
 
 # --------------------------------------------------------------------- scoring
@@ -258,81 +465,127 @@ def _slices(rows, fams):
     return out
 
 
+SECONDARY = ("fence_count_wholefn", "mechanism_v2_wholefn")
+PAIR_BARS = BARS
+
+
+def has_instruction(r):
+    return any(is_instruction_line(l) for l in r["sequence"])
+
+
 def score(rows, predictor=None, lr_train=None, n_boot=2000, seed=0):
-    """Score `rows` (raw loaded records). predictor: callable(list of windows)
-    -> list of (pred_label, p_benign) or None per window (None disables the
-    model column: bars only)."""
+    """Score raw loaded records. predictor: callable(list of windows[, archs=])
+    -> list of (pred_label, p_benign) or None per window; None = bars only."""
+    noinstr = [r for r in rows if not has_instruction(r)]
+    rows = [r for r in rows if has_instruction(r)]
     parts = partition(rows)
-    out = dict(counts=dict(total=len(rows), dup_dropped=parts["n_dup_dropped"],
+    out = dict(counts=dict(total=len(rows) + len(noinstr), no_instruction_dropped=len(noinstr),
+                           no_instruction_harness=sum(bool(r.get("harness")) for r in noinstr),
+                           dup_dropped=parts["n_dup_dropped"],
                            **{k: len(parts[k]) for k in ("headline", "harness", "train_overlap")}),
-               slices={}, diffs={}, rows=[], unscorable=0, mech_abstain=0)
-    methods = (["model"] if predictor else []) + [b for b in BARS if b != "opcode_lr" or lr_train]
+               slices={}, diffs={}, rows=[], unscorable=0, mech_abstain_rows=0)
+    methods = (["model"] if predictor else []) + [b for b in BARS if b != "opcode_lr" or lr_train] \
+        + ["mechanism_v2_excl"] + list(SECONDARY)
     for sec in ("headline", "harness", "train_overlap"):
         rs = parts[sec]
         out["slices"][sec], out["diffs"][sec] = {}, {}
         if not rs:
             continue
-        pred = {}
+        wins, owner = [], []
+        for i, r in enumerate(rs):
+            for w in windows_for(r):
+                wins.append(w)
+                owner.append(i)
+        fl, pb = window_flags(wins, [rs[i].get("arch", "x86_64") for i in owner],
+                              predictor, lr_train, [row_class(rs[i]) for i in owner])
+        agg, score_ = flags_to_rows(rs, fl, owner, pb)
+        pred = {m: v[0] for m, v in agg.items()}
+        rate = {m: v[1] for m, v in agg.items()}
         if predictor:
-            vs = verdicts(rs, predictor)
-            keep = [i for i, v in enumerate(vs) if v is not None]
+            keep = [i for i, v in enumerate(pred["model"]) if v is not None]
             out["unscorable"] += len(rs) - len(keep)
-            rs = [rs[i] for i in keep]
-            vs = [vs[i] for i in keep]
-            pred["model"] = [v["leak"] for v in vs]
-            scores = [v["score"] for v in vs]
         else:
-            scores = [None] * len(rs)
-        pred["always_attack"] = [True] * len(rs)
-        pred["fence_count"] = [fence_bar(r) for r in rs]
-        mb = [mechanism_bar(r) for r in rs]
-        pred["mechanism_v2"] = [m[0] for m in mb]
-        out["mech_abstain"] += sum(m[1] for m in mb)
-        if lr_train:
-            pred["opcode_lr"] = opcode_lr_leaks(rs, lr_train)
+            keep = list(range(len(rs)))
+        rs = [rs[i] for i in keep]
+        pred = {m: [v[i] for i in keep] for m, v in pred.items()}
+        rate = {m: [v[i] for i in keep] for m, v in rate.items()}
+        scores = [score_[i] for i in keep] if score_ else [None] * len(rs)
+        n_win = [len(windows_for(r)) for r in rs]
+        pred["fence_count_wholefn"] = [fence_bar(r) for r in rs]
+        mw = [mechanism_bar(r) for r in rs]
+        pred["mechanism_v2_wholefn"] = [m[0] for m in mw]
+        out["mech_abstain_rows"] += sum(m[1] for m in mw)
+        rate["fence_count_wholefn"] = rate["mechanism_v2_wholefn"] = [None] * len(rs)
         truth = [is_leak(r) for r in rs]
         fams = mech_families(rs)
         groups = [cluster_of(r) for r in rs]
         for i, r in enumerate(rs):
-            out["rows"].append(dict(
-                section=sec, source=r.get("source"), group=r["group"], subset=r.get("subset"),
-                arch=r.get("arch"), family=fams[i], truth_leak=truth[i], label=r["label"],
-                n_instr=len(r["sequence"]), leak_score=scores[i],
-                **{m: pred[m][i] for m in pred}))
+            row = dict(section=sec, source=r.get("source"), group=r["group"],
+                       subset=r.get("subset"), arch=r.get("arch"), family=fams[i],
+                       truth_leak=truth[i], label=r["label"], n_instr=len(r["sequence"]),
+                       n_windows=n_win[i], leak_score=scores[i])
+            for m in pred:
+                row[m] = pred[m][i]
+                row[m + "_wrate"] = rate[m][i]
+            out["rows"].append(row)
         for name, ix in _slices(rs, fams).items():
             t = [truth[i] for i in ix]
             pr = {m: [pred[m][i] for i in ix] for m in pred}
-            pairs = [("model", b) for b in BARS if b in pr] if predictor else []
+            pairs = [("model", b) for b in PAIR_BARS if b in pr] if predictor else []
             bt = cluster_boot(t, pr, [groups[i] for i in ix], n_boot=n_boot, seed=seed, pairs=pairs)
             cell = {}
             for m in pr:
-                cell[m] = dict(n=len(ix), n_leak=int(sum(t)), n_safe=int(len(t) - sum(t)),
+                v = _valid(pr[m])
+                tv = np.asarray(t, bool)[v]
+
+                def mean_rate(sel):
+                    xs = [rate[m][i] for i, tt in zip(ix, t) if tt == sel and rate[m][i] is not None]
+                    return float(np.mean(xs)) if xs else None
+                cell[m] = dict(n=int(v.sum()), n_leak=int(tv.sum()), n_safe=int((~tv).sum()),
                                n_groups=bt["n_groups"], bal_acc=bal_acc(t, pr[m]),
-                               ci=bt["ci"].get(m, (None, None)))
+                               ci=bt["ci"].get(m, (None, None)),
+                               n_dropped=bt["n_dropped"].get(m, 0),
+                               wrate_leak=mean_rate(True), wrate_safe=mean_rate(False))
             out["slices"][sec][name] = cell
             if pairs:
                 out["diffs"][sec][name] = {
                     b: dict(diff=cell["model"]["bal_acc"] - cell[b]["bal_acc"],
                             ci=bt["diff_ci"][("model", b)]) for _, b in pairs}
+        if sec == "headline":
+            out["patched_window"] = patched_window_scores(rs, predictor, lr_train, n_boot, seed)
     out["methods"] = methods
     return out
 
 
 # ---------------------------------------------------------------------- report
+DISPLAY = {"mechanism_v2": "mechanism_v2 (abstain=safe; NOT comparable to hwlabel)",
+           "mechanism_v2_excl": "mechanism_v2_excl (abstain excluded)"}
+
+
 def render_md(res, meta):
     L = ["# Real-world scorer report", ""]
     for k, v in meta.items():
         L.append(f"- {k}: {v}")
     c = res["counts"]
-    L += ["", f"Rows loaded {c['total']}; dropped as dup_of (R17/R25) **{c['dup_dropped']}**; "
+    L += ["", f"Rows loaded {c['total']}; dropped for having no instruction line "
+          f"**{c['no_instruction_dropped']}** (of which harness-flagged {c['no_instruction_harness']}); "
+          f"dropped as dup_of (R17/R25) **{c['dup_dropped']}**; "
           f"headline **{c['headline']}**; harness (R18, separate) {c['harness']}; "
           f"train_overlap (separate) {c['train_overlap']}. "
           f"Unscorable by model: {res['unscorable']}. "
-          f"Mechanism rule abstained (counted safe) on {res['mech_abstain']} rows.",
+          f"Rows on which the mechanism rule abstained in every window/class (whole-function, counted safe): "
+          f"{res['mech_abstain_rows']}.",
+          "", "Unit (R30): every method, model and bars, predicts per 25-45 window; a function is a "
+          "leak iff ANY window predicts leak. `*_wholefn` rows are the old whole-function calls (secondary). "
+          "Remaining asymmetry: benign holdout rows are single windows while attacks span many windows, "
+          "so any-window rules have more chances to fire on attacks than on benign rows; "
+          "`wrate` columns give the per-window leak rate (mean over a function's windows, averaged over "
+          "leak-truth / safe-truth functions) as a length-insensitive view.",
           "", "Balanced accuracy = mean of leak recall and safe recall over the classes present "
           "in the cell; a one-class cell reports that class's recall only (see n_leak/n_safe). "
-          "CI = 95% cluster bootstrap by family/group; n/a when only one cluster. "
-          "`mitigation_detected` is never used (R12).", ""]
+          "CI = 95% cluster bootstrap by family/group; n/a when only one cluster. Bootstrap replicates "
+          "with no leak or no safe cluster are dropped (the `dropped` column counts them out of the "
+          "resamples). `mitigation_detected` is never used (R12).", ""]
     ms = res["methods"]
     for sec, title in (("headline", "Headline (clean: not harness, not train_overlap, not dup)"),
                        ("harness", "Harness rows (R18) -- NOT headline"),
@@ -342,12 +595,23 @@ def render_md(res, meta):
         if not cells:
             L += ["(no rows)", ""]
             continue
-        L += ["| slice | n | leak | safe | groups | " + " | ".join(ms) + " |",
-              "|---|---|---|---|---|" + "---|" * len(ms)]
+        L += ["| slice | n | leak | safe | groups | dropped | " + " | ".join(DISPLAY.get(m, m) for m in ms) + " |",
+              "|---|---|---|---|---|---|" + "---|" * len(ms)]
         for name, cell in cells.items():
             a = cell[ms[0]]
-            L.append(f"| {name} | {a['n']} | {a['n_leak']} | {a['n_safe']} | {a['n_groups']} | " +
-                     " | ".join(f"{_f(cell[m]['bal_acc'])} {fmt_ci(cell[m]['ci'])}" for m in ms) + " |")
+            L.append(f"| {name} | {a['n']} | {a['n_leak']} | {a['n_safe']} | {a['n_groups']} | "
+                     f"{max(x['n_dropped'] for m_, x in cell.items() if m_ != 'mechanism_v2_excl')} | " +
+                     " | ".join(f"{_f(cell[m]['bal_acc'])} {fmt_ci(cell[m]['ci'])}"
+                                + ("" if cell[m]["n"] == a["n"] else f" (n={cell[m]['n']})")
+                                for m in ms) + " |")
+        L += ["", f"Per-window leak rate ({sec}): mean over functions of the fraction of windows "
+              "predicted leak; first value over leak-truth functions, second over safe-truth.", "",
+              "| slice | " + " | ".join(m for m in ms if m not in SECONDARY) + " |",
+              "|---|" + "---|" * len([m for m in ms if m not in SECONDARY])]
+        for name, cell in cells.items():
+            L.append(f"| {name} | " + " | ".join(
+                f"{_f(cell[m]['wrate_leak'])} / {_f(cell[m]['wrate_safe'])}"
+                for m in ms if m not in SECONDARY) + " |")
         d = res["diffs"].get(sec, {})
         if d:
             L += ["", f"Paired difference, model minus bar ({sec}):", "",
@@ -356,6 +620,19 @@ def render_md(res, meta):
                 L.append(f"| {name} | " + " | ".join(
                     f"{cell[b]['diff']:+.3f} {fmt_ci(cell[b]['ci'])}" if b in cell else "-"
                     for b in BARS) + " |")
+        L.append("")
+    pw = res.get("patched_window")
+    L += ["## patched_window (Linux fix-commit pairs, R29)", ""]
+    if not pw:
+        L += ["(no pre/post pairs)", ""]
+    else:
+        a = next(iter(pw.values()))
+        L += [f"Each side scored by max over its 25-45 windows overlapping a difflib-differing instruction "
+              f"({a['n_pairs']} pairs, {a['n']} sides, {a['n_patched_windows']} patched windows). "
+              "pre = leak, post = safe. Cluster = pair.", "",
+              "| method | bal acc | 95% CI | dropped |", "|---|---|---|---|"]
+        for m, x in pw.items():
+            L.append(f"| {DISPLAY.get(m, m)} | {_f(x['bal_acc'])} | {fmt_ci(x['ci'])} | {x['n_dropped']} |")
         L.append("")
     return "\n".join(L)
 

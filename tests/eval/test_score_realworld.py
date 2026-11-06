@@ -76,3 +76,52 @@ def test_bars_only_run_with_stub(tmp_path):
     m = out["slices"]["headline"]["all"]
     assert m["model"]["n"] == 2 and m["model"]["bal_acc"] == 1.0
     assert m["always_attack"]["bal_acc"] == 0.5
+
+
+def test_patched_window_covers_diff():
+    pre = [f"addq ${i}, %rax" for i in range(200)]
+    post = list(pre)
+    for k in (90, 91, 92):
+        post[k] = f"subq ${k}, %rbx"
+    pre[150] = "leakmarker"          # a leak OUTSIDE the patched region, on both sides
+    post[150] = "leakmarker"
+    ps = sr.patched_spans(pre, post)
+    for side in ("pre", "post"):
+        seq, spans = ps[side]
+        assert spans and all(s <= 92 and e > 90 for s, e in spans)
+        assert not sr.patched_leak(seq, spans, marker_predictor_lc)
+        # control: the same marker inside the region does fire
+    pre2 = list(pre)
+    pre2[91] = "leakmarker"
+    seq, spans = sr.patched_spans(pre2, post)["pre"]
+    assert sr.patched_leak(seq, spans, marker_predictor_lc)
+
+
+def marker_predictor_lc(windows):
+    return [("SPECTRE_V1", 0.1) if any("leakmarker" in l for l in w) else ("BENIGN", 0.9)
+            for w in windows]
+
+
+def test_bars_scored_per_window():
+    seq = ["movq (%rax), %rbx"] * 120
+    seq[3] = "lfence"                 # first window fenced, later windows fence-free
+    r = row("g", "SPECTRE_V1", seq)
+    calls = sr.bar_function_calls([r])
+    assert calls["fence_count"] == [True]
+    assert calls["fence_count_wholefn"] == [False]
+
+
+def test_bootstrap_drops_single_class_replicates():
+    truth = [True, False, False, False]
+    groups = ["L", "S1", "S2", "S3"]
+    res = sr.cluster_boot(truth, {"m": [True, False, False, False]}, groups, n_boot=400, seed=3)
+    d = res["n_dropped"]["m"]
+    assert d > 0                                  # replicates without the leak cluster
+    assert int(np.isnan(res["samples"]["m"]).sum()) == d
+    assert np.all(np.isfinite(res["samples"]["m"][~np.isnan(res["samples"]["m"])]))
+
+
+def test_rows_without_instructions_dropped():
+    prose = row("p", "SPECTRE_V1", ["/* license */", " * text", ""] )
+    out = sr.score([prose, row("a", "SPECTRE_V1")], predictor=marker_predictor, lr_train=None, n_boot=20)
+    assert out["counts"]["no_instruction_dropped"] == 1
