@@ -18,16 +18,17 @@ linux:
     chmod +x /tmp/shim/gcc && export PATH=/tmp/shim:$PATH
   ready_marker: include/config/auto.conf
   # SECURITY_SELINUX off: pre-4.20 genheaders aborts on modern glibc's AF_MAX
-  # wipe generated config state first: its file/dir layout differs between kernel versions
-  config_cmd: >-
-    rm -rf include/config include/generated &&
+  # regen_cmd runs before EVERY build: .config = x86_64_defconfig + fixed fragment (no order dependence)
+  regen_cmd: >-
     make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- x86_64_defconfig &&
     scripts/config --disable SECURITY_SELINUX &&
-    make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- olddefconfig &&
-    make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- prepare
+    make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- olddefconfig
+  # generated config state layout differs between kernel versions: wiped when the version header changes
+  wipe_cmd: "rm -rf include/config include/generated"
+  prepare_cmd: "make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- prepare"
   # KCFLAGS: kernel builds with -fno-asynchronous-unwind-tables, so no .cfi_startproc for asm.extract_named_functions
-  # olddefconfig: Kconfig drifts between commits of one version, which makes syncconfig refuse
-  asm_cmd: "make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- olddefconfig >/dev/null && make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- KCFLAGS=-fasynchronous-unwind-tables {target}"
+  build_flags: "ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- KCFLAGS=-fasynchronous-unwind-tables"
+  asm_cmd: "make {build_flags} {target}"
   # CVE -> class when it is not plain Spectre-v1 bounds-check bypass
   cve_labels: {}
 xen:
@@ -39,6 +40,7 @@ xen:
   terms: [array_index_nospec, barrier_nospec, array_index_mask_nospec, block_speculation, evaluate_nospec]
   default_label: SPECTRE_V1
   make_dir: xen
-  config_cmd: "make -C xen XEN_TARGET_ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- defconfig"
-  asm_cmd: "make -C xen XEN_TARGET_ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- {target}"
+  regen_cmd: "make -C xen XEN_TARGET_ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- defconfig"
+  build_flags: "XEN_TARGET_ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu-"
+  asm_cmd: "make -C xen {build_flags} {target}"
   cve_labels: {}

@@ -91,7 +91,7 @@ def test_pair_dropped_when_asm_identical(repo, tmp_path):
     out = tmp_path / "o.jsonl"
     pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=lambda *a: same)
     assert not out.read_text().strip()
-    skipped = [json.loads(l) for l in (tmp_path / "skipped.jsonl").read_text().splitlines()]
+    skipped = [json.loads(l) for l in (tmp_path / "skipped_linux.jsonl").read_text().splitlines()]
     assert any(s["reason"] == "no_asm_change" and s["commit"] == shas[1] for s in skipped)
 
 
@@ -174,5 +174,112 @@ def test_foreign_arch_file_skipped(tmp_path):
     out = tmp_path / "o.jsonl"
     pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=lambda *a: called.append(a))
     assert not called
-    skipped = [json.loads(l) for l in (tmp_path / "skipped.jsonl").read_text().splitlines()]
+    skipped = [json.loads(l) for l in (tmp_path / "skipped_linux.jsonl").read_text().splitlines()]
     assert [s["reason"] for s in skipped] == ["foreign_arch"]
+
+
+def _pair_fake(shas, pre_body, post_body, comment=None):
+    def fake(clone, rev, cfile, cfg):
+        body = post_body if rev in (shas[1], shas[2]) else pre_body
+        return _asm(body)
+    return fake
+
+
+def _run_pair(repo, tmp_path, pre_body, post_body, **kw):
+    d, shas = repo
+    out = tmp_path / "o.jsonl"
+    pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=_pair_fake(shas, pre_body, post_body), **kw)
+    return [json.loads(l) for l in out.read_text().splitlines()]
+
+
+def test_mitigation_detected_both_sides(repo, tmp_path):
+    recs = _run_pair(repo, tmp_path, "\tmovl (%rdi), %eax\n\tret\n",
+                     "\tlfence\n\tmovl (%rdi), %eax\n\tret\n")
+    by = {r["side"]: r for r in recs}
+    assert by["post"]["mitigation_detected"] is True and by["post"]["mitigated"] is True
+    assert by["pre"]["mitigation_detected"] is False
+    recs = _run_pair(repo, tmp_path, "\tmovl (%rdi), %eax\n\tret\n",
+                     "\tmovl 4(%rdi), %eax\n\tret\n")
+    by = {r["side"]: r for r in recs}
+    assert by["post"]["mitigation_detected"] is False and by["post"]["mitigated"] is True
+
+
+def test_verbose_asm_comments_stripped(repo, tmp_path):
+    d, shas = repo
+    pre = "\tmovl (%rdi), %eax\t# tmp91, x\n# comment only\n\tret\n"
+    post = "\tmovl (%rdi), %eax\t# tmp77, y\n\tret\n"
+    out = tmp_path / "o.jsonl"
+    pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=_pair_fake(shas, pre, post))
+    assert not out.read_text().strip()
+    sk = [json.loads(l) for l in (tmp_path / "skipped_linux.jsonl").read_text().splitlines()]
+    assert any(s["reason"] == "no_asm_change" for s in sk)
+    recs = _run_pair(repo, tmp_path, pre, "\tmovl 8(%rdi), %eax\t# tmp5\n\tret\n")
+    assert recs and all("#" not in l for r in recs for l in r["sequence"])
+
+
+def test_build_metadata_on_provenance(repo, tmp_path):
+    d, shas = repo
+
+    def fake(clone, rev, cfile, cfg):
+        a = pp.BuiltAsm(_asm("\tret\n" if rev in (shas[1], shas[2]) else "\tnop\n\tret\n"))
+        a.build_flags, a.config_sha256 = "KCFLAGS=-fx", "ab" * 32
+        return a
+    out = tmp_path / "o.jsonl"
+    pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=fake)
+    for r in map(json.loads, out.read_text().splitlines()):
+        assert r["provenance"]["build_flags"] == "KCFLAGS=-fx"
+        assert r["provenance"]["config_sha256"] == "ab" * 32
+
+
+def test_incremental_records_survive_exception(repo, tmp_path):
+    d, shas = repo
+    calls = []
+
+    def fake(clone, rev, cfile, cfg):
+        calls.append(rev)
+        if len(calls) > 2:
+            raise KeyboardInterrupt
+        return _asm("\tret\n" if rev in (shas[1], shas[2]) else "\tnop\n\tret\n")
+    out = tmp_path / "o.jsonl"
+    with pytest.raises(KeyboardInterrupt):
+        pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=fake)
+    assert len(out.read_text().splitlines()) == 2
+
+
+def test_merge_commit_skipped(repo, tmp_path):
+    d, shas = repo
+    _git(d, "checkout", "-q", "-b", "side", shas[0])
+    (d / "other.txt").write_text("x")
+    _git(d, "add", "other.txt")
+    _git(d, "commit", "-q", "-m", "side")
+    _git(d, "checkout", "-q", "-")
+    _git(d, "merge", "-q", "--no-ff", "-m", "merge array_index_nospec", "side")
+    mc = _git(d, "rev-parse", "HEAD")
+    assert pp.is_merge(d, mc) and not pp.is_merge(d, shas[1])
+
+
+def test_new_function_reason(repo, tmp_path):
+    d, shas = repo
+
+    def fake(clone, rev, cfile, cfg):
+        if rev in (shas[1], shas[2]):
+            return _asm("\tret\n")
+        return "other:\n\t.cfi_startproc\n\tret\n\t.cfi_endproc\n"
+    out = tmp_path / "o.jsonl"
+    pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=fake)
+    sk = [json.loads(l) for l in (tmp_path / "skipped_linux.jsonl").read_text().splitlines()]
+    assert any(s["reason"] == "new_function" for s in sk)
+
+
+def test_commit_cache_keyed(repo, tmp_path, capsys):
+    d, shas = repo
+    cache = tmp_path / "c.txt"
+    out = tmp_path / "o.jsonl"
+    fake = _pair_fake(shas, "\tnop\n\tret\n", "\tret\n")
+    pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=fake, commits_file=cache)
+    hdr = json.loads(cache.read_text().splitlines()[0])
+    assert hdr["terms"] == TERMS and hdr["head"] == _git(d, "rev-parse", "HEAD")
+    cache.write_text(json.dumps(dict(terms=["zzz"], head=hdr["head"])) + "\n" + shas[0] + "\n")
+    pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=fake, commits_file=cache)
+    assert "ignoring commit cache" in capsys.readouterr().out
+    assert json.loads(cache.read_text().splitlines()[0])["terms"] == TERMS

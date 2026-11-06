@@ -3,6 +3,7 @@
 CLI: python3 -m realworld.patch_pairs --repo {linux,xen} --clone DIR --out FILE [--limit N]
 """
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -14,7 +15,7 @@ from pathlib import Path
 import yaml
 
 from realworld.asm import extract_named_functions, find_function
-from realworld.records import make_record, normalise
+from realworld.records import has_mitigation, make_record, normalise
 from realworld.toolchain import IMAGE
 
 CONFIG = Path(__file__).parent / "patch_repos.yaml"
@@ -129,35 +130,83 @@ def _config_key(wt: Path, repo_cfg: dict) -> str:
     return "".join(mk.read_text(errors="replace").splitlines(True)[:8]) if mk.exists() else ""
 
 
+class BuiltAsm(str):
+    """Asm text plus how it was built (fakes may return a plain str)."""
+    build_flags = None
+    config_sha256 = None
+
+
+def is_merge(clone, commit) -> bool:
+    return len(git(clone, "rev-list", "--parents", "-n", "1", commit).split()) > 2
+
+
+def strip_comments(lines):
+    """Drop gcc -fverbose-asm `#` comments (trailing and comment-only lines)."""
+    out = []
+    for l in lines:
+        code = l.split("#", 1)[0].rstrip()
+        if code.strip():
+            out.append(code)
+    return out
+
+
 def build_asm(clone, rev, cfile, repo_cfg) -> str:
-    """Assembly for `cfile` at `rev`: one reusable worktree per repo, configured once per
-    kernel/Xen version header, then `make <cfile>.s` inside the toolchain container."""
+    """Assembly for `cfile` at `rev`. One reusable worktree per repo; generated state is
+    wiped + prepared when the version header changes, and .config is regenerated from
+    defconfig + fixed fragment before EVERY build (no order dependence)."""
     wt = _worktree(Path(clone), repo_cfg)
     git(wt, "checkout", "-q", "-f", "--detach", rev)
+    prefix = repo_cfg.get("env_prefix", "")
+    mdir = repo_cfg.get("make_dir", "")
     key_file = wt / ".specexec_configured"
     key = _config_key(wt, repo_cfg)
-    configured = key_file.exists() and key_file.read_text() == key and \
-        (wt / repo_cfg.get("make_dir", "") / (repo_cfg.get("ready_marker") or ".config")).exists()
-    if not configured:
+    marker = wt / mdir / (repo_cfg.get("ready_marker") or ".config")
+    if not (key_file.exists() and key_file.read_text() == key and marker.exists()):
         key_file.unlink(missing_ok=True)
-        r = _sh(repo_cfg["config_cmd"], wt, repo_cfg.get("env_prefix", ""))
+        cmd = " && ".join(c for c in (repo_cfg.get("wipe_cmd"), repo_cfg["regen_cmd"],
+                                      repo_cfg.get("prepare_cmd")) if c)
+        r = _sh(cmd, wt, prefix)
         if r.returncode != 0:
             raise RuntimeError("config failed: " + _err(r))
         key_file.write_text(key)
-    mdir = repo_cfg.get("make_dir", "")
     rel = cfile[len(mdir) + 1:] if mdir and cfile.startswith(mdir + "/") else cfile
     target = rel[:-2] + ".s"
     stale = wt / (mdir or ".") / target
     stale.unlink(missing_ok=True)
-    r = _sh(repo_cfg["asm_cmd"].format(target=target), wt, repo_cfg.get("env_prefix", ""))
+    flags = repo_cfg.get("build_flags", "")
+    r = _sh(repo_cfg["regen_cmd"] + " >/dev/null && " +
+            repo_cfg["asm_cmd"].format(target=target, build_flags=flags), wt, prefix)
     if r.returncode != 0 or not stale.exists():
         raise RuntimeError("make failed: " + _err(r))
-    return stale.read_text(errors="replace")
+    out = BuiltAsm(stale.read_text(errors="replace"))
+    out.build_flags = flags
+    cfg_file = wt / mdir / ".config"
+    out.config_sha256 = hashlib.sha256(cfg_file.read_bytes()).hexdigest() if cfg_file.exists() else None
+    return out
 
 
-def _provenance(repo_cfg, sha, cve, today):
-    return dict(url=repo_cfg["url_template"].format(sha=sha), commit_or_version=sha,
-                cve=cve, paper=None, licence=repo_cfg["licence"], retrieved=today)
+def _provenance(repo_cfg, sha, cve, today, built):
+    p = dict(url=repo_cfg["url_template"].format(sha=sha), commit_or_version=sha,
+             cve=cve, paper=None, licence=repo_cfg["licence"], retrieved=today)
+    return p
+
+
+def _load_commits(clone, cfg, commits_file, log):
+    head = git(clone, "rev-parse", "HEAD").strip()
+    if commits_file and Path(commits_file).exists():
+        lines = Path(commits_file).read_text().splitlines()
+        try:
+            hdr = json.loads(lines[0])
+            if hdr.get("terms") == cfg["terms"] and hdr.get("head") == head:
+                return lines[1:]
+        except (ValueError, IndexError):
+            pass
+        log("ignoring commit cache: terms or repo HEAD changed (or old format); regenerating")
+    commits = find_fix_commits(clone, cfg["terms"])  # git log -S over full history is ~20 min
+    if commits_file:
+        Path(commits_file).write_text(
+            json.dumps(dict(terms=cfg["terms"], head=head)) + "\n" + "\n".join(commits) + "\n")
+    return commits
 
 
 def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=print,
@@ -165,77 +214,93 @@ def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=pr
     cfg = repo_cfg or load_config(repo)
     clone, out = Path(clone), Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    skipped_path = out.parent / "skipped.jsonl"
+    skipped_path = out.parent / f"skipped_{repo}.jsonl"
     today = date.today().isoformat()
-    if commits_file and Path(commits_file).exists():
-        commits = Path(commits_file).read_text().split()  # git log -S over full history is ~20 min
-    else:
-        commits = find_fix_commits(clone, cfg["terms"])
-        if commits_file:
-            Path(commits_file).write_text("\n".join(commits) + "\n")
+    commits = _load_commits(clone, cfg, commits_file, log)
     commits = list(reversed(commits))  # oldest first: the 2018 Spectre-v1 fixes before recent refactors
     log(f"{repo}: {len(commits)} fix commits")
     recs, skips = [], []
     pairs = 0
     t_all = time.time()
+    fout = open(out, "w")
+    fskip = open(skipped_path, "w")
 
     def skip(commit, cfile, fn, reason, detail=""):
-        skips.append(dict(repo=repo, commit=commit, file=cfile, function=fn,
-                          reason=reason, detail=detail))
+        d = dict(repo=repo, commit=commit, file=cfile, function=fn, reason=reason, detail=detail)
+        skips.append(d)
+        fskip.write(json.dumps(d) + "\n")
+        fskip.flush()
         log(f"  skip {commit[:12]} {cfile}:{fn} {reason} {detail[-120:]!r}")
 
-    for commit in commits:
-        if limit is not None and pairs >= limit:
-            break
-        try:
-            parent = git(clone, "rev-parse", f"{commit}^").strip()
-        except RuntimeError:
-            skip(commit, None, None, "no_parent")
-            continue
-        funcs = changed_functions(clone, commit, cfg["terms"])
-        if not funcs:
-            skip(commit, None, None, "no_function_in_hunk_header")
-            continue
-        cve = parse_cve(commit_message(clone, commit))
-        label = cfg.get("cve_labels", {}).get(cve, cfg["default_label"])
-        for cfile, fn in funcs:
+    try:
+        for commit in commits:
             if limit is not None and pairs >= limit:
                 break
-            if cfile.startswith("arch/") and not cfile.startswith("arch/x86/"):
-                skip(commit, cfile, fn, "foreign_arch")  # x86_64 build only
+            if is_merge(clone, commit):
+                skip(commit, None, None, "merge_commit")
                 continue
-            t0 = time.time()
             try:
-                bodies = {}
-                for side, rev in (("pre", parent), ("post", commit)):
-                    asm = build_asm(clone, rev, cfile, cfg)
-                    body = find_function(extract_named_functions(asm), fn)
-                    if body is None:
-                        raise LookupError(f"{side}:function_not_in_asm")
-                    bodies[side] = normalise(body)
-            except LookupError as e:
-                skip(commit, cfile, fn, "function_not_in_asm", str(e))
+                parent = git(clone, "rev-parse", f"{commit}^").strip()
+            except RuntimeError:
+                skip(commit, None, None, "no_parent")
                 continue
-            except Exception as e:  # build failure of either side
-                skip(commit, cfile, fn, "build_failed", str(e)[-300:])
+            funcs = changed_functions(clone, commit, cfg["terms"])
+            if not funcs:
+                skip(commit, None, None, "no_function_in_hunk_header")
                 continue
-            if bodies["pre"] == bodies["post"]:
-                skip(commit, cfile, fn, "no_asm_change")
-                continue
-            group = f"{repo}:{commit[:12]}"
-            subset = "cve" if cve else "patch_only"
-            for side, sha in (("pre", parent), ("post", commit)):
-                extra = dict(file=cfile, function=fn, commit=commit, side=side, subset=subset,
-                             compiler=cfg["compiler"], opt=cfg["opt"])
-                if side == "post":
-                    extra["mitigated"] = True
-                recs.append(make_record(
-                    bodies[side], label if side == "pre" else "BENIGN", cfg["arch"], group,
-                    f"{repo}_patch", _provenance(cfg, sha, cve, today), **extra))
-            pairs += 1
-            log(f"  pair {pairs}: {commit[:12]} {cfile}:{fn} ({time.time() - t0:.0f}s)")
-    out.write_text("".join(json.dumps(r) + "\n" for r in recs))
-    skipped_path.write_text("".join(json.dumps(s) + "\n" for s in skips))
+            cve = parse_cve(commit_message(clone, commit))
+            label = cfg.get("cve_labels", {}).get(cve, cfg["default_label"])
+            for cfile, fn in funcs:
+                if limit is not None and pairs >= limit:
+                    break
+                if cfile.startswith("arch/") and not cfile.startswith("arch/x86/"):
+                    skip(commit, cfile, fn, "foreign_arch")  # x86_64 build only
+                    continue
+                t0 = time.time()
+                try:
+                    bodies, built = {}, {}
+                    missing = None
+                    for side, rev in (("pre", parent), ("post", commit)):
+                        asm = build_asm(clone, rev, cfile, cfg)
+                        built[side] = asm
+                        body = find_function(extract_named_functions(asm), fn)
+                        if body is None:
+                            missing = missing or side
+                            continue
+                        bodies[side] = normalise(strip_comments(body))
+                except Exception as e:  # build failure of either side
+                    skip(commit, cfile, fn, "build_failed", str(e)[-300:])
+                    continue
+                if missing:
+                    reason = "new_function" if missing == "pre" and "post" in bodies \
+                        else "function_not_in_asm"
+                    skip(commit, cfile, fn, reason, f"missing_on:{missing}")
+                    continue
+                if bodies["pre"] == bodies["post"]:
+                    skip(commit, cfile, fn, "no_asm_change")
+                    continue
+                group = f"{repo}:{commit[:12]}"
+                subset = "cve" if cve else "patch_only"
+                for side, sha in (("pre", parent), ("post", commit)):
+                    extra = dict(file=cfile, function=fn, commit=commit, side=side, subset=subset,
+                                 compiler=cfg["compiler"], opt=cfg["opt"],
+                                 mitigation_detected=bool(has_mitigation(bodies[side])))
+                    if side == "post":
+                        extra["mitigated"] = True
+                    rec = make_record(
+                        bodies[side], label if side == "pre" else "BENIGN", cfg["arch"], group,
+                        f"{repo}_patch", _provenance(cfg, sha, cve, today, built[side]), **extra)
+                    rec["provenance"]["build_flags"] = getattr(built[side], "build_flags", None) \
+                        or cfg.get("build_flags", "")
+                    rec["provenance"]["config_sha256"] = getattr(built[side], "config_sha256", None)
+                    recs.append(rec)
+                    fout.write(json.dumps(rec) + "\n")
+                fout.flush()
+                pairs += 1
+                log(f"  pair {pairs}: {commit[:12]} {cfile}:{fn} ({time.time() - t0:.0f}s)")
+    finally:
+        fout.close()
+        fskip.close()
     log(f"{repo}: {pairs} pairs, {len(skips)} skips, {time.time() - t_all:.0f}s total")
     return recs, skips
 
