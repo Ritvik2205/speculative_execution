@@ -30,11 +30,16 @@ def extract_named_functions(asm_text: str) -> dict[str, list[str]]:
 
 
 def find_function(funcs: dict[str, list[str]], name: str):
-    """Exact name, else the first `name.<suffix>`."""
+    """Exact name, else the first `name.<suffix>` (.isra.0/.constprop.0/.part.0/...),
+    else an Itanium-mangled top-level C++ function `_Z<len>name<params>`."""
     if name in funcs:
         return funcs[name]
     prefix = name + "."
     for k, v in funcs.items():
         if k.startswith(prefix):
             return v
+    for mangled in (f"_Z{len(name)}{name}", f"_ZL{len(name)}{name}"):  # extern / static
+        for k, v in funcs.items():
+            if k.startswith(mangled):
+                return v
     return None
