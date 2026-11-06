@@ -27,12 +27,17 @@ SEEDS="${SEEDS:-1 7 13 21 42}"
 DATA='eval/data/realworld_*.jsonl'
 ROOT=eval/realworld_score
 mkdir -p "$ROOT"
+STATUS="$ROOT/STATUS.tsv"     # I6: one `<name>\t<rc|no_ckpt>` line per expected run; SUMMARY.md reads it
+: > "$STATUS"
+EXPECTED=()
 score() {  # name dir train [extra flags]
   local name=$1 d=$2 train=$3; shift 3
-  [ -f "$d/gine_best.pt" ] || { echo "skip $name (no ckpt at $d)"; return; }
+  EXPECTED+=("$name")
+  [ -f "$d/gine_best.pt" ] || { echo "skip $name (no ckpt at $d)"; printf '%s\tno_ckpt\n' "$name" >> "$STATUS"; return; }
   python3 -u -m eval.score_realworld --run-dir "$d" --data "$DATA" --train-pool "$train" \
       --out-dir "$ROOT/$name" "$@"
   local rc=$?
+  printf '%s\t%s\n' "$name" "$rc" >> "$STATUS"
   [ $rc -eq 0 ] || echo "$name FAILED rc=$rc (rc 2 = reproduce-gate drift) -- skipped"
 }
 for s in $SEEDS; do
@@ -47,4 +52,5 @@ for s in $SEEDS; do
   score "b1_s$s"          "eval/cluster_out/rv_embed_specfix_s$s" v54/data/v54_train.jsonl
   score "b1_mech_s$s"     "eval/cluster_out/b1_mech_s$s"     v54/data/v54_train.jsonl
 done
-python3 -m eval.realworld_score_summary --root "$ROOT" --out "$ROOT/SUMMARY.md"
+python3 -m eval.realworld_score_summary --root "$ROOT" --out "$ROOT/SUMMARY.md" \
+    --status "$STATUS" --expected "${EXPECTED[@]}"

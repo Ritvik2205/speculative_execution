@@ -19,7 +19,8 @@ from pathlib import Path
 
 SLICES = ["all", "family=V1 branch", "family=V4 store-bypass", "family=fault/assist", "family=other",
           "subset=benign", "arch=x86_64", "arch=riscv64"]
-BARS = ["always_attack", "fence_count", "opcode_lr", "mechanism_v2", "mechanism_v2_excl"]
+BARS = ["always_attack", "fence_count", "opcode_lr", "mechanism_v2", "mechanism_v2_excl", "length",
+        "has_ret", "push_rbp", "has_LC", "has_fs"]
 
 
 def collect(root):
@@ -46,11 +47,53 @@ def _mode(js):
     return t.split(":")[0] if t else None
 
 
-def render(runs):
-    L = ["# Real-world retrain summary", "",
-         "Balanced accuracy on the real-world eval set (leak vs safe, per-window any-window rule), headline "
-         "rows only. Model rows: mean +/- sd over seeds, then per-seed values in order. A slice with one "
-         "class reports that class's recall. `n` = headline rows (leak/safe).", ""]
+def read_status(path):
+    """STATUS.tsv written by score_realworld.sbatch: `<run name>\t<rc or no_ckpt>` per line."""
+    out = {}
+    if path and Path(path).exists():
+        for l in Path(path).read_text().splitlines():
+            if "\t" in l:
+                k, v = l.split("\t", 1)
+                out[k.strip()] = v.strip()
+    return out
+
+
+def _why(st):
+    if st is None:
+        return "no status (never ran?)"
+    if st == "no_ckpt":
+        return "no_ckpt (checkpoint missing)"
+    if st == "2":
+        return "rc=2 (reproduce-gate drift: gate failed)"
+    return f"rc={st} (scorer failed)"
+
+
+def render_missing(runs, expected, status):
+    """I6: top-of-file block listing every expected run without a score.json, and every non-zero rc."""
+    have = {f"{t}_s{s}" for t, by in runs.items() for s in by}
+    exp = list(expected or [])
+    bad = [n for n in exp if n not in have]
+    failed = [n for n in exp if n in have and status.get(n) not in (None, "0")]
+    L = ["## Missing / failed runs", ""]
+    if not exp:
+        L += ["(no expected run list given: cannot tell what is missing; pass --expected)", ""]
+    elif not bad and not failed:
+        L += [f"All {len(exp)} expected runs present (rc 0).", ""]
+    else:
+        L += [f"**{len(bad)} of {len(exp)} expected runs MISSING, {len(failed)} FAILED** -- the tables below "
+              "do NOT cover the missing ones.", ""]
+        L += [f"- MISSING `{n}`: {_why(status.get(n))}" for n in bad]
+        L += [f"- FAILED `{n}`: {_why(status.get(n))} (a score.json exists from an older run)" for n in failed]
+        L.append("")
+    return L
+
+
+def render(runs, expected=None, status=None):
+    L = ["# Real-world retrain summary", ""]
+    L += render_missing(runs, expected, status or {})
+    L += ["Balanced accuracy on the real-world eval set (leak vs safe, per-window any-window rule), headline "
+          "rows only. Model rows: mean +/- sd over seeds, then per-seed values in order. A slice with one "
+          "class reports that class's recall. `n` = headline functions (leak/safe), never windows.", ""]
     if not runs:
         return "\n".join(L + ["(no score.json found)"]) + "\n"
     sets = defaultdict(list)           # (headline n, mode) -> tags
@@ -59,7 +102,7 @@ def render(runs):
         sets[(js["counts"]["headline"], _mode(js))].append(tag)
     for (n_head, mode), tags in sorted(sets.items(), key=lambda kv: (kv[0][0], kv[0][1] or "")):
         title = "H0-comparable (collector train_overlap flags)" if mode is None else f"overlap-clean ({mode})"
-        L += [f"## {title}: headline n={n_head} (tags: {', '.join(sorted(tags))})", "",
+        L += [f"## {title}: headline n={n_head} functions (tags: {', '.join(sorted(tags))})", "",
               "| arm | seeds | " + " | ".join(SLICES) + " |", "|---|---|" + "---|" * len(SLICES)]
         for tag in sorted(tags):
             seeds = sorted(runs[tag])
@@ -80,7 +123,7 @@ def render(runs):
                 L.append(f"| bar: {b} ({tag}) | - | " + " | ".join(row) + " |")
         ref = runs[sorted(tags)[0]][min(runs[sorted(tags)[0]])]
         c = ref["slices"]["headline"].get("all", {}).get("always_attack", {})
-        L += ["", f"(all-slice n={c.get('n')}, leak={c.get('n_leak')}, safe={c.get('n_safe')}, "
+        L += ["", f"(all-slice n={c.get('n')} functions, leak={c.get('n_leak')}, safe={c.get('n_safe')}, "
               f"clusters={c.get('n_groups')}; per-slice n, CIs and paired diffs are in each run's score.md)", ""]
     return "\n".join(L) + "\n"
 
@@ -89,8 +132,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default="eval/realworld_score")
     ap.add_argument("--out", default="eval/realworld_score/SUMMARY.md")
+    ap.add_argument("--expected", nargs="*", default=None,
+                    help="every <tag>_s<seed> run that should exist (score_realworld.sbatch passes its list)")
+    ap.add_argument("--status", default=None,
+                    help="per-run rc file (default <root>/STATUS.tsv, written by score_realworld.sbatch)")
     a = ap.parse_args(argv)
-    md = render(collect(a.root))
+    status = read_status(a.status or Path(a.root) / "STATUS.tsv")
+    md = render(collect(a.root), expected=a.expected, status=status)
     Path(a.out).write_text(md)
     print(f"wrote {a.out}")
     return 0
