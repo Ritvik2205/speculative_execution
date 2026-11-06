@@ -124,8 +124,12 @@ def test_heldout_benign_whole_functions(tmp_path):
     assert ev
     for pkg in {r["package"] for r in ev}:
         rs = [r for r in ev if r["package"] == pkg]
-        assert sorted(r["function"] for r in rs) == ["f0", "f1", "f2"]      # one row per function
-    assert all(len(r["sequence"]) == 301 and r.get("unit") == "function" for r in ev)
+        # one row per function; R47: held-out floor is EVAL_MIN_INSTR (10), so the 10-instr `short` is kept
+        assert sorted(r["function"] for r in rs) == ["f0", "f1", "f2", "short"]
+    assert all(r.get("unit") == "function" for r in ev)
+    assert min(len(r["sequence"]) for r in ev) < bd.WIN_LO
+    assert all(len(r["sequence"]) >= bd.WIN_LO for r in tr)                # train floor unchanged (R2)
+    assert "short" not in {r["function"] for r in tr}
     assert max(len(r["sequence"]) for r in tr) > WIN_HI  # train uses the reference histogram (non-BENIGN rows only)
     # cap on functions: evenly spaced, deterministic
     asm = "".join(_func(f"g{i:03d}", _body(i + 1, 30 + i % 7)) for i in range(50))

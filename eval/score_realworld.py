@@ -74,6 +74,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import glob
+import hashlib
 import json
 import re
 import sys
@@ -128,6 +129,47 @@ def partition(rows):
         else:
             out["headline"].append(r)
     return out
+
+
+LM_BINS = 5            # R47: quantile bins of the leak-length histogram
+
+
+def _stable_key(r):
+    return hashlib.sha256(json.dumps([r.get("group"), r.get("file"), r.get("function"),
+                                      r["sequence"]]).encode()).hexdigest()
+
+
+def length_match(rows, n_bins=LM_BINS):
+    """R47: subsample Debian benign functions (subset 'benign') per arch so their length histogram
+    follows the leak rows' (quantile bins of the leak lengths; benign outside the leak range dropped).
+    Per-arch target = the largest count every bin can supply. Other safe rows (fenced/masked variants,
+    patch post sides) and all leaks are kept. Deterministic (selection by hash). An arch with no leak
+    keeps no Debian benign: its benign could only be scored against nothing."""
+    keep = [r for r in rows if is_leak(r) or r.get("subset") != "benign"]
+    for arch in sorted({r.get("arch", "x86_64") for r in rows}):
+        leak = sorted(len(r["sequence"]) for r in rows if is_leak(r) and r.get("arch", "x86_64") == arch)
+        ben = [r for r in rows if not is_leak(r) and r.get("subset") == "benign"
+               and r.get("arch", "x86_64") == arch]
+        if not leak or not ben:
+            continue
+        q = max(1, min(n_bins, len(leak) // 4))
+        edges = np.unique(np.percentile(leak, np.linspace(0, 100, q + 1)))
+        if len(edges) == 1:
+            edges = np.array([edges[0], edges[0] + 1])
+        idx = lambda n: int(min(np.searchsorted(edges, n, side="right") - 1, len(edges) - 2))
+        p = np.bincount([idx(n) for n in leak], minlength=len(edges) - 1) / len(leak)
+        bins = [[] for _ in range(len(edges) - 1)]
+        for r in ben:
+            n = len(r["sequence"])
+            if edges[0] <= n <= edges[-1]:
+                bins[idx(n)].append(r)
+        sup = [len(b) / pb for b, pb in zip(bins, p) if pb > 0 and b]   # bins with no benign can't be matched
+        if not sup:
+            continue
+        target = min(sup)
+        for b, pb in zip(bins, p):
+            keep += sorted(b, key=_stable_key)[:int(target * pb)]
+    return keep
 
 
 def recompute_overlap(rows, pool):
@@ -599,19 +641,22 @@ def score(rows, predictor=None, lr_train=None, n_boot=2000, seed=0, length_ref=N
     short = [r for r in rows if n_instructions(r) < MIN_INSTR]
     rows = [r for r in rows if n_instructions(r) >= MIN_INSTR]
     parts = partition(rows)
+    parts["headline_all"] = parts["headline"]
+    parts["headline"] = length_match(parts["headline_all"])   # R47
     iqr, iqr_src = length_iqrs(length_ref if length_ref is not None else (lr_train or []), length_fallback)
     out = dict(counts=dict(total=len(rows) + len(noinstr) + len(short), no_instruction_dropped=len(noinstr),
                            no_instruction_harness=sum(bool(r.get("harness")) for r in noinstr),
                            short_dropped=len(short),
                            short_dropped_harness=sum(bool(r.get("harness")) for r in short),
                            dup_dropped=parts["n_dup_dropped"],
-                           **{k: len(parts[k]) for k in ("headline", "harness", "train_overlap")}),
+                           length_match_dropped=len(parts["headline_all"]) - len(parts["headline"]),
+                           **{k: len(parts[k]) for k in ("headline", "headline_all", "harness", "train_overlap")}),
                slices={}, diffs={}, rows=[], unscorable=0, mech_abstain_rows=0,
                length_iqr=iqr, length_iqr_source=iqr_src, length_dist={})
     methods = (["model"] if predictor else []) + [b for b in BARS if (b != "opcode_lr" or lr_train)
                                                   and (b != "length" or iqr)] \
         + ["mechanism_v2_excl"] + [m for m in SECONDARY if m != "length_wholefn" or iqr]
-    for sec in ("headline", "harness", "train_overlap"):
+    for sec in ("headline", "headline_all", "harness", "train_overlap"):
         rs = parts[sec]
         out["slices"][sec], out["diffs"][sec] = {}, {}
         if not rs:
@@ -723,7 +768,9 @@ def render_md(res, meta):
           f"dropped for having fewer than {MIN_INSTR} instructions (R42) **{c.get('short_dropped', 0)}** "
           f"(of which harness-flagged {c.get('short_dropped_harness', 0)}); "
           f"dropped as dup_of (R17/R25) **{c['dup_dropped']}**; "
-          f"headline **{c['headline']}** functions; harness (R18, separate) {c['harness']}; "
+          f"headline **{c['headline']}** functions (after R47 length matching dropped "
+          f"{c.get('length_match_dropped', 0)} of {c.get('headline_all', c['headline'])} Debian-benign-inclusive "
+          f"rows); harness (R18, separate) {c['harness']}; "
           f"train_overlap (separate) {c['train_overlap']}. "
           f"Unscorable by model: {res['unscorable']}. "
           f"Functions on which the mechanism rule abstained in every window/class (whole-function, counted safe): "
@@ -740,6 +787,12 @@ def render_md(res, meta):
           "`*_wholefn` rows are whole-function calls (secondary). `wrate` columns give the per-window leak "
           "rate (mean over a function's windows, averaged over leak-truth / safe-truth functions) as a "
           "length-insensitive view.",
+          "", "Length matching (R47): held-out Debian benign functions are longer than the leak functions, "
+          "so length alone separates them. The headline therefore keeps, per arch, a deterministic subsample of "
+          "Debian benign functions whose length histogram follows the leaks' (quantile bins of the leak lengths; "
+          "benign outside the leak range dropped; fenced/masked/patched safe rows are never subsampled). "
+          "`headline_all` is the unmatched set, for reference only. Check the function-length AUC below: the "
+          "matched headline should sit near 0.5.",
           "", "Shortcut bars (R39/R41), each a one-feature rule in the same per-window unit: `length` = window "
           "length outside the benign-train IQR of its arch (IQRs below); `has_ret` = window contains a ret -> "
           "leak; `push_rbp` = contains `push %rbp` -> leak; `has_LC` = contains a `.LC<n>` constant -> safe "
@@ -771,7 +824,9 @@ def render_md(res, meta):
         L += ["", "Function-length AUC (shorter = leak; 0.5 = no length cue; the `length` bar is ONE fixed rule, this is "
               "what any length threshold could reach): " + "; ".join(f"{k} {_f(v)}" for k, v in au.items()), ""]
     ms = res["methods"]
-    for sec, title in (("headline", "Headline (clean: not harness, not train_overlap, not dup)"),
+    for sec, title in (("headline", "Headline (clean: not harness, not train_overlap, not dup; Debian benign "
+                                     "length-matched to the leaks, R47)"),
+                       ("headline_all", "Headline before length matching (reference only; length-confounded)"),
                        ("harness", "Harness rows (R18) -- NOT headline"),
                        ("train_overlap", "train_overlap rows -- NOT headline")):
         cells = res["slices"].get(sec, {})

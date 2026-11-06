@@ -147,6 +147,11 @@ def opt_label(opt="default", hardening="on"):
     return f"{o}(debian)" if hardening == "on" and opt == "default" else f"{o}(debian,hardening={hardening})"
 
 
+# R47: held-out eval functions go down to the scorer's floor (score_realworld.MIN_INSTR, R42), so
+# short leak functions have length-matched benign counterparts; train keeps R2's 25.
+EVAL_MIN_INSTR = 10
+
+
 def read_packages(path):
     out = []
     for l in Path(path).read_text().splitlines():
@@ -199,7 +204,7 @@ def records_from_asm(asm_items, arch, cc, pkg, version, snapshot, retrieved, cap
             if has_mitigation(body, arch):
                 continue
             seq = normalise_for_arch(body, arch)
-            if len(seq) < WIN_LO:
+            if len(seq) < (EVAL_MIN_INSTR if whole else WIN_LO):
                 continue
             if whole:
                 wins = [seq]

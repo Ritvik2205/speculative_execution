@@ -242,7 +242,7 @@ def test_length_bar_printed():
     md = sr.render_md(out, {})
     assert "| length" in md or " length |" in md
     assert "Length distribution" in md and "IQR" in md
-    assert out["length_auc"]["headline"] == 1.0 and "Function-length AUC" in md   # all leaks shorter
+    assert out["length_auc"]["headline_all"] == 1.0 and "Function-length AUC" in md   # all leaks shorter
 
 
 def test_shortcut_bars_printed():
@@ -289,3 +289,32 @@ def test_headers_count_functions_and_disclose():
     md = sr.render_md(out, {})
     assert "n (functions)" in md and "clusters" in md
     assert "retpoline" in md and "ZombieLoad" in md and "not held-out" in md.lower()
+
+
+def test_length_match_removes_length_cue():
+    """R47: Debian benign functions are subsampled per arch to the leak-length histogram of the same
+    section, so the threshold-free length AUC of the matched headline is near 0.5."""
+    rng = np.random.default_rng(0)
+    leaks = [row(f"L{i}", "SPECTRE_V1", ["movq (%rax), %rbx"] * int(n))
+             for i, n in enumerate(rng.integers(12, 60, 40))]
+    benign = [row(f"debian:p{i % 5}", "BENIGN", ["addq $1, %rax"] * int(n), subset="benign")
+              for i, n in enumerate(rng.integers(10, 600, 400))]
+    fenced = [row("vendor", "BENIGN", ["lfence"] + ["nop"] * 300, subset="vendor")]
+    kept = sr.length_match(leaks + benign + fenced)
+    safe = [r for r in kept if not sr.is_leak(r)]
+    assert fenced[0] in safe                                 # non-Debian safe rows are never subsampled
+    deb = [r for r in safe if r.get("subset") == "benign"]
+    assert 0 < len(deb) < len(benign)
+    auc = sr.length_auc([len(r["sequence"]) for r in leaks], [len(r["sequence"]) for r in deb])
+    assert 0.4 < auc < 0.6
+    assert sr.length_match(leaks + benign) == sr.length_match(leaks + benign)   # deterministic
+
+
+def test_score_reports_matched_and_unmatched_headline():
+    leaks = [row(f"L{i}", "SPECTRE_V1", ["movq (%rax), %rbx"] * (12 + i)) for i in range(20)]
+    benign = [row(f"debian:p{i % 3}", "BENIGN", ["addq $1, %rax"] * (25 + 7 * i), subset="benign")
+              for i, n in enumerate(range(90))]
+    res = sr.score(leaks + benign, n_boot=50)
+    assert "headline_all" in res["slices"] and res["slices"]["headline"]
+    assert res["counts"]["length_match_dropped"] > 0
+    assert res["counts"]["headline"] < res["counts"]["headline_all"]
