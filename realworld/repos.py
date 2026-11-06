@@ -7,6 +7,7 @@ are whole functions (the scorer windows them later).
 """
 import argparse
 import json
+import re
 import subprocess
 import time
 from datetime import date
@@ -83,6 +84,7 @@ def _train_rows(train_file):
         r = json.loads(l)
         r["provenance"] = {"url": "train", "commit_or_version": "v54"}
         r["function"] = r.get("func_name", "")
+        r["group"] = r.get("group") or ""
         r["source_file"] = r.get("source_file") or ""
         rows.append(r)
     return rows
@@ -91,6 +93,18 @@ def _train_rows(train_file):
 def _resolve(repo_dir, d):
     """`@name` = a directory shipped under realworld/ (shims, vendor_snippets)."""
     return ROOT / "realworld" / d[1:] if d.startswith("@") else Path(repo_dir) / d
+
+
+def train_source_tokens(trows):
+    """Lowercased external-source names seen in the train file: the `ext_<tool>_` prefix of
+    `group` and every path component of `source_file`."""
+    toks = set()
+    for r in trows:
+        m = re.match(r"ext_([a-z0-9]+)_", (r.get("group") or "").lower())
+        if m:
+            toks.add(m.group(1))
+        toks.update(c.lower() for c in (r.get("source_file") or "").split("/") if c)
+    return toks
 
 
 def out_path(e, out_dir, train_dir):
@@ -160,10 +174,11 @@ def run(e, repo_dir, out_dir, train_dir, compile_fn=compile_to_asm, train_file=D
                 safe = bool(item["safe"])
                 prov = dict(url=e["url"], commit_or_version=e["commit"], licence=e["licence"],
                             retrieved=today, cve=item.get("cve", e.get("cve")), paper=e.get("paper"))
-                group = f"{e['name']}:" + (item.get("group") or f"{item['file']}:{item['function']}")
+                family = item.get("family") or f"{e['name']}:{item['file']}:{item['function']}"
+                group = family  # ports of one case (kocher:NN, safeside:<test>) must stay together in splits
                 rec = make_record(
                     seq, "BENIGN" if safe else item["label"], arch, group, f"{e['name']}_{e['subset']}",
-                    prov, file=item["file"], function=item["function"], commit=e["commit"],
+                    prov, family=family, harness=bool(item.get("harness", False)), file=item["file"], function=item["function"], commit=e["commit"],
                     subset=e["subset"], compiler=cc, opt=opt, safe=safe, vuln_class=item["label"],
                     mitigation_detected=bool(has_mitigation(seq)), note=item.get("note", ""),
                     train_overlap=False)
@@ -177,14 +192,18 @@ def run(e, repo_dir, out_dir, train_dir, compile_fn=compile_to_asm, train_file=D
     trows = _train_rows(train_file)
     thash = {_seq_hash(r) for r in trows}
     tsrc = {r["source_file"] for r in trows if r.get("source_file")}
+    ttok = train_source_tokens(trows)
+    ftok = [t.lower() for t in e.get("family_train_tokens", [])]
     for r in recs:
         by_hash = _seq_hash(r) in thash
         # train rows are windows of files the project already ingested (e.g. a /tmp checkout of the
         # same repo): same repo-relative path => the file is in train even if the window differs
         by_src = any(sf.endswith("/" + r["file"]) and (e.get("checkout", e["name"]).split("-asm")[0] in sf
                                                       or e["name"].split("-asm")[0] in sf) for sf in tsrc)
-        r["train_overlap"] = by_hash or by_src
-        r["train_overlap_reason"] = "sequence_hash" if by_hash else ("source_path" if by_src else None)
+        fam = next((t for t in ftok if any(t in x for x in ttok)), None)
+        r["train_overlap"] = by_hash or by_src or fam is not None
+        r["train_overlap_reason"] = ("sequence_hash" if by_hash else "source_path" if by_src
+                                     else f"family:{fam}" if fam else None)
     with open(out, "w") as f:
         for r in recs:
             f.write(json.dumps(r) + "\n")

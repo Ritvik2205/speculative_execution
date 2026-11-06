@@ -189,3 +189,65 @@ def test_per_compiler_flags(clone, tmp_path):
     e = entry(clone, compilers=["gcc", "clang"], arches=["x86_64"], opts=["-O0"], extra_flags_clang=["-fms-extensions"])
     repos.run(e, clone, tmp_path / "o", tmp_path / "t", compile_fn=spy, train_file=None, log=lambda *_: None)
     assert ("clang", ("-w", "-fms-extensions")) in seen and ("gcc", ("-w",)) in seen
+
+
+# ---- fix round 1: family / group, harness, dedupe ----
+def test_kocher_family_overlaps_train_without_hash_or_path(clone, tmp_path):
+    e = entry(clone, arches=["x86_64"], opts=["-O0"], family_train_tokens=["spectector"])
+    e["items"][0]["family"] = "kocher:01"
+    tf = tmp_path / "train.jsonl"
+    tf.write_text(json.dumps(dict(sequence=["nop"], label="SPECTRE_V1", arch="x86_64",
+                                  group="ext_spectector_p1_vanilla", source_file="/tmp/x/hwsw/a.s")) + "\n")
+    recs, _ = repos.run(e, clone, tmp_path / "o", tmp_path / "t", compile_fn=fake_compile,
+                        train_file=tf, log=lambda *_: None)
+    r = recs[0]
+    assert r["family"] == "kocher:01" and r["group"] == "kocher:01"
+    assert r["train_overlap"] and r["train_overlap_reason"].startswith("family")
+    recs2, _ = repos.run(e, clone, tmp_path / "o2", tmp_path / "t", compile_fn=fake_compile,
+                         train_file=None, log=lambda *_: None)
+    assert not recs2[0]["train_overlap"]
+
+
+def test_two_repos_share_group_for_same_case(clone, tmp_path):
+    e1 = entry(clone, name="r1", arches=["x86_64"], opts=["-O0"])
+    e2 = entry(clone, name="r2", arches=["x86_64"], opts=["-O0"])
+    for e in (e1, e2):
+        e["items"][0]["family"] = "kocher:03"
+    a, _ = repos.run(e1, clone, tmp_path / "o", tmp_path / "t", compile_fn=fake_compile, train_file=None, log=lambda *_: None)
+    b, _ = repos.run(e2, clone, tmp_path / "o", tmp_path / "t", compile_fn=fake_compile, train_file=None, log=lambda *_: None)
+    assert a[0]["group"] == b[0]["group"] == "kocher:03"
+
+
+def test_default_family_is_repo_item(clone, tmp_path):
+    recs, _ = repos.run(entry(clone), clone, tmp_path / "o", tmp_path / "t", compile_fn=fake_compile,
+                        train_file=None, log=lambda *_: None)
+    assert recs[0]["family"] == "fx:a.c:victim" and recs[0]["group"] == recs[0]["family"]
+
+
+def test_harness_flag(clone, tmp_path):
+    e = entry(clone)
+    e["items"][0]["harness"] = True
+    recs, _ = repos.run(e, clone, tmp_path / "o", tmp_path / "t", compile_fn=fake_compile, train_file=None, log=lambda *_: None)
+    assert all(r["harness"] is True for r in recs)
+    recs, _ = repos.run(entry(clone), clone, tmp_path / "o", tmp_path / "t", compile_fn=fake_compile, train_file=None, log=lambda *_: None)
+    assert all(r["harness"] is False for r in recs)
+
+
+def _row(seq, name, arch="x86_64"):
+    return dict(sequence=seq, label="BENIGN", arch=arch, group="g", file="f", function=name,
+                provenance=dict(url="u", commit_or_version="c", licence="l", retrieved="d"))
+
+
+def test_dedupe_marks_later_rows_only(tmp_path):
+    from realworld import dedupe
+    a, b = tmp_path / "realworld_a.jsonl", tmp_path / "realworld_b.jsonl"
+    same = ["movq %rax, %rbx", "ret"]
+    a.write_text(json.dumps(_row(same, "first")) + "\n" + json.dumps(_row(["nop", "ret"], "other")) + "\n")
+    b.write_text(json.dumps(_row(same, "second")) + "\n" + json.dumps(_row(same, "third", arch="arm64")) + "\n")
+    n = dedupe.run([b, a])  # order of args must not matter
+    rows = [json.loads(l) for p in (a, b) for l in open(p)]
+    assert n == 1
+    assert rows[0]["dup_of"] is None and rows[1]["dup_of"] is None
+    assert rows[2]["dup_of"] == "u@c#f:first"
+    assert rows[3]["dup_of"] is None  # different arch
+    assert dedupe.run([a, b]) == 1  # idempotent

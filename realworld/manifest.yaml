@@ -23,76 +23,93 @@
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 01 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:01
   - file: sources/compiler-countermeasures/02.c
     function: victim_function_v02
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 02 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:02
   - file: sources/compiler-countermeasures/03.c
     function: victim_function_v03
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 03 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:03
   - file: sources/compiler-countermeasures/04.c
     function: victim_function_v04
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 04 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:04
   - file: sources/compiler-countermeasures/05.c
     function: victim_function_v05
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 05 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:05
   - file: sources/compiler-countermeasures/06.c
     function: victim_function_v06
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 06 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:06
   - file: sources/compiler-countermeasures/07.c
     function: victim_function_v07
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 07 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:07
   - file: sources/compiler-countermeasures/08.c
     function: victim_function_v08
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 08 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:08
   - file: sources/compiler-countermeasures/09.c
     function: victim_function_v09
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 09 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:09
   - file: sources/compiler-countermeasures/10.c
     function: victim_function_v10
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 10 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:10
   - file: sources/compiler-countermeasures/11ker.c
     function: victim_function_v11
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 11 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:11
   - file: sources/compiler-countermeasures/12.c
     function: victim_function_v12
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 12 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:12
   - file: sources/compiler-countermeasures/13.c
     function: victim_function_v13
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 13 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:13
   - file: sources/compiler-countermeasures/14.c
     function: victim_function_v14
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 14 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:14
   - file: sources/compiler-countermeasures/15.c
     function: victim_function_v15
     label: SPECTRE_V1
     safe: false
     note: Kocher Spectre-v1 variant 15 from the Spectector compiler-countermeasures suite (variant 11 = 11ker; ansidecl.h supplied by realworld/shims)
+    family: kocher:15
+  family_train_tokens:
+  - spectector
   extra_flags_clang:
   - -fms-extensions
   include_dirs:
@@ -115,1472 +132,1474 @@
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/intel/01/any.o2.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/intel/01/lfence.o0.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/intel/01/lfence.o2.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/clang/01/any.o0.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/clang/01/any.o2.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/clang/01/lfence.o0.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/clang/01/lfence.o2.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/clang/01/slh.o0.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/clang/01/slh.o2.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/gcc/01/any.o0.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/gcc/01/any.o2.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/gcc/01/slh.o0.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/gcc/01/slh.o2.s
     function: victim_function_v01
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v01 shipped by the repo
-    group: '01'
+    family: kocher:01
     arch: x86_64
   - file: target/intel/02/any.o0.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/intel/02/any.o2.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/intel/02/lfence.o0.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/intel/02/lfence.o2.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/clang/02/any.o0.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/clang/02/any.o2.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/clang/02/lfence.o0.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/clang/02/lfence.o2.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/clang/02/slh.o0.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/clang/02/slh.o2.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/gcc/02/any.o0.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/gcc/02/any.o2.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/gcc/02/slh.o0.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/gcc/02/slh.o2.s
     function: victim_function_v02
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v02 shipped by the repo
-    group: '02'
+    family: kocher:02
     arch: x86_64
   - file: target/intel/03/any.o0.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/intel/03/any.o2.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/intel/03/lfence.o0.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/intel/03/lfence.o2.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/clang/03/any.o0.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/clang/03/any.o2.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/clang/03/lfence.o0.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/clang/03/lfence.o2.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/clang/03/slh.o0.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/clang/03/slh.o2.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/gcc/03/any.o0.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/gcc/03/any.o2.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/gcc/03/slh.o0.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/gcc/03/slh.o2.s
     function: victim_function_v03
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v03 shipped by the repo
-    group: '03'
+    family: kocher:03
     arch: x86_64
   - file: target/intel/04/any.o0.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/intel/04/any.o2.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/intel/04/lfence.o0.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/intel/04/lfence.o2.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/clang/04/any.o0.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/clang/04/any.o2.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/clang/04/lfence.o0.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/clang/04/lfence.o2.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/clang/04/slh.o0.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/clang/04/slh.o2.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/gcc/04/any.o0.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/gcc/04/any.o2.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/gcc/04/slh.o0.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/gcc/04/slh.o2.s
     function: victim_function_v04
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v04 shipped by the repo
-    group: '04'
+    family: kocher:04
     arch: x86_64
   - file: target/intel/05/any.o0.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/intel/05/any.o2.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/intel/05/lfence.o0.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/intel/05/lfence.o2.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/clang/05/any.o0.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/clang/05/any.o2.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/clang/05/lfence.o0.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/clang/05/lfence.o2.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/clang/05/slh.o0.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/clang/05/slh.o2.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/gcc/05/any.o0.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/gcc/05/any.o2.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/gcc/05/slh.o0.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/gcc/05/slh.o2.s
     function: victim_function_v05
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v05 shipped by the repo
-    group: '05'
+    family: kocher:05
     arch: x86_64
   - file: target/intel/06/any.o0.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/intel/06/any.o2.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/intel/06/lfence.o0.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/intel/06/lfence.o2.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/clang/06/any.o0.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/clang/06/any.o2.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/clang/06/lfence.o0.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/clang/06/lfence.o2.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/clang/06/slh.o0.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/clang/06/slh.o2.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/gcc/06/any.o0.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/gcc/06/any.o2.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/gcc/06/slh.o0.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/gcc/06/slh.o2.s
     function: victim_function_v06
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v06 shipped by the repo
-    group: '06'
+    family: kocher:06
     arch: x86_64
   - file: target/intel/07/any.o0.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/intel/07/any.o2.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/intel/07/lfence.o0.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/intel/07/lfence.o2.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/clang/07/any.o0.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/clang/07/any.o2.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/clang/07/lfence.o0.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/clang/07/lfence.o2.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/clang/07/slh.o0.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/clang/07/slh.o2.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/gcc/07/any.o0.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/gcc/07/any.o2.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/gcc/07/slh.o0.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/gcc/07/slh.o2.s
     function: victim_function_v07
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v07 shipped by the repo
-    group: '07'
+    family: kocher:07
     arch: x86_64
   - file: target/intel/08/any.o0.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/intel/08/any.o2.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/intel/08/lfence.o0.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/intel/08/lfence.o2.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/clang/08/any.o0.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/clang/08/any.o2.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/clang/08/lfence.o0.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/clang/08/lfence.o2.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/clang/08/slh.o0.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/clang/08/slh.o2.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/gcc/08/any.o0.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/gcc/08/any.o2.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/gcc/08/slh.o0.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/gcc/08/slh.o2.s
     function: victim_function_v08
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v08 shipped by the repo
-    group: 08
+    family: kocher:08
     arch: x86_64
   - file: target/intel/09/any.o0.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/intel/09/any.o2.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/intel/09/lfence.o0.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/intel/09/lfence.o2.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/clang/09/any.o0.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/clang/09/any.o2.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/clang/09/lfence.o0.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/clang/09/lfence.o2.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/clang/09/slh.o0.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/clang/09/slh.o2.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/gcc/09/any.o0.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/gcc/09/any.o2.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/gcc/09/slh.o0.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/gcc/09/slh.o2.s
     function: victim_function_v09
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v09 shipped by the repo
-    group: 09
+    family: kocher:09
     arch: x86_64
   - file: target/intel/10/any.o0.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/intel/10/any.o2.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/intel/10/lfence.o0.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/intel/10/lfence.o2.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/clang/10/any.o0.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/clang/10/any.o2.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/clang/10/lfence.o0.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/clang/10/lfence.o2.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/clang/10/slh.o0.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/clang/10/slh.o2.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/gcc/10/any.o0.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/gcc/10/any.o2.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/gcc/10/slh.o0.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/gcc/10/slh.o2.s
     function: victim_function_v10
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v10 shipped by the repo
-    group: '10'
+    family: kocher:10
     arch: x86_64
   - file: target/intel/11ker/any.o0.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/intel/11ker/any.o2.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/intel/11ker/lfence.o0.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/intel/11ker/lfence.o2.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/clang/11ker/any.o0.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/clang/11ker/any.o2.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/clang/11ker/lfence.o0.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/clang/11ker/lfence.o2.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/clang/11ker/slh.o0.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/clang/11ker/slh.o2.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/gcc/11ker/any.o0.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/gcc/11ker/any.o2.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/gcc/11ker/slh.o0.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/gcc/11ker/slh.o2.s
     function: victim_function_v11
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v11 shipped by the repo
-    group: 11ker
+    family: kocher:11
     arch: x86_64
   - file: target/intel/12/any.o0.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/intel/12/any.o2.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/intel/12/lfence.o0.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/intel/12/lfence.o2.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/clang/12/any.o0.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/clang/12/any.o2.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/clang/12/lfence.o0.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/clang/12/lfence.o2.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/clang/12/slh.o0.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/clang/12/slh.o2.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/gcc/12/any.o0.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/gcc/12/any.o2.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/gcc/12/slh.o0.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/gcc/12/slh.o2.s
     function: victim_function_v12
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v12 shipped by the repo
-    group: '12'
+    family: kocher:12
     arch: x86_64
   - file: target/intel/13/any.o0.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/intel/13/any.o2.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/intel/13/lfence.o0.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/intel/13/lfence.o2.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/clang/13/any.o0.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/clang/13/any.o2.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/clang/13/lfence.o0.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/clang/13/lfence.o2.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/clang/13/slh.o0.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/clang/13/slh.o2.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/gcc/13/any.o0.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/gcc/13/any.o2.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/gcc/13/slh.o0.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/gcc/13/slh.o2.s
     function: victim_function_v13
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v13 shipped by the repo
-    group: '13'
+    family: kocher:13
     arch: x86_64
   - file: target/intel/14/any.o0.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/intel/14/any.o2.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/intel/14/lfence.o0.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/intel/14/lfence.o2.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/clang/14/any.o0.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/clang/14/any.o2.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/clang/14/lfence.o0.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/clang/14/lfence.o2.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/clang/14/slh.o0.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/clang/14/slh.o2.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/gcc/14/any.o0.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/gcc/14/any.o2.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/gcc/14/slh.o0.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/gcc/14/slh.o2.s
     function: victim_function_v14
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v14 shipped by the repo
-    group: '14'
+    family: kocher:14
     arch: x86_64
   - file: target/intel/15/any.o0.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/intel/15/any.o2.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: false
     note: intel unprotected build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/intel/15/lfence.o0.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/intel/15/lfence.o2.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: true
     note: intel lfence mitigation build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/clang/15/any.o0.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/clang/15/any.o2.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: false
     note: clang unprotected build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/clang/15/lfence.o0.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/clang/15/lfence.o2.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: true
     note: clang lfence mitigation build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/clang/15/slh.o0.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/clang/15/slh.o2.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: true
     note: clang slh mitigation build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/gcc/15/any.o0.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/gcc/15/any.o2.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: false
     note: gcc unprotected build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/gcc/15/slh.o0.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   - file: target/gcc/15/slh.o2.s
     function: victim_function_v15
     label: SPECTRE_V1
     safe: true
     note: gcc slh mitigation build of Kocher v15 shipped by the repo
-    group: '15'
+    family: kocher:15
     arch: x86_64
   checkout: spectector-benchmarks
+  family_train_tokens:
+  - spectector
   raw_asm: true
 - name: pitchfork-angr
   url: https://github.com/PLSysSec/pitchfork-angr
@@ -1605,181 +1624,219 @@
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 01 (Pitchfork's spectector-clang copy)
+    family: kocher:01
   - file: spectector-clang/02.c
     function: victim_function_v02
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 02 (Pitchfork's spectector-clang copy)
+    family: kocher:02
   - file: spectector-clang/03.c
     function: victim_function_v03
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 03 (Pitchfork's spectector-clang copy)
+    family: kocher:03
   - file: spectector-clang/04.c
     function: victim_function_v04
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 04 (Pitchfork's spectector-clang copy)
+    family: kocher:04
   - file: spectector-clang/05.c
     function: victim_function_v05
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 05 (Pitchfork's spectector-clang copy)
+    family: kocher:05
   - file: spectector-clang/06.c
     function: victim_function_v06
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 06 (Pitchfork's spectector-clang copy)
+    family: kocher:06
   - file: spectector-clang/07.c
     function: victim_function_v07
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 07 (Pitchfork's spectector-clang copy)
+    family: kocher:07
   - file: spectector-clang/08.c
     function: victim_function_v08
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 08 (Pitchfork's spectector-clang copy)
+    family: kocher:08
   - file: spectector-clang/09.c
     function: victim_function_v09
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 09 (Pitchfork's spectector-clang copy)
+    family: kocher:09
   - file: spectector-clang/10.c
     function: victim_function_v10
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 10 (Pitchfork's spectector-clang copy)
+    family: kocher:10
   - file: spectector-clang/11ker.c
     function: victim_function_v11
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 11 (Pitchfork's spectector-clang copy)
+    family: kocher:11
   - file: spectector-clang/12.c
     function: victim_function_v12
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 12 (Pitchfork's spectector-clang copy)
+    family: kocher:12
   - file: spectector-clang/13.c
     function: victim_function_v13
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 13 (Pitchfork's spectector-clang copy)
+    family: kocher:13
   - file: spectector-clang/14.c
     function: victim_function_v14
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 14 (Pitchfork's spectector-clang copy)
+    family: kocher:14
   - file: spectector-clang/15.c
     function: victim_function_v15
     label: SPECTRE_V1
     safe: false
     note: Kocher variant 15 (Pitchfork's spectector-clang copy)
+    family: kocher:15
   - file: new-testcases/spectrev1.c
     function: case_1
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:01
   - file: new-testcases/spectrev1.c
     function: case_2
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:02
   - file: new-testcases/spectrev1.c
     function: case_3
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:03
   - file: new-testcases/spectrev1.c
     function: case_4
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:04
   - file: new-testcases/spectrev1.c
     function: case_5
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:05
   - file: new-testcases/spectrev1.c
     function: case_6
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:06
   - file: new-testcases/spectrev1.c
     function: case_7
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:07
   - file: new-testcases/spectrev1.c
     function: case_8
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:08
   - file: new-testcases/spectrev1.c
     function: case_9
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:09
   - file: new-testcases/spectrev1.c
     function: case_10
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:10
   - file: new-testcases/spectrev1.c
     function: case_11gcc
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:11
   - file: new-testcases/spectrev1.c
     function: case_11ker
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:11
   - file: new-testcases/spectrev1.c
     function: case_11sub
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:11
   - file: new-testcases/spectrev1.c
     function: case_12
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:12
   - file: new-testcases/spectrev1.c
     function: case_13
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:13
   - file: new-testcases/spectrev1.c
     function: case_14
     label: SPECTRE_V1
     safe: false
     note: Pitchfork updated Kocher litmus case (no sequential violation)
+    family: kocher:14
   - file: new-testcases/forwarding.c
     function: example_1
     label: SPECTRE_V4
     safe: false
     note: Pitchfork store-forwarding (Spectre v1.1/v4-style) litmus
+    family: pitchfork-angr:forwarding_example_1
   - file: new-testcases/forwarding.c
     function: example_2
     label: SPECTRE_V4
     safe: false
     note: Pitchfork store-forwarding (Spectre v1.1/v4-style) litmus
+    family: pitchfork-angr:forwarding_example_2
   - file: new-testcases/forwarding.c
     function: example_3
     label: SPECTRE_V4
     safe: false
     note: Pitchfork store-forwarding (Spectre v1.1/v4-style) litmus
+    family: pitchfork-angr:forwarding_example_3
   - file: new-testcases/forwarding.c
     function: example_4
     label: SPECTRE_V4
     safe: false
     note: Pitchfork store-forwarding (Spectre v1.1/v4-style) litmus
+    family: pitchfork-angr:forwarding_example_4
   - file: new-testcases/forwarding.c
     function: example_5
     label: SPECTRE_V4
     safe: false
     note: Pitchfork store-forwarding (Spectre v1.1/v4-style) litmus
+    family: pitchfork-angr:forwarding_example_5
+  family_train_tokens:
+  - spectector
   extra_flags_clang:
   - -fms-extensions
   include_dirs:
@@ -1807,161 +1864,193 @@
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:01
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_2
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:02
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_3
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:03
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_4
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:04
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_5
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:05
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_6
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:06
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_7
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:07
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_8
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:08
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_9
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:09
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_10
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:10
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_11gcc
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:11
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_11ker
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:11
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_11sub
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:11
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_12
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:12
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_13
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:13
   - file: src/litmus-pht/programs/spectrev1.c
     function: case_14
     label: SPECTRE_V1
     safe: false
     note: litmus-pht case (Kocher-style, Pitchfork-adapted)
+    family: kocher:14
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_1
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:01
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_2
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:02
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_3
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:03
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_4
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:04
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_5
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:05
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_6
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:06
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_7
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:07
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_8
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:08
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_9
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:09
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_10
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:10
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_11gcc
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:11
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_11ker
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:11
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_11sub
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:11
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_12
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:12
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_13
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:13
   - file: src/litmus-pht-masked/programs/spectrev1_masking.c
     function: case_14
     label: SPECTRE_V1
     safe: true
     note: 'litmus-pht-masked: same case with index masking applied by the repo'
+    family: kocher:14
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_1
     label: SPECTRE_V4
@@ -1969,6 +2058,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_1
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_2
     label: SPECTRE_V4
@@ -1976,6 +2066,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_2
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_3
     label: SPECTRE_V4
@@ -1983,6 +2074,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_3
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_4
     label: SPECTRE_V4
@@ -1990,6 +2082,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_4
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_5
     label: SPECTRE_V4
@@ -1997,6 +2090,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_5
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_6
     label: SPECTRE_V4
@@ -2004,6 +2098,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_6
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_7
     label: SPECTRE_V4
@@ -2011,6 +2106,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_7
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_8
     label: SPECTRE_V4
@@ -2018,6 +2114,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_8
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_9
     label: SPECTRE_V4
@@ -2025,6 +2122,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_9
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_9_bis
     label: SPECTRE_V4
@@ -2032,6 +2130,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_9_bis
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_10
     label: SPECTRE_V4
@@ -2039,6 +2138,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_10
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_11
     label: SPECTRE_V4
@@ -2046,6 +2146,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_11
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_12
     label: SPECTRE_V4
@@ -2053,6 +2154,7 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_12
   - file: src/litmus-stl/programs/spectrev4.c
     function: case_13
     label: SPECTRE_V4
@@ -2060,6 +2162,9 @@
     note: litmus-stl case; secure/insecure as annotated in the repo comments
     arches:
     - x86_64
+    family: haunted_bench:stl_case_13
+  family_train_tokens:
+  - spectector
 - name: safeside
   url: https://github.com/google/safeside
   commit: 31dca2da9e111e501dc996bb0f90fe3765fec06a
@@ -2081,26 +2186,33 @@
     label: SPECTRE_V1
     safe: false
     note: same-address PHT Spectre v1 leak gadget
+    family: safeside:spectre_v1_pht_sa
   - file: demos/spectre_v1_btb_sa.cc
     function: LeakByte
     label: SPECTRE_V2
     safe: false
     note: same-address BTB Spectre v2 leak gadget
+    family: safeside:spectre_v1_btb_sa
   - file: demos/spectre_v1_btb_ca.cc
     function: LeakByte
     label: SPECTRE_V2
     safe: false
     note: cross-address BTB Spectre v2 leak gadget
+    family: safeside:spectre_v1_btb_ca
   - file: demos/spectre_v4.cc
     function: LeakByte
     label: SPECTRE_V4
     safe: false
     note: speculative store bypass leak gadget
+    family: safeside:spectre_v4
   - file: demos/l1tf.cc
     function: LeakByte
     label: L1TF
     safe: false
     note: L1TF leak gadget
+    family: safeside:l1tf
+  family_train_tokens:
+  - safeside
   extra_flags:
   - -std=c++17
   include_dirs:
@@ -2127,16 +2239,19 @@
     label: MDS
     safe: false
     note: 'ZombieLoad attacker variant1_linux: leak loop is inline in main'
+    harness: true
   - file: attacker/variant2_linux_windows/main.c
     function: main
     label: MDS
     safe: false
     note: 'ZombieLoad attacker variant2_linux_windows: leak loop is inline in main'
+    harness: true
   - file: attacker/variant4_linux/main.c
     function: main
     label: MDS
     safe: false
     note: 'ZombieLoad attacker variant4_linux: leak loop is inline in main'
+    harness: true
 - name: ridl
   url: https://github.com/vusec/ridl
   commit: bdcc1a78cd8246719282befa7d3af8e7a2f1cb89
@@ -2159,36 +2274,43 @@
     label: MDS
     safe: false
     note: basic RIDL leak
+    harness: true
   - file: pocs/taa_basic.c
     function: main
     label: MDS
     safe: false
     note: TAA variant of RIDL (mapped to MDS)
+    harness: true
   - file: pocs/cross_transaction_leak.c
     function: main
     label: MDS
     safe: false
     note: TAA cross-transaction leak
+    harness: true
   - file: pocs/vrs.c
     function: main
     label: MDS
     safe: false
     note: vector register sampling
+    harness: true
   - file: pocs/alignment_write.c
     function: main
     label: MDS
     safe: false
     note: RIDL alignment write
+    harness: true
   - file: pocs/loadport.c
     function: main
     label: MDS
     safe: false
     note: load-port leak
+    harness: true
   - file: pocs/verw_bypass.c
     function: main
     label: MDS
     safe: false
     note: VERW bypass PoC
+    harness: true
   include_dirs:
   - tests/include
   - pocs
@@ -2215,71 +2337,85 @@
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_pass/implicit_load01.c
     function: main
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_pass/propagate_rb01.c
     function: main
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_pass/propagate_secret01.c
     function: main
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_pass/propagate_src.c
     function: main
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_pass/propagate_src02.c
     function: main
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_pass/simple01.c
     function: main
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_pass/simple02.c
     function: main
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_pass/simple03.c
     function: main
     label: RETBLEED
     safe: false
     note: repo testcase the gadget scanner MUST flag (disclosure gadget reachable from controlled memory)
+    harness: true
   - file: gadget_scanner/testcases/should_fail/lost_rb01.c
     function: main
     label: RETBLEED
     safe: true
     note: 'repo testcase the scanner must NOT flag (control lost / no source): non-gadget'
+    harness: true
   - file: gadget_scanner/testcases/should_fail/lost_secret01.c
     function: main
     label: RETBLEED
     safe: true
     note: 'repo testcase the scanner must NOT flag (control lost / no source): non-gadget'
+    harness: true
   - file: gadget_scanner/testcases/should_fail/lost_src.c
     function: main
     label: RETBLEED
     safe: true
     note: 'repo testcase the scanner must NOT flag (control lost / no source): non-gadget'
+    harness: true
   - file: gadget_scanner/testcases/should_fail/lost_src02.c
     function: main
     label: RETBLEED
     safe: true
     note: 'repo testcase the scanner must NOT flag (control lost / no source): non-gadget'
+    harness: true
   - file: gadget_scanner/testcases/should_fail/useless_src01.c
     function: main
     label: RETBLEED
     safe: true
     note: 'repo testcase the scanner must NOT flag (control lost / no source): non-gadget'
+    harness: true
 - name: bhi-spectre-bhb
   url: https://github.com/vusec/bhi-spectre-bhb
   commit: 4f64580202443baf10d374ce6e61a36bb774ca53
@@ -2298,6 +2434,7 @@
     label: BHI
     safe: false
     note: arm64 BHB-filling snippet (fill_bhb) from the repo's Arm BHI test
+    harness: true
   raw_asm: true
 - name: meltdown
   url: https://github.com/isec-tugraz/meltdown
@@ -2439,26 +2576,31 @@
     label: SPECTRE_V1
     safe: false
     note: whole PoC file
+    harness: true
   - file: src/pocs/spectrev2.S
     function: '*'
     label: SPECTRE_V2
     safe: false
     note: whole PoC file
+    harness: true
   - file: src/pocs/spectrev4-stl.S
     function: '*'
     label: SPECTRE_V4
     safe: false
     note: whole PoC file
+    harness: true
   - file: src/pocs/meltdown-us.S
     function: '*'
     label: L1TF
     safe: false
     note: Meltdown-US PoC; mapped to L1TF by project convention
+    harness: true
   - file: src/mds-tests/mds.S
     function: '*'
     label: MDS
     safe: false
     note: whole MDS test file
+    harness: true
   raw_asm: true
 - name: CTSRD-Transient
   url: https://github.com/CTSRD-CHERI/Test-Suite-Transient-Execution
@@ -2478,21 +2620,25 @@
     label: SPECTRE_V1
     safe: false
     note: Spectre-PHT test
+    harness: true
   - file: riscv_sources/spec_btb.S
     function: '*'
     label: SPECTRE_V2
     safe: false
     note: Spectre-BTB test
+    harness: true
   - file: riscv_sources/spec_stl.S
     function: '*'
     label: SPECTRE_V4
     safe: false
     note: Spectre-STL test
+    harness: true
   - file: riscv_sources/melt_us.S
     function: '*'
     label: L1TF
     safe: false
     note: Meltdown-US test; mapped to L1TF by project convention
+    harness: true
   checkout: CTSRD-Transient
   raw_asm: true
 - name: vendor-microsoft-cpp
@@ -2517,36 +2663,43 @@
     label: SPECTRE_V1
     safe: false
     note: article's vulnerable bounds-check-bypass
+    family: vendor-microsoft-cpp:ReadByte
   - file: microsoft_speculative_execution.c
     function: ReadByte_lfence
     label: SPECTRE_V1
     safe: true
     note: article's _mm_lfence mitigation
+    family: vendor-microsoft-cpp:ReadByte
   - file: microsoft_speculative_execution.c
     function: ReadByte_masked
     label: SPECTRE_V1
     safe: true
     note: article's index-masking mitigation
+    family: vendor-microsoft-cpp:ReadByte
   - file: microsoft_speculative_execution.c
     function: DispatchMessage
     label: SPECTRE_V1
     safe: false
     note: 'article: OOB load feeding indirect branch'
+    family: vendor-microsoft-cpp:DispatchMessage
   - file: microsoft_speculative_execution.c
     function: DispatchMessage_lfence
     label: SPECTRE_V1
     safe: true
     note: same with barrier
+    family: vendor-microsoft-cpp:DispatchMessage
   - file: microsoft_speculative_execution.c
     function: ReadByte_ssb
     label: SPECTRE_V4
     safe: false
     note: 'article: speculative store bypass uninitialised index'
+    family: vendor-microsoft-cpp:ReadByte_ssb
   - file: microsoft_speculative_execution.c
     function: ReadByte_ssb_lfence
     label: SPECTRE_V4
     safe: true
     note: same with _mm_lfence
+    family: vendor-microsoft-cpp:ReadByte_ssb
   checkout: '@vendor_snippets'
   local: true
 - name: vendor-google-retpoline
@@ -2567,11 +2720,13 @@
     label: SPECTRE_V2
     safe: false
     note: native indirect jmp *%r11
+    family: vendor-google-retpoline:r11
   - file: google_retpoline_thunk.s
     function: '*'
     label: SPECTRE_V2
     safe: true
     note: retpoline trampoline replacing it
+    family: vendor-google-retpoline:r11
   checkout: '@vendor_snippets'
   raw_asm: true
   local: true
