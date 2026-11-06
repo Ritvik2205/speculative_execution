@@ -11,10 +11,23 @@ linux:
   terms: [array_index_nospec, barrier_nospec, array_index_mask_nospec]
   default_label: SPECTRE_V1
   make_dir: ""
+  # old kernels' host tools (objtool, ...) fail on trixie's gcc 14 under -Werror: shim host gcc
+  env_prefix: >-
+    mkdir -p /tmp/shim &&
+    printf '#!/bin/sh\nexec /usr/bin/gcc "$@" -Wno-error -Wno-redundant-decls\n' > /tmp/shim/gcc &&
+    chmod +x /tmp/shim/gcc && export PATH=/tmp/shim:$PATH
+  ready_marker: include/config/auto.conf
+  # SECURITY_SELINUX off: pre-4.20 genheaders aborts on modern glibc's AF_MAX
+  # wipe generated config state first: its file/dir layout differs between kernel versions
   config_cmd: >-
+    rm -rf include/config include/generated &&
     make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- x86_64_defconfig &&
+    scripts/config --disable SECURITY_SELINUX &&
+    make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- olddefconfig &&
     make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- prepare
-  asm_cmd: "make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- {target}"
+  # KCFLAGS: kernel builds with -fno-asynchronous-unwind-tables, so no .cfi_startproc for asm.extract_named_functions
+  # olddefconfig: Kconfig drifts between commits of one version, which makes syncconfig refuse
+  asm_cmd: "make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- olddefconfig >/dev/null && make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- KCFLAGS=-fasynchronous-unwind-tables {target}"
   # CVE -> class when it is not plain Spectre-v1 bounds-check bypass
   cve_labels: {}
 xen:

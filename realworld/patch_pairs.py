@@ -100,11 +100,19 @@ def parse_cve(message: str):
     return m.group(0) if m else None
 
 
-def _sh(cmd: str, cwd: Path):
+def _sh(cmd: str, cwd: Path, prefix: str = ""):
     """Run a shell command in the toolchain container with `cwd` mounted at /work."""
+    if prefix:
+        cmd = f"{prefix} && {cmd}"
     return subprocess.run(["docker", "run", "--rm", "-v", f"{cwd}:/work", "-w", "/work",
                            IMAGE, "sh", "-c", cmd], capture_output=True, text=True,
                           errors="replace")
+
+
+def _err(r) -> str:
+    text = (r.stderr or "") + (r.stdout or "")
+    errs = [l for l in text.splitlines() if "error" in l.lower() or "No rule" in l]
+    return "\n".join(errs[:3] or text.splitlines()[-3:])[-400:]
 
 
 def _worktree(clone: Path, repo_cfg: dict) -> Path:
@@ -128,20 +136,22 @@ def build_asm(clone, rev, cfile, repo_cfg) -> str:
     git(wt, "checkout", "-q", "-f", "--detach", rev)
     key_file = wt / ".specexec_configured"
     key = _config_key(wt, repo_cfg)
-    if not key_file.exists() or key_file.read_text() != key or not (wt / ".config").exists() \
-            and not repo_cfg.get("make_dir"):
-        r = _sh(repo_cfg["config_cmd"], wt)
+    configured = key_file.exists() and key_file.read_text() == key and \
+        (wt / repo_cfg.get("make_dir", "") / (repo_cfg.get("ready_marker") or ".config")).exists()
+    if not configured:
+        key_file.unlink(missing_ok=True)
+        r = _sh(repo_cfg["config_cmd"], wt, repo_cfg.get("env_prefix", ""))
         if r.returncode != 0:
-            raise RuntimeError("config failed: " + (r.stderr or r.stdout)[-400:])
+            raise RuntimeError("config failed: " + _err(r))
         key_file.write_text(key)
     mdir = repo_cfg.get("make_dir", "")
     rel = cfile[len(mdir) + 1:] if mdir and cfile.startswith(mdir + "/") else cfile
     target = rel[:-2] + ".s"
     stale = wt / (mdir or ".") / target
     stale.unlink(missing_ok=True)
-    r = _sh(repo_cfg["asm_cmd"].format(target=target), wt)
+    r = _sh(repo_cfg["asm_cmd"].format(target=target), wt, repo_cfg.get("env_prefix", ""))
     if r.returncode != 0 or not stale.exists():
-        raise RuntimeError("make failed: " + (r.stderr or r.stdout)[-400:])
+        raise RuntimeError("make failed: " + _err(r))
     return stale.read_text(errors="replace")
 
 
