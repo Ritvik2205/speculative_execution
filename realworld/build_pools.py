@@ -80,8 +80,39 @@ def _row_family(r, fams, ttok_of):
     return next((f for f in fams if f in toks), None)
 
 
-def build(base, evals, additions):
-    """-> dict(pool, removed{source: n}, leaks, dup_dropped)."""
+BENIGN_PER_ATTACK = 1.0   # R49
+
+
+def cap_debian_benign(kept, adds, ratio):
+    """R49: per arch, keep at most ratio x (attack rows of that arch) - (benign rows the base already has)
+    Debian benign rows; round-robin over packages (group) in a fixed order so every package stays
+    represented. -> (adds, {arch: n dropped})."""
+    deb = [r for r in adds if r.get("source") == "debian_benign"]
+    other = [r for r in adds if r.get("source") != "debian_benign"]
+    allr = kept + other
+    out, dropped = list(other), {}
+    for arch in sorted({r.get("arch", "x86_64") for r in deb}):
+        att = sum(1 for r in allr if r.get("arch", "x86_64") == arch and r["label"] != "BENIGN")
+        ben = sum(1 for r in allr if r.get("arch", "x86_64") == arch and r["label"] == "BENIGN")
+        room = max(0, int(ratio * att) - ben)
+        by_pkg = {}
+        for r in deb:
+            if r.get("arch", "x86_64") == arch:
+                by_pkg.setdefault(r["group"], []).append(r)
+        queues = [by_pkg[g] for g in sorted(by_pkg)]
+        pick, i = [], 0
+        while len(pick) < room and any(queues):
+            q = queues[i % len(queues)]
+            if q:
+                pick.append(q.pop(0))
+            i += 1
+        out += pick
+        dropped[arch] = sum(1 for r in deb if r.get("arch", "x86_64") == arch) - len(pick)
+    return out, dropped
+
+
+def build(base, evals, additions, benign_per_attack=BENIGN_PER_ATTACK):
+    """-> dict(pool, removed{source: n}, leaks, dup_dropped, benign_capped{arch: n})."""
     ehash = {_seq_hash(r) for r in evals}
     ekeys = set()
     for r in evals:
@@ -104,10 +135,14 @@ def build(base, evals, additions):
             continue
         kept.append(r)
     adds = [r for r in additions if not r.get("dup_of")]          # R25
+    n_nodup = len(adds)
+    capped = {}
+    if benign_per_attack is not None:
+        adds, capped = cap_debian_benign(kept, adds, benign_per_attack)
     pool = kept + adds
     leaks = split_leaks([_with_prov(r) for r in pool], evals)
-    return dict(pool=pool, removed=dict(removed), leaks=leaks, dup_dropped=len(additions) - len(adds),
-                n_added=len(adds))
+    return dict(pool=pool, removed=dict(removed), leaks=leaks, dup_dropped=len(additions) - n_nodup,
+                n_added=len(adds), benign_capped=capped)
 
 
 def ks_stat(a, b):
@@ -130,6 +165,19 @@ MIN_ATTACK_FOR_KS = 50
 def attack_ref_arches(pool, arch):
     n = sum(1 for r in pool if r.get("arch", "x86_64") == arch and r["label"] != "BENIGN")
     return LENGTH_PROXY.get(arch, (arch,)) if n < MIN_ATTACK_FOR_KS else (arch,)
+
+
+MIN_BENIGN_FOR_KS = 20   # a KS on fewer benign rows is noise (R49 leaves ~6 riscv64 benign)
+
+
+def gated_arches(pool):
+    """Arches the per-arch length gate applies to: enough benign rows to compare."""
+    out = []
+    for arch in sorted({r.get("arch", "x86_64") for r in pool}):
+        nb = sum(1 for r in pool if r.get("arch", "x86_64") == arch and r["label"] == "BENIGN")
+        if nb >= MIN_BENIGN_FOR_KS:
+            out.append(arch)
+    return out
 
 
 def length_ks(pool):
@@ -231,6 +279,8 @@ def main(argv=None):
                          "benign_debian --from-existing --length-ref) and exit 0 before the gates")
     ap.add_argument("--length-ref-arch", nargs="+", default=None, metavar="ARCH",
                     help="with --length-ref-out: keep only attack rows of these arches")
+    ap.add_argument("--benign-per-attack", type=float, default=BENIGN_PER_ATTACK,
+                    help="R49: cap added Debian benign per arch at this x attack rows (minus base benign)")
     ap.add_argument("--allow-length-gap", nargs="+", default=[], metavar="ARCH",
                     help="arches whose benign-vs-attack length KS may exceed 0.15 (R36); every other arch fails")
     a = ap.parse_args(argv)
@@ -241,7 +291,9 @@ def main(argv=None):
     if not evals:
         print("FATAL: no eval rows", file=sys.stderr)
         return 3
-    res = build(base, evals, adds)
+    res = build(base, evals, adds, benign_per_attack=a.benign_per_attack)
+    if res.get("benign_capped"):
+        print(f"R49 Debian benign cap ({a.benign_per_attack} per attack row, per arch): dropped {res['benign_capped']}")
     pool = res["pool"]
     if a.length_ref_out:
         att = [r for r in pool if r["label"] != "BENIGN"
@@ -271,8 +323,12 @@ def main(argv=None):
               f"attack n={len(att)} med={median(att)}" + (f"  (attack ref: {'+'.join(ref)}, R48)"
                                                            if ref != (arch,) and arch != "overall" else ""))
     allowed = set(a.allow_length_gap)
+    gated = set(gated_arches(pool))
     for arch, d in ks.items():
         if arch == "overall" or d != d or d <= KS_LIMIT:     # d != d: one class absent, nothing to compare
+            continue
+        if arch not in gated:
+            print(f"NOTE: {arch} length KS {d:.3f} not gated (< {MIN_BENIGN_FOR_KS} benign rows)", file=sys.stderr)
             continue
         if arch in allowed:
             print(f"WARNING (allowed): {arch} length KS {d:.3f} > {KS_LIMIT}", file=sys.stderr)

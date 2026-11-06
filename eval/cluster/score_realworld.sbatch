@@ -24,6 +24,8 @@ set -uo pipefail
 REPO="${REPO:-$HOME/speculative_execution}"; cd "$REPO"
 source "$HOME/miniconda3/etc/profile.d/conda.sh"; conda activate specexec
 SEEDS="${SEEDS:-1 7 13 21 42}"
+RW_PREFIX="${RW_PREFIX:-rw}"                       # rw (allhw3 pool) or rw_interim (allhw pool)
+RW_TRAIN="${RW_TRAIN:-v54/data/rw_train.jsonl}"
 DATA='eval/data/realworld_*.jsonl'
 ROOT=eval/realworld_score
 mkdir -p "$ROOT"
@@ -41,12 +43,14 @@ score() {  # name dir train [extra flags]
   [ $rc -eq 0 ] || echo "$name FAILED rc=$rc (rc 2 = reproduce-gate drift) -- skipped"
 }
 for s in $SEEDS; do
-  score "rw_s$s"               "eval/cluster_out/rw_s$s"          v54/data/rw_train.jsonl --overlap-clean
-  score "rw_h0set_s$s"         "eval/cluster_out/rw_s$s"          v54/data/rw_train.jsonl
-  score "rw_memreads_s$s"      "eval/cluster_out/rw_memreads_s$s" v54/data/rw_train.jsonl --overlap-clean
-  score "rw_memreads_h0set_s$s" "eval/cluster_out/rw_memreads_s$s" v54/data/rw_train.jsonl
+  P=$RW_PREFIX
+  score "${P}_s$s"               "eval/cluster_out/${P}_s$s"          "$RW_TRAIN" --overlap-clean
+  score "${P}_h0set_s$s"         "eval/cluster_out/${P}_s$s"          "$RW_TRAIN"
+  score "${P}_memreads_s$s"      "eval/cluster_out/${P}_memreads_s$s" "$RW_TRAIN" --overlap-clean
+  score "${P}_memreads_h0set_s$s" "eval/cluster_out/${P}_memreads_s$s" "$RW_TRAIN"
   score "allhw3_s$s"      "eval/cluster_out/allhw3_s$s"      v54/data/v55h_allhw3_train.jsonl
   score "allhw3_mech_s$s" "eval/cluster_out/allhw3_mech_s$s" v54/data/v55h_allhw3_train.jsonl
+  score "allhw3_memreads_s$s" "eval/cluster_out/allhw3_memreads_s$s" v54/data/v55h_allhw3_train.jsonl
   score "allhw2_s$s"      "eval/cluster_out/allhw2_s$s"      v54/data/v55h_allhw2_train.jsonl
   score "allhw_s$s"       "eval/cluster_out/allhw_s$s"       v54/data/v55h_allhw_train.jsonl
   score "b1_s$s"          "eval/cluster_out/rv_embed_specfix_s$s" v54/data/v54_train.jsonl

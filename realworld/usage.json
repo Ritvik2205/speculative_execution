@@ -4,8 +4,8 @@
   "CTSRD-Transient_riscv_artifact: 4"
  ],
  "Debian archive (main)": [
-  7578,
-  "debian_benign: 7578"
+  11557,
+  "debian_benign: 11557"
  ],
  "Google security-research `pocs/cpus/*` (multi-PoC directory)": [
   2,
@@ -20,8 +20,8 @@
   "haunted_bench_benchmark: 297"
  ],
  "Kernel `git log -S` search (method, not a dataset)": [
-  10,
-  "linux_patch: 10"
+  210,
+  "linux_patch: 210"
  ],
  "Meltdown demos (libkdump)": [
   4,

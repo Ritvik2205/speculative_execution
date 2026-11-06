@@ -23,6 +23,7 @@ ids=()
 for s in $SEEDS; do
   ids+=("$(sbatch --parsable --export=ALL,TAG=allhw3,SEED=$s,TRAIN=$TRAIN,EXTRA= eval/cluster/train.sbatch)")
   ids+=("$(sbatch --parsable --export=ALL,TAG=allhw3_mech,SEED=$s,TRAIN=$TRAIN,EXTRA=--mech-features eval/cluster/train.sbatch)")
+  ids+=("$(sbatch --parsable --export=ALL,TAG=allhw3_memreads,SEED=$s,TRAIN=$TRAIN,EXTRA=--x86-mem-reads eval/cluster/train.sbatch)")
 done
 dep=$(IFS=:; echo "${ids[*]}")
 sbatch --dependency=afterany:"$dep" --export=ALL,SEEDS="$SEEDS" eval/cluster/score_allhw3.sbatch

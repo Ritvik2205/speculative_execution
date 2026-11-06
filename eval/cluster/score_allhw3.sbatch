@@ -37,6 +37,7 @@ score() {  # tag dir train
 for s in $SEEDS; do
   score "allhw3_s$s"      "eval/cluster_out/allhw3_s$s"      v54/data/v55h_allhw3_train.jsonl
   score "allhw3_mech_s$s" "eval/cluster_out/allhw3_mech_s$s" v54/data/v55h_allhw3_train.jsonl
+  score "allhw3_memreads_s$s" "eval/cluster_out/allhw3_memreads_s$s" v54/data/v55h_allhw3_train.jsonl
   score "allhw2_s$s"      "eval/cluster_out/allhw2_s$s"      v54/data/v55h_allhw2_train.jsonl
   score "allhw_s$s"       "eval/cluster_out/allhw_s$s"       v54/data/v55h_allhw_train.jsonl
   score "b1_s$s"          "eval/cluster_out/rv_embed_specfix_s$s" v54/data/v54_train.jsonl

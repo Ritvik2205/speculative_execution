@@ -188,3 +188,34 @@ def test_length_gate_uses_proxy_arches_when_attack_rows_are_few(tmp_path):
     rows_bad = [dict(r, sequence=seq(6000 + i, 60)) if r["arch"] == "riscv64" and r["label"] == "BENIGN" else r
                 for i, r in enumerate(rows)]
     assert bp.length_ks(rows_bad)["riscv64"] > bp.KS_LIMIT
+
+
+def test_debian_benign_capped_per_arch_attack_count():
+    # R49: added Debian benign per arch <= benign_per_attack x that arch's attack rows minus the benign the
+    # base already has for it (no 80%-benign pool; no "riscv64 = benign" shortcut from 3400 benign vs 6 attacks)
+    base = ([brow(7000 + i, arch="x86_64") for i in range(10)]
+            + [brow(7100 + i, "BENIGN", arch="x86_64") for i in range(3)]
+            + [brow(7200 + i, arch="riscv64") for i in range(2)])
+    deb = ([dict(brow(7300 + i, "BENIGN", arch="x86_64"), source="debian_benign", group=f"debian:p{i % 4}")
+            for i in range(40)]
+           + [dict(brow(7400 + i, "BENIGN", arch="riscv64"), source="debian_benign", group=f"debian:q{i % 4}")
+              for i in range(40)])
+    res = bp.build(base, [], deb, benign_per_attack=1.0)
+    n = lambda arch: sum(1 for r in res["pool"] if r.get("source") == "debian_benign" and r["arch"] == arch)
+    assert n("x86_64") == 7 and n("riscv64") == 2
+    assert res["benign_capped"] == {"x86_64": 33, "riscv64": 38}
+    assert {r["group"] for r in res["pool"] if r.get("source") == "debian_benign" and r["arch"] == "x86_64"} \
+        == {"debian:p0", "debian:p1", "debian:p2", "debian:p3"}          # spread across packages
+    again = bp.build(base, [], deb, benign_per_attack=1.0)
+    assert [r["sequence"] for r in again["pool"]] == [r["sequence"] for r in res["pool"]]   # deterministic
+    assert len(bp.build(base, [], deb, benign_per_attack=None)["pool"]) == len(base) + len(deb)
+
+
+def test_length_gate_skips_tiny_benign(tmp_path):
+    # R49 leaves ~6 riscv64 benign rows; a KS on 6 samples is noise and must not fail the gate
+    rows = ([dict(sequence=seq(8000 + i, 60), label="BENIGN", arch="riscv64", group=f"rb{i}") for i in range(6)]
+            + [dict(sequence=seq(8100 + i, 18), label="SPECTRE_V1", arch="riscv64", group=f"ra{i}") for i in range(80)]
+            + [dict(sequence=seq(8200 + i, 30), label=lab, arch="x86_64", group=f"x{i}")
+               for i in range(40) for lab in ("BENIGN", "SPECTRE_V1")])
+    assert bp.gated_arches(rows) == ["x86_64"]
+    assert bp.main(_gap_args(tmp_path, rows)) == 0
