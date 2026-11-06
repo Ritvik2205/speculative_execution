@@ -121,15 +121,28 @@ def ks_stat(a, b):
     return d
 
 
+# R48: an arch with too few attack rows is compared against the proxy arches its benign was length-matched
+# to (realworld/prepare_benign.sh: riscv64 -> riscv64 + arm64 attack rows)
+LENGTH_PROXY = {"riscv64": ("riscv64", "arm64")}
+MIN_ATTACK_FOR_KS = 50
+
+
+def attack_ref_arches(pool, arch):
+    n = sum(1 for r in pool if r.get("arch", "x86_64") == arch and r["label"] != "BENIGN")
+    return LENGTH_PROXY.get(arch, (arch,)) if n < MIN_ATTACK_FOR_KS else (arch,)
+
+
 def length_ks(pool):
-    """Benign-vs-attack window length KS per arch and overall (R34)."""
+    """Benign-vs-attack window length KS per arch and overall (R34; proxy attack arches per R48)."""
     out = {}
     def lens(rs, benign):
         return [len(r["sequence"]) for r in rs if (r["label"] == "BENIGN") == benign]
     out["overall"] = ks_stat(lens(pool, True), lens(pool, False))
     for arch in sorted({r.get("arch", "x86_64") for r in pool}):
-        sub = [r for r in pool if r.get("arch", "x86_64") == arch]
-        out[arch] = ks_stat(lens(sub, True), lens(sub, False))
+        ben = [r for r in pool if r.get("arch", "x86_64") == arch]
+        ref = attack_ref_arches(pool, arch)
+        att = [r for r in pool if r.get("arch", "x86_64") in ref]
+        out[arch] = ks_stat(lens(ben, True), lens(att, False))
     return out
 
 
@@ -251,9 +264,12 @@ def main(argv=None):
     for arch in ks:
         sub = pool if arch == "overall" else [r for r in pool if r.get("arch", "x86_64") == arch]
         ben = [len(r["sequence"]) for r in sub if r["label"] == "BENIGN"]
-        att = [len(r["sequence"]) for r in sub if r["label"] != "BENIGN"]
+        ref = ("all",) if arch == "overall" else attack_ref_arches(pool, arch)
+        att = [len(r["sequence"]) for r in (pool if arch == "overall" else
+               [r for r in pool if r.get("arch", "x86_64") in ref]) if r["label"] != "BENIGN"]
         print(f"length KS {arch:8s} D={ks[arch]:.3f}  benign n={len(ben)} med={median(ben)}  "
-              f"attack n={len(att)} med={median(att)}")
+              f"attack n={len(att)} med={median(att)}" + (f"  (attack ref: {'+'.join(ref)}, R48)"
+                                                           if ref != (arch,) and arch != "overall" else ""))
     allowed = set(a.allow_length_gap)
     for arch, d in ks.items():
         if arch == "overall" or d != d or d <= KS_LIMIT:     # d != d: one class absent, nothing to compare

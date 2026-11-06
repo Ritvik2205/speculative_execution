@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import random
+import re
 import shutil
 import subprocess
 import time
@@ -150,6 +151,9 @@ def opt_label(opt="default", hardening="on"):
 # R47: held-out eval functions go down to the scorer's floor (score_realworld.MIN_INSTR, R42), so
 # short leak functions have length-matched benign counterparts; train keeps R2's 25.
 EVAL_MIN_INSTR = 10
+# build-system probe programs (CMake compiler-id / try-compile, autoconf conftest): not package code, and
+# identical across packages, so they would join train and held-out eval by hash
+BUILD_PROBE = re.compile(r"CompilerId|CMakeScratch|TryCompile|(^|/)conftest")
 
 
 def read_packages(path):
@@ -200,6 +204,8 @@ def records_from_asm(asm_items, arch, cc, pkg, version, snapshot, retrieved, cap
                 licence="per-package, see Debian copyright", retrieved=retrieved)
     seen, recs = set(), []
     for fname, text in asm_items:
+        if BUILD_PROBE.search(fname):
+            continue
         for fn, body in extract_named_functions(text).items():
             if has_mitigation(body, arch):
                 continue

@@ -174,3 +174,17 @@ def test_usage_alias_and_ambiguity():
     assert unmatched == {"dup": 1}                       # ambiguous exact match, no table entry: reported
     usage, unmatched = bp.usage_by_source(rows, cat, aliases=aliases, exact_pref={"github.com/a/b": "Dup B"})
     assert usage["Dup B"][0] == 1 and unmatched == {}
+
+
+def test_length_gate_uses_proxy_arches_when_attack_rows_are_few(tmp_path):
+    # R48: riscv64 has ~6 attack rows in the pool; its benign is length-matched to riscv64+arm64 attacks
+    # (prepare_benign.sh), so the gate compares against that same proxy set, not against 6 rows
+    rows = ([dict(sequence=seq(5000 + i, 18), label="BENIGN", arch="riscv64", group=f"rb{i}") for i in range(60)]
+            + [dict(sequence=seq(5100 + i, 10), label="SPECTRE_V1", arch="riscv64", group=f"ra{i}") for i in range(6)]
+            + [dict(sequence=seq(5200 + i, 18), label="SPECTRE_V1", arch="arm64", group=f"aa{i}") for i in range(60)]
+            + [dict(sequence=seq(5300 + i, 18), label="BENIGN", arch="arm64", group=f"ab{i}") for i in range(60)])
+    ks = bp.length_ks(rows)
+    assert ks["riscv64"] <= bp.KS_LIMIT                       # vs riscv64+arm64 attacks (all 18 long)
+    rows_bad = [dict(r, sequence=seq(6000 + i, 60)) if r["arch"] == "riscv64" and r["label"] == "BENIGN" else r
+                for i, r in enumerate(rows)]
+    assert bp.length_ks(rows_bad)["riscv64"] > bp.KS_LIMIT

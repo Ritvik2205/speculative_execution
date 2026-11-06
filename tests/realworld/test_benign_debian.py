@@ -256,3 +256,15 @@ def test_cache_miss_on_version_mismatch(tmp_path):
     def boom(p, s):
         raise RuntimeError("net")
     assert bd.cache_lookup(c, "p", "trixie", version_fn=boom, log=lambda *a: None) is None
+
+
+def test_build_system_probes_dropped():
+    # CMake compiler-id / try-compile and autoconf conftest programs are build-system probes, identical
+    # across packages (they leaked a held-out json-c `main` into train by hash): never collected
+    probe = _func("main", _body(5, 40))
+    real = _func("deflate", _body(6, 40))
+    items = [("build/CMakeFiles/3.31.6/CompilerIdC/CMakeCCompilerId.s", probe),
+             ("build/CMakeFiles/CMakeScratch/TryCompile-x/src.c.s", probe),
+             ("conftest.s", probe), ("lib/deflate.s", real)]
+    recs = bd.records_from_asm(items, "x86_64", "gcc", whole=True, **_prov())
+    assert {r["function"] for r in recs} == {"deflate"}
