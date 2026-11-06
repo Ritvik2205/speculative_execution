@@ -8,14 +8,12 @@
 #
 # Order: (1) hardware inputs present (fail like submit_allhw3.sh)
 #        (2) build_hw_joint --hw-labels-only -> v55h_allhw3_train.jsonl
-#        (3) re-window Debian benign against THIS pool's own attack rows (R34)
-#        (4) build_pools (overlap removal, split_leaks gate, length-KS gate)
+#        (3) Debian benign train files present (re-windowed on the LAPTOP, R38:
+#            bash realworld/prepare_benign.sh, committed and pushed).  This script
+#            does NOT re-window unless REWINDOW=1 (needs the asm cache + Docker).
+#        (4) build_pools (overlap removal, split_leaks gate, per-arch length-KS
+#            gate; --allow-length-gap arm64: that gap is pre-existing in every old pool)
 #        (5) submit.
-# Step 3 needs the cached Debian asm (~/specexec_realworld/debian_asm) and the
-# collector outputs (eval/data/realworld_*.jsonl, v54/data/realworld_*_train.jsonl)
-# rsynced into $REPO.  If the cache is not on this machine run step 3 where it
-# is, commit/rsync v54/data/benign_*_gcc.jsonl, and set SKIP_REWINDOW=1 (the KS
-# gate in build_pools still fails the job if the lengths do not match).
 #   bash eval/cluster/submit_realworld.sh
 # ---------------------------------------------------------------------------
 set -euo pipefail
@@ -24,8 +22,6 @@ POOL_IN="${POOL_IN:-eval/data/revizor_hwlabel_trainpool.jsonl}"
 SEEDS="${SEEDS:-1 7 13 21 42}"
 BASE=v54/data/v55h_allhw3_train.jsonl
 TRAIN=v54/data/rw_train.jsonl
-CACHE="${DEBIAN_CACHE:-$HOME/specexec_realworld/debian_asm}"
-LENREF="${LENREF:-$HOME/specexec_realworld/rw_attack_lengths.jsonl}"
 
 # (1) hardware inputs
 for f in "$POOL_IN" eval/data/revizor_hwlabel_cf_heldout.jsonl; do
@@ -38,21 +34,22 @@ ls eval/data/realworld_*.jsonl >/dev/null 2>&1 || { echo "FATAL: eval/data/realw
 python3 oracle/revizor/build_hw_joint.py --hw-labels-only "$POOL_IN"
 [ -s "$BASE" ] || { echo "FATAL: $BASE not built" >&2; exit 1; }
 
-# (3) re-window Debian benign against the final pool's attack rows
-if [ "${SKIP_REWINDOW:-0}" != "1" ]; then
-  [ -d "$CACHE" ] || { echo "FATAL: Debian asm cache $CACHE missing (set SKIP_REWINDOW=1 if benign_*.jsonl were already re-windowed)" >&2; exit 1; }
-  python3 -m realworld.build_pools --base "$BASE" --out /dev/null --usage-out /dev/null \
-      --length-ref-out "$LENREF"
-  SCRATCH_EVAL="$(mktemp -d)"     # held-out benign eval rows are not length-matched: keep eval/data untouched
-  for arch in amd64 riscv64; do
-    python3 -m realworld.benign_debian --arch "$arch" --cc gcc --from-existing \
-        --length-ref "$LENREF" --eval-dir "$SCRATCH_EVAL"
-  done
-  rm -rf "$SCRATCH_EVAL"
+# (3) Debian benign train files (prepared on the laptop)
+found=0
+for arch in x86_64 riscv64; do
+  fs=$(ls v54/data/benign_${arch}_*.jsonl 2>/dev/null || true)
+  if [ -n "$fs" ]; then echo "benign train ($arch): $(echo $fs | tr '\n' ' ')"; found=$((found+1))
+  elif [ "$arch" = x86_64 ]; then echo "FATAL: no v54/data/benign_x86_64_*.jsonl (run realworld/prepare_benign.sh on the laptop, commit, push)" >&2; exit 1
+  else echo "WARNING: no v54/data/benign_riscv64_*.jsonl: pool has no riscv64 Debian benign" >&2; fi
+done
+if [ "${REWINDOW:-0}" = "1" ]; then       # opt-in: needs ~/specexec_realworld/debian_asm and Docker
+  CACHE="${DEBIAN_CACHE:-$HOME/specexec_realworld/debian_asm}"
+  [ -d "$CACHE" ] || { echo "FATAL: Debian asm cache $CACHE missing" >&2; exit 1; }
+  REF_BASE="$BASE" DEBIAN_CACHE="$CACHE" bash realworld/prepare_benign.sh
 fi
 
-# (4) pool + gates (non-zero on split leak or overall length KS > 0.15)
-python3 -m realworld.build_pools --base "$BASE" --out "$TRAIN"
+# (4) pool + gates (non-zero on split leak or per-arch length KS > 0.15 (arm64 allowed))
+python3 -m realworld.build_pools --base "$BASE" --out "$TRAIN" --allow-length-gap arm64
 
 # (5) arms
 ids=()

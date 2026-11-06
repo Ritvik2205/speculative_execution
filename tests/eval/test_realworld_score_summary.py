@@ -17,3 +17,17 @@ def test_summary_mean_sd_per_seed(tmp_path):
     md = rs.render(rs.collect(tmp_path))
     assert "0.850 +/- 0.071" in md and "0.800 0.900" in md
     assert "| b1 | 1 |" in md and "bar: always_attack" in md
+
+
+def test_summary_names_mode_and_bars_per_tag(tmp_path):
+    for tag, mode, bar in (("rw", "recomputed vs the run's own pool (--overlap-clean): 3 -> 0", 0.4),
+                           ("b1", None, 0.6)):
+        d = tmp_path / f"{tag}_s1"
+        d.mkdir()
+        js = fake(0.7)
+        js["slices"]["headline"]["all"]["opcode_lr"] = {"bal_acc": bar}
+        js["meta"] = {"train_overlap": mode} if mode else {}
+        (d / "score.json").write_text(json.dumps(js))
+    md = rs.render(rs.collect(tmp_path))
+    assert "overlap-clean" in md and "H0-comparable" in md
+    assert "bar: opcode_lr (rw)" in md and "bar: opcode_lr (b1)" in md

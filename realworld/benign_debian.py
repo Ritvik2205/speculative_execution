@@ -360,9 +360,10 @@ def main(argv=None):
                     help="pool whose non-BENIGN row lengths define the TRAIN window-length histogram (R23)")
     ap.add_argument("--from-existing", action="store_true", help="re-extract from cached .s files, build only what is missing")
     ap.add_argument("--only", nargs="*", default=None)
+    ap.add_argument("--cache", type=Path, default=DEFAULT_CACHE, help="extracted-asm cache dir (--from-existing reads it)")
     a = ap.parse_args(argv)
     stats = run(a.packages, a.arch, a.cc, a.snapshot, a.out_dir, a.eval_dir, a.work, only=a.only, win_hi=a.win_hi,
-                length_ref=a.length_ref, from_existing=a.from_existing)
+                length_ref=a.length_ref, from_existing=a.from_existing, cache=a.cache)
     print(f"{a.arch}/{a.cc}: train {sum(n for n, h in stats.values() if not h)} windows, "
           f"eval {sum(n for n, h in stats.values() if h)} windows, {len(stats)} packages built")
 

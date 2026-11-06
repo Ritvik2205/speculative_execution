@@ -40,6 +40,12 @@ def _cell(js, sl, method):
     return None if c is None else c["bal_acc"]
 
 
+def _mode(js):
+    """None = H0-comparable (collector flags); else the recorded --overlap-clean description."""
+    t = js.get("meta", {}).get("train_overlap")
+    return t.split(":")[0] if t else None
+
+
 def render(runs):
     L = ["# Real-world retrain summary", "",
          "Balanced accuracy on the real-world eval set (leak vs safe, per-window any-window rule), headline "
@@ -47,14 +53,13 @@ def render(runs):
          "class reports that class's recall. `n` = headline rows (leak/safe).", ""]
     if not runs:
         return "\n".join(L + ["(no score.json found)"]) + "\n"
-    sets = defaultdict(list)           # headline row count -> tags
+    sets = defaultdict(list)           # (headline n, mode) -> tags
     for tag, by_seed in runs.items():
         js = next(iter(by_seed.values()))
-        sets[js["counts"]["headline"]].append(tag)
-    for n_head, tags in sorted(sets.items()):
-        any_js = runs[sorted(tags)[0]][min(runs[sorted(tags)[0]])]
-        L += [f"## Headline set n={n_head} (tags: {', '.join(sorted(tags))})", "",
-              f"meta: {any_js.get('meta', {}).get('train_overlap', 'collector train_overlap flags')}", "",
+        sets[(js["counts"]["headline"], _mode(js))].append(tag)
+    for (n_head, mode), tags in sorted(sets.items(), key=lambda kv: (kv[0][0], kv[0][1] or "")):
+        title = "H0-comparable (collector train_overlap flags)" if mode is None else f"overlap-clean ({mode})"
+        L += [f"## {title}: headline n={n_head} (tags: {', '.join(sorted(tags))})", "",
               "| arm | seeds | " + " | ".join(SLICES) + " |", "|---|---|" + "---|" * len(SLICES)]
         for tag in sorted(tags):
             seeds = sorted(runs[tag])
@@ -68,10 +73,12 @@ def render(runs):
                 sd = statistics.stdev(ok) if len(ok) > 1 else 0.0
                 row.append(f"{statistics.mean(ok):.3f} +/- {sd:.3f}<br>" + " ".join(_f(v) for v in vals))
             L.append(f"| {tag} | {len(seeds)} | " + " | ".join(row) + " |")
+        for tag in sorted(tags):          # bars depend on the tag's own pool (opcode_lr) and seed-independent otherwise
+            ref = runs[tag][min(runs[tag])]
+            for b in BARS:
+                row = [_f(_cell(ref, sl, b)) for sl in SLICES]
+                L.append(f"| bar: {b} ({tag}) | - | " + " | ".join(row) + " |")
         ref = runs[sorted(tags)[0]][min(runs[sorted(tags)[0]])]
-        for b in BARS:
-            row = [_f(_cell(ref, sl, b)) for sl in SLICES]
-            L.append(f"| bar: {b} | - | " + " | ".join(row) + " |")
         c = ref["slices"]["headline"].get("all", {}).get("always_attack", {})
         L += ["", f"(all-slice n={c.get('n')}, leak={c.get('n_leak')}, safe={c.get('n_safe')}, "
               f"clusters={c.get('n_groups')}; per-slice n, CIs and paired diffs are in each run's score.md)", ""]

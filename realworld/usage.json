@@ -3,6 +3,10 @@
   4,
   "CTSRD-Transient_riscv_artifact: 4"
  ],
+ "Debian archive (main)": [
+  4600,
+  "debian_benign: 4600"
+ ],
  "Google security-research `pocs/cpus/*` (multi-PoC directory)": [
   2,
   "security-research-cpus_poc: 2"
@@ -14,6 +18,10 @@
  "Haunted / haunted_bench": [
   297,
   "haunted_bench_benchmark: 297"
+ ],
+ "Kernel `git log -S` search (method, not a dataset)": [
+  10,
+  "linux_patch: 10"
  ],
  "Meltdown demos (libkdump)": [
   4,
@@ -58,5 +66,13 @@
  "boom-attacks": [
   11,
   "boom-attacks_riscv_artifact: 11"
+ ],
+ "c_vulns (this repo)": [
+  6,
+  "c_vulns-riscv64_poc: 6"
+ ],
+ "vusec/riscv-transient-attacks (Phantom Trails sample set)": [
+  5,
+  "riscv-transient-attacks_riscv_artifact: 5"
  ]
 }

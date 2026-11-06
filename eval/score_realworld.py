@@ -754,6 +754,23 @@ def make_model_predictor(run_dir, train_data, test_data, acc_tol, skip_gate=Fals
     return predictor
 
 
+def check_overlap_pool(pool, pool_path, run_dir, force=False):
+    """--overlap-clean sanity: a wrong/empty pool would silently relabel everything clean."""
+    if not pool:
+        sys.exit(f"--overlap-clean: train pool {pool_path} is empty")
+    if not train_source_tokens(pool) and not any(r.get("sequence") for r in pool):
+        sys.exit(f"--overlap-clean: train pool {pool_path} yields no hashes or source tokens")
+    if run_dir and not force:
+        m = Path(run_dir) / "gine_metrics.json"
+        rec = json.loads(m.read_text()).get("args", {}).get("train_data") if m.exists() else None
+        if not rec:
+            sys.exit(f"--overlap-clean: {m} records no train_data to verify {pool_path} against "
+                     f"(use --force-pool to override)")
+        if Path(_resolve(rec)).resolve() != Path(_resolve(str(pool_path))).resolve():
+            sys.exit(f"--overlap-clean: run trained on {rec} but --train-pool is {pool_path} "
+                     f"(use --force-pool to override)")
+
+
 def default_train_pool(run_dir):
     if run_dir:
         m = Path(run_dir) / "gine_metrics.json"
@@ -778,6 +795,8 @@ def main(argv=None):
                     help="recompute train_overlap against the run's own train pool (new retrain arms whose "
                          "pool had the overlapping Spectector/SafeSide/FastSpec rows removed); default keeps "
                          "the collector's flags (H0 checkpoints trained on the old pool)")
+    ap.add_argument("--force-pool", action="store_true",
+                    help="skip the --overlap-clean check that --train-pool is the run's recorded train data")
     ap.add_argument("--bars-only", action="store_true")
     ap.add_argument("--test-data", default=str(ROOT / "v54/data/v54_test.jsonl"))
     ap.add_argument("--acc-tol", type=float, default=1e-3)
@@ -792,6 +811,7 @@ def main(argv=None):
             if r.get("label", "UNKNOWN") != "UNKNOWN"]
     meta = {"data": ", ".join(a.data), "opcode-LR train pool": str(pool_path)}
     if a.overlap_clean:
+        check_overlap_pool(pool, pool_path, a.run_dir, a.force_pool)
         before = sum(bool(r.get("train_overlap")) for r in rows)
         rows = recompute_overlap(rows, pool)
         meta["train_overlap"] = (f"recomputed vs the run's own pool (--overlap-clean): "

@@ -74,7 +74,7 @@ def test_exits_on_remaining_leak(tmp_path):
     rc = bp.main(["--base", str(base), "--out", str(tmp_path / "out.jsonl"),
                   "--eval-glob", str(ed / "realworld_*.jsonl"),
                   "--add-glob", str(td / "realworld_*_train.jsonl"),
-                  "--usage-out", str(tmp_path / "usage.json"), "--allow-length-gap"])
+                  "--usage-out", str(tmp_path / "usage.json"), "--allow-length-gap", "x86_64"])
     assert rc != 0
     res = bp.build([brow(5)], ev, [leak])
     assert res["leaks"] and split_leaks([leak], ev)
@@ -114,7 +114,7 @@ def test_length_gap_fails(tmp_path):
             "--eval-glob", str(ed / "realworld_*.jsonl"), "--add-glob", str(tmp_path / "none_*.jsonl"),
             "--usage-out", str(tmp_path / "usage.json")]
     assert bp.main(args) != 0
-    assert bp.main(args + ["--allow-length-gap"]) == 0
+    assert bp.main(args + ["--allow-length-gap", "x86_64"]) == 0
     ks = bp.length_ks(ben + att)
     assert ks["overall"] == pytest.approx(1.0) and ks["x86_64"] == pytest.approx(1.0)
 
@@ -130,3 +130,47 @@ def test_length_ref_out_writes_attack_rows_only(tmp_path):
     assert rc == 0 and not (tmp_path / "o.jsonl").exists()
     rows = [json.loads(l) for l in open(ref)]
     assert [r["label"] for r in rows] == ["SPECTRE_V1"] and len(rows[0]["sequence"]) == 22
+
+
+def _gap_args(tmp_path, rows):
+    base = write(tmp_path / "base.jsonl", rows)
+    ed = tmp_path / "eval"
+    ed.mkdir(exist_ok=True)
+    write(ed / "realworld_a.jsonl", [erow(999)])
+    return ["--base", str(base), "--out", str(tmp_path / "out.jsonl"),
+            "--eval-glob", str(ed / "realworld_*.jsonl"), "--add-glob", str(tmp_path / "none_*.jsonl"),
+            "--usage-out", str(tmp_path / "usage.json")]
+
+
+def test_length_gate_per_arch_allowlist(tmp_path):
+    def mk(arch, bn, an, k):
+        return ([dict(sequence=seq(k + i, bn), label="BENIGN", arch=arch, group=f"b{arch}{i}") for i in range(20)]
+                + [dict(sequence=seq(k + 50 + i, an), label="SPECTRE_V1", arch=arch, group=f"a{arch}{i}")
+                   for i in range(20)])
+    rows = mk("x86_64", 30, 30, 1000) + mk("arm64", 30, 12, 2000)     # x86 matched, arm64 gapped
+    args = _gap_args(tmp_path, rows)
+    assert bp.main(args) != 0                                          # arm64 gap alone fails the gate
+    assert not (tmp_path / "usage.json").exists()                      # no usage.json on a failed gate
+    assert bp.main(args + ["--allow-length-gap", "arm64"]) == 0
+    assert (tmp_path / "usage.json").exists()
+    # allow-listing the wrong arch does not help
+    rows2 = mk("x86_64", 40, 20, 3000) + mk("arm64", 30, 12, 4000)
+    args2 = _gap_args(tmp_path, rows2)
+    assert bp.main(args2 + ["--allow-length-gap", "arm64"]) != 0
+
+
+def test_usage_alias_and_ambiguity():
+    cat = [("Debian archive (main)", "https://www.debian.org/ports/riscv64/"),
+           ("Kernel git log", "https://example.org/k"),
+           ("Dup A", "https://github.com/a/b"), ("Dup B", "https://github.com/a/b")]
+    rows = [erow(1, source="debian_benign", provenance=prov("https://deb.debian.org/debian/")),
+            erow(2, source="debian_benign", provenance=prov("https://snapshot.debian.org/archive/debian/2026/")),
+            erow(3, source="linux_patch", provenance=prov("https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1")),
+            erow(4, source="dup", provenance=prov("https://github.com/a/b"))]
+    aliases = [("deb.debian.org", "Debian archive (main)"), ("snapshot.debian.org", "Debian archive (main)"),
+               ("git.kernel.org", "Kernel git log")]
+    usage, unmatched = bp.usage_by_source(rows, cat, aliases=aliases, exact_pref={})
+    assert usage["Debian archive (main)"][0] == 2 and usage["Kernel git log"][0] == 1
+    assert unmatched == {"dup": 1}                       # ambiguous exact match, no table entry: reported
+    usage, unmatched = bp.usage_by_source(rows, cat, aliases=aliases, exact_pref={"github.com/a/b": "Dup B"})
+    assert usage["Dup B"][0] == 1 and unmatched == {}

@@ -17,6 +17,7 @@ length KS > 0.15 overall (R34) unless --allow-length-gap.  Also writes realworld
 from __future__ import annotations
 
 import argparse
+import bisect
 import glob
 import importlib.util
 import json
@@ -29,7 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from realworld.records import _seq_hash, split_leaks, train_source_tokens  # noqa: E402
+from realworld.records import _seq_hash, source_key, split_leaks, train_source_tokens  # noqa: E402
 
 DEFAULT_FAMILIES = ("spectector", "safeside", "fastspec")   # R13
 KS_LIMIT = 0.15
@@ -37,6 +38,18 @@ DEFAULT_ADD = [str(ROOT / "v54/data/benign_x86_64_*.jsonl"), str(ROOT / "v54/dat
                str(ROOT / "v54/data/realworld_*_train.jsonl")]
 DEFAULT_EVAL = str(ROOT / "eval/data/realworld_*.jsonl")
 DEFAULT_USAGE = ROOT / "realworld/usage.json"
+
+# R37: explicit URL-substring -> catalogue-name aliases (checked after exact URL match fails)
+ALIASES = [
+    ("deb.debian.org", "Debian archive (main)"),
+    ("snapshot.debian.org", "Debian archive (main)"),
+    ("git.kernel.org", "Kernel `git log -S` search (method, not a dataset)"),
+    ("github.com/ritvik2205/speculative_execution", "c_vulns (this repo)"),
+]
+# normalised URL -> catalogue name, for URLs that appear on more than one catalogue row
+EXACT_PREF = {
+    "github.com/spectector/spectector-benchmarks": "Spectector benchmarks",
+}
 
 
 def load(patterns):
@@ -74,13 +87,11 @@ def build(base, evals, additions):
     for r in evals:
         p = r.get("provenance")
         if p:
-            from realworld.records import source_key
             ekeys.add(source_key(r))
     fams = families_from_eval(evals)
     removed, kept = Counter(), []
     for r in base:
         if r.get("provenance"):
-            from realworld.records import source_key
             if source_key(r) in ekeys:
                 removed["source_key"] += 1
                 continue
@@ -104,7 +115,6 @@ def ks_stat(a, b):
     a, b = sorted(a), sorted(b)
     if not a or not b:
         return float("nan")
-    import bisect
     d = 0.0
     for x in sorted(set(a) | set(b)):
         d = max(d, abs(bisect.bisect_right(a, x) / len(a) - bisect.bisect_right(b, x) / len(b)))
@@ -149,25 +159,44 @@ def catalogue_entries():
     for fname in m.STREAMS:
         p = m.HERE / fname
         if p.exists():
-            out += [(n, u) for n, urls in m.row_urls(p) for u in urls]
+            out += [(n, u) for n, urls in m.row_urls(p) for u in (urls or [""])]   # URL-less rows stay alias targets
     return out
 
 
-def usage_by_source(rows, catalogue):
-    """Map each non-dup record to a catalogue name by provenance-URL match.
+def _match(ru, cat, aliases, exact_pref):
+    """Catalogue name for normalised record URL ru, or None (unmatched/ambiguous: reported, not guessed).
+    Order: exact URL (one hit, or the explicit EXACT_PREF entry when several rows share the URL),
+    then the explicit alias table, then repo-root prefix of a single deeper catalogue URL."""
+    names = {n for n, _ in cat}
+    exact = sorted({n for n, u in cat if u == ru})
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        pref = exact_pref.get(ru)
+        return pref if pref in exact else None
+    for frag, name in aliases:
+        if frag in ru and name in names:
+            return name
+    near = sorted({n for n, u in cat if u.startswith(ru + "/") or ru.startswith(u + "/")})
+    if len(near) == 1:
+        return near[0]
+    shortest = sorted((len(u), n) for n, u in cat if u.startswith(ru + "/") or ru.startswith(u + "/"))
+    if shortest and (len(shortest) == 1 or shortest[0][0] < shortest[1][0]):
+        return shortest[0][1]
+    return None
+
+
+def usage_by_source(rows, catalogue, aliases=None, exact_pref=None):
+    """Map each non-dup record to a catalogue name by provenance URL.
     -> ({name: [records, note]}, {unmatched source: records})."""
+    aliases = ALIASES if aliases is None else aliases
+    exact_pref = EXACT_PREF if exact_pref is None else exact_pref
     cat = [(n, _norm_url(u)) for n, u in catalogue]
     usage, unmatched, per = {}, Counter(), {}
     for r in rows:
         if r.get("dup_of"):
             continue
-        ru = _norm_url(r["provenance"]["url"])
-        exact = [n for n, u in cat if u == ru]
-        if exact:
-            hit = exact[0]
-        else:       # record URL is the repo root of a deeper catalogue URL (or vice versa): shortest wins
-            near = sorted(((len(u), n) for n, u in cat if u.startswith(ru + "/") or ru.startswith(u + "/")))
-            hit = near[0][1] if near else None
+        hit = _match(_norm_url(r["provenance"]["url"]), cat, aliases, exact_pref)
         if hit is None:
             unmatched[r.get("source", "?")] += 1
             continue
@@ -187,7 +216,10 @@ def main(argv=None):
     ap.add_argument("--length-ref-out", type=Path, default=None,
                     help="write the pool's non-BENIGN rows here (the attack-length reference for "
                          "benign_debian --from-existing --length-ref) and exit 0 before the gates")
-    ap.add_argument("--allow-length-gap", action="store_true", help="do not fail when overall KS > 0.15")
+    ap.add_argument("--length-ref-arch", nargs="+", default=None, metavar="ARCH",
+                    help="with --length-ref-out: keep only attack rows of these arches")
+    ap.add_argument("--allow-length-gap", nargs="+", default=[], metavar="ARCH",
+                    help="arches whose benign-vs-attack length KS may exceed 0.15 (R36); every other arch fails")
     a = ap.parse_args(argv)
 
     base = [json.loads(l) for l in open(a.base) if l.strip()]
@@ -199,7 +231,8 @@ def main(argv=None):
     res = build(base, evals, adds)
     pool = res["pool"]
     if a.length_ref_out:
-        att = [r for r in pool if r["label"] != "BENIGN"]
+        att = [r for r in pool if r["label"] != "BENIGN"
+               and (not a.length_ref_arch or r.get("arch", "x86_64") in a.length_ref_arch)]
         a.length_ref_out.parent.mkdir(parents=True, exist_ok=True)
         with open(a.length_ref_out, "w") as f:
             for r in att:
@@ -221,25 +254,28 @@ def main(argv=None):
         att = [len(r["sequence"]) for r in sub if r["label"] != "BENIGN"]
         print(f"length KS {arch:8s} D={ks[arch]:.3f}  benign n={len(ben)} med={median(ben)}  "
               f"attack n={len(att)} med={median(att)}")
-    if not ks["overall"] <= KS_LIMIT:
-        msg = f"overall length KS {ks['overall']:.3f} > {KS_LIMIT}"
-        if a.allow_length_gap:
-            print(f"WARNING (allowed): {msg}", file=sys.stderr)
+    allowed = set(a.allow_length_gap)
+    for arch, d in ks.items():
+        if arch == "overall" or d != d or d <= KS_LIMIT:     # d != d: one class absent, nothing to compare
+            continue
+        if arch in allowed:
+            print(f"WARNING (allowed): {arch} length KS {d:.3f} > {KS_LIMIT}", file=sys.stderr)
         else:
-            print(f"FATAL: {msg}; re-window benign against the pool's attack rows "
-                  f"(benign_debian --from-existing --length-ref) or pass --allow-length-gap", file=sys.stderr)
+            print(f"FATAL: {arch} benign-vs-attack length KS {d:.3f} > {KS_LIMIT}; re-window benign "
+                  f"(realworld/prepare_benign.sh) or --allow-length-gap {arch}", file=sys.stderr)
             rc = rc or 4
+    if rc:
+        return rc
     # usage: eval-side rows + train-side additions, by catalogue name
     usage, unmatched = usage_by_source(evals + adds, catalogue_entries())
     a.usage_out.write_text(json.dumps(usage, indent=1, sort_keys=True) + "\n")
     print(f"usage: {len(usage)} catalogue sources matched -> {a.usage_out}; unmatched {unmatched}")
-    if rc == 0:
-        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-        with open(a.out, "w") as f:
-            for r in pool:
-                f.write(json.dumps(r) + "\n")
-        print(f"wrote {a.out}")
-    return rc
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    with open(a.out, "w") as f:
+        for r in pool:
+            f.write(json.dumps(r) + "\n")
+    print(f"wrote {a.out}")
+    return 0
 
 
 if __name__ == "__main__":

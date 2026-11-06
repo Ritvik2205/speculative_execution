@@ -22,6 +22,7 @@ Purpose: replace the ARM-transliterated RISC-V corpus with gadgets that have ver
 | 13 | DejaVuzz | ASPLOS 2025 (per arXiv comments), arXiv 2504.20934 | No artifact link on arXiv page (verified) | Pre-silicon fuzzer, 5 bugs, 6 CVEs | Not stated | BOOM, XiangShan | Not stated | n/a |
 | 14 | Spectre on RISC-V Silicon | USENIX Security 2026 (Bognar, Weber, Schwarz, Van Bulck) | Not located (Distinguished Artifact Award per LinkedIn; link is shortened, not followed) | Spectre-PHT/BTB/RSB/STL PoCs, kernel-memory leak, gadget audit | Not stated | SiFive P550, T-Head C910/C920 | **Yes, silicon** | Not stated |
 | 15 | Linux riscv Spectre v1 / KVM patches | LKML / linux-riscv, Dec 2025 to Mar 2026 | lore/lkml threads (verified via search, not fetched) | Kernel gadget mitigations and fixes, not test programs | n/a | C910/C920, P550 | Mixed | GPL-2.0 (kernel) |
+| 16 | vusec/riscv-transient-attacks (Phantom Trails sample set) | USENIX Security 2025 (Phantom Trails sample set, per the repo) | https://github.com/vusec/riscv-transient-attacks (verified) | Whole-file RISC-V transient-execution PoC sources | Not stated | BOOM / XiangShan (per Phantom Trails) | No | Not stated (repo declares none) |
 
 ## Also seen, not verified
 

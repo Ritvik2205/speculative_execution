@@ -195,3 +195,23 @@ def test_overlap_clean_for_new_arms():
     assert out2 == {"fam": True, "hsh": True, "pl": False}
     # input rows are not mutated (H0 keeps the original flags)
     assert fam["train_overlap"] is True
+
+
+def test_overlap_clean_rejects_empty_or_mismatched_pool(tmp_path):
+    import json
+    import pytest
+    pool = [dict(sequence=["movq $5, %rax"] * 30, label="BENIGN", arch="x86_64", group="debian:x")]
+    with pytest.raises(SystemExit):
+        sr.check_overlap_pool([], tmp_path / "p.jsonl", None)
+    run = tmp_path / "run"
+    run.mkdir()
+    (tmp_path / "rw_train.jsonl").write_text("")
+    (tmp_path / "other.jsonl").write_text("")
+    (run / "gine_metrics.json").write_text(json.dumps({"args": {"train_data": str(tmp_path / "rw_train.jsonl")}}))
+    sr.check_overlap_pool(pool, tmp_path / "rw_train.jsonl", run)           # recorded == given: ok
+    with pytest.raises(SystemExit):
+        sr.check_overlap_pool(pool, tmp_path / "other.jsonl", run)          # mismatch
+    sr.check_overlap_pool(pool, tmp_path / "other.jsonl", run, force=True)  # explicit override
+    (run / "gine_metrics.json").write_text(json.dumps({"args": {}}))
+    with pytest.raises(SystemExit):
+        sr.check_overlap_pool(pool, tmp_path / "rw_train.jsonl", run)       # nothing recorded to verify
