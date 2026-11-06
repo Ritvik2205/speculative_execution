@@ -6,7 +6,7 @@ Plan: `docs/superpowers/plans/2026-11-05-real-world-data.md`. Spec: `docs/superp
 
 1. Laptop, optional now (needs Docker + `~/specexec_realworld/debian_asm`): riscv64 benign train cells
    `CELLS=riscv64 REBUILD=1 bash realworld/prepare_benign.sh` (~50 min/cell). Commit `v54/data/benign_riscv64_*` + skip logs (re-add old skip lines per the script header).
-2. Laptop, optional: full Linux patch-pair run (~1–2 h): `python3 -m realworld.patch_pairs --repo linux` (see `realworld/patch_repos.yaml`; commit cache reused). Xen is unvalidated (R9).
+2. Laptop, optional: full Linux patch-pair run (~1–2 h): `python3 -m realworld.patch_pairs --repo linux --clone ~/specexec_realworld/linux --out eval/data/realworld_patch_linux.jsonl --commits-file ~/specexec_realworld/linux_fix_commits.txt`. Xen is unvalidated (R9).
 3. Push the branch.
 4. After the i5 trainpool lands (`eval/data/revizor_hwlabel_trainpool.jsonl`), on the cluster:
    `cd ~/speculative_execution && git pull && bash eval/cluster/submit_realworld.sh`
