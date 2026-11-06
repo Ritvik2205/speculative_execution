@@ -92,3 +92,16 @@ def test_source_key_includes_file():
     b = _rec(function="f", file="b.c")
     assert source_key(a) == "https://x/y@abc#a.c:f"
     assert source_key(a) != source_key(b)
+
+
+def test_has_mitigation_arch_barriers():
+    # M1: arm64 dsb/isb/csdb/sb and riscv fence/fence.i, matched as the FIRST mnemonic, arch-aware
+    for b in ("dsb sy", "\tisb", "csdb", "sb"):
+        assert has_mitigation([b], arch="arm64"), b
+    assert has_mitigation(["fence rw, rw"], arch="riscv64")
+    assert has_mitigation(["fence.i"], arch="riscv64")
+    assert not has_mitigation(["sb a0, 0(a1)"], arch="riscv64")       # riscv sb = store byte
+    assert not has_mitigation(["ldr x0, [x1, #8]  // isb later"], arch="arm64")
+    assert not has_mitigation(["dsb sy"], arch="x86_64")
+    assert has_mitigation(["lfence"], arch="x86_64")
+    assert has_mitigation(["lfence"])                                    # arch-less default keeps x86

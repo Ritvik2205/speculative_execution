@@ -251,3 +251,19 @@ def test_dedupe_marks_later_rows_only(tmp_path):
     assert rows[2]["dup_of"] == "u@c#f:first"
     assert rows[3]["dup_of"] is None  # different arch
     assert dedupe.run([a, b]) == 1  # idempotent
+
+
+def test_overlap_path_match_case_insensitive(clone, tmp_path):
+    # I2: entry name "ZombieLoad" vs train source_file "zombieload/attacker/..." must match
+    e = entry(clone, name="FX", arches=["x86_64"], opts=["-O0"])
+    tf = tmp_path / "train.jsonl"
+    tf.write_text(json.dumps(dict(sequence=["nop"], label="MDS", arch="x86_64", group="g",
+                                  source_file="fx/a.c")) + "\n")
+    recs, _ = repos.run(e, clone, tmp_path / "o", tmp_path / "t", compile_fn=fake_compile,
+                        train_file=tf, log=lambda *_: None)
+    assert recs and recs[0]["train_overlap"] and recs[0]["train_overlap_reason"] == "source_path"
+
+
+def test_manifest_zombieload_family_token():
+    zl = next(e for e in repos.load_manifest() if e["name"] == "ZombieLoad")
+    assert "zombieload" in [t.lower() for t in zl.get("family_train_tokens", [])]

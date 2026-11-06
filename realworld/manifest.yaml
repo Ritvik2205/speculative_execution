@@ -2223,6 +2223,8 @@
   licence: unspecified
   paper: 'Schwarz et al., ZombieLoad: Cross-Privilege-Boundary Data Sampling (CCS 2019)'
   cve: CVE-2018-12130
+  family_train_tokens:
+  - zombieload
   split: eval
   subset: poc
   arches:

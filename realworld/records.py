@@ -17,7 +17,16 @@ STRIDE = 10
 REQUIRED_PROVENANCE = ("url", "commit_or_version", "licence", "retrieved")
 PROVENANCE_KEYS = REQUIRED_PROVENANCE + ("cve", "paper")
 
-MNEMONIC_MITIGATIONS = ("lfence", "mfence", "verw")
+MNEMONIC_MITIGATIONS = ("lfence", "mfence", "verw")   # x86_64
+# M1: barrier mnemonics per arch, matched as the FIRST mnemonic. riscv `sb` is store-byte, so `sb`
+# (arm64 speculation barrier) is only a barrier on arm64; an arch-less call uses x86 + the unambiguous rest.
+ARCH_MITIGATIONS = {
+    "x86_64": MNEMONIC_MITIGATIONS,
+    "arm64": ("dsb", "isb", "csdb", "sb"),
+    "riscv64": ("fence", "fence.i"),
+}
+ARCH_MITIGATIONS["aarch64"] = ARCH_MITIGATIONS["arm64"]
+_ANY_ARCH = MNEMONIC_MITIGATIONS + ("dsb", "isb", "csdb", "fence", "fence.i")
 SYMBOL_MITIGATIONS = (
     "array_index_nospec", "array_index_mask_nospec", "barrier_nospec",
     "__x86_indirect_thunk", "__x86_return_thunk",
@@ -85,10 +94,11 @@ def train_source_tokens(trows):
     return toks
 
 
-def has_mitigation(seq):
+def has_mitigation(seq, arch=None):
+    mn = ARCH_MITIGATIONS.get(arch, _ANY_ARCH)
     for line in seq:
         toks = line.split()
-        if toks and toks[0].lower() in MNEMONIC_MITIGATIONS:
+        if toks and toks[0].lower() in mn:
             return True
         if any(m in line for m in SYMBOL_MITIGATIONS):
             return True

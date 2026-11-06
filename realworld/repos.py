@@ -168,7 +168,7 @@ def run(e, repo_dir, out_dir, train_dir, compile_fn=compile_to_asm, train_file=D
                     seq, "BENIGN" if safe else item["label"], arch, group, f"{e['name']}_{e['subset']}",
                     prov, family=family, harness=bool(item.get("harness", False)), file=item["file"], function=item["function"], commit=e["commit"],
                     subset=e["subset"], compiler=cc, opt=opt, safe=safe, vuln_class=item["label"],
-                    mitigation_detected=bool(has_mitigation(seq)), note=item.get("note", ""),
+                    mitigation_detected=bool(has_mitigation(seq, arch)), note=item.get("note", ""),
                     train_overlap=False)
                 if safe:
                     rec["mitigated"] = True
@@ -179,15 +179,17 @@ def run(e, repo_dir, out_dir, train_dir, compile_fn=compile_to_asm, train_file=D
     # per-record: same normalised-sequence hash split_leaks() uses, so an -O0 hit does not taint -O2
     trows = _train_rows(train_file)
     thash = {_seq_hash(r) for r in trows}
-    tsrc = {r["source_file"] for r in trows if r.get("source_file")}
+    tsrc = {r["source_file"].lower() for r in trows if r.get("source_file")}
     ttok = train_source_tokens(trows)
     ftok = [t.lower() for t in e.get("family_train_tokens", [])]
     for r in recs:
         by_hash = _seq_hash(r) in thash
         # train rows are windows of files the project already ingested (e.g. a /tmp checkout of the
         # same repo): same repo-relative path => the file is in train even if the window differs
-        by_src = any(sf.endswith("/" + r["file"]) and (e.get("checkout", e["name"]).split("-asm")[0] in sf
-                                                      or e["name"].split("-asm")[0] in sf) for sf in tsrc)
+        # I2: case-insensitive on both sides (ZombieLoad entry vs zombieload/attacker/... in train)
+        rf = r["file"].lower()
+        names = {e.get("checkout", e["name"]).split("-asm")[0].lower(), e["name"].split("-asm")[0].lower()}
+        by_src = any(sf.endswith("/" + rf) and any(n in sf for n in names) for sf in tsrc)
         fam = next((t for t in ftok if any(t in x for x in ttok)), None)
         r["train_overlap"] = by_hash or by_src or fam is not None
         r["train_overlap_reason"] = ("sequence_hash" if by_hash else "source_path" if by_src
