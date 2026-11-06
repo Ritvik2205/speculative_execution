@@ -120,3 +120,33 @@ def test_eval_windows_unchanged(tmp_path):
     tr = [json.loads(l) for l in open(tmp_path / "tr" / "benign_x86_64_gcc.jsonl")]
     assert ev and all(WIN_LO <= len(r["sequence"]) <= WIN_HI for r in ev)
     assert max(len(r["sequence"]) for r in tr) > WIN_HI  # train uses the reference histogram (non-BENIGN rows only)
+
+
+def _mk_cache(tmp_path, version="1.0-1", snapshot="trixie", partial=""):
+    c = tmp_path / "c" / "p-amd64-gcc"
+    (c / "asm").mkdir(parents=True)
+    (c / "asm" / "a.s").write_text(_func("f", _body(1, 30)))
+    (c / "version.txt").write_text(version)
+    (c / "snapshot.txt").write_text(snapshot)
+    if partial:
+        (c / "partial.txt").write_text(partial)
+    return c
+
+
+def test_cache_hit_same_version(tmp_path):
+    c = _mk_cache(tmp_path, partial="later step failed")
+    hit = bd.cache_lookup(c, "p", "trixie", version_fn=lambda p, s: "1.0-1", log=lambda *a: None)
+    assert hit and hit[0] == "1.0-1" and hit[2] == "later step failed" and hit[1][0][0] == "a.s"
+
+
+def test_cache_miss_on_version_mismatch(tmp_path):
+    c = _mk_cache(tmp_path)
+    msgs = []
+    assert bd.cache_lookup(c, "p", "trixie", version_fn=lambda p, s: "2.0-1", log=msgs.append) is None
+    assert msgs and "cache miss" in msgs[0]
+    # a different snapshot id is also a miss, without even asking apt
+    assert bd.cache_lookup(c, "p", "20261101T000000Z", version_fn=lambda p, s: "1.0-1", log=msgs.append) is None
+    # unverifiable version -> miss
+    def boom(p, s):
+        raise RuntimeError("net")
+    assert bd.cache_lookup(c, "p", "trixie", version_fn=boom, log=lambda *a: None) is None

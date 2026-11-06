@@ -168,18 +168,68 @@ def records_from_asm(asm_items, arch, cc, pkg, version, snapshot, retrieved, cap
     return recs
 
 
+APT_VERSION_SH = r"""
+cat > /etc/apt/sources.list.d/debian.sources <<EOT
+Types: deb-src
+URIs: $URI
+Suites: trixie
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.pgp
+EOT
+apt-get -o Acquire::Retries=5 -o Acquire::Check-Valid-Until=false update >/dev/null 2>&1 || exit 1
+apt-cache showsrc $PKG | awk '/^Version:/{print $2; exit}'
+"""
+
+
+def apt_source_version(pkg, snapshot):
+    """Version apt resolves for `pkg` source in the requested snapshot (or current trixie)."""
+    uri = "http://deb.debian.org/debian/" if snapshot == "trixie" else \
+        f"http://snapshot.debian.org/archive/debian/{snapshot}/"
+    r = subprocess.run(["docker", "run", "--rm", "-e", f"PKG={pkg}", "-e", f"URI={uri}", IMAGE, "bash", "-c",
+                        APT_VERSION_SH], capture_output=True, text=True, timeout=300)
+    v = r.stdout.strip()
+    if r.returncode != 0 or not v:
+        raise RuntimeError(f"apt version lookup failed for {pkg}: {r.stderr[-200:]}")
+    return v
+
+
+def cache_lookup(cpath, pkg, snapshot, version_fn=None, log=print):
+    """Return (version, items, partial) from the cache, or None on a miss (missing, other snapshot,
+    other package version, or unverifiable). Misses print a notice and the caller rebuilds."""
+    version_fn = version_fn or apt_source_version
+    if not (cpath / "version.txt").exists():
+        return None
+    cached_v = (cpath / "version.txt").read_text().strip()
+    cached_s = (cpath / "snapshot.txt").read_text().strip() if (cpath / "snapshot.txt").exists() else None
+    if cached_s != snapshot:
+        log(f"  cache miss {pkg}: cached snapshot {cached_s!r} != requested {snapshot!r}; rebuilding")
+        return None
+    try:
+        want_v = version_fn(pkg, snapshot)
+    except Exception as ex:
+        log(f"  cache miss {pkg}: cannot verify version ({ex}); rebuilding")
+        return None
+    if want_v != cached_v:
+        log(f"  cache miss {pkg}: cached version {cached_v} != apt {want_v}; rebuilding")
+        return None
+    items = [(str(p.relative_to(cpath / "asm")), p.read_text(errors="replace"))
+             for p in sorted((cpath / "asm").rglob("*.s"))]
+    if not items:
+        return None
+    partial = (cpath / "partial.txt").read_text() if (cpath / "partial.txt").exists() else ""
+    return cached_v, items, partial
+
+
 def build_package(pkg, arch, cc, snapshot, work=DEFAULT_WORK, keep=False, timeout=BUILD_TIMEOUT,
-                  cache=None, from_existing=False):
+                  cache=None, from_existing=False, version_fn=None):
     """Cross-build one Debian source package; return (version, [(relpath, asm_text)]) or raise BuildSkip."""
     work = Path(work)
     cell = f"{pkg}-{arch}-{cc}"
     cpath = Path(cache) / cell if cache else None
-    if from_existing and cpath and (cpath / "version.txt").exists():
-        items = [(str(p.relative_to(cpath / "asm")), p.read_text(errors="replace"))
-                 for p in sorted((cpath / "asm").rglob("*.s"))]
-        if items:
-            return (cpath / "version.txt").read_text().strip(), items, (cpath / "partial.txt").read_text() \
-                if (cpath / "partial.txt").exists() else ""
+    if from_existing and cpath:
+        hit = cache_lookup(cpath, pkg, snapshot, version_fn)
+        if hit:
+            return hit
     work.mkdir(parents=True, exist_ok=True)
     cdir = work / cell
     if cdir.exists():
@@ -226,6 +276,7 @@ def build_package(pkg, arch, cc, snapshot, work=DEFAULT_WORK, keep=False, timeou
             (cpath / "asm" / rel).parent.mkdir(parents=True, exist_ok=True)
             (cpath / "asm" / rel).write_text(text)
         (cpath / "version.txt").write_text(version)
+        (cpath / "snapshot.txt").write_text(snapshot)
         if partial:
             (cpath / "partial.txt").write_text(partial)
     return version, items, partial
