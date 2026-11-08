@@ -18,7 +18,7 @@ set -uo pipefail
 REPO="${REPO:-$HOME/speculative_execution}"; cd "$REPO"
 source "$HOME/miniconda3/etc/profile.d/conda.sh"; conda activate specexec
 SEEDS="${SEEDS:-1 7 13 21 42}"
-DATA="eval/data/revizor_hwlabel_variants.jsonl eval/data/revizor_hwlabel_cf_heldout.jsonl"
+DATA="eval/data/revizor_hwlabel_variants.jsonl eval/data/revizor_hwlabel_cf_heldout.jsonl eval/data/revizor_hwlabel_nofence_heldout.jsonl"
 mkdir -p eval/mechanism/preds
 args=()
 score() {  # tag dir train

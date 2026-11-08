@@ -14,7 +14,7 @@ set -euo pipefail
 REPO="${REPO:-$HOME/speculative_execution}"; cd "$REPO"
 POOL_IN="${POOL_IN:-eval/data/revizor_hwlabel_trainpool.jsonl}"
 SEEDS="${SEEDS:-1 7 13 21 42}"
-for f in "$POOL_IN" eval/data/revizor_hwlabel_cf_heldout.jsonl; do
+for f in "$POOL_IN" eval/data/revizor_hwlabel_cf_heldout.jsonl eval/data/revizor_hwlabel_nofence_heldout.jsonl; do
   [ -s "$f" ] || { echo "FATAL: $f missing (Task 4 hardware labels)" >&2; exit 1; }
 done
 python3 oracle/revizor/build_hw_joint.py --hw-labels-only "$POOL_IN"

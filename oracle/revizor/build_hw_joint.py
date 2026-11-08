@@ -23,7 +23,8 @@ DEFAULT_OUT_MISFENCED = ROOT / "v54" / "data" / "v55h_allhw2_train.jsonl"
 DEFAULT_OUT_HW3 = ROOT / "v54" / "data" / "v55h_allhw3_train.jsonl"
 # every set any allhw3 number is reported on: no training record may share a base
 EVAL_SETS = [ROOT / "eval" / "data" / "revizor_hwlabel_variants.jsonl",
-             ROOT / "eval" / "data" / "revizor_hwlabel_cf_heldout.jsonl"]
+             ROOT / "eval" / "data" / "revizor_hwlabel_cf_heldout.jsonl",
+             ROOT / "eval" / "data" / "revizor_hwlabel_nofence_heldout.jsonl"]
 
 
 def load_jsonl(path):

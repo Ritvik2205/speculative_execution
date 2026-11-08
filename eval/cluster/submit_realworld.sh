@@ -44,7 +44,7 @@ SB=sbatch
 ls eval/data/realworld_*.jsonl >/dev/null 2>&1 || { echo "FATAL: eval/data/realworld_*.jsonl missing" >&2; exit 1; }
 if [ "${INTERIM:-0}" != "1" ]; then
   # (1) hardware inputs
-  for f in "$POOL_IN" eval/data/revizor_hwlabel_cf_heldout.jsonl; do
+  for f in "$POOL_IN" eval/data/revizor_hwlabel_cf_heldout.jsonl eval/data/revizor_hwlabel_nofence_heldout.jsonl; do
     [ -s "$f" ] || { echo "FATAL: $f missing (Task 4 hardware labels; INTERIM=1 runs without them)" >&2; exit 1; }
   done
   # (2) base pool
