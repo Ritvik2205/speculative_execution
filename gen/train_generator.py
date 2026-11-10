@@ -210,6 +210,7 @@ def isa_purity(norm_seq, target_arch):
 
 
 def main():
+    global MAX_LEN
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--epochs", type=int, default=15)
@@ -262,7 +263,20 @@ def main():
                           "corpus (spec/data/riscv_cvulns_batch.jsonl + "
                           "spec/data/riscv_benign_train.jsonl) to make the "
                           "generator emit riscv64. Default: none (byte-identical).")
+    ap.add_argument("--slot-tokens", action="store_true",
+                     help="tokenize x86_64 records as the register-identity slot "
+                          "stream (AsmTokenizer.tokenize_sequence_slots): each "
+                          "instruction template is followed by one <Sk> per "
+                          "register position so the generator can express "
+                          "dataflow. Other ISAs keep the plain stream. Default "
+                          "OFF (byte-identical).")
+    ap.add_argument("--slot-k", type=int, default=6, help="distinct slots before <SX>")
+    ap.add_argument("--max-len", type=int, default=None,
+                     help=f"token context length (default {MAX_LEN}; slot streams "
+                          "are ~2.5x longer, use ~160)")
     args = ap.parse_args()
+    if args.max_len:
+        MAX_LEN = args.max_len
     torch.manual_seed(SEED); np.random.seed(SEED)
 
     engine = load_engine("base.json")
@@ -289,6 +303,15 @@ def main():
     else:
         def tokenize(rec):
             return tok.tokenize_sequence(rec["sequence"])
+    if args.slot_tokens:
+        _plain_tokenize = tokenize
+        _slot_tok = AsmTokenizer(load_engine("x86_64.json"))
+
+        def tokenize(rec):  # noqa: F811
+            if norm_arch(rec.get("arch", "x86_64")) == "x86_64":
+                return _slot_tok.tokenize_sequence_slots(rec["sequence"], k=args.slot_k)
+            return _plain_tokenize(rec)
+        print(f"[tokenizer] slot stream on x86_64 (k={args.slot_k}), max_len={MAX_LEN}")
 
     # leak-cond: stamp a mit on any record that lacks one (the v54 base rows and
     # any extra without the field). BENIGN -> safe (ordinary non-gadget code),

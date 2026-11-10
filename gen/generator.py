@@ -239,7 +239,9 @@ def encode_record(seq_tokens: List[str], cls: str, arch: str, vocab: GenVocab,
     # if the vocab carries length tokens, insert the record's own length bucket
     # after the arch token so the model learns length as a conditioning signal.
     if vocab.len_id:
-        instr_tokens = [t for t in seq_tokens if t in vocab.stoi]
+        # slot tokens (<S0>, <SX>, ...) are operand annotations, not
+        # instructions; instruction tokens never start with "<".
+        instr_tokens = [t for t in seq_tokens if t in vocab.stoi and not t.startswith("<")]
         prefix.append(vocab.len_id[length_bucket(len(instr_tokens), vocab.lens)])
     ids = prefix + [vocab.stoi[t] for t in seq_tokens if t in vocab.stoi]
     ids = ids[: max_len - 1] + [vocab.eos_id]

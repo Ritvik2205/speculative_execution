@@ -104,3 +104,29 @@ def test_gate_body_required():
     from synth import spectector_gadgets as sg
     with pytest.raises(ValueError):
         sg.render_spec_gate("SPECTRE_V1", fenced=False, gen_body=None)
+
+
+def test_build_gen_body_gate_is_callable_without_torch_side_effects():
+    # regression: build_gen_body_gate referenced strip_ret without importing it;
+    # the loop's broad except turned the NameError into "every sample dropped",
+    # which read as a 0.0 yield. Exercise the real function the loop calls.
+    pytest.importorskip("torch")
+    from gen.decode import build_gen_body_gate
+    from gen.synth import spectector_gadgets as sg
+    body = build_gen_body_gate([_LOAD, _SCALE, _XMIT, "retq"], "SPECTRE_V1", "x86_64")
+    assert "__gate_sp" in body and "retq" not in body
+    assert "arr[]" in sg.render_spec_gate("SPECTRE_V1", False, body)
+
+
+def test_loop_realize_fn_gate_path_produces_gadget(tmp_path):
+    pytest.importorskip("torch")
+    import gen.decode as gd
+    from gen.rl_from_oracle import _build_realize_fn
+    realizer = gd.Realizer(gd.load_spec("x86_64.json"), seed=0)
+    fn = _build_realize_fn("SPECTRE_V1", "x86_64", realizer, gd.spec_gadgets,
+                           gd.build_gen_body, tmp_path, tmp_path, harness="gate")
+    g = fn(["movzbl <secret-ptr> <reg>", "shlq <imm> <reg>", "movb <imm> <probe>"],
+           "SPECTRE_V1", "x86_64", 0, 0)
+    assert g is not None, "gate realize_fn dropped a valid sample"
+    src = (tmp_path / g["spectector_source"]).read_text()
+    assert "extern uint8_t arr[]" in src and "__gate_sp" in src

@@ -176,7 +176,21 @@ class Realizer:
         v = self.reg_widths.get(reg)
         return v[idx] if v else reg
 
+    def _disp(self) -> str:
+        # slot mode only: a forced displacement for this memory operand ("" =
+        # none). Plain mode keeps every memory operand displacement-free.
+        fd = getattr(self, "_forced_disps", None)
+        return fd.pop(0) if fd else ""
+
     def _reg(self, used):
+        # slot mode (realize_sequence_slots): the register for this position is
+        # dictated by the token stream, so dataflow survives realisation.
+        forced = getattr(self, "_forced_regs", None)
+        if forced:
+            r = forced.pop(0)
+            if r is not None:
+                used.add(r)
+                return r
         choices = [x for x in self.pool if x not in used] or self.pool
         r = self.rng.choice(choices)
         used.add(r)
@@ -217,14 +231,19 @@ class Realizer:
         if kind == "<reg>":
             return self._reg(used)
         if kind == "<imm>":
+            fi = getattr(self, "_forced_imms", None)
+            if fi:
+                v = fi.pop(0)
+                if v is not None:
+                    return v
             return self.imm_prefix + self.rng.choice(CRITICAL_IMMS)
         if kind == "<mem>":
             base = self.mem_base_reg if self.sandbox_mem_base else self._reg(used).lstrip("%")
-            return self.mem.replace("BASE", base)
+            return self._disp() + self.mem.replace("BASE", base)
         if kind == "<mem-idx>":
             b = self.mem_base_reg if self.sandbox_mem_base else self._reg(used).lstrip("%")
             i = self._reg(used)
-            return self.mem_idx.replace("BASE", b).replace("IDX", i.lstrip("%"))
+            return self._disp() + self.mem_idx.replace("BASE", b).replace("IDX", i.lstrip("%"))
         if kind == "<fn>":
             return self.fn_sym
         if kind == "<sym>":
@@ -376,11 +395,76 @@ class Realizer:
         (decode.py et al.) already treats the realized sequence as
         best-effort PDG-parseable asm, not a fixed-length lockstep mapping
         of norm_seq. Resampling, if wanted, is the generator caller's job."""
+        # a slot (register-identity) stream realises through the slot path so
+        # its dataflow survives; a plain stream has no slot tokens and takes
+        # the unchanged path below (byte-identical to before).
+        if any(self.is_slot_token(t) for t in norm_seq):
+            return self.realize_sequence_slots(norm_seq, reject_invalid=reject_invalid)
         out = []
         for n in norm_seq:
             if not n.strip():
                 continue
             instr = self.realize_instruction(n, reject_invalid=reject_invalid)
+            if instr is not None:
+                out.append(instr)
+        return self._retarget_self_rel_branches(out)
+
+    # ---- slot (register-identity) stream, step 1 (2026-11-11) -------------
+    # Consumes the stream from spec/asm_tokenizer.AsmTokenizer.
+    # tokenize_sequence_slots: an instruction template token followed by one
+    # slot token per register position (<reg> 1, <mem> base, <mem-idx> base +
+    # index, <probe> index). Slot k maps to ONE concrete register for the whole
+    # sequence (a per-sequence random permutation of the pool), so `load into
+    # S2; shift S2; store indexed by S2` realises with the same register three
+    # times -- the dataflow the plain stream cannot express. <SX> (overflow)
+    # draws a fresh register; <SSP>/<SFP>/<SIP> are rsp/rbp/rip. Tokens with no
+    # following slot tokens realise exactly as in realize_sequence.
+    SLOT_RE = re.compile(r"^<(S\d+|SX|SSP|SFP|SIP|D\d+|DZ|DX|I:-?\d+|I_other)>$")
+    _SLOT_SPECIAL = {"SSP": "%rsp", "SFP": "%rbp", "SIP": "%rip"}
+
+    @classmethod
+    def is_slot_token(cls, tok: str) -> bool:
+        return bool(cls.SLOT_RE.match(tok))
+
+    def realize_sequence_slots(self, stream: List[str], reject_invalid: bool = True) -> List[str]:
+        perm = list(self.pool)
+        self.rng.shuffle(perm)
+        groups: List[tuple] = []
+        for tok in stream:
+            if self.is_slot_token(tok):
+                if groups:
+                    groups[-1][1].append(tok)
+                continue
+            if tok.strip():
+                groups.append((tok, []))
+        out = []
+        for templ, slots in groups:
+            regs, disps, imms = [], [], []
+            for st in slots:
+                name = self.SLOT_RE.match(st).group(1)
+                if name in self._SLOT_SPECIAL:
+                    regs.append(self._SLOT_SPECIAL[name])
+                elif name == "SX":
+                    regs.append(None)
+                elif name[0] == "S":
+                    regs.append(perm[int(name[1:]) % len(perm)])
+                elif name == "DZ":
+                    disps.append("")
+                elif name == "DX":
+                    disps.append(str(-8 * (16 + self.rng.randrange(16))))
+                elif name[0] == "D":
+                    # distinct displacement identities -> distinct aligned
+                    # offsets, so field / spill-slot aliasing is preserved
+                    disps.append(str(-8 * (int(name[1:]) + 1)))
+                elif name == "I_other":
+                    imms.append(None)
+                else:
+                    imms.append(self.imm_prefix + name[2:])
+            self._forced_regs, self._forced_disps, self._forced_imms = regs, disps, imms
+            try:
+                instr = self.realize_instruction(templ, reject_invalid=reject_invalid)
+            finally:
+                self._forced_regs = self._forced_disps = self._forced_imms = None
             if instr is not None:
                 out.append(instr)
         return self._retarget_self_rel_branches(out)

@@ -101,6 +101,7 @@ def build_gen_body_gate(realized, cls, arch):
     load or transmit. The body must itself read through %r15 (<secret-ptr>)
     and transmit through %r14 (<probe>) to leak. x86_64 only."""
     from oracle_splice import splice_gate_only, gate_asm_block
+    from splice_safety import strip_ret
     realized = strip_ret(realized, cls)
     asm_text, clobbers = splice_gate_only(realized, arch)
     return gate_asm_block(asm_text, clobbers)

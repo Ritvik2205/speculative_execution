@@ -486,8 +486,13 @@ def _default_classes() -> list:
     return [c for c, v in ADJUDICABLE.items() if v == "yes" and c != "BENIGN"]
 
 
+from collections import Counter as _Counter
+_DROP_REASONS: "_Counter[str]" = _Counter()
+
+
 def _build_realize_fn(cls_short: str, arch: str, realizer, spec_gadgets,
-                       build_gen_body, out_dir: Path, repo_root: Path) -> Callable:
+                       build_gen_body, out_dir: Path, repo_root: Path,
+                       harness: str = "scaffold") -> Callable:
     """Build the real `realize_fn(tokens, target_class, target_arch,
     round_idx, sample_idx) -> gadget|None` for one class: sample tokens ->
     Realizer.realize_sequence (applies the P3b assembler-validity gate,
@@ -515,10 +520,25 @@ def _build_realize_fn(cls_short: str, arch: str, realizer, spec_gadgets,
         if len(concrete) < 2:
             return None  # nothing left to splice a secret through
         try:
-            gen_body = build_gen_body(concrete, cls_short, arch, is_invisispec=False)
-        except Exception:
-            return None  # unrealizable sample -- dropped pre-oracle per the contract
-        spec_c = spec_gadgets.render_spec(cls_short, fenced=False, gen_body=gen_body)
+            if harness == "gate":
+                # gate-only victim (step 1): the body must carry the leak; no
+                # injected load/transmit. See gen/synth/spectector_gadgets
+                # render_spec_gate and gen/oracle_splice.splice_gate_only.
+                from gen.decode import build_gen_body_gate
+                gen_body = build_gen_body_gate(concrete, cls_short, arch)
+                spec_c = spec_gadgets.render_spec_gate(cls_short, fenced=False, gen_body=gen_body)
+            else:
+                gen_body = build_gen_body(concrete, cls_short, arch, is_invisispec=False)
+                spec_c = spec_gadgets.render_spec(cls_short, fenced=False, gen_body=gen_body)
+        except Exception as e:
+            # unrealizable sample -- dropped pre-oracle per the contract. Count
+            # and surface the reason: a systematic failure here (e.g. a
+            # NameError in the splice) otherwise reads as a 0.0 yield.
+            _DROP_REASONS[type(e).__name__ + ": " + str(e)[:120]] += 1
+            if sum(_DROP_REASONS.values()) in (1, 10, 100):
+                print(f"[realize] dropped pre-oracle: {dict(_DROP_REASONS.most_common(3))}",
+                      file=sys.stderr, flush=True)
+            return None
         content_hash = hashlib.sha1(repr(tokens).encode()).hexdigest()[:8]
         gadget_id = f"rl_{cls_short}_{arch}_r{round_idx}_s{sample_idx}_{content_hash}"
         spec_path = out_dir / f"gen_spec_{gadget_id}.c"
@@ -621,7 +641,17 @@ def main(argv=None) -> int:
                           "V4/V1; see paper sec:hwlabel). Default OFF -- the "
                           "conservative discard. Also enabled by "
                           "SPECEXEC_NETYIELD_GUARD=1.")
+    ap.add_argument("--harness", choices=["scaffold", "gate"], default="scaffold",
+                     help="victim template family. scaffold (default, every "
+                          "pre-2026-11-11 number): the splice injects the secret "
+                          "load + transmit around the body, so the body is filler "
+                          "and an empty body leaks. gate: only the speculation "
+                          "gate is supplied; the body must load through the "
+                          "secret pointer and transmit itself (step 1).")
     args = ap.parse_args(argv)
+    if args.harness == "gate" and args.arch != "x86_64":
+        print("ERROR: --harness gate is x86_64-only", file=sys.stderr)
+        return 1
 
     reason = _docker_unavailable_reason(combined=args.combined_oracle)
     if reason:
@@ -683,7 +713,7 @@ def main(argv=None) -> int:
     def realize_fn_factory(cls_short):
         return _build_realize_fn(cls_short, args.arch, realizer,
                                  gen_decode.spec_gadgets, gen_decode.build_gen_body,
-                                 out_dir, repo_root)
+                                 out_dir, repo_root, harness=args.harness)
 
     gate_factory = None
     if args.filter_head:

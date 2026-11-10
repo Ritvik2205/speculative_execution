@@ -140,6 +140,95 @@ class AsmTokenizer:
         return out
 
 
+    # ---- register-identity ("slot") stream (step 1, 2026-11-11) -----------
+    # normalize() erases register identity (`movzbl (%rax),%ebx` ->
+    # `movzbl <mem> <reg>`), so a model over that vocabulary cannot express
+    # dataflow (load into rX, then use rX as an address) -- every realised
+    # instruction draws a fresh register. The slot stream keeps the template
+    # token unchanged and follows it with one slot token per register position,
+    # in the order the realiser fills them (gen/realize.py _operand: <reg> 1,
+    # <mem> base, <mem-idx> base+index). A slot is the first-appearance index of
+    # the register's width-canonical family within the sequence (<S0>..<S{k-1}>,
+    # <SX> beyond k); stack/frame/pc registers keep fixed tokens. Additive:
+    # normalize()/tokenize_sequence() are unchanged. x86_64 only for now; other
+    # ISAs return the plain stream.
+    SLOT_SPECIAL_X86 = {"rsp": "<SSP>", "rbp": "<SFP>", "rip": "<SIP>"}
+    _SLOT_POSITIONS = {"<reg>": 1, "<mem>": 1, "<mem-idx>": 2}
+
+    def tokenize_sequence_slots(self, sequence: List[str], k: int = 6,
+                                arch: str = "x86_64", values: bool = True,
+                                k_disp: int = 8) -> List[str]:
+        if arch != "x86_64" or self.mode == "neutral":
+            return self.tokenize_sequence(sequence)
+        import re
+        from ir_defuse import _X86_REG_RE, _canon_x86
+        slot: dict = {}
+        out: List[str] = []
+
+        def tok_for(fam):
+            if fam is None:
+                return "<SX>"
+            if fam in self.SLOT_SPECIAL_X86:
+                return self.SLOT_SPECIAL_X86[fam]
+            if fam not in slot:
+                slot[fam] = len(slot)
+            return f"<S{slot[fam]}>" if slot[fam] < k else "<SX>"
+
+        disp_id: dict = {}
+
+        def disp_tok(opnd):
+            # memory-cell identity: which displacement (number or symbol) the
+            # operand uses, by first appearance in the sequence. Collapsing all
+            # displacements to 0 merged distinct struct fields / spill slots and
+            # flipped 10/22 real benign leak verdicts (oracle-measured).
+            head = opnd.split("(", 1)[0].strip()
+            if head in ("", "0", "0x0", "-0"):
+                return "<DZ>"
+            if head not in disp_id:
+                disp_id[head] = len(disp_id)
+            return f"<D{disp_id[head]}>" if disp_id[head] < k_disp else "<DX>"
+
+        for instr in sequence:
+            n = self.normalize(instr)
+            if n is None:
+                continue
+            out.append(n)
+            parts = instr.strip().split(None, 1)
+            kinds = n.split()[1:]
+            ops = _operands(parts[1]) if len(parts) > 1 else []
+            for kind, opnd in zip(kinds, ops):
+                if kind == "<imm>" and values:
+                    out.append(self.imm_token(opnd))
+                    continue
+                npos = self._SLOT_POSITIONS.get(kind, 0)
+                if not npos:
+                    continue
+                fams = [m.group(0).lstrip("%").lower() if m.group(0).lower() == "%rip"
+                        else _canon_x86(m.group(1))
+                        for m in re.finditer(r"%rip\b|" + _X86_REG_RE.pattern, opnd, re.I)]
+                fams = (fams + [None] * npos)[:npos]
+                out.extend(tok_for(f) for f in fams)
+                if values and kind in ("<mem>", "<mem-idx>"):
+                    out.append(disp_tok(opnd))
+        return out
+
+    # immediates whose exact value carries attack semantics (shift amounts,
+    # masks, cache-line / page strides, small offsets) keep their value;
+    # randomising immediates flipped 9/18 synthetic attack leak verdicts.
+    @staticmethod
+    def imm_value_exact(v: int) -> bool:
+        return (-64 <= v <= 64 or (v > 0 and v & (v - 1) == 0 and v <= 1 << 16)
+                or v in (0xff, 0xfff, 0x1fff, 0xffff, 0x3f, 0x7f, 0xfffff))
+
+    def imm_token(self, opnd: str) -> str:
+        t = opnd.strip().lstrip("$")
+        try:
+            v = int(t, 16) if t.lower().lstrip("-").startswith("0x") else int(t)
+        except ValueError:
+            return "<I_other>"
+        return f"<I:{v}>" if self.imm_value_exact(v) else "<I_other>"
+
+
 # Which spec each arch string resolves to. Mirrors the mapping already used by
 # v54/train_gine_v38.py's spec-builder path, kept in one place so tokenizer and
 # graph builder can't drift apart.

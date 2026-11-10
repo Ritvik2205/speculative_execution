@@ -466,6 +466,21 @@ _X86_GATE_PROBE = "r14"    # must match spec/x86_64.json realize.gate_probe_reg
 _X86_CLOBBERABLE = re.compile(r'^(rax|rbx|rcx|rdx|rsi|rdi|r8|r9|r10|r11|r12|r13)$')
 
 
+# Pure assembler aliases (identical encoding/semantics) that Spectector's x86
+# front end does not parse; canonicalised in the gate path only so the oracle
+# judges the instruction rather than its spelling.
+_JCC_ALIAS = {"jnc": "jae", "jc": "jb", "jnae": "jb", "jnb": "jae", "jz": "je",
+              "jnz": "jne", "jpe": "jp", "jpo": "jnp", "jnge": "jl", "jnl": "jge",
+              "jng": "jle", "jnle": "jg", "jna": "jbe", "jnbe": "ja"}
+
+
+def _canon_jcc_alias(ins: str) -> str:
+    parts = ins.strip().split(None, 1)
+    if parts and parts[0].lower() in _JCC_ALIAS:
+        return _JCC_ALIAS[parts[0].lower()] + ("\t" + parts[1] if len(parts) > 1 else "")
+    return ins
+
+
 def splice_gate_only(realized: list[str], arch: str) -> tuple[str, list[str]]:
     """Emit `realized` verbatim as the body of a gate-only victim. The two
     reserved registers are NOT seeded here: the caller binds the asm inputs
@@ -486,7 +501,7 @@ def splice_gate_only(realized: list[str], arch: str) -> tuple[str, list[str]]:
     # pointer manipulation corrupts its return address and reads as a control
     # leak (see splice_safety.strip_stack_ops).
     from splice_safety import strip_stack_ops
-    realized = strip_stack_ops(realized)
+    realized = [_canon_jcc_alias(i) for i in strip_stack_ops(realized)]
     for ins in realized:
         parts = ins.strip().split(None, 1)
         if len(parts) == 2:
