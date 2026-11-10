@@ -191,6 +191,54 @@ def render_spec_combined(vuln_class: str, fenced: bool,
             .replace("{fence}", fence).replace("{gen_body}", body))
 
 
+# --- Gate-only victims (step 1, 2026-11-10) -------------------------------
+# The templates in SPEC_GADGETS splice an injected secret load + transmit
+# around the body, so the leak lives in the scaffold (verified: an empty or
+# NOP body leaks 1.00). These gate-only victims supply ONLY the speculation
+# gate and declare the arrays with a STATIC, link-time-constant base
+# (`arr[]`, not `*arr`), so a plain in-bounds access is public; a leak
+# requires the body to speculatively read out of bounds through the reserved
+# secret-pointer register (%r15, seeded with `arr + i` by splice_gate_only)
+# and transmit through the probe base (%r14). `{fence}` sits right after the
+# gate. With these, empty/NOP/benign bodies are SAFE and the oracle verdict
+# depends on the body. x86_64 only; kept separate from SPEC_GADGETS so every
+# upstream V1/V4 number stays reproducible.
+_GATE_HEADER = (
+    '#include <stdint.h>\n#include <stddef.h>\n'
+    'extern uint8_t probe[]; extern uint8_t arr[]; extern size_t sz;\n'
+)
+# V1 gate: conditional-bounds-bypass. The body (seeded with arr+i in %r15,
+# probe in %r14) must load through %r15 and transmit through %r14.
+_V1_GATE = _GATE_HEADER + (
+    'void gadget(size_t i){ if(i<sz){ {fence}{gen_body} } }\n'
+)
+# V4 gate: store-bypass. A store to the same address precedes the gate so the
+# speculative load of arr[i] forwards a stale value; the body must carry that
+# value to the transmit. Adjudicated under Spectector-Combined `-v 4`.
+_V4_GATE = _GATE_HEADER + (
+    'void gadget(size_t i){ if(i<sz){ arr[i]=0; {fence}{gen_body} } }\n'
+)
+
+SPEC_GADGETS_GATE: dict[str, str] = {
+    "SPECTRE_V1": _V1_GATE,
+    "SPECTRE_V4": _V4_GATE,
+}
+
+
+def render_spec_gate(vuln_class: str, fenced: bool,
+                     gen_body: str | None = None) -> str:
+    """render_spec() for the gate-only victims. The body is REQUIRED (there is
+    no default transmit -- the whole point is that the body carries the leak),
+    so gen_body=None raises rather than silently inserting a scaffold."""
+    if gen_body is None:
+        raise ValueError(
+            "gate-only victims have no default body; the body must carry the "
+            "leak (pass gen_body=, built via splice_gate_only)")
+    fence = 'asm volatile("lfence":::"memory"); ' if fenced else ''
+    return (SPEC_GADGETS_GATE[vuln_class]
+            .replace("{fence}", fence).replace("{gen_body}", gen_body))
+
+
 def generate_spec(out_dir: str) -> list[dict]:
     """Write baseline + fenced .c files for every class plus an index jsonl.
 

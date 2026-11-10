@@ -443,3 +443,41 @@ def splice(realized: list[str], arch: str, convention: str,
     asm_text = "\\n\\t".join(line.replace("%", "%%") for line in lines)
     asm_text = asm_text.replace("%%0", "%0").replace("%%1", "%1")
     return asm_text, clobbers
+
+
+# ---------------------------------------------------------------------------
+# gate-only splice (step 1, 2026-11-10)
+# ---------------------------------------------------------------------------
+# The classic splice() above INJECTS a secret load (head) and a transmit
+# (tail) around the body, so the leak lives in the injected scaffold and any
+# body -- even a NOP -- leaks (verified: NOP body -> leak 1.00). gate_only
+# instead injects NOTHING: it seeds two reserved registers (the attacker
+# secret pointer and the probe base) and emits the body verbatim, so the body
+# must itself dereference the secret pointer and transmit for the oracle to
+# report a leak. A non-leaking body (NOP/benign) is then correctly SAFE. The
+# generator references the two reserved registers through the <secret-ptr> and
+# <probe> realiser tokens (gen/realize.py). x86_64 only for now (every leak
+# oracle here is x86); arm64/riscv64 land with their own gate templates.
+_X86_GATE_SECRET = "r15"   # must match spec/x86_64.json realize.gate_secret_reg
+_X86_GATE_PROBE = "r14"    # must match spec/x86_64.json realize.gate_probe_reg
+# body registers come from spec realize.register_pool (rax..r13), which
+# excludes r14/r15, so the body never collides with the reserved registers and
+# no remap is needed; we only clobber what the body actually touches.
+_X86_CLOBBERABLE = re.compile(r'^(rax|rbx|rcx|rdx|rsi|rdi|r8|r9|r10|r11|r12|r13)$')
+
+
+def splice_gate_only(realized: list[str], arch: str) -> tuple[str, list[str]]:
+    """Seed the reserved secret-pointer (%r15 <- %0) and probe-base
+    (%r14 <- %1) registers, then emit `realized` verbatim. No load, no
+    transmit, no shift is injected: the body carries the leak or there is
+    none. Returns (asm_body_text, clobber_list) in the same contract as
+    splice(). x86_64 only."""
+    if arch != "x86_64":
+        raise ValueError(f"gate_only splice is x86_64-only, got {arch!r}")
+    lines = [f"movq %0, %{_X86_GATE_SECRET}", f"movq %1, %{_X86_GATE_PROBE}"]
+    lines.extend(realized)
+    used = [f for f in find_registers(realized, arch) if _X86_CLOBBERABLE.match(f)]
+    clobbers = [_X86_GATE_SECRET, _X86_GATE_PROBE] + used + ["cc"]
+    asm_text = "\\n\\t".join(line.replace("%", "%%") for line in lines)
+    asm_text = asm_text.replace("%%0", "%0").replace("%%1", "%1")
+    return asm_text, clobbers

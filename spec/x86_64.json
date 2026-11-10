@@ -165,7 +165,10 @@
     "branch_prefixes": [
       "j"
     ],
-    "branch_self_rel": ".+2"
+    "branch_self_rel": ".+2",
+    "secret_ptr": "(%r15)",
+    "gate_secret_reg": "%r15",
+    "gate_probe_reg": "%r14"
   },
   "pipeline": {
     "model": "out_of_order",

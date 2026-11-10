@@ -68,6 +68,18 @@ class Realizer:
         self.mem_base_reg = r.get("mem_base_reg")
         self.sym = r["sym"]
         self.fn_sym = r["fn_sym"]
+        # Gate-only harness tokens (step 1, 2026-11-10). The gate-only victim
+        # template supplies ONLY the speculation gate + two reserved registers
+        # (an attacker-controlled secret pointer and the probe base); the body
+        # must itself load through the secret pointer and transmit through the
+        # probe, so that a non-leaking body (NOP/benign) scores SAFE and the
+        # oracle verdict depends on the body rather than on splice-injected
+        # scaffold. These operand kinds let the generator reference those two
+        # reserved registers as first-class tokens. Spec-driven and inert where
+        # absent (arm64/riscv64 until their gate templates land), so every
+        # existing ISA's realisation is byte-identical.
+        self.secret_ptr = r.get("secret_ptr")        # e.g. "(%r15)"
+        self.probe_base = r.get("gate_probe_reg")     # e.g. "%r14"
         # Optional, x86-only: map a 64-bit register to its b/w/l/q width variants
         # so a size-suffixed mnemonic (movl, addq) gets a width-matched register
         # instead of always a 64-bit one — the single largest cause of llvm-mc
@@ -217,6 +229,18 @@ class Realizer:
             return self.fn_sym
         if kind == "<sym>":
             return self.sym
+        if kind == "<secret-ptr>":
+            # memory reference through the reserved secret-pointer register;
+            # inert (passes through) where the spec does not define it.
+            return self.secret_ptr if self.secret_ptr else kind
+        if kind == "<probe>":
+            # indexed store destination into the reserved probe base, indexed
+            # by a body register (the transmit's secret-dependent address).
+            if self.probe_base:
+                i = self._reg(used)
+                return self.mem_idx.replace(
+                    "BASE", self.probe_base.lstrip("%")).replace("IDX", i.lstrip("%"))
+            return kind
         return kind
 
     @staticmethod
