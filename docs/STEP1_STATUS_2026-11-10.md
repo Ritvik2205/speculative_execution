@@ -105,3 +105,62 @@ before spending it.
    (empty / NOP / benign / random / untrained / fine-tuned), multi-seed,
    whole-run — the H1 test.
 5. Only then: minimality (step 2) and the silicon comparison (step 3).
+
+---
+
+## Update 2026-11-11 (all local, Docker Spectector; scripts in repo)
+
+### Harness defects found and fixed while testing
+| defect | symptom | fix |
+|---|---|---|
+| inputs seeded via `movq` + reserved regs clobbered | GCC "impossible constraints" on bodies using most of the pool (196 of a batch) | bind inputs with local register variables (`gate_asm_block`) |
+| windowed epilogue `pop`s | frame corruption read as a control leak via `ret` | `strip_stack_ops` |
+| `jnc`/`jz`… aliases | Spectector front end rejects them | alias canonicalisation in gate splice |
+| `build_gen_body_gate` missing import | loop silently dropped every sample → yield 0.000 | import + loop now prints drop reasons + regression test |
+| my measurement script | sent unrendered asm → fake "0/280" | retracted above |
+
+### Representation: what the token stream must keep (oracle-measured)
+Same 90 benign + 90 attack real x86 windows in the gate harness, verdict of the
+original vs. after a token round trip:
+
+| stream | benign agreement / leaks kept | attack agreement / leaks kept |
+|---|---|---|
+| plain (old base engine) | 0.59 / 18 of 23 | 0.55 / 4 of 19 |
+| plain (x86 engine) | 0.70 / 21 of 23 | 0.71 / 12 of 19 |
+| + register slots only | 0.83 / 12 of 23 | 0.68 / 7 of 19 |
+| **+ registers, displacements, immediates** | **0.91 / 21 of 23** | **0.92 / 17 of 19** |
+
+Attribution by direct ablation on the original text: zeroing displacements
+flips 10/22 benign leaks (distinct struct fields / spill slots merge, so a
+loaded pointer becomes the just-stored register value); randomising
+immediates flips 9/18 attack leaks (masks / shift amounts). Separately the
+base engine mislabels 8-bit registers as `<sym>` on 4.2% of x86 instructions,
+concentrated in byte loads/stores — the transmit instructions.
+
+### Control table (gate harness, SPECTRE_V1, x86, n=100, length-matched)
+| body | leak/n [95% CI] |
+|---|---|
+| empty / NOP | 0 / 0 |
+| benign raw | 0.25 [0.18, 0.34] |
+| benign via plain stream | 0.51 [0.41, 0.61] |
+| benign via slot stream | 0.30 [0.22, 0.40] |
+| random tokens | 0.03 [0.01, 0.08] |
+| `generator_plainx86` (plain, x86 engine) | 0.65 [0.55, 0.74] |
+| `generator_slot` | **0.68 [0.58, 0.76]** |
+
+The plain realiser alone doubles benign's rate (random register reuse makes
+chases), so each generator has its own bar: slot +0.38 over its bar (CIs
+disjoint), plain +0.14 (CIs overlap). `generator_lencond` (old) 0.59,
+`generator` (old) 0.67 — both against the 0.51 plain bar.
+
+### Loop on the gate harness, old `generator_lencond` (5 seeds, k=60, 6 rounds)
+leak/n 0.66 ± 0.10 → 0.80 ± 0.04 (paired lift +0.14, 4/5 seeds positive,
+n.s. at 5 seeds); length flat (28 instr); adjudicable 0.91 → 0.96; template
+concentration among leaks 4.8 → 9.4 (early mode collapse).
+
+### Known remaining gaps
+- implicit register operands (`rdtsc`, `cltq`, `div`) are not in the stream;
+- "SPECTRE_V1" training data contains timing-harness code (label noise);
+- Spectector's default policy makes all memory secret, so any speculative
+  load→address chain counts; this is V1-under-SNI, not "reads the attacker
+  index" specifically.

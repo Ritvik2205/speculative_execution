@@ -7,9 +7,10 @@ that carry no learned content. This script builds, for SPECTRE_V1 on x86_64:
   empty, nop<k>          -- must be SAFE (harness sanity)
   reference              -- hand-written load->scale->transmit, must LEAK
   benign_raw             -- straight-line windows of real compiled x86 code
-  benign_realized        -- the same windows tokenized then realised (what a
-                            perfect copy of benign code looks like after our
-                            tokenizer/realiser round trip)
+  benign_realized        -- the same windows through the PLAIN token stream
+                            (bar for a plain-stream generator)
+  benign_slot            -- the same windows through the identity slot stream
+                            (bar for a slot-stream generator)
   random_token           -- uniform draws from a checkpoint's x86 vocabulary
                             through the same masks and realiser (untrained)
   gen:<ckpt>             -- samples from each generator checkpoint
@@ -130,6 +131,15 @@ def build_jobs(args):
     lengths = [rng.choice(gen_lengths) for _ in range(args.n)]
     raw = benign_windows(lengths, rng)
     jobs += [("benign_raw", w) for w in raw]
+    # benign through the register/memory/immediate identity stream: the bar
+    # for a slot-stream generator (the plain realiser re-draws registers and
+    # manufactures dataflow, so benign_realized is the bar for a plain one).
+    import gen.decode as _gd
+    from isa_spec import load_engine as _le
+    from asm_tokenizer import AsmTokenizer as _AT
+    _stk = _AT(_le("x86_64.json"))
+    _sr = _gd.Realizer(_gd.load_spec("x86_64.json"), seed=args.seed + 1)
+    jobs += [("benign_slot", _sr.realize_sequence(_stk.tokenize_sequence_slots(w))) for w in raw]
     if args.gen:
         m, gd, realizer = tok_cache[args.gen[0]]
         from isa_spec import load_engine
