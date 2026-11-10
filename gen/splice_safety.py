@@ -124,3 +124,26 @@ def attach_splice_masks(model) -> dict:
     model._splice_disallow = {c: torch.tensor(ids, dtype=torch.long)
                               for c, ids in dis.items()}
     return dis
+
+
+# Gate-only harness (step 1): the body runs inside one inline-asm block in the
+# victim's frame, so any instruction that moves or writes the stack/frame
+# pointer (push/pop/leave/enter/call, or rsp/rbp as a destination) corrupts
+# the victim's return address. Spectector then reports a CONTROL leak through
+# the corrupted `ret` -- a frame artefact, not a speculative gadget (seen on
+# real benign bodies whose epilogue `popq`s were windowed in). Same precedent
+# as strip_ret: remove at splice time, keep the decode mask unchanged.
+import re as _re
+_X86_STACK_OP = _re.compile(r'^\s*(push|pop|leave|enter|call)[a-z]*\b', _re.I)
+_X86_WRITES_SP = _re.compile(r',\s*%[re]?(sp|bp)\s*$', _re.I)
+
+
+def strip_stack_ops(realized):
+    """Drop stack/frame-pointer-manipulating instructions from an x86 body."""
+    out = []
+    for ins in realized:
+        s = ins.replace("\t", " ").strip()
+        if _X86_STACK_OP.match(s) or _X86_WRITES_SP.search(s):
+            continue
+        out.append(ins)
+    return out

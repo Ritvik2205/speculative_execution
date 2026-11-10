@@ -95,20 +95,15 @@ def build_gen_body(realized, cls, arch, is_invisispec):
 
 
 def build_gen_body_gate(realized, cls, arch):
-    """Gate-only splice (step 1): seed the reserved secret-pointer (%r15 <-
-    arr+i) and probe (%r14 <- probe) registers and emit the body verbatim --
-    NO injected load or transmit. The body must itself dereference %r15 (via
-    the <secret-ptr> token) and transmit through %r14 (via <probe>) to leak.
-    cls is accepted for symmetry but the gate template is class-generic; the
-    V4 gate adds the store at the C level. x86_64 only."""
-    from oracle_splice import splice_gate_only
+    """Gate-only splice (step 1): bind the asm inputs directly to the reserved
+    secret-pointer (%r15 = arr + i) and probe (%r14 = probe) registers with
+    GCC local register variables and emit the body verbatim -- NO injected
+    load or transmit. The body must itself read through %r15 (<secret-ptr>)
+    and transmit through %r14 (<probe>) to leak. x86_64 only."""
+    from oracle_splice import splice_gate_only, gate_asm_block
     realized = strip_ret(realized, cls)
     asm_text, clobbers = splice_gate_only(realized, arch)
-    clobber_str = ", ".join(f'"{c.lstrip("%")}"' for c in clobbers)
-    return (
-        f'__asm__ __volatile__(\n"{asm_text}"\n'
-        f': : "r"(arr + i), "r"(probe) : {clobber_str}, "memory");'
-    )
+    return gate_asm_block(asm_text, clobbers)
 
 
 def main():

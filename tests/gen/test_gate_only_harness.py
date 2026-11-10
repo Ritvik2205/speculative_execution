@@ -44,13 +44,10 @@ pytestmark = pytest.mark.skipif(not _docker_ok(),
 def _verdict(body_lines, fenced=False, tmp=_WORK):
     """Splice body_lines into the gate-only V1 victim and return Spectector's
     verdict ('leak'/'safe'/'unrunnable')."""
-    from oracle_splice import splice_gate_only
+    from oracle_splice import splice_gate_only, gate_asm_block
     from synth import spectector_gadgets as sg
     from oracle.validators.spectector_validator import SpectectorValidator
-    asm_text, clob = splice_gate_only(list(body_lines), "x86_64")
-    clobber_str = ", ".join(f'"{c}"' for c in clob)
-    gen_body = ('__asm__ __volatile__(\n"' + asm_text + '"\n'
-                ': : "r"(arr + i), "r"(probe) : ' + clobber_str + ', "memory");')
+    gen_body = gate_asm_block(*splice_gate_only(list(body_lines), "x86_64"))
     c = sg.render_spec_gate("SPECTRE_V1", fenced=fenced, gen_body=gen_body)
     work = tmp / "oracle" / "build"
     work.mkdir(parents=True, exist_ok=True)
@@ -79,6 +76,15 @@ CASES = {
     "leak_padded":        ([_LOAD] + ["nop"] * 6 + [_SCALE, _XMIT], "leak"),
     "fence_between":      ([_LOAD, _LFENCE, _SCALE, _XMIT], "safe"),
     "fence_after_xmit":   ([_LOAD, _SCALE, _XMIT, _LFENCE], "leak"),
+    # a windowed epilogue (unbalanced pops) must not read as a leak via the
+    # corrupted return address -- strip_stack_ops removes it at splice time.
+    "unbalanced_pops":    (["popq %r8", "popq %rsi", "popq %r9", "popq %rdi"], "safe"),
+    # a body using most of the pool must still compile (inputs are bound to
+    # r15/r14 via register variables, not via a free scratch register).
+    "many_regs_leak":     (["movq $0, %rax", "movq $0, %rbx", "movq $0, %rcx", "movq $0, %rdx",
+                            "movq $0, %rsi", "movq $0, %rdi", "movq $0, %r8", "movq $0, %r9",
+                            "movq $0, %r10", "movq $0, %r11", "movq $0, %r12",
+                            _LOAD, _SCALE, _XMIT], "leak"),
 }
 
 

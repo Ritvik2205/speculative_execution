@@ -467,17 +467,45 @@ _X86_CLOBBERABLE = re.compile(r'^(rax|rbx|rcx|rdx|rsi|rdi|r8|r9|r10|r11|r12|r13)
 
 
 def splice_gate_only(realized: list[str], arch: str) -> tuple[str, list[str]]:
-    """Seed the reserved secret-pointer (%r15 <- %0) and probe-base
-    (%r14 <- %1) registers, then emit `realized` verbatim. No load, no
-    transmit, no shift is injected: the body carries the leak or there is
-    none. Returns (asm_body_text, clobber_list) in the same contract as
-    splice(). x86_64 only."""
+    """Emit `realized` verbatim as the body of a gate-only victim. The two
+    reserved registers are NOT seeded here: the caller binds the asm inputs
+    directly to them with GCC local register variables
+    (`register uint8_t *s asm("r15") = arr + i;`, see
+    gen/decode.build_gen_body_gate), so GCC never needs a free scratch
+    register for %0/%1. (Seeding via `movq %0,%r15` plus clobbering the
+    reserved registers left GCC no register for the inputs once a body used
+    most of the pool -> "'asm' operand has impossible constraints", 196/280
+    of a measured batch.) No load, transmit or shift is injected: the body
+    carries the leak or there is none. Returns (asm_body_text, clobber_list),
+    clobbers = the pool registers the body touches + "cc". Raises ValueError
+    if the body writes a reserved register (it would corrupt an asm input).
+    x86_64 only."""
     if arch != "x86_64":
         raise ValueError(f"gate_only splice is x86_64-only, got {arch!r}")
-    lines = [f"movq %0, %{_X86_GATE_SECRET}", f"movq %1, %{_X86_GATE_PROBE}"]
-    lines.extend(realized)
+    # frame safety: the body runs inside the victim's frame; stack/frame-
+    # pointer manipulation corrupts its return address and reads as a control
+    # leak (see splice_safety.strip_stack_ops).
+    from splice_safety import strip_stack_ops
+    realized = strip_stack_ops(realized)
+    for ins in realized:
+        parts = ins.strip().split(None, 1)
+        if len(parts) == 2:
+            ops = _split_top_level(parts[1], "(", ")")
+            dest = ops[-1] if ops else ""
+            if re.match(rf'^%(?:{_X86_GATE_SECRET}|{_X86_GATE_PROBE})[dwb]?$', dest):
+                raise ValueError(f"body writes a reserved gate register: {ins!r}")
     used = [f for f in find_registers(realized, arch) if _X86_CLOBBERABLE.match(f)]
-    clobbers = [_X86_GATE_SECRET, _X86_GATE_PROBE] + used + ["cc"]
-    asm_text = "\\n\\t".join(line.replace("%", "%%") for line in lines)
-    asm_text = asm_text.replace("%%0", "%0").replace("%%1", "%1")
+    clobbers = used + ["cc"]
+    asm_text = "\\n\\t".join(line.replace("%", "%%") for line in realized)
     return asm_text, clobbers
+
+
+def gate_asm_block(asm_text, clobbers):
+    """C statement wrapping a gate-only body; shared by the loop and tests."""
+    clobber_str = ", ".join(f'"{c.lstrip("%")}"' for c in clobbers)
+    return (
+        'register uint8_t *__gate_sp __asm__("r15") = arr + i; '
+        'register uint8_t *__gate_pb __asm__("r14") = probe; '
+        f'__asm__ __volatile__(\n"{asm_text}"\n'
+        f': : "r"(__gate_sp), "r"(__gate_pb) : {clobber_str}, "memory");'
+    )
