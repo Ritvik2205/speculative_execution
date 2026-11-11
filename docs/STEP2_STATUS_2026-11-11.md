@@ -170,3 +170,9 @@ the generator's leaks on this victim are escapes.
 - Training data caveat: only the 173 hardware-label originals are available locally in native
   form (54 V1, 22 V4, 33 MDS, 64 L1TF), so the learned arm is trained on those, not on the
   552-program pool that lives on the i5.
+
+Fair-candidate check (from the same rows, no new oracle calls): scoring each benign window on
+its FIRST attacker candidate only (mean 2.6 candidates per window otherwise) gives
+branch-keeping benign 0.37 leak / 0.34 attacker-dependent, branch-stripped 0.21 / 0.20. The
+generator's 0.15 attacker-dependent is still below both, so the candidate search does not
+explain the gap.
