@@ -182,3 +182,22 @@ the i5, `--pool-root`; 0 records missing, 0 overlap with the 173 held-out progra
 epochs, the count that minimises loss on the held-out programs (5: 4.23, 10: 4.12, 20: 4.37,
 40: 6.05, 80: 8.22 nats/token; at 80 epochs 68% of V1 samples were copies of training
 programs, at 10 none). 12,552 programs, all accepted by Revizor's parser.
+
+### Minimal cores on the tainted victim (`gen/step2_runs/t1_cores.md`)
+
+113 attacker-dependent leaks minimised (1-minimal, Spectector as the test), each core re-checked
+on the control.
+
+| source | cores | body median | core median | core range | distinct | core safe on control |
+|---|---|---|---|---|---|---|
+| benign, raw | 21 | 25 | 3 | 2–4 | 18 | 21/21 |
+| benign, slot stream | 24 | 25 | 2 | 2–4 | 22 | 24/24 |
+| benign, slot stream, branches kept | 40 | 28 | 4 | 2–6 | 34 | 40/40 |
+| generator | 15 | 26 | 4 | 2–6 | 15 | 15/15 |
+| generator v3 | 12 | 33 | 4 | 2–5 | 12 | 12/12 |
+
+Every core is attacker-dependent by construction of the check (113/113 safe once the attacker
+value is removed). The shapes are what a developer would recognise: load through the attacker
+pointer then use the value as an address (`movq 16(%r15), %rsi; movb %dl, (%rsi,%rcx)`), or
+load through it then branch on the value. Benign and generated code yield the same shapes; the
+generator's are not smaller or different in kind.
