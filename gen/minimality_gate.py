@@ -40,6 +40,7 @@ for _p in (ROOT, ROOT / "gen", ROOT / "spec", ROOT / "v54"):
         sys.path.insert(0, str(_p))
 
 CLS = "SPECTRE_V1"
+VICTIM = "sni"          # or "indexed" (set by --victim)
 _FIXED = ("rsp", "rbp", "rip")
 _tok = None
 
@@ -161,7 +162,7 @@ def make_gate_test(cls: str = CLS, tag: str = "m") -> Callable[[List[str]], bool
     def test(body: List[str]) -> bool:
         key = tuple(body)
         if key not in seen:
-            seen[key] = bool(body) and gate_verdict(body, cls, tag) == "leak"
+            seen[key] = bool(body) and gate_verdict(body, cls, tag, victim=VICTIM) == "leak"
         return seen[key]
 
     test.calls = seen
@@ -203,8 +204,38 @@ def _loop_bodies(run_dir: Path, rounds):
     return out
 
 
+def build_sources_indexed(args, rng):
+    """Sources for the attacker-indexed victim. Every body already names the
+    attacker input as %r15."""
+    import build_indexed_corpus as bic
+    last = args.rounds - 1
+    src = {}
+    for name, d in (("gen_indexed", ROOT / "gen" / "step2_runs" / "loop_indexed"),):
+        src[f"{name}_r0"] = _loop_bodies(d, {0})
+        src[f"{name}_r{last}"] = _loop_bodies(d, {last})
+    ctl = ROOT / "gen" / "step2_runs" / "controls_indexed_leak.jsonl"
+    src["benign_slot"] = [json.loads(l)["body"] for l in open(ctl)
+                          if json.loads(l)["cond"].startswith("benign_slot#")]
+    tr = [json.loads(l) for l in open(ROOT / "gen" / "data" / "indexed_train.jsonl")]
+    tr = [r for r in tr if r.get("arch") == "x86_64" and r["label"] == CLS and r.get("mit") == "leak"]
+    rng.shuffle(tr)
+    src["train_v1_slot"] = [bic.slot_body(r["sequence"], rng.randrange(1 << 30))
+                            for r in tr[: args.per_source * 3]]
+    for k in src:
+        seen, u = set(), []
+        for b in src[k]:
+            if tuple(b) not in seen and b:
+                seen.add(tuple(b))
+                u.append(b)
+        rng.shuffle(u)
+        src[k] = u
+    return src
+
+
 def build_sources(args, rng):
     """name -> list of candidate bodies (not yet oracle-checked on this path)."""
+    if VICTIM == "indexed":
+        return build_sources_indexed(args, rng)
     runs = ROOT / "gen" / "step1_runs"
     last = args.rounds - 1
     src = {
@@ -281,6 +312,15 @@ def run(args):
 def report(rows, args):
     train_all = _x86_windows(ROOT / "v54" / "data" / "v54_train.jsonl")
     benign_all = _x86_windows(ROOT / "eval" / "data" / "realworld_benign_x86_64.jsonl")
+    if VICTIM == "indexed":
+        # reference windows in attacker-canonical form (a cell input shows up
+        # as an explicit spill of %r15); register renaming stays free, so a
+        # core counts as present if ANY register could play the attacker.
+        from attacker_reg import attacker_candidates, to_attacker_canonical
+        train_all = _x86_windows(ROOT / "gen" / "data" / "indexed_train.jsonl")
+        benign_all = benign_all + [to_attacker_canonical(w, c) for w in benign_all
+                                   for c in attacker_candidates(w, cells=True)
+                                   if c.startswith("mem:")]
     by = defaultdict(list)
     for r in rows:
         by[r["source"]].append(r)
@@ -304,7 +344,7 @@ def report(rows, args):
                  + "/".join(str(hist[k]) for k in (1, 2, 3, 4, 5))
                  + f" | {len(dc)} | {len({r['template'] for r in rs})} | "
                  f"{len(nt)} ({len(nt)/len(dc):.2f}) | {len(nb)} ({len(nb)/len(dc):.2f}) |")
-    md = [f"# Step 2 — minimal leaking cores, gate harness ({CLS}, x86_64)", "",
+    md = [f"# Step 2 — minimal leaking cores, {VICTIM} victim ({CLS}, x86_64)", "",
           f"per-source cap {args.per_source}, seed {args.seed}; 1-minimal ddmin with "
           "Spectector as the test. Core identity = slot stream (register / memory-cell "
           "renaming ignored). \"Not in\" = embeds in no window of the corpus as an ordered "
@@ -334,7 +374,10 @@ def main(argv=None):
     ap.add_argument("--report-only", action="store_true")
     ap.add_argument("--out", default=str(ROOT / "gen" / "step2_minimality.jsonl"))
     ap.add_argument("--md", default=str(ROOT / "gen" / "step2_minimality.md"))
+    ap.add_argument("--victim", default="sni", choices=["sni", "indexed"])
     args = ap.parse_args(argv)
+    global VICTIM
+    VICTIM = args.victim
     if args.report_only:
         rows = [json.loads(l) for l in open(args.out)]
     else:

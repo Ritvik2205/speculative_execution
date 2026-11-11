@@ -248,13 +248,29 @@ def render_spec_gate_ssb(body_lines, fenced: bool = False, store: bool = True) -
 
 
 # Attacker-indexed V1 victim (see tests/gen/test_gate_indexed.py for why).
-# Whole-function asm: (1) save the scratch pool, give the body a private
-# frame, run the body ARCHITECTURALLY with the designated register = arr
-# (in bounds); (2) restore the pool, then run the body again behind the
-# bounds check with the register = arr + i. Under speculative non-
-# interference the architectural run's address observations pin every memory
-# cell it dereferences, so only loads through the attacker-controlled
-# register read "new" secrets in the speculative run.
+# Whole-function asm with TWO copies of the body on the two sides of the
+# bounds check:
+#
+#     cmp sz, i ; jae ARCH
+#     A = arr + i ; body        <- architectural when i <  sz
+#     jmp END                      speculative   when i >= sz  (out of bounds)
+#   ARCH:
+#     A = (i >= sz) ? arr : arr + i ; body   <- architectural when i >= sz
+#   END:                                        (pointer forced in bounds)
+#
+# On the path i >= sz the architectural trace runs the body with an in-bounds
+# pointer, which pins (through its address observations) every memory cell the
+# body dereferences on its own; the mispredicted fall-through then runs the
+# same body from the SAME state -- the rollback restores it, no save area --
+# with the out-of-bounds pointer. Only chains that start at a load through the
+# attacker-controlled register read anything new. On the path i < sz both
+# sides use the same pointer, so nothing differs. Flags are reset before each
+# copy (they would otherwise carry `i ? sz`, and sz is memory).
+#
+# An earlier version ran the body twice in sequence and restored the pool from
+# the stack in between: body stores can symbolically alias that save area, so
+# the restored registers looked secret-dependent and bodies that never touch
+# the attacker register leaked (benign via plain stream 0.46).
 _IDX_POOL = ("rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10",
              "r11", "r12", "r13", "r15")
 _IDX_FRAME = ("subq $1024, %rsp", "leaq 512(%rsp), %rbp")
@@ -277,19 +293,18 @@ def render_spec_gate_indexed(body_lines, attacker_reg: str = "r15",
     def copy(k):
         return [l.replace(".L", f".Lc{k}_") for l in body]
 
+    reset = ["xorq %r14, %r14", "leaq probe(%rip), %r14"]   # known flags, probe base
     lines = [".text", ".globl gadget", ".type gadget, @function", "gadget:"]
-    lines += [f"pushq %{r}" for r in _IDX_POOL]
     lines += list(_IDX_FRAME)
-    lines += ["leaq probe(%rip), %r14", f"leaq arr(%rip), %{a}"]      # in bounds
-    lines += copy(0)
-    lines += ["addq $1024, %rsp"] + [f"popq %{r}" for r in reversed(_IDX_POOL)]
-    lines += list(_IDX_FRAME)
-    lines += ["cmpq sz(%rip), %rdi", "jae .Lgate_end"]
+    lines += ["cmpq sz(%rip), %rdi", "jae .Lgate_arch"]
     if fenced:
         lines.append("lfence")
-    lines += ["leaq arr(%rip), %r14", f"leaq (%r14,%rdi), %{a}",       # arr + i
-              "leaq probe(%rip), %r14"]
+    lines += ["leaq arr(%rip), %r14", f"leaq (%r14,%rdi), %{a}"] + reset
     lines += copy(1)
+    lines += ["jmp .Lgate_end", ".Lgate_arch:",
+              "cmpq sz(%rip), %rdi", "leaq arr(%rip), %r14",
+              f"leaq (%r14,%rdi), %{a}", f"cmovae %r14, %{a}"] + reset
+    lines += copy(0)
     lines += [".Lgate_end:", "addq $1024, %rsp", "ret"]
     return _asm_file(lines)
 

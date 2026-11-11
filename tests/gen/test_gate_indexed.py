@@ -6,8 +6,9 @@ leak, including pointer chases through registers the attacker does not
 control (2-instruction cores, common in benign code). The indexed victim runs
 the body once architecturally with an in-bounds pointer and then again behind
 the mispredicted bounds check with the attacker's out-of-bounds pointer in ONE
-designated register; whatever the architectural run already exposes is no
-longer a speculative leak. A leak is then: a load through the attacker-
+designated register (the two runs are the two sides of the bounds check, so
+the speculative one starts from the rolled-back, identical state); whatever
+the architectural run already exposes is no longer a speculative leak. A leak is then: a load through the attacker-
 controlled register whose value reaches an address.
 """
 import sys
@@ -57,6 +58,17 @@ def _verdict(body, **kw):
     ("attacker_value_as_index_from_a_global",
      ["movq %r15, -8(%rip)", "movq -8(%rip), %rax", "movzbl (%rbx,%rax), %ecx",
       "movb $1, (%r14,%rcx)"], "leak"),
+    ("branch_on_the_attacker_loaded_value",
+     ["movzbl (%r15), %eax", "testl %eax, %eax", "je .Lx", "nop", ".Lx:"], "leak"),
+    ("store_through_the_attacker_loaded_value", ["movq (%r15), %rax", "movq %rbx, (%rax)"], "leak"),
+    ("bare_branch_on_incoming_flags", ["je .Lx", ".Lx:"], "safe"),
+    ("list_walk_through_a_frame_slot",
+     ["movq -8(%rbp), %rax", "movq (%rax), %rax", "movq %rax, -8(%rbp)"], "safe"),
+    # bodies with stores that never touch the attacker register: these leaked
+    # on the first (save/restore) version of this victim
+    ("uncontrolled_load_then_store_at_it", ["movq (%rcx), %r8", "movb $32, (%r11,%r8)"], "safe"),
+    ("uncontrolled_load_then_store_value", ["movq (%r12,%r13), %rdx", "movq %rdx, (%rcx)"], "safe"),
+    ("uncontrolled_rmw", ["movq -40(%rcx), %r11", "movl -48(%r11), %r11d", "addq %r8, (%rcx)"], "safe"),
     ("frame_relative_scratch_is_not_secret",
      ["movq %rax, -8(%rbp)", "movq -8(%rbp), %rcx", "movq (%rcx), %rdx"], "safe"),
 ])
