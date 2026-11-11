@@ -1,0 +1,272 @@
+[
+ {
+  "class": "SPECTRE_V1",
+  "seed": 0,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 1,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 2,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 3,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 4,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 5,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 6,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 7,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 8,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 9,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 0,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 1,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 2,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 3,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 4,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 5,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 6,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 7,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 8,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 9,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 0,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 1,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 2,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 3,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 4,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 5,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 6,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 7,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 8,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 9,
+  "learned_kept": 200,
+  "sampled": 200,
+  "copies_of_training": 0,
+  "duplicates": 0,
+  "invalid": 0
+ }
+]

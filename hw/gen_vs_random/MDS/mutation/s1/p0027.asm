@@ -1,0 +1,45 @@
+.intel_syntax noprefix
+.section .data.main
+.function_0:
+.bb_0.0:
+.macro.measurement_start: nop qword ptr [rax + 0xff]
+cmovnz eax, esi
+and rbx, 0b1111111111111 # instrumentation
+or rdx, qword ptr [r14 + rbx]
+and rdx, 0b1111111111000 # instrumentation
+lock btc qword ptr [r14 + rdx], 0
+and rax, 0b1111111111111 # instrumentation
+and rsi, qword ptr [r14 + rax]
+xor rax, -1499464454
+and rdi, 0b1111111111000 # instrumentation
+lock btc word ptr [r14 + rdi], 5
+and rbx, 0b1111111111111 # instrumentation
+cmovp bx, word ptr [r14 + rbx]
+and rcx, 0b1111111111111 # instrumentation
+xor dword ptr [r14 + rcx], eax
+and rbx, 0b1111111111111 # instrumentation
+cmovns eax, dword ptr [r14 + rbx]
+and rdi, 0b1111111111000 # instrumentation
+lock or dword ptr [r14 + rdi], ecx
+jmp .bb_0.1
+.bb_0.1:
+bt rax, rdi
+and rcx, 0b1111111111111 # instrumentation
+cmovnbe eax, dword ptr [r14 + rcx]
+or dl, -97
+cmovnb rdx, rcx
+or cl, al
+and rcx, 0b1111111111111 # instrumentation
+and qword ptr [r14 + rcx], -124
+and rbx, 0b1111111111111 # instrumentation
+cmovnb rax, qword ptr [r14 + rbx]
+and rdx, 0b1111111111111 # instrumentation
+or rdi, qword ptr [r14 + rdx]
+and rsi, 0b1111111111111 # instrumentation
+cmovp esi, dword ptr [r14 + rsi]
+or eax, 359647041
+.exit_0:
+.macro.measurement_end: nop qword ptr [rax + 0xff]
+jmp .test_case_exit
+.section .data.main
+.test_case_exit:nop

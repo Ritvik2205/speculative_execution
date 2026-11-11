@@ -1,0 +1,47 @@
+.intel_syntax noprefix
+.section .data.main
+.function_0:
+.bb_0.0:
+.macro.measurement_start: nop qword ptr [rax + 0xff]
+and rdi, 0b1111111111000 # instrumentation
+lock and byte ptr [r14 + rdi], 42
+add dl, 52 # instrumentation
+and rax, 0b1111111111111 # instrumentation
+cmovnb rsi, qword ptr [r14 + rax]
+xor esi, 106
+and rbx, 0b1111111111111 # instrumentation
+add byte ptr [r14 + rbx], dl
+and rcx, 0b1111111111000 # instrumentation
+lock sub word ptr [r14 + rcx], dx
+and rdx, 0b1111111111111 # instrumentation
+mov ax, word ptr [r14 + rdx]
+and rbx, 0b1111111111000 # instrumentation
+and ax, 0b111 # instrumentation
+lock bts word ptr [r14 + rbx], ax
+and rdx, 0b1111111111000 # instrumentation
+and di, 0b111 # instrumentation
+lock bts word ptr [r14 + rdx], di
+and rax, 0b1111111111000 # instrumentation
+lock sub qword ptr [r14 + rax], -126
+jp .bb_0.1
+jmp .exit_0
+.bb_0.1:
+and rcx, 0b1111111111111 # instrumentation
+setnl byte ptr [r14 + rcx]
+and rcx, 0b1111111111000 # instrumentation
+lock xor word ptr [r14 + rcx], di
+and rcx, 0b1111111111000 # instrumentation
+lock or byte ptr [r14 + rcx], bl
+and rsi, 0b1111111111111 # instrumentation
+movzx eax, byte ptr [r14 + rsi]
+and rdi, 0b1111111111000 # instrumentation
+lock or qword ptr [r14 + rdi], rdx
+mov cl, -72
+add cl, -96 # instrumentation
+and rbx, 0b1111111111111 # instrumentation
+cmovz esi, dword ptr [r14 + rbx]
+.exit_0:
+.macro.measurement_end: nop qword ptr [rax + 0xff]
+jmp .test_case_exit
+.section .data.main
+.test_case_exit:nop
