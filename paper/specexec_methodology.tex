@@ -67,17 +67,22 @@ Speculative-execution leaks are found today with hand-written per-ISA gadget
 patterns, symbolic checkers that each model one speculation mechanism, and slow,
 CPU-specific hardware fuzzers. We present \textsc{SpecExec}, a pipeline that
 generates candidate leak gadgets with a class- and ISA-conditioned Transformer,
-filters them, and adjudicates them with three external oracles: Spectector
-(symbolic), InvisiSpec on gem5 (execution), and Revizor on a bare-metal Intel
-i5-8300H. A graph neural network over program dependence graphs classifies
-assembly into nine classes and supplies the filter's representation. Every leak
-claim comes from an oracle, never from our own models. On x86 the
-oracle-in-the-loop generator reaches a confirmed-leak yield of 1.00 for
-Spectre~V1 and 0.98 for Spectre~V4, producing about 1,600 distinct leaking
-gadgets, and a learned pre-oracle gate sustains about one confirmed leak per
-oracle call. On 423 real hardware violations, a single \texttt{lfence} at the
+filters them, and adjudicates them with Spectector (symbolic); two further
+external oracles, InvisiSpec on gem5 (execution) and Revizor on a bare-metal
+Intel i5-8300H, supply ground truth outside the generation loop. A graph neural
+network over program dependence graphs classifies assembly into ten labels
+(eight attack classes, \cls{Benign}, and a Spectre-RSB label with a single test
+record) and supplies the filter's representation. Every leak
+claim comes from an oracle, never from our own models. On x86, in a single run
+(one seed, eight rounds), the oracle-in-the-loop generator has a whole-run
+confirmed-leak yield of 0.975 for Spectre~V1 and 0.516 for Spectre~V4 (0.98 in
+its best round); 13 runs of an earlier base loop, all Spectre~V1, produced
+about 1,500 distinct leaking gadgets across runs. A learned pre-oracle gate
+sustains about one confirmed leak per
+oracle call. On real hardware violations (725 in the current pool; fence
+labels come from the 162 stable held-out violations), a single \texttt{lfence} at the
 speculation boundary removes every stable leak while distant fences do not,
-giving silicon mitigation labels for L1TF, Spectre~V1 and Spectre~V4. Much of
+giving silicon mitigation labels for L1TF, MDS, Spectre~V1 and Spectre~V4. Much of
 our contribution is measuring what learned numbers mean: test-set screening,
 opcode shortcuts, a length confound and a CPU-specific instruction mix each
 inflated an earlier result. The detector's 95.6\% in-distribution accuracy does
@@ -89,7 +94,7 @@ hardware labels. We report these negative results alongside the positive ones.
 \section{Introduction}
 \label{sec:intro}
 
-Speculative-execution attacks---Spectre~\cite{kocher1998},
+Speculative-execution attacks---Spectre~\cite{kocher2019spectre},
 Meltdown~\cite{lipp2018meltdown} and Foreshadow/L1TF~\cite{vanbulck2018foreshadow},
 MDS~\cite{vanschaik2019ridl,schwarz2019zombieload},
 Retbleed~\cite{wikner2022retbleed}, Inception~\cite{trujillo2023inception} and
@@ -106,7 +111,8 @@ reach an expensive, precise oracle; and iterates
 \emph{generate $\to$ filter $\to$ oracle $\to$ retrain} to discover the
 \emph{smallest} leaking sequences (Fig.~\ref{fig:pipeline}). A graph-based
 detector that classifies assembly into eight attack classes and \cls{Benign}
-supports the loop.
+(plus a tenth label, SPECTRE\_RSB, with a single test record) supports the
+loop.
 
 The difficulty is not building such components but knowing what their numbers
 mean. Ground truth is scarce: each oracle covers a subset of speculation
@@ -119,20 +125,27 @@ number is reported next to the strongest non-learned bar we have.
 
 \paragraph{Findings}
 \begin{enumerate}[itemsep=1pt,leftmargin=1.4em]
-  \item \textbf{Generation.} On x86 the oracle-in-the-loop generator reaches a
-    confirmed-leak yield of 1.00 (Spectre~V1) and 0.98 (Spectre~V4), about
-    1,600 distinct leaking gadgets. A leak-conditioning token trained on
+  \item \textbf{Generation.} On x86, in one run (one seed, eight rounds,
+    $k{=}120$), the oracle-in-the-loop generator has a whole-run
+    confirmed-leak yield of 0.975 (Spectre~V1) and 0.516 (Spectre~V4; 0.98 in
+    its best round), with 252 (V1) and 209 (V4) distinct leaking gadgets; 13
+    runs of the earlier base loop, all V1, gave about 1,500 distinct leaking
+    gadgets across runs. A leak-conditioning token trained on
     hardware labels steers whether a V4 gadget leaks (0.80 vs.\ 0.04).
-  \item \textbf{Hardware.} On 423 real Revizor violations, an \texttt{lfence}
+  \item \textbf{Hardware.} On the 162 stable held-out violations (of 725 real
+    Revizor violations: 552 in the training pool, 173 held out), an
+    \texttt{lfence}
     at the speculation boundary mitigates every stable case and distant fences
     do not. L1TF, V1 and V4 violations re-trigger on replay at 100\%; the
-    recorded MDS inputs do not (0/6), but fresh contract-fuzzing hits an MDS
+    recorded MDS inputs did not replay with Revizor's filters on (0/6), but
+    that was a filters-on artefact: with filters off, 5/6 are stable. Fresh
+    contract-fuzzing also hits an MDS
     violation within ${\approx}15$ test cases under SMT on \emph{and} off, so
-    the channel is live on this part---the 0/6 is recorded-input fragility, not
-    a closed channel.
+    the channel is live on this part.
   \item \textbf{Oracle cost.} A learned gate in front of the oracle sustains
-    about one confirmed V4 leak per allowed call ($5.5\times$ fewer wasted
-    calls at round~0); a non-learned gate removes 18.2\% of unadjudicable
+    about one confirmed V4 leak per allowed call (precision 0.989, against
+    0.992 for the non-learned rule ``length $\ge 58$ and no fence''; the
+    gate's recall is unmeasured); a non-learned gate removes 18.2\% of unadjudicable
     candidates, short of the 80\% we targeted.
   \item \textbf{Detector audit.} The detector's 95.6\% in-distribution accuracy
     survives a test-set screening defect, opcode shortcuts and a length
@@ -315,6 +328,7 @@ detector is a classifier $f: S \mapsto \mathcal{C}$ with
                   &\text{L1TF}, \text{MDS}, \text{RETBLEED},
                    \text{INCEPTION}, \text{BHI}\}.
 \end{align*}
+The data carry a tenth label, SPECTRE\_RSB, with a single test record.
 The task is assembly-only: no source, IR or runtime information.
 Exploitability depends on the microarchitecture, so a static label is a
 \emph{triage} signal for an oracle, not a verdict.
@@ -479,7 +493,7 @@ $\langle\textsc{mit}\rangle\in\{\textsc{leak},\textsc{safe},\textsc{unknown}\}$
 (prefix order class, arch, mit), trained on the hardware mitigation labels of
 Section~\ref{sec:hwlabel}: a leaking variant is labelled \textsc{leak}, its
 mitigated twin \textsc{safe} \emph{with the class token preserved} so the pair
-differs only in mit, and the 725\todo{reconcile with the 423 violations of Section~\ref{sec:data-hw}} hardware-confirmed pool gadgets \textsc{leak};
+differs only in mit, and the 725 hardware-confirmed gadgets (552 training pool, 173 held out; Section~\ref{sec:data-hw}) \textsc{leak};
 every unverified legacy record is \textsc{unknown}, so the token never asserts a
 leak status we did not confirm. Base gadgets are held out by violation id across
 \emph{every} source---the leaking variants are transforms of the pool originals,
@@ -569,7 +583,7 @@ Class & Verification available (x86) \\
 \midrule
 SPECTRE\_V1 & Spectector + Revizor \texttt{cond} (replay 3/3) \\
 SPECTRE\_V4 & Spectector + Revizor \texttt{bpas} (SSBD control; replay 14/14) \\
-MDS & Revizor \texttt{seq-assist}: recorded violations do not replay (0/6), but fresh fuzzing re-finds one in ${\approx}15$ cases (SMT on/off): channel \emph{live} \\
+MDS & Revizor \texttt{seq-assist}: recorded violations replay 5/6 with filters off (the earlier 0/6 was a filters-on artefact); fresh fuzzing re-finds one in ${\approx}15$ cases (SMT on/off): channel \emph{live} \\
 L1TF & Revizor delayed-exception (replay 6/6) \\
 SPECTRE\_V2 & Spectector-Combined, \textbf{76.6\% adjudicable} (Tab.~\ref{tab:v2adj}) \\
 RETBLEED & Spectector-Combined return model, pending the return-model question \\
@@ -763,7 +777,7 @@ x86\_64 and AArch64 at O0 and O1.
 \paragraph{External sources}
 Google SafeSide~\cite{safeside} (200 samples, compiled for
 \texttt{x86\_64}/\texttt{arm64}, O0--O3); the Spectector
-benchmarks~\cite{spectector} (101 vanilla Kocher variants~\cite{kocher1998});
+benchmarks~\cite{spectector} (101 vanilla Kocher variants~\cite{kocher2019spectre});
 and up to 300 FastSpec~\cite{fastspec} synthetic V1 gadgets, used for
 training only.
 
@@ -798,12 +812,16 @@ on a non-training split. We also rebuilt an \emph{unscreened} test split
 (1,017 records) from the pre-filter pool, using only label-independent quality
 criteria. Table~\ref{tab:screening} gives the inflation. The flat feature
 models lose 4--5\,pp; the GINE graph model loses 0.3\,pp, because the graph
-structure survives the screening.
+structure survives the screening. Two caveats: the GINE row is a single
+checkpoint, not a multi-seed mean; and on the locked test set the flat Spec-42
+random forest (96.90\%) is above the headline GINE accuracy (95.62\%,
+Section~\ref{sec:indist}).
+% TODO(audit 2026-11-10): replace the single-checkpoint GINE row with a multi-seed mean.
 
 \begin{table}[t]
 \centering
 \caption{Accuracy on the locked (screened) test set vs.\ the rebuilt
-  unscreened split.}
+  unscreened split. $^{\dagger}$Single checkpoint, not a multi-seed mean.}
 % Source: \texttt{SPECDISCOVER\_TEST\_SET\_SCREENING.md}.
 \label{tab:screening}
 \footnotesize
@@ -813,7 +831,7 @@ Model & Locked & Unscreened & $\Delta$ \\
 \midrule
 Hand-58 (RF)        & 95.15\% & 90.19\% & $-4.96$\,pp \\
 Spec-42 (RF)        & 96.90\% & 93.18\% & $-3.72$\,pp \\
-GINE (spec builder) & 92.75\% & 92.43\% & $-0.32$\,pp \\
+GINE (spec builder)$^{\dagger}$ & 92.75\% & 92.43\% & $-0.32$\,pp \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -823,10 +841,12 @@ GINE (spec builder) & 92.75\% & 92.43\% & $-0.32$\,pp \\
 
 \paragraph{RISC-V corpus}
 498 files cross-compiled for riscv64. An ISA-independence test on
-canonical-op bigrams (Section~\ref{sec:xisa}) shows this corpus is
-\emph{transliterated from ARM64}, not written for RISC-V. In all 6 shared
-classes it is closer to ARM than ARM is to x86 (sign test $p=0.016$). We
-therefore treat it as a stand-in, not as idiomatic RISC-V. A held-out version
+canonical-op bigrams (Section~\ref{sec:xisa}) originally indicated that this
+corpus is \emph{transliterated from ARM64}, not written for RISC-V: in all 6
+shared classes it was closer to ARM than ARM is to x86 (sign test $p=0.016$).
+On current data the test no longer reaches significance (5 of 6 classes,
+$p=0.109$). We
+still treat the corpus as a stand-in, not as idiomatic RISC-V. A held-out version
 with corrected labels (\texttt{riscv\_loio\_corpus\_v2}, 248 records, 27
 attacks) is used for evaluation.
 
@@ -841,8 +861,11 @@ out-of-order cores.
 \label{sec:data-hw}
 
 Revizor~\cite{revizor} fuzzing campaigns on a bare-metal Intel i5-8300H (Coffee
-Lake) produced \textbf{423 unique violating programs}: Spectre~V1 130, L1TF 155,
-MDS 83, Spectre~V4 55. Each class comes from its own Revizor configuration
+Lake) have produced \textbf{725 unique violating programs} to date: 552 in the
+training pool and 173 held out. (An earlier count of 423---Spectre~V1 130,
+L1TF 155, MDS 83, Spectre~V4 55---is superseded.)
+% TODO(audit 2026-11-10): per-class breakdown of the 725 is not in the audit; fill from the pool manifest.
+Each class comes from its own Revizor configuration
 (instruction categories and contract). A seed ledger prevents reusing a
 program-generator seed, because a reused seed regenerates byte-identical
 programs. Violating programs (Intel syntax, \texttt{r14}-relative sandbox) are
@@ -993,12 +1016,15 @@ it was selected on held-out RISC-V.
 
 \subsubsection{Learned vs.\ hand features (negative result)}
 \label{sec:learned}
-A ten-seed paired comparison on current code (learned node features vs.\
-hand, full GINE) finds the learned features significantly \emph{worse}:
+A ten-seed paired comparison (learned node features vs.\
+hand, full GINE) finds the learned features significantly \emph{worse}; its
+logs predate the x86 load/store fix of Section~\ref{sec:spec-bugs}, so it is
+not a current-code measurement:
+% TODO(audit 2026-11-10): re-run the learned-vs-hand comparison after the x86 load/store fix.
 $-1.66$\,pp accuracy ($p=0.001$), $-3.47$\,pp macro-F1 ($p=0.008$), and
 Spectre~V2 recall $-9.55$\,pp ($p=0.029$). An earlier per-class L1TF lift of
 +11.9\,pp did not replicate; with 10 seeds the lift is 0.00\,pp. A
-pre-registered TOST equivalence test~\cite{schuirmann1987} also rejects
+pre-registered TOST equivalence test~\cite{schuirmann1987} (five seeds) also rejects
 equivalence ($-2.58$\,pp, 90\% CI $[-3.81,-1.35]$). Spec-generic flat features
 beat hand-58 on the locked split (+1.88\,pp) but lose under group hold-out
 ($-1.55$\,pp, CI $[-2.01,-1.08]$); the locked-split win is an artifact. The
@@ -1035,7 +1061,7 @@ Mixing the RISC-V corpus into training (group-stratified) raises held-out
 RISC-V accuracy from 24.85\,$\pm$\,7.36\% to 75.45\,$\pm$\,13.20\% (5 seeds),
 with no x86/ARM regression (95.89\,$\pm$\,1.69\% vs.\ 94.83\,$\pm$\,1.50\%).
 Spectre~V1 and V4 remain unmeasurable on that split for lack of data. The
-corpus is transliterated (Section~\ref{sec:data-riscv}), so this measures
+corpus is a stand-in that may be transliterated (Section~\ref{sec:data-riscv}), so this measures
 adaptation to RISC-V surface form, not idiomatic RISC-V attacks.
 
 \paragraph{Real RISC-V PoCs}
@@ -1072,9 +1098,12 @@ data at 0.97--1.00. A standard-scaled bag-of-opcodes logistic regression gets
 0.97 (L1TF 0.98, V1 0.93): each Revizor configuration's instruction set gives
 the class away. The graph model adds about +0.01 (L1TF) and +0.05 (V1). An
 earlier ``+0.25--0.30 over opcodes'' came from an unscaled baseline and is
-withdrawn. Class identity and Revizor configuration stay confounded until the
-classes are collected under a shared instruction set (\todo{shared-config
-Revizor campaign}).
+withdrawn. Class identity and Revizor configuration were confounded, and a
+campaign that collects the classes under a shared instruction set has since
+been run. Its result is null: the opcode bar falls from 0.994 to 0.411, and
+GINE reaches a balanced accuracy of 0.342 against a chance level of 0.333.
+Class identity on real gadgets was the Revizor configuration.
+% TODO(audit 2026-11-10): add the shared-config table and source path.
 
 \subsubsection{External check: a published kernel gadget}
 \label{sec:kasper-check}
@@ -1102,18 +1131,15 @@ from the seed---\texttt{rvzr minimize} regenerates and cannot replay, so it
 bails on most directories). On the i5-8300H the recorded L1TF (6/6), Spectre~V1 (3/3)
 and Spectre~V4 (14/14, both SSBP masks) violations re-trigger at Effective
 classification 100\% after slow-path priming at a 500-input sample, confirming
-them as stable hardware leaks. The recorded \textbf{MDS} violations do
-\emph{not} reproduce (0/6): each run is discarded on the fast path in ${\sim}1.5$\,s
-with no slow-path signal, under SMT on and off alike. MDS is therefore the one
-class whose \emph{recorded} violations we cannot confirm by replay. Fresh
-contract-fuzzing, however, re-finds an MDS violation within ${\approx}15$ test
+them as stable hardware leaks. The recorded \textbf{MDS} violations did
+\emph{not} reproduce in this replay (0/6): each run was discarded on the fast
+path in ${\sim}1.5$\,s
+with no slow-path signal, under SMT on and off alike. That was an artefact of
+running with Revizor's filters on: with the filters off, 5/6 are stable. Fresh
+contract-fuzzing also re-finds an MDS violation within ${\approx}15$ test
 cases under SMT on \emph{and} off (\texttt{rvzr\_runs/MDS\_REFUZZ\_RESULTS.md}),
-so the MDS channel is live on this part and the 0/6 is recorded-input
-fragility, not a closed channel---we claim a verified MDS \emph{channel} by
-fresh fuzzing, not a verified replay of the specific recorded gadgets; the
-replay drift is consistent with MDS's
-fill-buffer channel depending on transient microarchitectural state that the
-recorded inputs no longer recreate.
+so the MDS channel is live on this part.
+% TODO(audit 2026-11-10): cite the filters-off MDS replay log (5/6) here.
 
 \subsubsection{Fence-placement labels on silicon}
 \label{sec:hwlabel}
@@ -1181,9 +1207,11 @@ source \texttt{rvzr\_runs/reproduce\_fenced\_summary.tsv}. This independently
 corroborates the two load-bearing results above---that an \texttt{lfence}
 closes the channel on silicon for every reproducing class, V4 included---on the
 unmodified recorded gadgets rather than synthesised variants. MDS does not
-appear here for the same reason it is absent from Table~\ref{tab:hwlabel}: its
-recorded violations do not reproduce on this part (0/6), so there is no
-baseline leak to mitigate. The \texttt{fence\_all} placement is maximal, so
+appear in this matrix because its recorded violations did not replay under
+the filters-on baseline (0/6; with filters off, 5/6 are stable), so this
+matrix had no baseline leak to mitigate. MDS is present in
+Table~\ref{tab:hwlabel}, which is measured with filters off (33/33 stable
+directories). The \texttt{fence\_all} placement is maximal, so
 this confirms the channel \emph{can} be closed, not that any single targeted
 fence suffices---that is what the placement study above measures.
 
@@ -1213,7 +1241,7 @@ v1\_fallthrough       & ---  & ---  & 32/41 & --- \\
 \end{tabular}
 \end{table}
 
-\paragraph{Mid-sequence counterexamples (in progress)}
+\paragraph{Mid-sequence counterexamples}
 In this variant set every non-mitigating fence sits at the start or end of the
 sequence, and every mitigating one sits inside it. A non-learned rule,
 ``\cls{Benign} iff some \texttt{lfence} is inside the sequence'', therefore matches
@@ -1230,8 +1258,12 @@ fence position. We added four counterfactual variants that put a fence
   \item \texttt{cf\_fencepass}: Revizor's fence-insertion pass, which keeps
     every fence the violation survives.
 \end{itemize}
-\todo{hardware labels for these variants on the held-out and training pools;
-fill Table~\ref{tab:hwlabel} rows and the interior-fence bar.}
+Hardware labels for these variants have since been collected. On the 301
+mid-sequence counterfactuals the interior-fence rule scores 0.274, so its
+0.991 above is an artefact of the variant set. The appropriate non-learned
+bars there are a class-prior rule (0.817) and a mechanism rule written post
+hoc (0.884).
+% TODO(audit 2026-11-10): add the counterfactual rows to Table~\ref{tab:hwlabel} and the per-variant breakdown.
 
 \subsubsection{Mitigation awareness against hardware labels}
 \label{sec:hw-mitig}
@@ -1385,6 +1417,9 @@ further, and riscv64 can be sampled at all for the first time
   ``executes'' are necessary conditions for a leak, nothing more. The mask
   conditions are the sampling rule of Section~\ref{sec:otherisa}: none, the
   specification rule, and the specification rule plus an assembler check.}
+% TODO(audit 2026-11-10): the x86_64/arm64 "+ assembler" rows (x86 1.00/1.00/0.52, arm64 0.99/0.95/0.84) and the
+% arm64 "none" assembles value 0.15 had no backing file; the rows are removed and the value replaced by the
+% verified 0.28 of Table tab:isavalidity. Restore the "+ assembler" rows only with a backing file.
 % Source: \texttt{gen/isa\_runnability\_\{off,spec,assembler\}.md}, \texttt{gen/isa\_runnability\_riscv.md}.
 \label{tab:isavalid}
 \footnotesize
@@ -1395,11 +1430,9 @@ ISA & mask & realised & assembles & executes \\
 \midrule
 x86\_64 & none          & 0.99 & 0.99 & 0.62 \\
 x86\_64 & specification  & 0.99 & 0.99 & 0.65 \\
-x86\_64 & + assembler    & 1.00 & 1.00 & 0.52 \\
 \addlinespace
-arm64   & none          & 1.00 & \textbf{0.15} & 0.25 \\
+arm64   & none          & 1.00 & 0.28 & 0.25 \\
 arm64   & specification  & 1.00 & 0.77 & 0.72 \\
-arm64   & + assembler    & 0.99 & \textbf{0.95} & 0.84 \\
 \addlinespace
 riscv64 & + assembler    & 1.00 & \textbf{1.00} & 0.02 \\
 \bottomrule
@@ -1445,14 +1478,19 @@ oracle, not a realiser or emulator tweak.}
 
 \subsubsection{Yield}
 \label{sec:genyield}
-On x86 the loop drives the confirmed-leak yield to about $1.0$ for Spectre~V1
-and $0.98$ for Spectre~V4; the control-flow validity that unlocks V1 and the
+On x86, in one run with one seed (eight rounds, $k{=}120$), the whole-run
+confirmed-leak yield is $0.975$ for Spectre~V1 and $0.516$ for Spectre~V4; V4
+reaches $0.98$ only in its best round. The control-flow validity that unlocks V1 and the
 length conditioning plus dataflow-preserving splice that unlock V4 are detailed
 in Sec.~\ref{sec:adjud} (Table~\ref{tab:adjud}). V1 reaches its ceiling at
 round~0 (about $0.50\to0.97$ in one round, then flat across seeds); V4 climbs
-over the loop. Auditing confirms genuine discovery rather than mode collapse:
-about 1{,}600 distinct leaking gadgets across runs, median pairwise similarity
-$0.32$. The base multi-class loop, the self-supervised-pretraining
+over the loop. The distinct-gadget audit comes from a different configuration
+than these yields: 13 runs of the earlier base loop, all Spectre~V1, gave
+about 1{,}500 distinct leaking gadgets across runs (median pairwise similarity
+$0.32$); the final configuration gave 252 (V1) and 209 (V4) distinct leaking
+gadgets.
+% TODO(audit 2026-11-10): the "genuine discovery rather than mode collapse" reading is withdrawn pending the rewritten generation section.
+The base multi-class loop, the self-supervised-pretraining
 diversity/yield trade, and the length-diversity audit are in
 Appendix~\ref{app:gendev}.
 
@@ -1485,7 +1523,7 @@ With these in place we add a length-conditioning token
 (\texttt{<LEN\_short\textbar med\textbar long>}), so a target length can be
 requested at sampling time; this both keeps gadgets in the oracle-adjudicable
 band and makes the length--yield dependence controllable. On the cluster oracle,
-across five rejection-sampling rounds ($k{=}60$), the effect is large
+in one run with one seed (eight rejection-sampling rounds, $k{=}120$), the effect is large
 (Table~\ref{tab:adjud}).
 
 \begin{table}[t]
@@ -1493,20 +1531,22 @@ across five rejection-sampling rounds ($k{=}60$), the effect is large
 \caption{Oracle adjudicability and confirmed-leak yield, cold vs.\ the final
   configuration: control-flow fixes, a length-conditioning token set to
   \texttt{long}, and a dataflow-preserving splice for store bypass (cluster
-  Spectector, x86). Yield is the fraction of realised samples the oracle
-  confirms leak. Per-round development is in Appendix~\ref{app:gendev}.}
+  Spectector, x86). The final configuration is one run with one seed (eight
+  rounds, $k{=}120$). Adjudicable is over the whole run; peak yield is the best
+  single round; whole-run yield is confirmed leaks over all realised samples
+  of the run. Per-round development is in Appendix~\ref{app:gendev}.}
 \label{tab:adjud}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}llrr@{}}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
-Configuration & Class & Adjudicable & Leak yield \\
+Configuration & Class & Adjud. & Peak & Whole-run \\
 \midrule
-cold (no fixes)        & V1 & 6\% & $\sim$0 \\
+cold (no fixes)        & V1 & 6\% & $\sim$0 & --- \\
 \midrule
 \multirow{2}{*}{final (fixes + len-cond, \texttt{long})}
-                       & V1 & 98\% & \textbf{1.00} \\
-                       & V4 & 97\% & \textbf{0.98} \\
+                       & V1 & 98\% & 1.00 & 0.975 \\
+                       & V4 & 97\% & 0.98 & 0.516 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1540,7 +1580,7 @@ mechanism that works.
 
 \subsubsection{Steering leaking vs.\ mitigated generation}
 \label{sec:leakcond-results}
-The 821\todo{reconcile with the 806 labelled records of Table~\ref{tab:hwlabel}} labelled variants are not only a detector test set; they are the
+The 821 labelled variants (a different labelling run from the 806 records of Table~\ref{tab:hwlabel}) are not only a detector test set; they are the
 training signal for the leak-conditioning token of Section~\ref{sec:gen}. With
 the token trained on them (leaking arm \textsc{leak}, mitigated twin
 \textsc{safe}, class preserved; held out by base), conditioning moves generation
@@ -1549,17 +1589,24 @@ arm is fence-sparse and the \textsc{safe} arm heavily fenced (mean fence tokens
 per sequence, leak$\to$safe: V1 $0.4\!\to\!9.0$, V4 $1.7\!\to\!18$, MDS
 $3.4\!\to\!22$, L1TF $3.0\!\to\!32$; opcode Jensen--Shannon $0.15$--$0.29$; the
 sample sets do not overlap)---a structural readout, not a leak claim. Adjudicated
-by Spectector, the token controls whether a Spectre~V4 gadget actually leaks: the
+by Spectector, the two arms differ in how often a Spectre~V4 gadget leaks: the
 \textsc{leak} arm leaks in $0.80$ of adjudicable gadgets (16/20, Wilson
 $0.58$--$0.92$) against $0.04$ for \textsc{safe} (2/49, $0.01$--$0.14$), with
-non-overlapping intervals---the first oracle-grounded control over
-mitigated-versus-unmitigated generation here. Spectre~V1 is inconclusive by
+non-overlapping intervals. This does not establish that the token controls
+leakage as such: it is consistent with the simpler reading ``\textsc{safe}
+token $\Rightarrow$ emit \texttt{lfence}'', since a fence appears in 85\% of
+\textsc{safe}-arm samples against 14\% of \textsc{leak}-arm samples. The arms
+also differ in adjudicability (33\% of the 60 \textsc{leak} draws against 82\%
+of the 60 \textsc{safe} draws), so the two rates are computed on differently
+selected subsets.
+% TODO(audit 2026-11-10): bodies were not logged, so the per-sample verdict x fence table is missing; log bodies and add it.
+Spectre~V1 is inconclusive by
 construction: its Spectector victim template carries the bounds-check bypass
 itself, so the spliced body and its fences do not gate the leak and both arms
 leak $\approx\!0.95$; V4's template routes the leak through the body, so body
 fences gate it. The result is \emph{per adjudicable gadget}. Raw discovery yield
 (confirmed leaks per sample drawn) rises only $1.7\times$ for V4 ($0.19$ vs
-$0.11$, overlapping intervals at $n{=}80$) because roughly two-thirds of
+$0.11$, overlapping intervals at $n{=}60$) because roughly two-thirds of
 fence-sparse \textsc{leak} gadgets carry at least one instruction outside
 Spectector's model (the \texttt{bt}/\texttt{bsf}/\texttt{cmov} forms common in
 real Revizor gadgets) and a single unmodelled instruction voids the verdict---an
@@ -1595,7 +1642,7 @@ net yield when the relax is enabled.
 \subsubsection{Spectre~V2 under Spectector-Combined}
 \label{sec:v2results}
 \paragraph{V2 is now adjudicable at a rate comparable to V1} Measured on the
-cluster over 2{,}830 generated SPECTRE\_V2 bodies (the local container OOMs on
+cluster over 2{,}830 generated SPECTRE\_V2 bodies, of which 1{,}019 are distinct (the local container OOMs on
 heavyweight victims; Table~\ref{tab:v2adj}), Spectector-Combined rules on
 \textbf{76.6\%} of them---comparable to V1's 82\% and V4's 87\% under
 upstream Spectector, and a step change from the $\sim$15\% upstream manages on
@@ -1615,7 +1662,16 @@ retracted V4 result, caught here by the control before it reached a table. The
 of this run.
 
 The generated V2 bodies leak rarely even when adjudicable: 26 of 2{,}168
-(1.2\%), which de-duplicate to \textbf{16 distinct} leaking gadgets. A
+instances (1.2\%), which de-duplicate to \textbf{16 distinct} leaking gadgets;
+over distinct bodies the rate is 16/749 (2.1\%). Three caveats bound these
+figures. Of the 662 unadjudicated bodies, 613 are a Spectector parser crash on
+the realiser's self-relative branch target (\texttt{jcc .+2}), a realiser bug
+rather than an oracle limit. 8 of 11 leaking bodies contain no indirect
+branch, so their leak is not evidence of indirect-branch speculation. And a
+run at a 100-instruction window, whose anchor returned a false \textsc{safe},
+was not previously reported.
+% TODO(audit 2026-11-10): fix the `jcc .+2` realiser bug and re-measure; reconcile the 11 vs 16 leaking-body counts; add the w=100 row to Table tab:v2adj.
+A
 landing-pad fence (the second control) turns 15 of the 16 \textsc{safe}; a
 single distinct gadget leaks \emph{through} the fence in all three of its
 draws---a V2 body whose speculative transmit the one landing-pad fence does not
@@ -1656,7 +1712,8 @@ the hardware campaign (Sec.~\ref{sec:data-hw}), not synthesis.
   timed out in all ten shards of an earlier 590-body probe, so it is shown only
   to record that it was rejected. adjud.\ = adjudicable; leak/adj.\ = leaking
   bodies as a share of adjudicable (instances; the w=50 leaks de-duplicate to
-  16 distinct gadgets, 15 fence-mitigated).}
+  16 distinct gadgets, 15 fence-mitigated). The 2{,}830 bodies contain 1{,}019
+  distinct ones; over distinct bodies the leak rate is 16/749 (2.1\%).}
 % Source: \texttt{eval/v2\_combined/summary.md} (w=50), \texttt{eval/v2\_combined\_w200/summary.md} (w=200).
 \label{tab:v2adj}
 \footnotesize
@@ -1751,32 +1808,37 @@ A+B+C (full gate)   & \textbf{0.182} & \textbf{0.013} & 0.088 \\
 
 \subsubsection{The learned filter}
 \label{sec:rankresults}
-\paragraph{Result: the retargeted filter clears the bar, modestly}
+\paragraph{Result: the retargeted filter does not clearly beat the non-learned bars}
 On the 460 unique V4 leak/safe sequences, a logistic head on the frozen
 \emph{embedding} (not the classifier's attack probability, which was inverted)
 separates leak from safe at within-round AUC \textbf{0.656}, above the
 sequence-length bar's 0.587 and level with an opcode-bag model's 0.650
-(Table~\ref{tab:v4filter}). Under the prospective split (train rounds $\le r$,
-test $r{+}1$) the encoder head reaches 0.772, so the signal is not an
-artefact of round. The embedding carries usable leak signal where the
+(Table~\ref{tab:v4filter}); the difference from the opcode bag is about 0.2
+standard errors. Under the prospective split (train rounds $\le r$,
+test $r{+}1$) the encoder head reaches 0.772, but pooled sequence length
+scores 0.780 on the same 360 sequences, so the head does not beat length
+there. The embedding carries usable leak signal where the
 classifier output did not---the fix was the target (binary leak, not trace
-length) and the representation (fused embedding, not the softmax). The gain
-over length is real but small, and the leaks-per-oracle-call headroom is
+length) and the representation (fused embedding, not the softmax). The
+within-round gain over length is small, and the leaks-per-oracle-call headroom is
 limited precisely because the generator's own yield is already high by late
 rounds (the filter's value concentrates in early rounds and harder classes,
 as the head-room argument above predicts). The encoder built 360 of 460 PDGs;
 the other 100 are counted as unselectable, not dropped. An order-aware
 \emph{pairwise} head (a RankNet-style loss over within-round leak/safe pairs on
 the same embedding) gave no improvement---within-round AUC 0.628 and prospective
-0.764, at or below the pointwise head---limited by the $262{:}17$ leak-to-safe
-imbalance, which starves the pairwise objective of negatives; we keep the
+0.764, at or below the pointwise head; we keep the
 pointwise head.
+% TODO(audit 2026-11-10): the earlier explanation (a 262:17 leak-to-safe imbalance) is withdrawn: these AUCs are
+% measured on the 273:187 set, and three different datasets are mixed in this section; reconcile them.
 
 \begin{table}[t]
 \centering
 \caption{SPECTRE\_V4 leak-vs-safe discrimination, 460 unique generated
   gadgets. Within-round AUC controls for the loop-round confounder; prospective
-  trains on rounds $\le r$ and tests on $r{+}1$. Both columns are AUC.}
+  trains on rounds $\le r$ and tests on $r{+}1$. Both columns are AUC. Pooled
+  sequence length scores 0.780 on the same 360 sequences as the prospective
+  column.}
 % Source: \texttt{rank/v4\_filter\_eval.md}.
 \label{tab:v4filter}
 \footnotesize
@@ -1786,7 +1848,7 @@ scorer & within-round & prospective \\
 \midrule
 sequence length (bar) & 0.587 & --- \\
 opcode-bag LR         & 0.650 & 0.627 \\
-frozen-encoder head   & \textbf{0.656} & \textbf{0.772} \\
+frozen-encoder head   & 0.656 & 0.772 \\
 \quad pairwise (order-aware) & 0.628 & 0.764 \\
 \bottomrule
 \end{tabular}
@@ -1802,21 +1864,25 @@ dataflow-splice run and applied to a fresh five-round run (generator
 on its own training samples. On V4 the gate discards 98, 82, 55, 58 and 40 of
 the 120 candidates per round and sustains \textbf{1.00, 1.00, 0.97, 0.98,
 1.00} confirmed leaks per allowed oracle call (Table~\ref{tab:gateloop})---at
-round~0 that is 22 calls for 22 leaks where the ungated yield was 0.18, a
-$5.5\times$ reduction in wasted calls, narrowing to $1.5\times$ by round~4 as
-the generator's own yield climbs, exactly the early-round head-room the
-argument above predicts. On V1 the gate filters nothing (every sample scores
-leaky, which is correct---V1 has no \textsc{safe} class), so its allowed-call
-yield equals the raw yield and the gate is a no-op, as intended. The gate
-keeps $\sim$100\% precision on the calls it allows while cutting 33--82\% of
-the oracle calls on the class that has anything to cut.
+round~0 that is 22 calls for 22 leaks. We do not claim a reduction factor
+against an ungated baseline: the 0.18 previously used as the ungated yield is
+the gated run's own count, not an independent ungated run. The gate's recall
+(leaks among the candidates it discards) was not measured, and a non-learned
+rule, ``length $\ge 58$ and no fence'', has precision 0.992 against the
+gate's 0.989. On V1 the gate filtered nothing because it did not run: it was
+disabled by a \texttt{FileNotFoundError}, so the allowed-call yield equals the
+raw yield; this is not evidence that the gate scores every V1 sample leaky.
+The gate keeps $\sim$100\% precision on the calls it allows while withholding
+33--82\% of the V4 candidates, at unmeasured recall.
+% TODO(audit 2026-11-10): the "5.5x fewer wasted calls (1.5x by round 4)" claim is withdrawn; re-run with an
+% independent ungated baseline, measure recall, and re-run the V1 gate with the head file present.
 
 \begin{table}[t]
 \centering
 \caption{Encoder head as a pre-oracle gate inside the loop (cluster
   Spectector, x86, $k{=}120$). ``filtered'' = candidates withheld from the
-  oracle; ``per call'' = confirmed leaks per allowed oracle call. V1 has no
-  \textsc{safe} class so nothing is filtered.}
+  oracle; ``per call'' = confirmed leaks per allowed oracle call. On V1 the
+  gate was disabled by a \texttt{FileNotFoundError}, so nothing is filtered.}
 % Source: \texttt{gen/rl\_lencond.md} (gated run).
 \label{tab:gateloop}
 \footnotesize
@@ -1842,7 +1908,9 @@ V1 & 0--4 & 0 & 120 & 0.90--0.98 \\
 \subsection{RQ6: Are Discovered Leaks Minimal?}
 \label{sec:min}
 For real violations Revizor's instruction-removal pass (Section~\ref{sec:mindesign})
-gives the instructions each violation needs (Table~\ref{tab:min}). On 151 of 173
+gives, in one greedy sweep, the instructions the pass could not delete
+(Table~\ref{tab:min}). The result is not 1-minimal: deleting one of the
+remaining ``essential'' instructions still leaks in 36 of 141 cases. On 151 of 173
 hardware violations the pass completes, and real gadgets reduce substantially
 but not to a point: median body falls from 16--47 instructions to an essential
 core of 2 (L1TF), 5.5 (V1), 10.5 (MDS) and 14 (V4)---a 49--88\% reduction, with
@@ -1856,7 +1924,8 @@ replaying each violation's recorded inputs was required to drive the pass.
 \caption{Minimisation of real violations (Revizor instruction-removal pass,
   recorded-input replay). Body = non-instrumentation instructions in the
   measured region; essential = those the pass could not delete while the
-  violation still reproduced on hardware. Dirs = violation dirs whose pass
+  violation still reproduced on hardware (one greedy sweep, not 1-minimal).
+  Dirs = violation dirs whose pass
   completed (stock \texttt{rvzr minimize} regenerates inputs and reproduced
   only 4/173; replaying each violation's recorded inputs completes 151/173).
   Source: \texttt{eval/min\_report.md}.}
@@ -2071,9 +2140,10 @@ actually needs.
 
 \paragraph{No new hardware}
 \begin{enumerate}[itemsep=1pt,leftmargin=1.4em]
-  \item \textbf{Hardware-label the mid-sequence counterexamples and the
-    training pool}, then train the hardware-label-only detector and report it
-    against all three non-learned bars (in progress on the i5).
+  \item \textbf{Train the hardware-label-only detector} (allhw3). The
+    mid-sequence counterexamples are now hardware-labelled
+    (Section~\ref{sec:hwlabel}); the detector has not yet been trained on
+    them, and must be reported against the non-learned bars.
   \item \textbf{Raise the speculative emulator's fidelity.} The contract
     re-posing (Section~\ref{sec:specemu-results}) fixed applicability but
     agrees with hardware at only 0.61, because forcing the other successor
@@ -2097,9 +2167,8 @@ actually needs.
   \item \textbf{Minimality}: tabulate the Revizor instruction-removal results
     already produced (Table~\ref{tab:min}), and delta-debug victim and body
     together for generated leaks.
-  \item \textbf{A shared-instruction-set Revizor campaign}, to break the
-    class--configuration confound that currently lets a bag-of-opcodes model
-    match the graph model on real gadgets.
+% TODO(audit 2026-11-10): the shared-instruction-set Revizor campaign was listed here as future work; it is done
+% and null (Section sec:hw-transfer), so the item is removed.
 \end{enumerate}
 
 \paragraph{Needs hardware we do not have}
@@ -2130,7 +2199,7 @@ the repository's oracle-tooling survey and coverage notes.\footnote{{\raggedrigh
 \section{Related Work}
 \label{sec:related}
 
-\paragraph{Attacks} Spectre~\cite{kocher1998} introduced conditional- and
+\paragraph{Attacks} Spectre~\cite{kocher2019spectre} introduced conditional- and
 indirect-branch speculation attacks; Meltdown~\cite{lipp2018meltdown} and
 Foreshadow~\cite{vanbulck2018foreshadow} faulting-load transients;
 RIDL~\cite{vanschaik2019ridl} and ZombieLoad~\cite{schwarz2019zombieload}
@@ -2152,7 +2221,13 @@ gadgets, and each covers a subset of mechanisms.
 speculation in software to fuzz programs for V1 gadgets.
 Revizor~\cite{revizor} instead tests the CPU, fuzzing random programs against
 a speculation contract~\cite{guarnieri2021contracts}; we use it as our hardware
-oracle.
+oracle. Later work extends contract-based
+testing~\cite{oleksenko2023hideseek,hofmann2023specfault}.
+Shesha~\cite{chakraborty2024shesha} and the reinforcement-learning approaches
+$\mu$RL~\cite{tol2025murl} and SpecRL~\cite{specrl2025} search for
+transient-execution leaks on real processors. We do not compare against them,
+and we have no random-generation baseline.
+% TODO(audit 2026-11-10): position SpecExec against these (all report on silicon) once generated gadgets run on hardware.
 
 \paragraph{Gadget scanning}
 The closest work in spirit is Kasper~\cite{kasper}, which scans the Linux
@@ -2203,15 +2278,15 @@ footprint that stock gem5 does not (Section~\ref{sec:oracles}).
 \section{Conclusion}
 \label{sec:conclusion}
 \textsc{SpecExec} has a working oracle-verified generation loop on x86 that
-finds many distinct leaking gadgets---at a confirmed-leak yield of about 1.0
-for Spectre~V1 and 0.98 for Spectre~V4---with a learned gate in front of the
+finds many distinct leaking gadgets---at a whole-run confirmed-leak yield of
+0.975 for Spectre~V1 and 0.516 for Spectre~V4 in one single-seed run---with a learned gate in front of the
 oracle that spends almost every allowed call on a leak. It also has a detector
 whose headline accuracy we have taken apart: screening, opcode shortcuts,
 length, the instruction-set confound and synthetic-to-real transfer each
 changed what the numbers mean. The most solid new result is a property of the
 data, not of a model: on real hardware, a single \texttt{lfence} at the
 speculation boundary removes the leak in every stable case---on silicon for the
-three classes whose recorded violations reproduce (L1TF, Spectre~V1,
+four classes with hardware labels (L1TF, MDS, Spectre~V1,
 Spectre~V4)---while fences elsewhere do not. Four things remain open: a
 mitigation-aware model has to beat the non-learned fence rules on hardware
 labels, minimality has to be measured on complete programs, Spectre~V2
@@ -2266,7 +2341,7 @@ Overall yield               & \textbf{0.839 $\pm$ 0.078} & 0.703 $\pm$ 0.030 \\
 \subsection{Base multi-class loop, before length conditioning}
 This is the oracle-in-the-loop rejection-sampling loop with \texttt{(class, arch)} conditioning only, before the
 control-flow fixes and the length-conditioning token of Sec.~\ref{sec:adjud}; it is
-the baseline the final Spectre~V4 yield of $0.98$ (Table~\ref{tab:adjud}) should be
+the baseline the final Spectre~V4 peak-round yield of $0.98$ (whole-run $0.516$; Table~\ref{tab:adjud}) should be
 read against. It also fixes the oracle-coverage boundary: Spectector adjudicates only
 V1 and V4, so V2 and Retbleed moved to other oracles (V2 later to Spectector-Combined,
 Section~\ref{sec:v2results}; Retbleed is still open, Sec.~\ref{sec:future}).
@@ -2307,7 +2382,7 @@ generator rather than by the missing oracle, and in both cases the cause was
 mechanical.
 
 \paragraph{ARM64: a mask that existed but was never connected}
-ARM64 sequences assembled 15\% of the time. The failures sorted into three
+ARM64 sequences assembled 28\% of the time (Table~\ref{tab:isavalidity}). The failures sorted into three
 buckets: symbol-name tokens emitted as mnemonics (\texttt{main\_func}),
 x86 mnemonics leaking into ARM64 output (\texttt{pushq}, \texttt{movq},
 \texttt{leave}), and genuine operand-form errors (\texttt{mrs x0, \#1}). Most
@@ -2323,7 +2398,9 @@ arm64, and aarch64 spells it \texttt{b.ne}; \texttt{add.4s}, \texttt{movi.4s}
 and \texttt{and.16b} are Apple-style NEON syntax that the GNU aarch64 assembler
 rejects. Adding a second rule---keep a token only if it \emph{realises into
 text the target assembler accepts}, at one assembler call per token per ISA,
-cached---reaches \textbf{0.96}. The honest cost, reported in
+cached---raises it further.
+% TODO(audit 2026-11-10): the earlier "reaches 0.96" figure has no backing file; re-measure and restore.
+The honest cost, reported in
 Table~\ref{tab:isavalid} as a unique-sequence rate rather than hidden: the mask
 leaves 99 admissible ARM64 tokens against 234 for x86, so validity is bought
 partly by restricting the generator.
