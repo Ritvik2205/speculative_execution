@@ -209,3 +209,27 @@ F4. Release plan: harness, control rows, checks, and the history of bugs found a
   broken by a grouped split, with the authors informed.
 - A pair benchmark with silicon labels where the best trained model, the best rule and the
   prior are all on one line.
+
+## 8. Progress, 2026-11-11 night: pair benchmark (C1, C2) built
+
+`eval/pairs/` (`build.py`, `score.py`, `PAIRS.md`): 2,225 pairs.
+- hardware: 970 variant, 76 counterfactual, 92 fence-free pairs (labels from the i5);
+- Linux: 105 pre/post-patch function pairs (label = the patch, not an oracle);
+- injected: 400 attempts of a minimal core into an oracle-safe benign body, 366 confirmed
+  leaking and attacker-dependent; 364 against the bare host, 261 against the same body with the
+  core reversed (same opcode multiset), 357 against the core with a barrier inside. Every side
+  labelled by Spectector on the tainted victim.
+
+First rows (share of pairs where the leaking side scores higher; 0.5 = cannot tell):
+- opcode-count boosting trained on v57 (0.957 in-split): 0.500 on hardware variants and
+  counterfactuals (ties), 0.52 on Linux, 0.50 on reorder, **0.000 on injected fence pairs** (it
+  scores the side with the barrier as more likely to leak);
+- "shorter side leaks" gets 0.910 on the Linux pairs: patches add instructions, so length must be
+  reported beside any model there;
+- on the fence-free hardware pairs and the reorder pairs no rule or model exceeds 0.55. These two
+  sets are the test a structural model has to pass.
+
+Next: GINE with and without branch-target edges on the same pairs
+(`bash eval/cluster/submit_v57_pairs.sh` on the cluster, 20 jobs), then
+`python3 -m eval.pairs.score --scores ...`. Draft notes to the FastSpec and SPECDET authors:
+`docs/drafts/2026-11-11_note_to_fastspec_and_specdet_authors.md` (not sent).
