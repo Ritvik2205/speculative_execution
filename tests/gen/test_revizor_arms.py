@@ -88,3 +88,14 @@ def test_pool_corpus_follows_the_trainpool_records_and_skips_missing_files(tmp_p
     texts, cfg, missing = ra.load_pool_corpus(recs, root)
     assert texts == [PROG] and missing == 1
     assert "program_size: 16" in cfg
+
+
+def test_with_contract_replaces_only_the_execution_clause_block():
+    cfg = ("# contract\ncontract_observation_clause: loads+stores+pc\ncontract_execution_clause:\n"
+           "  - no_speculation\n# tested instructions\ninstruction_categories:\n  - BASE-BINARY\n"
+           "program_size: 16\n")
+    out = ra.with_contract(cfg, ["cond", "bpas"])
+    assert "contract_execution_clause:\n  - cond\n  - bpas\n" in out
+    assert "no_speculation" not in out
+    assert "instruction_categories:\n  - BASE-BINARY\n" in out and "program_size: 16" in out
+    assert "contract_observation_clause: loads+stores+pc" in out

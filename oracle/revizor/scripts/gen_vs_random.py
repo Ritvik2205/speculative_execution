@@ -10,8 +10,12 @@ with that config; the other arms come from gen/revizor_arms.py (in the repo).
   preflight  check the rvzr CLI has what this needs; run one replay program
   random     rvzr generate N programs per seed per class  -> <arms>/<CLASS>/random/s<seed>/
   run        execute every program not yet in runs.jsonl  (resumable)
-  report     table: per class and arm, violations / programs, Wilson 95% CI,
-             per-seed rates
+  adaptive   the feedback arm (adaptive_arm.py): generated online from outcomes
+  minimize   first violation(s) of each campaign -> minimal core; counts distinct
+             cores and cores not contained in any training program (slow)
+  report     campaign level (primary): violations and tests to first violation
+             per campaign, each arm against random with A12 and Mann-Whitney;
+             pooled per program (secondary): violations / programs, Wilson CI
 
 Stdlib only. Needs root and the rvzr_executor module for `run`.
 """
@@ -29,7 +33,7 @@ from collections import defaultdict
 from pathlib import Path
 
 VIOLATION_MARKER = "Violations detected"
-ARMS = ("random", "unigram", "mutation", "learned", "replay")
+ARMS = ("random", "unigram", "mutation", "learned", "adaptive", "replay")
 
 
 def classify(rc: int, output: str) -> str:
@@ -104,6 +108,88 @@ def report(rows) -> str:
         out.append(f"| {cls} | {arm} | {n} | {clean} | {v} | "
                    + (f"{v / clean:.3f} [{a:.3f}, {b:.3f}]" if clean else "—")
                    + f" | {e} | {per} |")
+    return "\n".join(out)
+
+
+def campaigns(rows):
+    """One campaign per (class, arm, seed): its programs in index order.
+    `first` is the 1-based position of the first violation among the programs
+    that ran without error, n+1 if there was none (censored)."""
+    by = defaultdict(lambda: defaultdict(list))
+    for r in rows:
+        by[(r["class"], r["arm"])][r["seed"]].append(r)
+    out = {}
+    for key, seeds in by.items():
+        out[key] = {}
+        for seed, rs in seeds.items():
+            rs = sorted(rs, key=lambda r: r["path"])
+            clean = [r for r in rs if r["verdict"] != "error"]
+            hits = [i for i, r in enumerate(clean, 1) if r["verdict"] == "violation"]
+            out[key][seed] = {"n": len(rs), "errors": len(rs) - len(clean),
+                              "violations": len(hits), "first": hits[0] if hits else len(clean) + 1}
+    return out
+
+
+def a12(x, y) -> float:
+    """Vargha-Delaney A12: probability that a draw from x exceeds one from y
+    (ties count half). 0.5 = no difference."""
+    gt = sum(a > b for a in x for b in y)
+    eq = sum(a == b for a in x for b in y)
+    return (gt + 0.5 * eq) / (len(x) * len(y))
+
+
+def mann_whitney_p(x, y) -> float:
+    """Two-sided Mann-Whitney U p-value, normal approximation with tie and
+    continuity correction (what scipy calls method="asymptotic")."""
+    n, m = len(x), len(y)
+    allv = sorted(x + y)
+    rank = {}
+    i = 0
+    while i < len(allv):
+        j = i
+        while j < len(allv) and allv[j] == allv[i]:
+            j += 1
+        rank[allv[i]] = (i + 1 + j) / 2
+        i = j
+    u = sum(rank[v] for v in x) - n * (n + 1) / 2
+    ties = sum(c ** 3 - c for c in (allv.count(v) for v in set(allv)))
+    N = n + m
+    var = n * m / 12 * ((N + 1) - ties / (N * (N - 1)))
+    if var <= 0:
+        return 1.0
+    z = (abs(u - n * m / 2) - 0.5) / math.sqrt(var)
+    return max(0.0, min(1.0, math.erfc(max(z, 0.0) / math.sqrt(2))))
+
+
+def _median(v):
+    v = sorted(v)
+    k = len(v) // 2
+    return v[k] if len(v) % 2 else (v[k - 1] + v[k]) / 2
+
+
+def campaign_report(rows) -> str:
+    """Per class and arm: campaigns, median violations per campaign, median
+    tests to first violation, and each arm against `random` (A12 and
+    Mann-Whitney p) on both measures. For `first`, lower is better, so A12 is
+    reported as P(arm reaches a violation sooner than random)."""
+    c = campaigns(rows)
+    out = ["| class | arm | campaigns | median violations | median tests to first | "
+           "A12 violations vs random | p | A12 sooner than random | p |",
+           "|---|---|---|---|---|---|---|---|---|"]
+    for (cls, arm) in sorted(c, key=lambda k: (k[0], ARMS.index(k[1]) if k[1] in ARMS else 9)):
+        mine = c[(cls, arm)]
+        v = [s["violations"] for s in mine.values()]
+        f = [s["first"] for s in mine.values()]
+        line = f"| {cls} | {arm} | {len(mine)} | {_median(v):g} | {_median(f):g} | "
+        ref = c.get((cls, "random"))
+        if ref and arm != "random":
+            rv = [s["violations"] for s in ref.values()]
+            rf = [s["first"] for s in ref.values()]
+            line += (f"{a12(v, rv):.2f} | {mann_whitney_p(v, rv):.3f} | "
+                     f"{a12(rf, f):.2f} | {mann_whitney_p(f, rf):.3f} |")
+        else:
+            line += "— | — | — | — |"
+        out.append(line)
     return "\n".join(out)
 
 
@@ -216,6 +302,144 @@ def cmd_run(a):
     return rc
 
 
+def cmd_adaptive(a):
+    """The feedback arm: generated online, one program at a time, from the
+    outcomes so far. Resumable: recorded outcomes are replayed, not re-run."""
+    import adaptive_arm
+    arms, out = Path(a.arms), Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    res = out / "runs.jsonl"
+    done = {}
+    if res.exists():
+        done = {r["path"]: r for r in (json.loads(l) for l in open(res) if l.strip())}
+    rn, ra = adaptive_arm.load_lib(arms)
+    new = []
+    with open(res, "a") as f:
+        for cls in a.classes:
+            corpus = [open(p).read() for p in sorted(glob.glob(str(arms / cls / "replay" / "s0" / "*.asm")))]
+            cfg_text = (arms / cls / "config.yaml").read_text()
+            for seed in a.seeds:
+                pool = [open(p).read() for p in
+                        sorted(glob.glob(str(arms / cls / "_lm_pool" / f"s{seed}" / "*.asm")))]
+                arm = adaptive_arm.Adaptive(rn, ra, corpus, pool, 5000 + seed)
+                d = arms / cls / "adaptive" / f"s{seed}"
+                d.mkdir(parents=True, exist_ok=True)
+                for k in range(a.n):
+                    op, text = arm.propose()
+                    path = d / f"p{k:04d}.asm"
+                    rel = os.path.relpath(path, arms)
+                    if rel in done:
+                        v = done[rel]["verdict"]
+                    else:
+                        path.write_text(text)
+                        ds = data_seed(str(path))
+                        cfg = out / "_run.yaml"
+                        cfg.write_text(run_config(cfg_text, ds))
+                        t0 = time.time()
+                        rc, outp = sh([a.rvzr, "reproduce", "-s", a.spec, "-c", str(cfg), "-t",
+                                       str(path), "-n", str(a.inputs)], timeout=a.timeout)
+                        v = classify(rc, outp)
+                        rec = {"class": cls, "arm": "adaptive", "seed": seed, "path": rel,
+                               "verdict": v, "rc": rc, "data_seed": ds, "inputs": a.inputs,
+                               "op": op, "secs": round(time.time() - t0, 2)}
+                        if v == "error":
+                            rec["tail"] = outp[-600:]
+                        f.write(json.dumps(rec) + "\n")
+                        f.flush()
+                        new.append(rec)
+                        if a.limit and len(new) >= a.limit:
+                            cmd_report(a)
+                            return health_rc(new)
+                    arm.update(op, text, v == "violation")
+                print(f"{cls} adaptive s{seed}: operator pulls {arm.pulls}", flush=True)
+    cmd_report(a)
+    return health_rc(new)
+
+
+def core_is_novel(core, training) -> bool:
+    """True when no training program contains the core's units in order."""
+    if not core:
+        return False
+    for prog in training:
+        it = iter(prog)
+        if all(u in it for u in core):
+            return False
+    return True
+
+
+def to_minimise(rows, per_campaign=1):
+    """The first `per_campaign` violations of every campaign, in a fixed order."""
+    by = defaultdict(list)
+    for r in rows:
+        if r["verdict"] == "violation" and r["arm"] != "replay":
+            by[(r["class"], r["arm"], r["seed"])].append(r)
+    out = []
+    for key in sorted(by, key=str):
+        out += sorted(by[key], key=lambda r: r["path"])[:per_campaign]
+    return out
+
+
+def core_report(cores) -> str:
+    by = defaultdict(list)
+    for c in cores:
+        by[(c["class"], c["arm"])].append(c)
+    out = ["| class | arm | violations minimised | minimise succeeded | distinct cores | "
+           "distinct cores not contained in any training program |", "|---|---|---|---|---|---|"]
+    for (cls, arm) in sorted(by, key=lambda k: (k[0], ARMS.index(k[1]) if k[1] in ARMS else 9)):
+        cs = by[(cls, arm)]
+        ok = [c for c in cs if c["ok"]]
+        distinct = {tuple(c["core"]) for c in ok}
+        novel = {tuple(c["core"]) for c in ok if c["novel"]}
+        out.append(f"| {cls} | {arm} | {len(cs)} | {len(ok)} | {len(distinct)} | {len(novel)} |")
+    return "\n".join(out)
+
+
+def cmd_minimize(a):
+    """Minimise the first violation(s) of each campaign with `rvzr minimize`
+    (instruction pass) under the same data seed, and name each result by its
+    unit sequence so root causes can be counted. Slow: minutes per program."""
+    import adaptive_arm
+    arms, out = Path(a.arms), Path(a.out)
+    rn, _ = adaptive_arm.load_lib(arms)
+    rows = [json.loads(l) for l in open(out / "runs.jsonl") if l.strip()]
+    res = out / "cores.jsonl"
+    done = set()
+    if res.exists():
+        done = {json.loads(l)["path"] for l in open(res) if l.strip()}
+    training = {cls: [rn.tokenize(rn.parse_program(open(p).read()))
+                      for p in sorted(glob.glob(str(arms / cls / "replay" / "s0" / "*.asm")))]
+                for cls in a.classes}
+    todo = [r for r in to_minimise(rows, a.per_campaign)
+            if r["path"] not in done and r["class"] in a.classes]
+    print(f"{len(done)} minimised, {len(todo)} to do")
+    mdir = out / "_min"
+    mdir.mkdir(parents=True, exist_ok=True)
+    with open(res, "a") as f:
+        for i, r in enumerate(todo):
+            cfg = mdir / "_min.yaml"
+            cfg.write_text(run_config((arms / r["class"] / "config.yaml").read_text(), r["data_seed"])
+                           + f"executor_sample_sizes: [{a.sample_sizes}]\n")
+            dst = mdir / (r["path"].replace("/", "__"))
+            t0 = time.time()
+            rc, log = sh([a.rvzr, "minimize", "-s", a.spec, "-c", str(cfg), "-t", str(arms / r["path"]),
+                          "-i", str(r.get("inputs", a.inputs)), "-o", str(dst),
+                          "--enable-label-pass", "false", "--enable-instruction-pass", "true"],
+                         timeout=a.min_timeout)
+            ok = rc == 0 and dst.is_file() and "Traceback" not in log
+            core = [t for t in rn.tokenize(rn.parse_program(dst.read_text())) if not t.startswith("<")] \
+                if ok else []
+            rec = {"class": r["class"], "arm": r["arm"], "seed": r["seed"], "path": r["path"],
+                   "ok": bool(ok and core), "core": core, "novel": core_is_novel(core, training[r["class"]]),
+                   "secs": round(time.time() - t0, 1)}
+            if not rec["ok"]:
+                rec["tail"] = log[-400:]
+            f.write(json.dumps(rec) + "\n")
+            f.flush()
+            print(f"[{i + 1}/{len(todo)}] {r['path']}: ok={rec['ok']} core={len(core)} novel={rec['novel']}",
+                  flush=True)
+    return cmd_report(a)
+
+
 def cmd_report(a):
     out = Path(a.out)
     rows = [json.loads(l) for l in open(out / "runs.jsonl") if l.strip()]
@@ -226,7 +450,17 @@ def cmd_report(a):
         ("l1tf", "/sys/devices/system/cpu/vulnerabilities/l1tf"))}
     md = ("# Generator vs random on hardware\n\n"
           f"One `rvzr reproduce -t <program> -n <inputs>` per program; {len(rows)} runs. "
-          f"Host: {env}.\n\n" + report(rows) + "\n")
+          f"Host: {env}.\n\n## Campaign level (primary)\n\n"
+          "One campaign = one arm and seed, its programs in order. Tests to first violation "
+          "is censored at n+1 when a campaign has none. A12 is the Vargha-Delaney effect "
+          "size (0.5 = no difference); p is two-sided Mann-Whitney.\n\n"
+          + campaign_report([r for r in rows if r["arm"] != "replay"])
+          + "\n\n## Pooled per program (secondary)\n\n" + report(rows) + "\n")
+    if (out / "cores.jsonl").exists():
+        cores = [json.loads(l) for l in open(out / "cores.jsonl") if l.strip()]
+        md += ("\n## Minimised cores (root causes)\n\nFirst violation(s) of each campaign, "
+               "minimised with `rvzr minimize`; a core is its sequence of instructions with "
+               "immediates ignored.\n\n" + core_report(cores) + "\n")
     (out / "REPORT.md").write_text(md)
     print(md)
     return 0
@@ -234,21 +468,24 @@ def cmd_report(a):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("cmd", choices=["preflight", "random", "run", "report"])
+    ap.add_argument("cmd", choices=["preflight", "random", "run", "adaptive", "minimize", "report"])
     ap.add_argument("--arms", required=True)
     ap.add_argument("--out", default=None)
     ap.add_argument("--rvzr", default="rvzr")
     ap.add_argument("--spec", default="base_x86.json")
     ap.add_argument("--classes", nargs="+", default=["SPECTRE_V1"])
-    ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
-    ap.add_argument("--n", type=int, default=200, help="random programs per seed")
+    ap.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
+    ap.add_argument("--n", type=int, default=100, help="programs per campaign (random and adaptive arms)")
     ap.add_argument("--inputs", type=int, default=100)
     ap.add_argument("--timeout", type=int, default=300)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--per-campaign", type=int, default=1, help="violations to minimise per campaign")
+    ap.add_argument("--sample-sizes", default="10, 50", help="executor_sample_sizes while minimising")
+    ap.add_argument("--min-timeout", type=int, default=3600)
     a = ap.parse_args(argv)
     a.out = a.out or os.path.join(a.arms, "_results")
     return {"preflight": cmd_preflight, "random": cmd_random, "run": cmd_run,
-            "report": cmd_report}[a.cmd](a)
+            "adaptive": cmd_adaptive, "minimize": cmd_minimize, "report": cmd_report}[a.cmd](a)
 
 
 if __name__ == "__main__":

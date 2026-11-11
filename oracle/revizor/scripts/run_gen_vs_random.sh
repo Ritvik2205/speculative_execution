@@ -7,8 +7,11 @@
 #
 # Usage (on the i5, from the repo root, after `git pull`):
 #   sudo bash oracle/revizor/scripts/run_gen_vs_random.sh \
-#     [--classes "SPECTRE_V1"] [--n 200] [--seeds "0 1 2 3 4"] [--inputs 100] \
-#     [--arms hw/gen_vs_random] [--out ~/rvzr_gen_vs_random] [--limit N]
+#     [--classes "SPECTRE_V1"] [--n 100] [--seeds "0 1 ... 9"] [--inputs 100] \
+#     [--arms hw/gen_vs_random] [--out ~/rvzr_gen_vs_random] [--limit N] [--no-adaptive]
+# Base-rate pilot (random arm + known violators only), one setting at a time:
+#   sudo bash oracle/revizor/scripts/run_gen_vs_random.sh --arms hw/pilot/v1_cond \
+#     --out ~/rvzr_pilot/v1_cond --classes SPECTRE_V1 --seeds "0" --n 200 --no-adaptive
 # Resumable: re-running with the same --out continues where it stopped.
 # Result: <out>/REPORT.md and <out>/runs.jsonl (copy both back into the repo
 # under oracle/revizor/results/gen_vs_random_<date>/).
@@ -20,12 +23,13 @@ HOME_DIR="/home/${SUDO_USER:-$USER}"
 VENV="$HOME_DIR/sca-fuzzer/venv"
 SPEC="$HOME_DIR/sca-fuzzer/base_x86.json"
 CLASSES="SPECTRE_V1"
-N=200
-SEEDS="0 1 2 3 4"
+N=100
+SEEDS="0 1 2 3 4 5 6 7 8 9"
 INPUTS=100
 ARMS="$REPO/hw/gen_vs_random"
 OUT="$HOME_DIR/rvzr_gen_vs_random"
 LIMIT=0
+ADAPTIVE=1
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -36,6 +40,7 @@ while [ $# -gt 0 ]; do
     --arms) ARMS="$2"; shift 2;;
     --out) OUT="$2"; shift 2;;
     --limit) LIMIT="$2"; shift 2;;
+    --no-adaptive) ADAPTIVE=0; shift;;
     -h|--help) sed -n 2,15p "$0"; exit 0;;
     *) echo "FATAL: unknown argument '$1'"; exit 1;;
   esac
@@ -67,6 +72,12 @@ COMMON=(--arms "$ARMS" --out "$OUT" --rvzr "$VENV/bin/rvzr" --spec "$SPEC" --inp
 # shellcheck disable=SC2086
 "$PY" "$SCRIPT_DIR/gen_vs_random.py" run "${COMMON[@]}" --classes $CLASSES --limit "$LIMIT"
 RC=$?
+if [ "$RC" -eq 0 ] && [ "$LIMIT" -eq 0 ] && [ "$ADAPTIVE" -eq 1 ]; then
+  # feedback arm last: it is generated online from its own outcomes
+  # shellcheck disable=SC2086
+  "$PY" "$SCRIPT_DIR/gen_vs_random.py" adaptive "${COMMON[@]}" --classes $CLASSES --seeds $SEEDS --n "$N"
+  RC=$?
+fi
 chown -R "${SUDO_USER:-$USER}" "$OUT" "$ARMS" 2>/dev/null
 echo "=== done (rc=$RC): $(date) — report at $OUT/REPORT.md ==="
 # rc 3 = more than half of this invocation's runs errored; do not chain a long run on it

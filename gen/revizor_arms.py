@@ -98,6 +98,61 @@ def campaign_config(cfg: str) -> str:
     return "\n".join(l for l in out if l.strip()) + "\n"
 
 
+def with_contract(cfg: str, clauses: List[str]) -> str:
+    """The config with its `contract_execution_clause` list replaced."""
+    out, skipping = [], False
+    for line in cfg.splitlines():
+        if re.match(r"^contract_execution_clause\s*:", line):
+            out.append("contract_execution_clause:")
+            out += [f"  - {c}" for c in clauses]
+            skipping = True
+            continue
+        if skipping and re.match(r"^\s+-\s", line):
+            continue
+        skipping = False
+        out.append(line)
+    return "\n".join(out) + "\n"
+
+
+# Candidate settings for the base-rate pilot (plan 2026-11-11, A2). A setting is
+# usable for the comparison only if Revizor's random generator violates in
+# roughly 0.5%-10% of programs: `seq`/`no_speculation` with conditional branches
+# is saturated on the i5 (9 violations per seed on all 10 seeds in 900 s).
+PILOTS = {
+    "v1_seq": ("SPECTRE_V1", None),                 # reference: the saturated setting
+    "v1_cond": ("SPECTRE_V1", ["cond"]),            # branch misprediction permitted
+    "v1_cond_bpas": ("SPECTRE_V1", ["cond", "bpas"]),
+    "v4_seq": ("SPECTRE_V4", None),                 # straight-line; varied by seed (3-7)
+    "v4_bpas": ("SPECTRE_V4", ["bpas"]),            # store bypass permitted
+}
+
+
+def write_pilots(out: Path, pool_root, extra=()) -> None:
+    """<out>/<name>/<CLASS>/config.yaml + replay/s0 (the known violators): the
+    runner then gives the random base rate and how many known violators still
+    violate under that contract."""
+    for name, (cls, clauses) in PILOTS.items():
+        if pool_root:
+            recs = ROOT / "eval" / "data" / f"revizor_{CLASS_DIRS[cls]}_trainpool.jsonl"
+            corpus, cfg, _ = load_pool_corpus(recs, pool_root)
+        else:
+            corpus, cfg = load_corpus(cls, extra)
+        cfg = campaign_config(cfg)
+        if clauses:
+            cfg = with_contract(cfg, clauses)
+        d = out / name / cls
+        (d / "replay" / "s0").mkdir(parents=True, exist_ok=True)
+        (d / "config.yaml").write_text(cfg)
+        imm = rn.imm_pool(corpus)
+        for k, t in enumerate(corpus):
+            (d / "replay" / "s0" / f"p{k:04d}.asm").write_text(
+                rn.emit(rn.tokenize(rn.parse_program(t)), random.Random(k), imm))
+        (out / name / "manifest.jsonl").write_text(
+            "".join(json.dumps({"class": cls, "arm": "replay", "seed": 0, "k": k}) + "\n"
+                    for k in range(len(corpus))))
+        print(f"[pilot] {name}: {cls}, contract {clauses or 'as recorded'}, {len(corpus)} known violators")
+
+
 def to_program(factored: List[str], rng: random.Random, imm) -> str:
     return rn.emit(rn.defactor(factored, rng), rng, imm_pool=imm)
 
@@ -181,8 +236,8 @@ def train_lm(corpora: Dict[str, List[str]], epochs: int, seed: int):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--classes", nargs="+", default=["SPECTRE_V1"])
-    ap.add_argument("--n", type=int, default=200, help="programs per arm per seed")
-    ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
+    ap.add_argument("--n", type=int, default=100, help="programs per campaign (arm x seed)")
+    ap.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
     ap.add_argument("--epochs", type=int, default=10,
                     help="10 minimises loss on the 173 held-out programs (4.12 nats/token; "
                          "20: 4.37, 40: 6.05, 80: 8.22 and 68%% of samples copy training)")
@@ -195,7 +250,12 @@ def main(argv=None):
                          "173 local hardware-label originals")
     ap.add_argument("--out", default=str(ROOT / "hw" / "gen_vs_random"))
     ap.add_argument("--save", default=str(ROOT / "gen" / "generator_revizor_native.pt"))
+    ap.add_argument("--pilots", default=None, metavar="DIR",
+                    help="only write the base-rate pilot settings there and exit")
     args = ap.parse_args(argv)
+    if args.pilots:
+        write_pilots(Path(args.pilots), args.pool_root, args.extra)
+        return 0
     out = Path(args.out)
     corpora, cfgs = {}, {}
     for cls in args.classes:
@@ -251,10 +311,28 @@ def main(argv=None):
                     kept += 1
             summary.append({"class": cls, "seed": seed, "learned_kept": kept, "sampled": tries,
                             "copies_of_training": copies, "duplicates": dup, "invalid": invalid})
+            # reserve of further model samples for the feedback arm's `lm` operator
+            pool_dir = out / cls / "_lm_pool" / f"s{seed}"
+            pool_dir.mkdir(parents=True, exist_ok=True)
+            made = tries = 0
+            while made < args.n and tries < args.n * 20:
+                tries += 1
+                text = to_program(model.sample(cls, ARCH, temperature=args.temperature, top_k=40), rng, imm)
+                key = tuple(rn.tokenize(rn.parse_program(text)))
+                if key and key not in seen and not rn.check_invariants(text) and not is_copy(text, corpus):
+                    seen.add(key)
+                    (pool_dir / f"p{made:04d}.asm").write_text(text)
+                    made += 1
             for k in range(args.n):
                 write("unigram", seed, k, to_program(uni.sample(rng), rng, imm))
                 text, parents = mutate(corpus, rng)
                 write("mutation", seed, k, text, parents=parents)
+    # the i5 worktree is sparse (hw/ + oracle/): ship the stdlib-only modules
+    # the feedback arm needs next to the programs
+    lib = out / "_lib"
+    lib.mkdir(parents=True, exist_ok=True)
+    for name in ("revizor_native.py", "revizor_arms.py"):
+        (lib / name).write_text((ROOT / "gen" / name).read_text())
     with open(out / "manifest.jsonl", "w") as f:
         for r in manifest:
             f.write(json.dumps(r) + "\n")
