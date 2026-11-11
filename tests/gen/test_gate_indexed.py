@@ -114,3 +114,47 @@ def test_cache_and_cet_hints_are_hosted_as_nops_so_they_cannot_void_a_verdict():
 def test_flush_in_the_body_does_not_make_a_leak_unrunnable():
     assert _verdict(["clflush (%r14)", "movzbl (%r15), %eax", "movb $1, (%r14,%rax)"]) == "leak"
     assert _verdict(["endbr64", "clflush (%r14)", "nop"]) == "safe"
+
+
+# --- control victim: the same frame and register set-up, but the designated
+# register is always in bounds and there is no outer bounds check to
+# mispredict. A body that leaks here carries its own speculation source (an
+# inner conditional branch guarding a load -> address chain); that leak does
+# not depend on the attacker's index. Attacker-indexed leak := leak on
+# "indexed" and safe on "unindexed".
+
+def _verdict_ctl(body):
+    from decode import gate_source
+    from oracle.validators.spectector_validator import SpectectorValidator
+    (_WORK / "oracle" / "build").mkdir(parents=True, exist_ok=True)
+    gid = f"ux_{abs(hash(tuple(body)))%10**9}"
+    p = _WORK / "oracle" / "build" / f"gen_spec_{gid}.c"
+    p.write_text(gate_source(list(body), "SPECTRE_V1", victim="unindexed"))
+    return SpectectorValidator(repo_root=str(_WORK)).validate(
+        {"gadget_id": gid, "vuln_class": "SPECTRE_V1",
+         "spectector_source": str(p.relative_to(_WORK)), "adjudicable": "yes"}).verdict
+
+
+_SELF_GATED = ["jae .Lskip", "movq -16(%rbp), %r8", "movzbl (%rdx,%r8), %ecx", ".Lskip:"]
+
+
+@docker
+@pytest.mark.parametrize("name,body,indexed,unindexed", [
+    ("empty", [], "safe", "safe"),
+    ("attacker_load_then_transmit",
+     ["movzbl (%r15), %eax", "movb $1, (%r14,%rax)"], "leak", "safe"),
+    ("attacker_load_then_chase", ["movq (%r15), %rax", "movq (%rax), %rcx"], "leak", "safe"),
+    ("branch_on_the_attacker_loaded_value",
+     ["movzbl (%r15), %eax", "testl %eax, %eax", "je .Lx", "nop", ".Lx:"], "leak", "safe"),
+    # the dominant minimal core of generator output on the indexed victim
+    ("self_gated_chase_without_the_attacker_register", _SELF_GATED, "leak", "leak"),
+])
+def test_unindexed_control_separates_self_gated_leaks(name, body, indexed, unindexed):
+    assert _verdict(body) == indexed, name
+    assert _verdict_ctl(body) == unindexed, name
+
+
+def test_unindexed_victim_has_no_outer_bounds_check():
+    from decode import gate_source
+    src = gate_source(["nop"], "SPECTRE_V1", victim="unindexed")
+    assert "jae" not in src and "cmovae" in src

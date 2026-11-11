@@ -51,3 +51,42 @@ def test_control_table_scores_a_window_by_its_best_attacker_candidate():
             {"cond": "b#2", "verdict": "unrunnable"}]
     assert [(r["cond"], r["verdict"]) for r in e.fold_candidates(rows)] == \
         [("empty", "safe"), ("b", "leak"), ("b", "safe"), ("b", "unrunnable")]
+
+
+# --- control victim: a leak that also leaks without the attacker's index is
+# self-gated, not attacker-indexed
+
+def test_leak_that_survives_the_control_is_labelled_selfgated():
+    out = relabel_window(W, lambda body: "leak", control=lambda body: "leak")
+    assert out["mit"] == "selfgated" and out["attacker"] == "rbx"
+    assert out["controls"] == ["leak"] * 3      # every candidate was tried
+
+
+def test_a_later_candidate_with_a_safe_control_wins_over_an_earlier_selfgated_one():
+    out = relabel_window(
+        W, lambda body: "leak",
+        control=lambda body: "safe" if "(%r15), %ecx" in body[1] else "leak")
+    assert out["mit"] == "leak" and out["attacker"] == "rsi"
+
+
+def test_leak_with_an_unadjudicated_control_is_unknown_not_leak():
+    out = relabel_window(W, lambda body: "leak", control=lambda body: "unrunnable")
+    assert out["mit"] == "unknown"
+
+
+def test_control_is_only_asked_about_leaking_candidates():
+    asked = []
+    out = relabel_window(W, lambda body: "safe", control=lambda b: asked.append(1) or "safe")
+    assert out["mit"] == "safe" and asked == []
+
+
+def test_benign_bar_can_keep_conditional_branches_like_generated_bodies_do():
+    import random
+    import re
+    import eval_gate_controls as e
+    jcc = re.compile(r"^j(?!mp)[a-z]+\b")
+    stripped = e.benign_windows([30] * 40, random.Random(0))
+    kept = e.benign_windows([30] * 40, random.Random(0), keep_jcc=True)
+    assert not any(jcc.match(i) for w in stripped for i in w)
+    assert sum(any(jcc.match(i) for i in w) for w in kept) >= 10
+    assert not any(re.match(r"^(jmp|call|ret)", i) for w in kept for i in w)

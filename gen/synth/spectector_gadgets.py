@@ -284,11 +284,24 @@ def _asm_file(lines) -> str:
 
 
 def render_spec_gate_indexed(body_lines, attacker_reg: str = "r15",
-                             fenced: bool = False) -> str:
+                             fenced: bool = False, indexed: bool = True) -> str:
+    """indexed=False is the control victim: one copy of the body with the
+    designated register clamped in bounds and no outer bounds check. What
+    leaks there brings its own speculation source (an inner branch), so it
+    does not depend on the attacker's index."""
     a = attacker_reg.lstrip("%")
     if a not in _IDX_POOL:
         raise ValueError(f"attacker register must be one of {_IDX_POOL}, got {a!r}")
     body = [l.strip() for l in body_lines if l.strip()]
+    if not indexed:
+        lines = [".text", ".globl gadget", ".type gadget, @function", "gadget:"]
+        lines += list(_IDX_FRAME)
+        lines += ["cmpq sz(%rip), %rdi", "leaq arr(%rip), %r14",
+                  f"leaq (%r14,%rdi), %{a}", f"cmovae %r14, %{a}",
+                  "xorq %r14, %r14", "leaq probe(%rip), %r14"]
+        lines += [l.replace(".L", ".Lc0_") for l in body]
+        lines += ["addq $1024, %rsp", "ret"]
+        return _asm_file(lines)
 
     def copy(k):
         return [l.replace(".L", f".Lc{k}_") for l in body]

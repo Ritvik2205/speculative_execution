@@ -42,6 +42,13 @@ PAD, EOS = "<pad>", "<eos>"
 MIT_VALUES = ["leak", "safe", "unknown"]
 
 
+def mit_values_for(rows) -> list:
+    """MIT_VALUES plus any other `mit` label the corpus uses (sorted, after the
+    defaults so existing token ids keep their order)."""
+    extra = sorted({r.get("mit") for r in rows if r.get("mit")} - set(MIT_VALUES))
+    return MIT_VALUES + extra
+
+
 class GenVocab:
     def __init__(self, instr_tokens: List[str], classes: List[str],
                  archs: List[str], lens: List[str] = None,

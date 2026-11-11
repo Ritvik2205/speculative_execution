@@ -123,22 +123,26 @@ def gate_source(realized, cls, arch="x86_64", fenced=False, store=True,
       "sni"      bounds check + body; Spectector's all-memory-secret policy,
                  so any speculative load -> address chain leaks.
       "indexed"  leak only if the chain starts at a load through the
-                 attacker-controlled register `attacker_reg`."""
+                 attacker-controlled register `attacker_reg`.
+      "unindexed" control for "indexed": same set-up, register in bounds, no
+                 outer bounds check. A leak here is self-gated (the body's
+                 own branch), i.e. independent of the attacker's index."""
     from oracle_splice import splice_gate_only, gate_asm_block
     from splice_safety import strip_ret
     if cls not in GATE_ORACLE_VERSIONS:
         raise ValueError(f"no gate-only victim for class {cls!r}")
-    if victim not in ("sni", "indexed"):
+    if victim not in ("sni", "indexed", "unindexed"):
         raise ValueError(f"unknown victim {victim!r}")
-    whole_fn = cls == "SPECTRE_V4" or victim == "indexed"
+    frame = victim in ("indexed", "unindexed")
+    whole_fn = cls == "SPECTRE_V4" or frame
     asm_text, clobbers = splice_gate_only(strip_ret(list(realized), cls), arch,
-                                          allow_reserved_writes=victim == "indexed"
-                                          and cls == "SPECTRE_V1")
+                                          allow_reserved_writes=frame and cls == "SPECTRE_V1")
     if whole_fn:
         body = asm_text.replace("%%", "%").replace("\\n\\t", "\n").split("\n")
         if cls == "SPECTRE_V4":
             return spec_gadgets.render_spec_gate_ssb(body, fenced=fenced, store=store)
-        return spec_gadgets.render_spec_gate_indexed(body, attacker_reg, fenced=fenced)
+        return spec_gadgets.render_spec_gate_indexed(body, attacker_reg, fenced=fenced,
+                                                     indexed=victim == "indexed")
     return spec_gadgets.render_spec_gate(cls, fenced=fenced,
                                          gen_body=gate_asm_block(asm_text, clobbers))
 

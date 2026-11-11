@@ -34,25 +34,44 @@ from attacker_reg import (ATTACKER_REG, attacker_candidates,  # noqa: E402
                           to_attacker_canonical, without_attacker_reg)
 
 def relabel_window(window: List[str], verdict: Callable[[List[str]], str],
-                   max_candidates: int = 6) -> dict:
+                   max_candidates: int = 6,
+                   control: Callable[[List[str]], str] = None) -> dict:
     """`verdict(canonical_window) -> leak/safe/other` for the window with the
-    candidate register already renamed to %r15."""
+    candidate register already renamed to %r15.
+
+    `control(canonical_window)` is the verdict on the control victim (no
+    attacker index). With it, mit="leak" means attacker-indexed (control
+    safe); a window whose every leaking candidate also leaks on the control
+    is "selfgated"; a leak with an unadjudicated control is "unknown"."""
     cands = attacker_candidates(window, cells=True)[:max_candidates]
-    seen, first = [], None
+    seen, ctl, first, gated, undecided = [], [], None, None, None
     for reg in cands:
         canon = to_attacker_canonical(window, reg)
         if first is None:
             first = (reg, canon)
         v = verdict(canon)
         seen.append(v)
-        if v == "leak":
-            return {"sequence": canon, "mit": "leak", "attacker": reg, "verdicts": seen}
+        if v != "leak":
+            continue
+        c = control(canon) if control else "safe"
+        if control:
+            ctl.append(c)
+        if c == "safe":
+            out = {"sequence": canon, "mit": "leak", "attacker": reg, "verdicts": seen}
+            return dict(out, controls=ctl) if control else out
+        if c == "leak":
+            gated = gated or (reg, canon)
+        else:
+            undecided = undecided or (reg, canon)
+    if gated or undecided:
+        reg, canon = gated or undecided
+        return {"sequence": canon, "mit": "selfgated" if gated else "unknown",
+                "attacker": reg, "verdicts": seen, "controls": ctl}
     if not cands:
         w = without_attacker_reg(window)
         return {"sequence": w, "mit": "safe", "attacker": None, "verdicts": []}
     mit = "safe" if all(v == "safe" for v in seen) else "unknown"
     return {"sequence": first[1], "mit": mit, "attacker": first[0], "verdicts": seen}
-
 
 def slot_body(window: List[str], seed: int) -> List[str]:
     """The window as a slot-stream generator realises it (attacker reg kept)."""
@@ -73,6 +92,7 @@ def clean(seq):
             and not s.strip().startswith(".")]
 
 
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--train", default=str(ROOT / "v54" / "data" / "v54_train.jsonl"))
@@ -80,9 +100,26 @@ def main(argv=None):
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--max-candidates", type=int, default=6)
+    ap.add_argument("--control", action="store_true",
+                    help="also adjudicate leaks on the control victim: mit=leak "
+                         "then means attacker-indexed, and leaks that survive "
+                         "without the attacker's index are mit=selfgated")
+    ap.add_argument("--only-leaks-of", default=None,
+                    help="an earlier output of this script (same --train): keep "
+                         "its labels and re-adjudicate only its mit=leak records")
     args = ap.parse_args(argv)
     recs = [json.loads(l) for l in open(args.train)]
     x86 = [(i, r) for i, r in enumerate(recs) if r.get("arch") == "x86_64"][: args.limit]
+    prev = None
+    if args.only_leaks_of:
+        prev = [json.loads(l) for l in open(args.only_leaks_of)]
+        if len(prev) != len(recs):
+            raise SystemExit("--only-leaks-of does not line up with --train")
+        x86 = [(i, r) for i, r in x86 if prev[i].get("mit") == "leak"]
+    import minimality_gate as mg
+    control = ((lambda canon, i: mg.gate_verdict(slot_body(canon, seed=i), "SPECTRE_V1",
+                                                 tag="ix", victim="unindexed"))
+               if args.control else None)
 
     def go(ir):
         i, r = ir
@@ -90,8 +127,9 @@ def main(argv=None):
             out = relabel_window(
                 clean(r["sequence"]),
                 lambda canon: indexed_verdict(slot_body(canon, seed=i)) if canon else "dropped",
-                max_candidates=args.max_candidates)
-        except Exception as e:                      # keep the record, uninformative
+                max_candidates=args.max_candidates,
+                control=(lambda canon: control(canon, i)) if control else None)
+        except (ValueError, OSError) as e:          # keep the record, uninformative
             out = {"sequence": clean(r["sequence"]), "mit": "unknown", "attacker": None,
                    "verdicts": [f"error:{type(e).__name__}"]}
         return i, out
@@ -111,16 +149,23 @@ def main(argv=None):
             if i in done:
                 r = dict(r, sequence=done[i]["sequence"], mit=done[i]["mit"],
                          attacker=done[i]["attacker"], gate_verdicts=done[i]["verdicts"])
+                if "controls" in done[i]:
+                    r["control_verdicts"] = done[i]["controls"]
                 t[r["label"]][r["mit"]] += 1
+            elif prev is not None:
+                r = prev[i]
+                if "mit" in r:
+                    t[r["label"]][r["mit"]] += 1
             elif args.limit is not None and r.get("arch") == "x86_64":
                 continue
             f.write(json.dumps(r) + "\n")
-    print("| class | n | leak | safe | unknown | leak / (leak+safe) |\n|---|---|---|---|---|---|")
+    print("| class | n | leak | selfgated | safe | unknown | leak / adjudicated |\n"
+          "|---|---|---|---|---|---|---|")
     for c in sorted(t):
         k = t[c]
-        adj = k["leak"] + k["safe"]
-        print(f"| {c} | {sum(k.values())} | {k['leak']} | {k['safe']} | {k['unknown']} | "
-              + (f"{k['leak']/adj:.2f}" if adj else "—") + " |")
+        adj = k["leak"] + k["safe"] + k["selfgated"]
+        print(f"| {c} | {sum(k.values())} | {k['leak']} | {k['selfgated']} | {k['safe']} | "
+              f"{k['unknown']} | " + (f"{k['leak']/adj:.2f}" if adj else "—") + " |")
     return 0
 
 

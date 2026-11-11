@@ -50,6 +50,7 @@ CLS = "SPECTRE_V1"
 VICTIM = "sni"
 REF = ["movzbl (%r15), %eax", "shlq $6, %rax", "movb $1, (%r14,%rax)"]  # leaks on both victims
 _POOL = ["rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13"]
+_JCC = re.compile(r"^\s*j(?!mp)[a-z]+\b")
 _BRANCH = re.compile(r"^\s*(j[a-z]+|loop[a-z]*|ret[a-z]*|call[a-z]*|syscall|hlt|int3?|ud2)\b")
 
 
@@ -78,14 +79,17 @@ def _remap_reserved(window):
     return remap_instrs(window, "x86_64", rm) if rm else window
 
 
-def benign_windows(lengths, rng):
+def benign_windows(lengths, rng, keep_jcc=False):
+    """keep_jcc: keep conditional branches (the slot stream gives them the
+    same end-of-body target generated bodies get); other control flow is
+    still dropped."""
     recs = [json.loads(l) for l in open(ROOT / "eval/data/realworld_benign_x86_64.jsonl")]
     seqs = []
     for r in recs:
         s = [i.strip() for i in r["sequence"]
              if i.strip() and not i.strip().endswith(":") and not i.strip().startswith(".")
              and not i.strip().startswith("endbr")]
-        s = [i for i in s if not _BRANCH.match(i)]
+        s = [i for i in s if not _BRANCH.match(i) or (keep_jcc and _JCC.match(i))]
         if len(s) >= 4:
             seqs.append(s)
     out = []
@@ -159,6 +163,15 @@ def build_jobs(args):
             if not cands:
                 jobs.append((f"benign_raw#{wi}", w))
                 jobs.append((f"benign_slot#{wi}", w))
+        # the same bar with conditional branches kept: generated bodies carry
+        # their own branches, so a branch-free benign row understates how
+        # often ordinary guarded code leaks behind its own misprediction.
+        for wi, w in enumerate(benign_windows(lengths, random.Random(args.seed + 2),
+                                              keep_jcc=True)):
+            cands = attacker_candidates(w, cells=True)[:6]
+            for cw in ([to_attacker_canonical(w, c) for c in cands] or [w]):
+                jobs.append((f"benign_slot_jcc#{wi}", _sr.realize_sequence(
+                    _stk.tokenize_sequence_slots(cw, secret_reg="r15"))))
     else:
         jobs += [("benign_slot", _sr.realize_sequence(_stk.tokenize_sequence_slots(w))) for w in raw]
     if args.gen:

@@ -68,7 +68,7 @@ from isa_spec import load_engine            # noqa: E402
 from asm_tokenizer import AsmTokenizer      # noqa: E402
 from train_mlm import MlmEncoder            # noqa: E402
 from generator import (GenVocab, CondTransformerLM, encode_record, train,  # noqa: E402
-                       LEN_BUCKETS, LEN_BUCKETS_X, MIT_VALUES)
+                       LEN_BUCKETS, LEN_BUCKETS_X, MIT_VALUES, mit_values_for)
 from inline_features import _X86_ONLY, _ARM_ONLY  # noqa: E402  ISA-decisive opcode sets
 
 TRAIN = ROOT / "v54" / "data" / "v54_train.jsonl"
@@ -346,7 +346,7 @@ def main():
     vocab = GenVocab.build(tr_tok, classes, ARCHS, min_count=5,
                            lens=((LEN_BUCKETS_X if args.xlong else LEN_BUCKETS)
                                  if args.length_cond else None),
-                           mits=(MIT_VALUES if args.leak_cond else None))
+                           mits=(mit_values_for(train_rows) if args.leak_cond else None))
     print(f"gen vocab={len(vocab)}  classes={len(classes)}  archs={ARCHS}  "
           f"train={len(train_rows)}  length_cond={args.length_cond}  "
           f"leak_cond={args.leak_cond}")

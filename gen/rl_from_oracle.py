@@ -593,7 +593,7 @@ def main(argv=None) -> int:
     ap.add_argument("--repo-root", default=str(ROOT))
     ap.add_argument("--temperature", type=float, default=0.9)
     ap.add_argument("--top-k", type=int, default=20)
-    ap.add_argument("--mit", default=None, choices=["leak", "safe", "unknown"],
+    ap.add_argument("--mit", default=None,
                     help="leak-conditioning: sample the generator with this "
                          "<MIT_*> token (leak = steer toward unmitigated). "
                          "Ignored for a generator without mit tokens (no-op). "
