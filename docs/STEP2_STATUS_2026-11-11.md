@@ -129,3 +129,44 @@ n=100 windows per source through the slot stream, Spectector-Combined `-v 4`.
   label SPECTRE_V4 does not predict store-bypass leakage on this victim.
 - The benign row here still has branches stripped; it needs the branch-keeping row before any V4
   generation claim. No V4 generator was trained.
+
+## Addendum (same day): stricter oracle, and the hardware comparison prepared
+
+### Tainted victim (`victim="tainted"`, control `tainted_ctl`)
+
+All non-attacker registers and the memory they can reach start concrete (Spectector initial
+configuration, named in the victim source and picked up by `oracle/spectector_oracle.py`); only
+memory reached through the attacker's pointer is symbolic. Truth table: 27/27
+(`tests/gen/test_gate_tainted.py`). Guarded pointer chases through uncontrolled registers are
+safe; attacker-pointer gadgets leak, bare or behind their own branch; the control catches
+addresses built outside the concrete world ("escapes").
+
+| source (n=100) | leak | attacker-dependent | escape |
+|---|---|---|---|
+| benign, slot stream, branches kept | 0.46 | 0.43 | 0.02 |
+| benign, slot stream, branches stripped | 0.25 | 0.24 | 0.00 |
+| generator (`generator_indexed.pt`, `leak`) | 0.28 | 0.15 | 0.13 |
+| generator v3 (`leak`) | 0.22 | 0.12 | 0.10 |
+| random tokens | 0.00 | 0.00 | 0.00 |
+
+Source: `t1_controls.md`, `t1_split.md`. The generator is below benign here too. The benign rows
+get the best of up to six attacker-register candidates and the generator names one, so the gap
+overstates the difference; the same candidate search on generator output is not yet run. Half of
+the generator's leaks on this victim are escapes.
+
+### Hardware comparison (step 3, H3) — built, not yet run
+
+- `gen/revizor_native.py`: native Revizor programs as unit tokens (an instruction plus its
+  instrumentation lines) and a factored shape + register stream; all 173 local originals
+  round-trip.
+- `gen/revizor_arms.py`: arms `learned` (class-conditioned transformer; copies of training
+  programs dropped — about half of all samples were copies), `unigram`, `mutation`
+  (shuffle / splice), `replay` (the known violators). 12,173 programs under `hw/gen_vs_random/`
+  for SPECTRE_V1, SPECTRE_V4, MDS, L1TF; every one is accepted by Revizor's own parser and
+  assembler (upstream sca-fuzzer, 2026-10-30, run locally without the executor).
+- `oracle/revizor/scripts/run_gen_vs_random.sh`: on the i5, generates the random arm with
+  `rvzr generate` under the same config and runs every program through the same
+  `rvzr reproduce -t <program> -n 100`, arms interleaved, resumable.
+- Training data caveat: only the 173 hardware-label originals are available locally in native
+  form (54 V1, 22 V4, 33 MDS, 64 L1TF), so the learned arm is trained on those, not on the
+  552-program pool that lives on the i5.

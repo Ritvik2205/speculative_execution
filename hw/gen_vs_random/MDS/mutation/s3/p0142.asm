@@ -1,0 +1,43 @@
+.intel_syntax noprefix
+.section .data.main
+.function_0:
+.bb_0.0:
+.macro.measurement_start: nop qword ptr [rax + 0xff]
+bts rcx, 115
+and al, -64 # instrumentation
+and rsi, 0b1111111111111 # instrumentation
+cmovno edx, dword ptr [r14 + rsi]
+cmovz rbx, rsi
+btr di, 199
+and rdi, 0b1111111111111 # instrumentation
+or dl, byte ptr [r14 + rdi]
+or eax, -1827868798
+and rsi, 0b1111111111000 # instrumentation
+lock xor byte ptr [r14 + rsi], bl
+and rdi, 0b1111111111111 # instrumentation
+or dword ptr [r14 + rdi], -41
+and rdx, 0b1111111111000 # instrumentation
+lock and byte ptr [r14 + rdx], -23
+and rcx, 0b1111111111111 # instrumentation
+or di, word ptr [r14 + rcx]
+and rcx, 0b1111111111111 # instrumentation
+and si, 0b111 # instrumentation
+btc word ptr [r14 + rcx], si
+and rbx, 0b1111111111111 # instrumentation
+and word ptr [r14 + rbx], cx
+xor dl, cl
+and sil, -94
+and rcx, 0b1111111111111 # instrumentation
+and ebx, 0b111 # instrumentation
+bt dword ptr [r14 + rcx], ebx
+test sil, dl
+cmovbe si, dx
+or ax, 0b1000000000000000 # instrumentation
+bsf ax, ax
+and al, 126
+and al, dl
+.exit_0:
+.macro.measurement_end: nop qword ptr [rax + 0xff]
+jmp .test_case_exit
+.section .data.main
+.test_case_exit:nop

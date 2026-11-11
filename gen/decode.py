@@ -126,14 +126,19 @@ def gate_source(realized, cls, arch="x86_64", fenced=False, store=True,
                  attacker-controlled register `attacker_reg`.
       "unindexed" control for "indexed": same set-up, register in bounds, no
                  outer bounds check. A leak here is self-gated (the body's
-                 own branch), i.e. independent of the attacker's index."""
+                 own branch), i.e. independent of the attacker's index.
+      "tainted"  the indexed layout in a concrete world: only memory reached
+                 through the attacker's pointer is symbolic, so a leak must
+                 depend on attacker-selected data (the source names the
+                 Spectector initial configuration it needs).
+      "tainted_ctl" the same with no attacker value: a leak is an escape."""
     from oracle_splice import splice_gate_only, gate_asm_block
     from splice_safety import strip_ret
     if cls not in GATE_ORACLE_VERSIONS:
         raise ValueError(f"no gate-only victim for class {cls!r}")
-    if victim not in ("sni", "indexed", "unindexed"):
+    if victim not in ("sni", "indexed", "unindexed", "tainted", "tainted_ctl"):
         raise ValueError(f"unknown victim {victim!r}")
-    frame = victim in ("indexed", "unindexed")
+    frame = victim in ("indexed", "unindexed", "tainted", "tainted_ctl")
     whole_fn = cls == "SPECTRE_V4" or frame
     asm_text, clobbers = splice_gate_only(strip_ret(list(realized), cls), arch,
                                           allow_reserved_writes=frame and cls == "SPECTRE_V1")
@@ -141,6 +146,9 @@ def gate_source(realized, cls, arch="x86_64", fenced=False, store=True,
         body = asm_text.replace("%%", "%").replace("\\n\\t", "\n").split("\n")
         if cls == "SPECTRE_V4":
             return spec_gadgets.render_spec_gate_ssb(body, fenced=fenced, store=store)
+        if victim.startswith("tainted"):
+            return spec_gadgets.render_spec_gate_tainted(
+                body, attacker_reg, fenced=fenced, attacker=victim == "tainted")
         return spec_gadgets.render_spec_gate_indexed(body, attacker_reg, fenced=fenced,
                                                      indexed=victim == "indexed")
     return spec_gadgets.render_spec_gate(cls, fenced=fenced,

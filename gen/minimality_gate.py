@@ -147,7 +147,7 @@ def gate_verdict(body: List[str], cls: str = CLS, tag: str = "m",
     except ValueError:
         return "dropped"
     h = hashlib.sha1("\n".join(body).encode()).hexdigest()[:16]
-    gid = f"{tag}_{cls[-2:]}{victim[0]}_{h}"
+    gid = f"{tag}_{cls[-2:]}{victim[0]}{len(victim)}_{h}"
     p = _WORK / "oracle" / "build" / f"gen_spec_{gid}.c"
     p.write_text(src)
     return _tls.val.validate({"gadget_id": gid, "vuln_class": cls,
@@ -234,7 +234,7 @@ def build_sources_indexed(args, rng):
 
 def build_sources(args, rng):
     """name -> list of candidate bodies (not yet oracle-checked on this path)."""
-    if VICTIM == "indexed":
+    if VICTIM in ("indexed", "tainted"):
         return build_sources_indexed(args, rng)
     runs = ROOT / "gen" / "step1_runs"
     last = args.rounds - 1
@@ -312,7 +312,7 @@ def run(args):
 def report(rows, args):
     train_all = _x86_windows(ROOT / "v54" / "data" / "v54_train.jsonl")
     benign_all = _x86_windows(ROOT / "eval" / "data" / "realworld_benign_x86_64.jsonl")
-    if VICTIM == "indexed":
+    if VICTIM in ("indexed", "tainted"):
         # reference windows in attacker-canonical form (a cell input shows up
         # as an explicit spill of %r15); register renaming stays free, so a
         # core counts as present if ANY register could play the attacker.
@@ -374,7 +374,7 @@ def main(argv=None):
     ap.add_argument("--report-only", action="store_true")
     ap.add_argument("--out", default=str(ROOT / "gen" / "step2_minimality.jsonl"))
     ap.add_argument("--md", default=str(ROOT / "gen" / "step2_minimality.md"))
-    ap.add_argument("--victim", default="sni", choices=["sni", "indexed"])
+    ap.add_argument("--victim", default="sni", choices=["sni", "indexed", "tainted"])
     args = ap.parse_args(argv)
     global VICTIM
     VICTIM = args.victim

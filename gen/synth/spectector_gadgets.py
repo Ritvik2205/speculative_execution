@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 from gen.synth.params import ADJUDICABLE, CLASSES
 
@@ -320,6 +321,62 @@ def render_spec_gate_indexed(body_lines, attacker_reg: str = "r15",
     lines += copy(0)
     lines += [".Lgate_end:", "addq $1024, %rsp", "ret"]
     return _asm_file(lines)
+
+
+# --- tainted victim: concrete world, only attacker-reached memory is secret --
+ZERO_WORLD = "zero_world_v1"
+_ZW_FRAME, _ZW_STACK, _ZW_SAVED_RSP = 65536, 1048576, 4000
+_RIP_CELL = re.compile(r"(-?\d+)\(%rip\)")
+
+
+def zero_world_conf() -> str:
+    """Spectector initial configuration for the tainted victim: memory around
+    address 0 (what a zeroed register dereferences), the frame and the stack
+    all hold 0. Symbols are placed from address 1024 up (Spectector's heap
+    default), so the zero zone stops below that and `arr` stays symbolic."""
+    addrs = (list(range(-1000, 1001, 4))
+             + list(range(_ZW_FRAME - 4096, _ZW_FRAME + 4097, 4))
+             + list(range(_ZW_STACK - 2048, _ZW_STACK + 2049, 8)))
+    cells = ",".join(f"{a}=0" if a >= 0 else f"({a})=0" for a in addrs)
+    return f"c([{cells}],[])."
+
+
+def render_spec_gate_tainted(body_lines, attacker_reg: str = "r15",
+                             fenced: bool = False, attacker: bool = True) -> str:
+    """The indexed victim's two-sided layout in a concrete world (see
+    zero_world_conf): every pool register and %r14 start at 0, the frame and
+    stack sit in initialised memory, and numeric rip-relative cells are moved
+    into the frame. attacker=False also makes the designated register 0 -- a
+    control in which any leak is an escape from the concrete world."""
+    a = attacker_reg.lstrip("%")
+    if a not in _IDX_POOL:
+        raise ValueError(f"attacker register must be one of {_IDX_POOL}, got {a!r}")
+    body = [_RIP_CELL.sub(lambda m: f"{int(m.group(1)) - 2048}(%rbp)", l.strip())
+            for l in body_lines if l.strip()]
+
+    def setup(arch_side):
+        if not attacker:
+            return [f"movq $0, %{a}", "movq $0, %rdi", "xorq %r14, %r14"]
+        out = ["leaq arr(%rip), %r14", f"leaq (%r14,%rdi), %{a}"]
+        if arch_side:
+            out = ["cmpq sz(%rip), %rdi"] + out + [f"cmovae %r14, %{a}"]
+        if a != "rdi":
+            out.append("movq $0, %rdi")
+        return out + ["xorq %r14, %r14"]          # known flags, %r14 = 0
+
+    lines = [".text", ".globl gadget", ".type gadget, @function", "gadget:",
+             "movq %rsp, %r14", f"movq ${_ZW_FRAME}, %rbp",
+             f"movq %r14, {_ZW_SAVED_RSP}(%rbp)", f"movq ${_ZW_STACK}, %rsp"]
+    lines += [f"movq $0, %{r}" for r in _IDX_POOL if r not in ("rdi", a)]
+    lines += ["cmpq sz(%rip), %rdi", "jae .Lgate_arch"]
+    if fenced:
+        lines.append("lfence")
+    lines += setup(False) + [l.replace(".L", ".Lc1_") for l in body]
+    lines += ["jmp .Lgate_end", ".Lgate_arch:"]
+    lines += setup(True) + [l.replace(".L", ".Lc0_") for l in body]
+    lines += [".Lgate_end:", f"movq ${_ZW_FRAME}, %rbp",
+              f"movq {_ZW_SAVED_RSP}(%rbp), %rsp", "ret"]
+    return f"/* spectector-conf: {ZERO_WORLD} */\n" + _asm_file(lines)
 
 
 def render_spec_gate(vuln_class: str, fenced: bool,

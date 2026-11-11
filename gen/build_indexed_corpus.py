@@ -82,9 +82,9 @@ def slot_body(window: List[str], seed: int) -> List[str]:
         list(window), secret_reg=ATTACKER_REG))
 
 
-def indexed_verdict(body: List[str], tag: str = "ix") -> str:
+def indexed_verdict(body: List[str], tag: str = "ix", victim: str = "indexed") -> str:
     import minimality_gate as mg
-    return mg.gate_verdict(body, "SPECTRE_V1", tag=tag, victim="indexed")
+    return mg.gate_verdict(body, "SPECTRE_V1", tag=tag, victim=victim)
 
 
 def clean(seq):
@@ -100,6 +100,7 @@ def main(argv=None):
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--max-candidates", type=int, default=6)
+    ap.add_argument("--victim", default="indexed", choices=["indexed", "tainted"])
     ap.add_argument("--control", action="store_true",
                     help="also adjudicate leaks on the control victim: mit=leak "
                          "then means attacker-indexed, and leaks that survive "
@@ -118,7 +119,9 @@ def main(argv=None):
         x86 = [(i, r) for i, r in x86 if prev[i].get("mit") == "leak"]
     import minimality_gate as mg
     control = ((lambda canon, i: mg.gate_verdict(slot_body(canon, seed=i), "SPECTRE_V1",
-                                                 tag="ix", victim="unindexed"))
+                                                 tag="ix",
+                                                 victim={"indexed": "unindexed",
+                                                         "tainted": "tainted_ctl"}[args.victim]))
                if args.control else None)
 
     def go(ir):
@@ -126,7 +129,8 @@ def main(argv=None):
         try:
             out = relabel_window(
                 clean(r["sequence"]),
-                lambda canon: indexed_verdict(slot_body(canon, seed=i)) if canon else "dropped",
+                lambda canon: (indexed_verdict(slot_body(canon, seed=i), victim=args.victim)
+                               if canon else "dropped"),
                 max_candidates=args.max_candidates,
                 control=(lambda canon: control(canon, i)) if control else None)
         except (ValueError, OSError) as e:          # keep the record, uninformative

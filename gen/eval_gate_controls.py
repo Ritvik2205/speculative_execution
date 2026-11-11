@@ -146,7 +146,7 @@ def build_jobs(args):
     from asm_tokenizer import AsmTokenizer as _AT
     _stk = _AT(_le("x86_64.json"))
     _sr = _gd.Realizer(_gd.load_spec("x86_64.json"), seed=args.seed + 1)
-    if VICTIM == "indexed":
+    if VICTIM in ("indexed", "tainted"):
         # the generator must NAME the attacker register (<SSEC>); benign code
         # cannot, so give it every candidate input (registers, then frame /
         # global cells). run() scores a window as a leak if ANY candidate
@@ -278,7 +278,7 @@ def main(argv=None):
     ap.add_argument("--md", default=str(ROOT / "gen" / "gate_controls.md"))
     ap.add_argument("--class", dest="cls", default="SPECTRE_V1",
                     choices=["SPECTRE_V1", "SPECTRE_V4"])
-    ap.add_argument("--victim", default="sni", choices=["sni", "indexed"],
+    ap.add_argument("--victim", default="sni", choices=["sni", "indexed", "tainted"],
                     help="V1 victim: all-memory-secret (sni) or attacker-indexed")
     ap.add_argument("--mit", default=None, help="leak-conditioning token for generators")
     args = ap.parse_args(argv)

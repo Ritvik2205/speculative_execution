@@ -39,6 +39,23 @@ SPECTECTOR_VERSION_FOR_CLASS = {
 }
 
 
+_CONF_MARK = re.compile(r"/\* spectector-conf: (\w+) \*/")
+
+
+def conf_for_source(source_text):
+    """Initial configuration a victim source asks for (a
+    `/* spectector-conf: NAME */` line), as the term Spectector's --conf-file
+    reads, or None. The source carries the name so every caller that writes a
+    victim file gets the right world without passing anything extra."""
+    m = _CONF_MARK.search(source_text)
+    if not m:
+        return None
+    from gen.synth import spectector_gadgets as sg
+    if m.group(1) != sg.ZERO_WORLD:
+        raise ValueError(f"unknown spectector-conf {m.group(1)!r}")
+    return sg.zero_world_conf()
+
+
 def _container_cmd(repo_root, work_dir, inner_script, image=None):
     """Build the argv that runs `inner_script` inside the Spectector image,
     with `repo_root` bound at `work_dir`. Docker (default) and Apptainer
@@ -281,11 +298,22 @@ def run_spec_gadget(row, repo_root, versions=None, image=None,
     # two orphaned 12-13 GB V2 analyses on a shared cluster node). coreutils
     # `timeout` signals the whole process group it creates, so the analysis
     # dies with it; the outer timeout below is only a backstop.
+    conf_arg = ""
+    try:
+        with open(os.path.join(repo_root, rel_path)) as _f:
+            conf = conf_for_source(_f.read())
+    except OSError:
+        conf = None
+    if conf:
+        os.makedirs(os.path.join(repo_root, "oracle", "build"), exist_ok=True)
+        with open(os.path.join(repo_root, "oracle", "build", f"{gadget_id}.conf"), "w") as _f:
+            _f.write(conf)
+        conf_arg = f" --conf-file {work_dir}/oracle/build/{gadget_id}.conf"
     inner_script = (
         f"mkdir -p {work_dir}/oracle/build && rm -f {out_json} && "
         f"x86_64-linux-gnu-gcc -O0 -S -fcf-protection={cf_protection} -o {out_asm} {work_dir}/{rel_path} "
         f"&& {entry_cmd}timeout -s KILL {timeout} run-spectector {out_asm} -a noninter"
-        + extra
+        + extra + conf_arg
         + f" --stats {out_json}"
     )
     container_cmd = _container_cmd(repo_root, work_dir, inner_script, image=image)

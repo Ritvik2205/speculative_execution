@@ -1,0 +1,34 @@
+.intel_syntax noprefix
+.section .data.main
+.function_0:
+.bb_0.0:
+.macro.measurement_start: nop qword ptr [rax + 0xff]
+xor bl, -6
+and rax, 0b1111111111111 # instrumentation
+xor sil, byte ptr [r14 + rax]
+and rdi, 0b1111111111000 # instrumentation
+lock dec qword ptr [r14 + rdi]
+mov al, -102
+cmovp rcx, rbx
+lea ebx, qword ptr [rdx + rbx]
+and rdi, -60
+bt edi, 230
+dec cl
+and rbx, 0b1111111111111 # instrumentation
+cmovo edi, dword ptr [r14 + rbx]
+and rax, 0b1111111111111 # instrumentation
+adc ecx, dword ptr [r14 + rax]
+and rbx, 0b1111111111111 # instrumentation
+and cx, 0b111 # instrumentation
+bt word ptr [r14 + rbx], cx
+lea rsi, qword ptr [rcx + rcx]
+and rbx, 0b1111111111111 # instrumentation
+sbb ecx, dword ptr [r14 + rbx]
+sbb eax, eax
+and rcx, 0b1111111111111 # instrumentation
+imul ecx, dword ptr [r14 + rcx], -12
+.exit_0:
+.macro.measurement_end: nop qword ptr [rax + 0xff]
+jmp .test_case_exit
+.section .data.main
+.test_case_exit:nop

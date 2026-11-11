@@ -1,0 +1,182 @@
+[
+ {
+  "class": "SPECTRE_V1",
+  "seed": 0,
+  "learned_kept": 200,
+  "sampled": 427,
+  "copies_of_training": 226,
+  "duplicates": 1,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 1,
+  "learned_kept": 200,
+  "sampled": 407,
+  "copies_of_training": 205,
+  "duplicates": 2,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 2,
+  "learned_kept": 200,
+  "sampled": 389,
+  "copies_of_training": 188,
+  "duplicates": 1,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 3,
+  "learned_kept": 200,
+  "sampled": 389,
+  "copies_of_training": 189,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V1",
+  "seed": 4,
+  "learned_kept": 200,
+  "sampled": 399,
+  "copies_of_training": 199,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V4",
+  "seed": 0,
+  "learned_kept": 200,
+  "sampled": 218,
+  "copies_of_training": 18,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V4",
+  "seed": 1,
+  "learned_kept": 200,
+  "sampled": 226,
+  "copies_of_training": 26,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V4",
+  "seed": 2,
+  "learned_kept": 200,
+  "sampled": 225,
+  "copies_of_training": 25,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V4",
+  "seed": 3,
+  "learned_kept": 200,
+  "sampled": 226,
+  "copies_of_training": 26,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "SPECTRE_V4",
+  "seed": 4,
+  "learned_kept": 200,
+  "sampled": 224,
+  "copies_of_training": 24,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 0,
+  "learned_kept": 200,
+  "sampled": 316,
+  "copies_of_training": 116,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 1,
+  "learned_kept": 200,
+  "sampled": 324,
+  "copies_of_training": 123,
+  "duplicates": 1,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 2,
+  "learned_kept": 200,
+  "sampled": 350,
+  "copies_of_training": 149,
+  "duplicates": 1,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 3,
+  "learned_kept": 200,
+  "sampled": 299,
+  "copies_of_training": 99,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "MDS",
+  "seed": 4,
+  "learned_kept": 200,
+  "sampled": 338,
+  "copies_of_training": 138,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 0,
+  "learned_kept": 200,
+  "sampled": 442,
+  "copies_of_training": 241,
+  "duplicates": 1,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 1,
+  "learned_kept": 200,
+  "sampled": 400,
+  "copies_of_training": 200,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 2,
+  "learned_kept": 200,
+  "sampled": 413,
+  "copies_of_training": 213,
+  "duplicates": 0,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 3,
+  "learned_kept": 200,
+  "sampled": 436,
+  "copies_of_training": 235,
+  "duplicates": 1,
+  "invalid": 0
+ },
+ {
+  "class": "L1TF",
+  "seed": 4,
+  "learned_kept": 200,
+  "sampled": 445,
+  "copies_of_training": 245,
+  "duplicates": 0,
+  "invalid": 0
+ }
+]

@@ -526,13 +526,13 @@ def _build_realize_fn(cls_short: str, arch: str, realizer, spec_gadgets,
         if len(concrete) < 2:
             return None  # nothing left to splice a secret through
         try:
-            if harness in ("gate", "indexed"):
+            if harness in ("gate", "indexed", "tainted"):
                 # gate-only victim (step 1): the body must carry the leak; no
                 # injected load/transmit. See gen/synth/spectector_gadgets
                 # render_spec_gate and gen/oracle_splice.splice_gate_only.
                 from gen.decode import gate_source
                 spec_c = gate_source(concrete, cls_short, arch,
-                                     victim="indexed" if harness == "indexed" else "sni")
+                                     victim=harness if harness in ("indexed", "tainted") else "sni")
             else:
                 gen_body = build_gen_body(concrete, cls_short, arch, is_invisispec=False)
                 spec_c = spec_gadgets.render_spec(cls_short, fenced=False, gen_body=gen_body)
@@ -649,7 +649,7 @@ def main(argv=None) -> int:
                           "SPECEXEC_NETYIELD_GUARD=1.")
     ap.add_argument("--save-finetuned", default=None,
                     help="write the fine-tuned generator checkpoint here after the last round")
-    ap.add_argument("--harness", choices=["scaffold", "gate", "indexed"], default="scaffold",
+    ap.add_argument("--harness", choices=["scaffold", "gate", "indexed", "tainted"], default="scaffold",
                      help="victim template family. scaffold (default, every "
                           "pre-2026-11-11 number): the splice injects the secret "
                           "load + transmit around the body, so the body is filler "
@@ -657,7 +657,7 @@ def main(argv=None) -> int:
                           "gate is supplied; the body must load through the "
                           "secret pointer and transmit itself (step 1).")
     args = ap.parse_args(argv)
-    if args.harness in ("gate", "indexed") and args.arch != "x86_64":
+    if args.harness in ("gate", "indexed", "tainted") and args.arch != "x86_64":
         print("ERROR: --harness gate is x86_64-only", file=sys.stderr)
         return 1
 
@@ -707,7 +707,7 @@ def main(argv=None) -> int:
                                         versions_by_class=SPECTECTOR_VERSION_FOR_CLASS,
                                         image=_DOCKER_IMAGE_COMBINED,
                                         window=50, steps=20000)
-    elif args.harness in ("gate", "indexed"):
+    elif args.harness in ("gate", "indexed", "tainted"):
         # each gate-only victim is adjudicated under its own mechanism:
         # V1 by upstream Spectector, V4 by Spectector-Combined -v 4.
         from gen.decode import GATE_ORACLE_VERSIONS

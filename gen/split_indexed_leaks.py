@@ -95,6 +95,9 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--md", required=True)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--control-victim", default="unindexed",
+                    help="unindexed (for the indexed victim) or tainted_ctl "
+                         "(for the tainted victim: self-gated column = escapes)")
     args = ap.parse_args(argv)
     import minimality_gate as mg
     rows = []
@@ -102,7 +105,7 @@ def main(argv=None):
         label, path = spec.split("=", 1)
         rows += load(label, path)
     rows = split_rows(rows, lambda b: mg.gate_verdict(b, "SPECTRE_V1", tag="sp",
-                                                      victim="unindexed"), args.workers)
+                                                      victim=args.control_victim), args.workers)
     with open(args.out, "w") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
