@@ -119,6 +119,7 @@ VIOLATION_MARKER = "Violations detected"
 # The four per-class held-out sets the joint model is scored on. NOT a
 # revizor_*_heldout glob: that also matches the legacy revizor_v4_heldout.jsonl
 # (same violation dirs under a different group name) and the misfenced sets.
+DEFAULT_EMIT_JSONL = str(REPO_ROOT / "eval/data/revizor_hwlabel_variants.jsonl")
 DEFAULT_RECORDS = [f"eval/data/revizor_{c}_heldout.jsonl" for c in ("spectre_v1", "spectre_v4", "mds", "l1tf")]
 
 # ---------------------------------------------------------------------------
@@ -779,7 +780,7 @@ def cmd_emit(a) -> int:
         asm = Path(r["asm"])
         if not asm.is_file():
             asm = out / r["cls"].lower() / Path(r["src_dir"]).name / r["variant"] / "program.asm"
-        seq = cvg.convert_program_asm(str(asm))
+        seq = cvg.convert_program_asm(str(asm), keep_labels=a.keep_labels)
         mitigated = r["verdict"] == "mitigated"
         recs.append({
             "label": "BENIGN" if mitigated else r["cls"],
@@ -794,6 +795,9 @@ def cmd_emit(a) -> int:
             "src_path": r["src_path"],
         })
     jpath = Path(a.jsonl)
+    if a.keep_labels and jpath == Path(DEFAULT_EMIT_JSONL):
+        # never overwrite the label-free dataset existing checkpoints score on
+        jpath = jpath.with_name(jpath.stem + "_labels.jsonl")
     jpath.parent.mkdir(parents=True, exist_ok=True)
     with open(jpath, "w") as f:
         for r in recs:
@@ -856,7 +860,11 @@ def main(argv=None) -> int:
     r.add_argument("--no-skip-unstable", dest="skip_unstable", action="store_false")
     e = sub.add_parser("emit")
     e.add_argument("--out", required=True)
-    e.add_argument("--jsonl", default=str(REPO_ROOT / "eval/data/revizor_hwlabel_variants.jsonl"))
+    e.add_argument("--jsonl", default=DEFAULT_EMIT_JSONL)
+    e.add_argument("--keep-labels", action="store_true",
+                   help="keep branch-target labels as `name:` marker lines and write branch "
+                        "operands as label names (default off = the stored format); with the "
+                        "default --jsonl this writes revizor_hwlabel_variants_labels.jsonl")
     a = ap.parse_args(argv)
     return {"minimize": cmd_minimize, "plan": cmd_plan, "run": cmd_run, "emit": cmd_emit}[a.cmd](a)
 

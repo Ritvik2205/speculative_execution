@@ -174,6 +174,7 @@ class GINEDatasetV47(Dataset):
         cfg_spec_edges: bool = False,
         drop_nops: bool = False,
         x86_mem_reads: bool = False,
+        cfg_control_edges: bool = False,
     ):
         self.label_to_id = label_to_id
         self.handcrafted_feature_names = handcrafted_feature_names
@@ -240,7 +241,8 @@ class GINEDatasetV47(Dataset):
                 a: SpecBackedPDGBuilder(
                     load_engine(f), speculative_window=speculative_window,
                     taint_mode=taint_mode, mem_order_edges=mem_order_edges,
-                    cfg_spec_edges=cfg_spec_edges, x86_mem_reads=x86_mem_reads)
+                    cfg_spec_edges=cfg_spec_edges, x86_mem_reads=x86_mem_reads,
+                    cfg_control_edges=cfg_control_edges)
                 for a, f in _specs.items()}
         self.pdg_builder = PDGBuilder(speculative_window=speculative_window)
 
@@ -807,6 +809,12 @@ def main():
                              "memory/secret-source/transmitter nodes and count AT&T "
                              "indexed loads in the inline features (default off = "
                              "current behavior; graph part needs --use-spec-builder)")
+    parser.add_argument('--cfg-control-edges', action='store_true',
+                        help="SpecBackedPDGBuilder: CONTROL_FLOW edges follow resolved "
+                             "direct branches (branch->target, no fall-through after a "
+                             "resolved jmp). Only has an effect on label-keeping datasets "
+                             "(*_labels.jsonl); default off = current behavior; only used "
+                             "with --use-spec-builder")
     parser.add_argument('--cfg-spec-edges', action='store_true',
                         help="SpecBackedPDGBuilder: add CFG speculative edges "
                              "(default off = current behavior; only used with "
@@ -996,7 +1004,8 @@ def main():
                   mem_order_edges=args.mem_order_edges,
                   cfg_spec_edges=args.cfg_spec_edges,
                   drop_nops=args.drop_nops,
-                  x86_mem_reads=args.x86_mem_reads)
+                  x86_mem_reads=args.x86_mem_reads,
+                  cfg_control_edges=args.cfg_control_edges)
     train_dataset = GINEDatasetV47(train_records, label_to_id, feature_names, **_ds_kw)
     val_dataset = GINEDatasetV47(val_records, label_to_id, feature_names, **_ds_kw)
     test_dataset = GINEDatasetV47(test_records, label_to_id, feature_names, **_ds_kw)

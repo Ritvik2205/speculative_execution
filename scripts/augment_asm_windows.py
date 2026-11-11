@@ -992,6 +992,11 @@ def generate_cross_window_swaps(
 
 
 def can_swap(a: str, b: str) -> bool:
+    # A label line (`name:`, only present on the opt-in label-keeping path) is
+    # a position marker: swapping an instruction across it changes which
+    # instruction a branch targets.
+    if a.rstrip().endswith(':') or b.rstrip().endswith(':'):
+        return False
     ra = collect_regs(a)
     rb = collect_regs(b)
     # no def-use overlap and not barriers/branches (ARM64 or x86)

@@ -176,7 +176,8 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
     def __init__(self, engine: SpecEngine, speculative_window: int | None = None,
                  dataflow_taint: bool = True, dataflow_taint_max_hops: int = 4,
                  taint_mode: str = "shift", mem_order_edges: bool = False,
-                 cfg_spec_edges: bool = False, x86_mem_reads: bool = False):
+                 cfg_spec_edges: bool = False, x86_mem_reads: bool = False,
+                 cfg_control_edges: bool = False):
         pipe = engine.pipeline
         spec_win = speculative_window if speculative_window is not None \
             else int(pipe.get("speculative_window", 10))
@@ -229,6 +230,17 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         # since the recorded oracle baseline and per-class lift gate depend
         # on it.
         self.cfg_spec_edges = cfg_spec_edges
+        # Step 5 (docs/NEXT_STEPS_2026-11-10.md §0.3/§5): opt-in CONTROL_FLOW
+        # edges that follow the intra-sequence CFG. The base builder chains
+        # node i -> i+1 whatever the instruction is, so a direct branch never
+        # has an edge to its target and an unconditional jump still "falls
+        # through". When True, a direct branch whose operand is a label
+        # DEFINED IN THE SEQUENCE (label lines kept as non-node markers, see
+        # v54/build_dataset.clean_seq(keep_labels=True)) gets branch->target,
+        # and a resolved unconditional jump loses its fall-through edge.
+        # Unresolved branches keep the chain. A no-op on label-free sequences
+        # (every stored dataset today). DEFAULT OFF: graphs are byte-identical.
+        self.cfg_control_edges = cfg_control_edges
         # Opt-in: on x86, a memory operand read by a non-LOAD mnemonic (cmov,
         # ALU, compare, bt/bsf, ...) gets the is_memory_access /
         # is_secret_source / is_transmitter flags a LOAD would, and counts as a
@@ -291,6 +303,9 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         if addr_mo:
             pdg.edges = [e for e in pdg.edges
                          if e.edge_type != pb.EDGE_TYPES['MEMORY_ORDER']]
+        if self.cfg_control_edges:
+            self._apply_cfg_control_edges(pdg, sequence)
+            pdg.__post_init__()
         if self.cfg_spec_edges:
             pdg.edges = [e for e in pdg.edges
                          if e.edge_type != pb.EDGE_TYPES['SPEC_CONDITIONAL']]
@@ -489,15 +504,48 @@ class SpecBackedPDGBuilder(pb.PDGBuilder):
         if cat == pb.OPCODE_CATEGORIES['BRANCH_COND']:
             succs = [i + 1] if i + 1 < n else []
             tgt = self._resolve_branch_target(node.raw_instruction, label_targets)
-            if tgt is not None and tgt not in succs:
+            # tgt == n: a label after the last instruction = sequence exit.
+            if tgt is not None and tgt < n and tgt not in succs:
                 succs.append(tgt)
             return succs
         if cat == pb.OPCODE_CATEGORIES['BRANCH_UNCOND']:
             tgt = self._resolve_branch_target(node.raw_instruction, label_targets)
-            return [tgt] if tgt is not None else []
+            return [tgt] if tgt is not None and tgt < n else []
         if cat in (pb.OPCODE_CATEGORIES['JUMP_INDIRECT'], pb.OPCODE_CATEGORIES['RET']):
             return []
         return [i + 1] if i + 1 < n else []
+
+    def _apply_cfg_control_edges(self, pdg, sequence) -> None:
+        """Rewrite ``pdg.edges`` in place so CONTROL_FLOW follows resolved
+        direct branches (see ``cfg_control_edges`` in ``__init__``). Only
+        branches whose target label is defined in ``sequence`` are touched:
+          - BRANCH_COND: keep fall-through, add branch -> target.
+          - BRANCH_UNCOND: add branch -> target, drop the fall-through edge.
+        A target label after the last instruction is the sequence exit: no
+        edge to add, and an unconditional jump to it still loses its
+        fall-through."""
+        n = len(pdg.nodes)
+        cf = pb.EDGE_TYPES['CONTROL_FLOW']
+        label_targets = self._build_label_targets(sequence)
+        if not label_targets:
+            return
+        drop, add = set(), []
+        for i, node in enumerate(pdg.nodes):
+            cat = node.opcode_category
+            uncond = cat == pb.OPCODE_CATEGORIES['BRANCH_UNCOND']
+            if not uncond and cat != pb.OPCODE_CATEGORIES['BRANCH_COND']:
+                continue
+            tgt = self._resolve_branch_target(node.raw_instruction, label_targets)
+            if tgt is None:
+                continue
+            if uncond and tgt != i + 1:
+                drop.add((i, i + 1))
+            if tgt < n and tgt != i + 1:
+                add.append(pb.PDGEdge(src=i, dst=tgt, edge_type=cf, weight=1.0))
+        if drop:
+            pdg.edges = [e for e in pdg.edges
+                         if not (e.edge_type == cf and (e.src, e.dst) in drop)]
+        pdg.edges.extend(add)
 
     def _cfg_conditional_spec_edges(self, pdg, sequence) -> list:
         """Replacement for the base builder's index-window SPEC_CONDITIONAL

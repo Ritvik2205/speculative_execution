@@ -222,14 +222,42 @@ def _extract_section(objdump_text: str, section_name: str = ".data.main") -> Lis
     return block
 
 
-def _parse_instructions(section_lines: List[str]) -> List[str]:
+_SYMBOL_HDR_RE = re.compile(r"^([0-9a-fA-F]+) <([^>]+)>:\s*$")
+# objdump's rendering of a direct branch operand: `0x7e <.bb_0.1>`
+_BRANCH_ANNOT_RE = re.compile(r"^(?:0x)?([0-9a-fA-F]+)\s+<([^>+]+)>$")
+
+
+def is_label_line(line: str) -> bool:
+    return line.rstrip().endswith(":")
+
+
+def _parse_instructions(section_lines: List[str], keep_labels: bool = False) -> List[str]:
     """Turn one section's raw objdump lines into a list of clean AT&T
-    instruction strings, dropping labels/harness markers/comments."""
+    instruction strings, dropping labels/harness markers/comments.
+
+    ``keep_labels`` (opt-in; default off = the format every stored dataset
+    has): a direct branch's operand becomes the bare label name
+    (`js .bb_0.1` instead of `js 0x30 <.bb_0.1>`) and every label that some
+    kept branch targets is emitted as a `name:` marker line at its position,
+    so spec/spec_pdg_builder.py can resolve the target. Unreferenced labels
+    are not emitted."""
     out: List[str] = []
+    referenced = set()
+    # Several labels can share an address (`.exit_0` / `.macro.measurement_end`)
+    # and objdump prints one header but may annotate a branch with another, so
+    # targets are matched to headers by ADDRESS, not by name.
+    hdr_at = {}
+    if keep_labels:
+        for line in section_lines:
+            m = _SYMBOL_HDR_RE.match(line)
+            if m:
+                hdr_at[int(m.group(1), 16)] = m.group(2)
     for line in section_lines:
         if not line.strip():
             continue
         if _LABEL_RE.match(line):
+            if keep_labels:
+                out.append(_SYMBOL_HDR_RE.match(line).group(2) + ":")
             continue  # symbol/label header, not an instruction
         if "\t" not in line:
             continue  # "..." elision lines, stray text -- no mnemonic column
@@ -254,22 +282,32 @@ def _parse_instructions(section_lines: List[str]) -> List[str]:
         # <.test_case_exit>") for real jumps too, but none survive in this
         # corpus (single-BB, branch-free gadgets) other than the harness
         # exit jump already dropped above.
+        if keep_labels:
+            m = _BRANCH_ANNOT_RE.match(operand)
+            if m:
+                operand = hdr_at.get(int(m.group(1), 16), m.group(2))
+                referenced.add(operand)
         instr = f"{mnemonic} {operand}".strip()
         out.append(instr)
+    if keep_labels:
+        out = [l for l in out if not is_label_line(l) or l[:-1] in referenced]
     return out
 
 
 _MNEMONIC_START_RE = re.compile(r"^[a-z][a-z0-9.]*")
 
 
-def assert_well_formed_sequence(seq: List[str], path: str = "<unknown>") -> None:
+def assert_well_formed_sequence(seq: List[str], path: str = "<unknown>",
+                                allow_labels: bool = False) -> None:
     """Raise ValueError if any converted instruction string doesn't start
     with a real mnemonic (`^[a-z][a-z0-9.]*`). Guards against the
     hex-byte/mnemonic-swallowing regex bug found 2026-09-11 (see
     `_ADDR_BYTES_RE`'s comment) ever silently shipping malformed AT&T
     lines like `$0x40, %al` again -- every emitted line must start with an
     opcode, not a bare operand."""
-    bad = [line for line in seq if not _MNEMONIC_START_RE.match(line)]
+    bad = [line for line in seq
+           if not _MNEMONIC_START_RE.match(line)
+           and not (allow_labels and is_label_line(line))]
     if bad:
         raise ValueError(
             f"{path}: {len(bad)} converted instruction(s) missing a leading "
@@ -277,7 +315,7 @@ def assert_well_formed_sequence(seq: List[str], path: str = "<unknown>") -> None
         )
 
 
-def convert_program_asm(path: str) -> List[str]:
+def convert_program_asm(path: str, keep_labels: bool = False) -> List[str]:
     """Convert one Revizor Intel `program.asm` into a list of AT&T
     instruction strings (the pipeline's `sequence` format).
 
@@ -289,10 +327,14 @@ def convert_program_asm(path: str) -> List[str]:
     if toolchain_available():
         objdump_text = _assemble_and_disassemble(path)
         section = _extract_section(objdump_text)
-        seq = _parse_instructions(section)
+        seq = _parse_instructions(section, keep_labels=keep_labels)
+    elif keep_labels:
+        raise ToolchainUnavailable(
+            "keep_labels needs the clang + llvm-objdump path; the per-line "
+            "fallback translator drops labels")
     else:
         seq = _convert_via_fallback(path)
-    assert_well_formed_sequence(seq, path)
+    assert_well_formed_sequence(seq, path, allow_labels=keep_labels)
     return seq
 
 

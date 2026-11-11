@@ -126,7 +126,19 @@ def is_instruction_line(line: str) -> bool:
     return True
 
 
-def clean_seq(seq: List[str]) -> List[str]:
+def is_label_line(line: str) -> bool:
+    s = line.strip()
+    return len(s) > 1 and s.endswith(':') and not s.startswith(('#', ';', '//'))
+
+
+def clean_seq(seq: List[str], keep_labels: bool = False) -> List[str]:
+    """Drop blank/directive/comment lines. Label lines (`name:`) are dropped
+    too unless ``keep_labels`` (opt-in, default off = every existing dataset):
+    kept labels are non-node markers that let spec/spec_pdg_builder.py resolve
+    direct branch targets (docs/NEXT_STEPS_2026-11-10.md §0.3/§5)."""
+    if keep_labels:
+        return [l.strip() if is_label_line(l) else l for l in seq
+                if is_instruction_line(l) or is_label_line(l)]
     return [l for l in seq if is_instruction_line(l)]
 
 
@@ -266,10 +278,17 @@ def has_train_attack_signal(label: str, lines: List[str], *, split: str) -> bool
 
 _CFI_END  = re.compile(r'\.cfi_endproc')
 _FUNC_LBL = re.compile(r'^([A-Za-z_][A-Za-z0-9_.@$]*):')
+# Assembler-local labels: ELF `.L4:` / `.LBB0_3:`, Mach-O `LBB0_3:` / `Ltmp1:`.
+_LOCAL_LBL = re.compile(r'^(\.L[A-Za-z0-9_.$]*|L(?:BB|tmp)[A-Za-z0-9_]*):')
 
 
-def extract_functions(asm_path: Path) -> List[List[str]]:
-    """Parse a .s file into per-function instruction lists."""
+def extract_functions(asm_path: Path, keep_labels: bool = False) -> List[List[str]]:
+    """Parse a .s file into per-function instruction lists.
+
+    Default: label lines are dropped, and a Mach-O local label (`LBB0_2:`)
+    starts a new "function" (historical behaviour every dataset was built
+    with). ``keep_labels`` (opt-in): assembler-local labels stay inside their
+    function as `name:` marker lines, so its direct branches can resolve."""
     functions = []
     current: List[str] = []
     in_func = False
@@ -287,6 +306,11 @@ def extract_functions(asm_path: Path) -> List[List[str]]:
                 functions.append(current)
             current = []
             in_func = False
+            continue
+
+        if keep_labels and _LOCAL_LBL.match(s):
+            if in_func:
+                current.append(_LOCAL_LBL.match(s).group(1) + ':')
             continue
 
         if _FUNC_LBL.match(s) and not s.startswith('.'):
