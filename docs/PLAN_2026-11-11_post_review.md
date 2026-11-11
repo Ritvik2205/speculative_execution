@@ -8,12 +8,27 @@ Status of the review's claims: its statements about OUR repo were checked agains
 and are marked below. Its statements about other papers (numbers, baselines, what is missing)
 are NOT verified by me. Each must be read in the primary source before it is cited or built on.
 
+## 0. Correction, 2026-11-11 evening: the hardware target is NOT saturated
+
+Section 1 below accepted the review's claim that Spectre V1 under the no-speculation contract
+is saturated on the i5, on the evidence of "9 violations per seed on every seed". The campaign
+logs (`oracle/revizor/results/base_rates_261111/`) show that figure is a time ceiling (about
+100–120 s to confirm each violation, 900 s limit). Per test case, Revizor's random generator
+violates in about 4% (V1), 5–9% (L1TF), 1–2% (MDS) and 0.1–0.6% (V4). All of these leave room
+for an arm to do better or worse than random.
+
+What changes: the original settings are usable; V1 and L1TF are the best-powered classes;
+V4 needs about 1,000 programs per campaign. What does not change: campaign-level metrics,
+tests to first violation, distinct minimised cores, at least 10 campaigns per arm with A12 and
+Mann–Whitney, the feedback arm. The contract pilot (`cond`, `bpas`) is now a secondary
+question (what is left once the common mechanism is permitted), not a precondition.
+
 ## 1. What the review gets right about us (checked)
 
 | Claim | Check | Verdict |
 |---|---|---|
 | The queued hardware run tests Spectre V1 against a no-speculation contract, so random fuzzing will violate constantly | `hw/gen_vs_random/SPECTRE_V1/config.yaml`: `contract_execution_clause: no_speculation`, `BASE-COND_BR` enabled | True |
-| That target is saturated on this CPU | `rvzr_runs/MULTICLASS_CAMPAIGN_RESULTS.md`: V1 gave exactly 9 violations in each of 10 seeds within the 900 s limit. A constant count under a time limit means the limit is the time spent confirming violations, not the difficulty of finding them. MDS (7–8) and L1TF (7–8) look the same. Only V4 varies (3–7) | True for V1, probably MDS and L1TF; per-test-case rates still need the campaign logs |
+| That target is saturated on this CPU | Campaign logs: about 4% of random V1 test cases violate; the constant 9 per seed is a time ceiling | **False** (see section 0) |
 | The symbolic negative result is expected | Our own tables: branch-keeping benign 0.60–0.62 | True |
 | The nine-class dataset is our own pipeline, not a public benchmark | Built from `c_vulns/` by `augment_asm_windows.py` and `v54/build_dataset.py` | True. Never describe it as a third-party benchmark |
 | The 806 hardware-labelled fence variants are the strongest artefact | Unique in the repo: labels from silicon, minimal pairs | Agree |
