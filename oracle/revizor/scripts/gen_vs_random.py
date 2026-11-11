@@ -115,6 +115,15 @@ def sh(cmd, timeout=None):
         return -9, f"[ERROR] timeout after {timeout}s\n{e.stdout or ''}"
 
 
+def health_rc(new_rows, max_error_frac=0.5) -> int:
+    """3 when more than half of the runs of THIS invocation errored: a smoke
+    run must not hand a broken set-up on to a multi-hour run."""
+    if not new_rows:
+        return 0
+    errs = sum(r["verdict"] == "error" for r in new_rows)
+    return 3 if errs / len(new_rows) > max_error_frac else 0
+
+
 def cmd_preflight(a):
     ok = True
     for sub, need in (("reproduce", ["--testcase", "--num-inputs"]),
@@ -179,6 +188,7 @@ def cmd_run(a):
         todo = todo[: a.limit]
     print(f"{len(done)} done, {len(todo)} to run")
     cfgs = {cls: (arms / cls / "config.yaml").read_text() for cls in a.classes}
+    new = []
     with open(res, "a") as f:
         for i, (cls, arm, seed, path) in enumerate(todo):
             ds = data_seed(path)
@@ -195,9 +205,15 @@ def cmd_run(a):
                 rec["tail"] = text[-600:]
             f.write(json.dumps(rec) + "\n")
             f.flush()
+            new.append(rec)
             if i % 25 == 24:
                 print(f"[{i + 1}/{len(todo)}] last: {cls} {arm} s{seed} {v}", flush=True)
-    return cmd_report(a)
+    cmd_report(a)
+    rc = health_rc(new)
+    if rc:
+        tails = [r.get("tail", "") for r in new if r["verdict"] == "error"]
+        print(f"FATAL: {len(tails)}/{len(new)} runs errored. Last error output:\n{tails[-1]}")
+    return rc
 
 
 def cmd_report(a):

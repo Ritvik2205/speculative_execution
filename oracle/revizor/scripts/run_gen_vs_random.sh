@@ -66,5 +66,8 @@ COMMON=(--arms "$ARMS" --out "$OUT" --rvzr "$VENV/bin/rvzr" --spec "$SPEC" --inp
 "$PY" "$SCRIPT_DIR/gen_vs_random.py" random "${COMMON[@]}" --classes $CLASSES --seeds $SEEDS --n "$N" || exit 1
 # shellcheck disable=SC2086
 "$PY" "$SCRIPT_DIR/gen_vs_random.py" run "${COMMON[@]}" --classes $CLASSES --limit "$LIMIT"
+RC=$?
 chown -R "${SUDO_USER:-$USER}" "$OUT" "$ARMS" 2>/dev/null
-echo "=== done: $(date) — report at $OUT/REPORT.md ==="
+echo "=== done (rc=$RC): $(date) — report at $OUT/REPORT.md ==="
+# rc 3 = more than half of this invocation's runs errored; do not chain a long run on it
+exit $RC

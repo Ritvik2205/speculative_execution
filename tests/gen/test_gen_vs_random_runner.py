@@ -41,3 +41,11 @@ def test_run_config_pins_exactly_one_data_seed_and_seed_is_stable():
     assert cfg.count("data_generator_seed") == 1 and "data_generator_seed: 77" in cfg
     assert g.data_seed("/a/s0/p0001.asm") == g.data_seed("/b/s0/p0001.asm")
     assert g.data_seed("/a/s0/p0001.asm") != g.data_seed("/a/s1/p0001.asm")
+
+
+def test_a_run_that_is_mostly_errors_fails_so_a_chained_long_run_does_not_start():
+    ok = [{"verdict": "none"}] * 30 + [{"verdict": "violation"}] * 5 + [{"verdict": "error"}] * 5
+    bad = [{"verdict": "error"}] * 30 + [{"verdict": "none"}] * 10
+    assert g.health_rc(ok) == 0
+    assert g.health_rc(bad) == 3
+    assert g.health_rc([]) == 0                      # nothing left to run is not a failure
