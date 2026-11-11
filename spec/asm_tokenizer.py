@@ -157,7 +157,8 @@ class AsmTokenizer:
 
     def tokenize_sequence_slots(self, sequence: List[str], k: int = 6,
                                 arch: str = "x86_64", values: bool = True,
-                                k_disp: int = 8) -> List[str]:
+                                k_disp: int = 8,
+                                secret_reg: Optional[str] = None) -> List[str]:
         if arch != "x86_64" or self.mode == "neutral":
             return self.tokenize_sequence(sequence)
         import re
@@ -170,6 +171,8 @@ class AsmTokenizer:
                 return "<SX>"
             if fam in self.SLOT_SPECIAL_X86:
                 return self.SLOT_SPECIAL_X86[fam]
+            if secret_reg is not None and fam == secret_reg:
+                return "<SSEC>"      # the attacker-controlled register
             if fam not in slot:
                 slot[fam] = len(slot)
             return f"<S{slot[fam]}>" if slot[fam] < k else "<SX>"

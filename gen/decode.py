@@ -112,19 +112,33 @@ def build_gen_body_gate(realized, cls, arch):
 GATE_ORACLE_VERSIONS = {"SPECTRE_V1": None, "SPECTRE_V4": "4"}
 
 
-def gate_source(realized, cls, arch="x86_64", fenced=False, store=True):
+def gate_source(realized, cls, arch="x86_64", fenced=False, store=True,
+                victim="sni", attacker_reg="r15"):
     """Complete C source of the gate-only victim for `cls` with `realized` as
     its body. One entry point for the loop, the control table and the
     minimiser, so they cannot splice differently. Raises ValueError if the
-    body cannot be hosted (e.g. it writes a reserved register)."""
+    body cannot be hosted.
+
+    victim (SPECTRE_V1 only; the store-bypass victim is already specific):
+      "sni"      bounds check + body; Spectector's all-memory-secret policy,
+                 so any speculative load -> address chain leaks.
+      "indexed"  leak only if the chain starts at a load through the
+                 attacker-controlled register `attacker_reg`."""
     from oracle_splice import splice_gate_only, gate_asm_block
     from splice_safety import strip_ret
     if cls not in GATE_ORACLE_VERSIONS:
         raise ValueError(f"no gate-only victim for class {cls!r}")
-    asm_text, clobbers = splice_gate_only(strip_ret(list(realized), cls), arch)
-    if cls == "SPECTRE_V4":
+    if victim not in ("sni", "indexed"):
+        raise ValueError(f"unknown victim {victim!r}")
+    whole_fn = cls == "SPECTRE_V4" or victim == "indexed"
+    asm_text, clobbers = splice_gate_only(strip_ret(list(realized), cls), arch,
+                                          allow_reserved_writes=victim == "indexed"
+                                          and cls == "SPECTRE_V1")
+    if whole_fn:
         body = asm_text.replace("%%", "%").replace("\\n\\t", "\n").split("\n")
-        return spec_gadgets.render_spec_gate_ssb(body, fenced=fenced, store=store)
+        if cls == "SPECTRE_V4":
+            return spec_gadgets.render_spec_gate_ssb(body, fenced=fenced, store=store)
+        return spec_gadgets.render_spec_gate_indexed(body, attacker_reg, fenced=fenced)
     return spec_gadgets.render_spec_gate(cls, fenced=fenced,
                                          gen_body=gate_asm_block(asm_text, clobbers))
 

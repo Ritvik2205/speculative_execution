@@ -82,3 +82,27 @@ def test_stray_and_missing_slots_are_tolerated():
     R = Realizer(load_spec("x86_64.json"), seed=0)
     out = R.realize_sequence(["<S0>", "shlq <imm> <reg>", "movb <imm> <mem-idx>", "<S1>"])
     assert len(out) == 2   # leading stray slot ignored; missing slot -> fresh reg
+
+
+# ---- attacker-register slot (indexed victim) ------------------------------
+def test_attacker_register_gets_its_own_slot_token_only_when_asked():
+    from isa_spec import load_engine
+    from asm_tokenizer import AsmTokenizer
+    tk = AsmTokenizer(load_engine("x86_64.json"))
+    w = ["movzbl (%r15), %eax", "movb $1, (%rbx,%rax)"]
+    assert tk.tokenize_sequence_slots(w, secret_reg="r15") == \
+        ["movzbl <mem> <reg>", "<SSEC>", "<DZ>", "<S0>",
+         "movb <imm> <mem-idx>", "<I:1>", "<S1>", "<S0>", "<DZ>"]
+    assert "<SSEC>" not in tk.tokenize_sequence_slots(w)
+
+
+def test_attacker_slot_realises_to_r15_and_keeps_the_chain():
+    import decode as gd
+    r = gd.Realizer(gd.load_spec("x86_64.json"), seed=3)
+    out = r.realize_sequence(["movzbl <mem> <reg>", "<SSEC>", "<DZ>", "<S0>",
+                              "movb <imm> <mem-idx>", "<I:1>", "<S1>", "<S0>", "<DZ>"])
+    assert len(out) == 2
+    assert "(%r15)" in out[0]
+    loaded = out[0].split(",")[-1].strip().lstrip("%")
+    from ir_defuse import _canon_x86
+    assert _canon_x86(loaded) in out[1].replace("%", "") or loaded[1:] in out[1]

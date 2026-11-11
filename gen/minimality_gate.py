@@ -130,7 +130,8 @@ _WORK = ROOT / "oracle" / "build" / "gate_min"      # under $HOME: Colima mounts
 _tls = threading.local()
 
 
-def gate_verdict(body: List[str], cls: str = CLS, tag: str = "m") -> str:
+def gate_verdict(body: List[str], cls: str = CLS, tag: str = "m",
+                 victim: str = "sni") -> str:
     """Spectector verdict of `body` in the gate-only victim: leak / safe /
     unrunnable / dropped (the splice refused the body)."""
     from gen.decode import gate_source, GATE_ORACLE_VERSIONS
@@ -141,11 +142,11 @@ def gate_verdict(body: List[str], cls: str = CLS, tag: str = "m") -> str:
                                        versions_by_class=GATE_ORACLE_VERSIONS)
     body = list(body)
     try:
-        src = gate_source(body, cls)
+        src = gate_source(body, cls, victim=victim)
     except ValueError:
         return "dropped"
     h = hashlib.sha1("\n".join(body).encode()).hexdigest()[:16]
-    gid = f"{tag}_{cls[-2:]}_{h}"
+    gid = f"{tag}_{cls[-2:]}{victim[0]}_{h}"
     p = _WORK / "oracle" / "build" / f"gen_spec_{gid}.c"
     p.write_text(src)
     return _tls.val.validate({"gadget_id": gid, "vuln_class": cls,

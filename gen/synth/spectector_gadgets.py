@@ -247,6 +247,53 @@ def render_spec_gate_ssb(body_lines, fenced: bool = False, store: bool = True) -
             '__asm__(\n' + quoted + ');\n')
 
 
+# Attacker-indexed V1 victim (see tests/gen/test_gate_indexed.py for why).
+# Whole-function asm: (1) save the scratch pool, give the body a private
+# frame, run the body ARCHITECTURALLY with the designated register = arr
+# (in bounds); (2) restore the pool, then run the body again behind the
+# bounds check with the register = arr + i. Under speculative non-
+# interference the architectural run's address observations pin every memory
+# cell it dereferences, so only loads through the attacker-controlled
+# register read "new" secrets in the speculative run.
+_IDX_POOL = ("rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10",
+             "r11", "r12", "r13", "r15")
+_IDX_FRAME = ("subq $1024, %rsp", "leaq 512(%rsp), %rbp")
+
+
+def _asm_file(lines) -> str:
+    quoted = "\n".join('"%s\\n"' % l.replace("\\", "\\\\").replace('"', '\\"') for l in lines)
+    return ('#include <stdint.h>\n#include <stddef.h>\n'
+            'extern uint8_t probe[]; extern uint8_t arr[]; extern size_t sz;\n'
+            '__asm__(\n' + quoted + ');\n')
+
+
+def render_spec_gate_indexed(body_lines, attacker_reg: str = "r15",
+                             fenced: bool = False) -> str:
+    a = attacker_reg.lstrip("%")
+    if a not in _IDX_POOL:
+        raise ValueError(f"attacker register must be one of {_IDX_POOL}, got {a!r}")
+    body = [l.strip() for l in body_lines if l.strip()]
+
+    def copy(k):
+        return [l.replace(".L", f".Lc{k}_") for l in body]
+
+    lines = [".text", ".globl gadget", ".type gadget, @function", "gadget:"]
+    lines += [f"pushq %{r}" for r in _IDX_POOL]
+    lines += list(_IDX_FRAME)
+    lines += ["leaq probe(%rip), %r14", f"leaq arr(%rip), %{a}"]      # in bounds
+    lines += copy(0)
+    lines += ["addq $1024, %rsp"] + [f"popq %{r}" for r in reversed(_IDX_POOL)]
+    lines += list(_IDX_FRAME)
+    lines += ["cmpq sz(%rip), %rdi", "jae .Lgate_end"]
+    if fenced:
+        lines.append("lfence")
+    lines += ["leaq arr(%rip), %r14", f"leaq (%r14,%rdi), %{a}",       # arr + i
+              "leaq probe(%rip), %r14"]
+    lines += copy(1)
+    lines += [".Lgate_end:", "addq $1024, %rsp", "ret"]
+    return _asm_file(lines)
+
+
 def render_spec_gate(vuln_class: str, fenced: bool,
                      gen_body: str | None = None) -> str:
     """render_spec() for the gate-only victims. The body is REQUIRED (there is

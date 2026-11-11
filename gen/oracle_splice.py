@@ -481,7 +481,11 @@ def _canon_jcc_alias(ins: str) -> str:
     return ins
 
 
-def splice_gate_only(realized: list[str], arch: str) -> tuple[str, list[str]]:
+_ORACLE_INERT = re.compile(r'^(endbr(64|32)|clflush(opt)?|prefetch\w*|pause)\b', re.I)
+
+
+def splice_gate_only(realized: list[str], arch: str,
+                     allow_reserved_writes: bool = False) -> tuple[str, list[str]]:
     """Emit `realized` verbatim as the body of a gate-only victim. The two
     reserved registers are NOT seeded here: the caller binds the asm inputs
     directly to them with GCC local register variables
@@ -502,7 +506,11 @@ def splice_gate_only(realized: list[str], arch: str) -> tuple[str, list[str]]:
     # leak (see splice_safety.strip_stack_ops).
     from splice_safety import strip_stack_ops
     realized = [_canon_jcc_alias(i) for i in strip_stack_ops(realized)]
-    for ins in realized:
+    # cache / CET hints move no data and Spectector has no semantics for them:
+    # passed through, they void an otherwise valid verdict ("unsupported
+    # instruction" -> unrunnable). Host them as nops (length preserved).
+    realized = ["nop" if _ORACLE_INERT.match(i.strip()) else i for i in realized]
+    for ins in ([] if allow_reserved_writes else realized):
         parts = ins.strip().split(None, 1)
         if len(parts) == 2:
             ops = _split_top_level(parts[1], "(", ")")

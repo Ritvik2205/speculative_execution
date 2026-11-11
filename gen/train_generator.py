@@ -263,6 +263,16 @@ def main():
                           "corpus (spec/data/riscv_cvulns_batch.jsonl + "
                           "spec/data/riscv_benign_train.jsonl) to make the "
                           "generator emit riscv64. Default: none (byte-identical).")
+    ap.add_argument("--train", default=None,
+                     help="replacement training corpus (default v54_train.jsonl), "
+                          "e.g. gen/data/indexed_train.jsonl")
+    ap.add_argument("--secret-reg", default=None,
+                     help="with --slot-tokens: register family spelled <SSEC> "
+                          "(the attacker-controlled register; r15 for the "
+                          "indexed victim)")
+    ap.add_argument("--mit-labels", default=None,
+                     help="oracle leak/safe labels per record "
+                          "(gen/label_corpus_gate.py output); used with --leak-cond")
     ap.add_argument("--slot-tokens", action="store_true",
                      help="tokenize x86_64 records as the register-identity slot "
                           "stream (AsmTokenizer.tokenize_sequence_slots): each "
@@ -281,7 +291,7 @@ def main():
 
     engine = load_engine("base.json")
     tok = AsmTokenizer(engine)
-    train_rows, test_rows = load(TRAIN), load(TEST)
+    train_rows, test_rows = load(args.train or TRAIN), load(TEST)
     if args.extra_train:
         extra = []
         for p in args.extra_train:
@@ -309,7 +319,8 @@ def main():
 
         def tokenize(rec):  # noqa: F811
             if norm_arch(rec.get("arch", "x86_64")) == "x86_64":
-                return _slot_tok.tokenize_sequence_slots(rec["sequence"], k=args.slot_k)
+                return _slot_tok.tokenize_sequence_slots(rec["sequence"], k=args.slot_k,
+                                                         secret_reg=args.secret_reg)
             return _plain_tokenize(rec)
         print(f"[tokenizer] slot stream on x86_64 (k={args.slot_k}), max_len={MAX_LEN}")
 
@@ -318,6 +329,12 @@ def main():
     # every other class -> unknown (class-labelled but leak-status unverified).
     # HW-variant / pool extras already carry an oracle/HW-confirmed mit, left as
     # is. No effect when --leak-cond is off (encode ignores mit with no tokens).
+    if args.mit_labels:
+        from label_corpus_gate import apply_mit_labels
+        _lab = [json.loads(l) for l in open(args.mit_labels)]
+        _n = apply_mit_labels(train_rows, _lab)
+        print(f"[mit-labels] stamped {_n} records from {args.mit_labels}: "
+              f"{dict(Counter(r.get('mit') for r in train_rows if r.get('mit')))}")
     if args.leak_cond:
         for r in train_rows:
             if not r.get("mit"):

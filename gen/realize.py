@@ -419,8 +419,8 @@ class Realizer:
     # times -- the dataflow the plain stream cannot express. <SX> (overflow)
     # draws a fresh register; <SSP>/<SFP>/<SIP> are rsp/rbp/rip. Tokens with no
     # following slot tokens realise exactly as in realize_sequence.
-    SLOT_RE = re.compile(r"^<(S\d+|SX|SSP|SFP|SIP|D\d+|DZ|DX|I:-?\d+|I_other)>$")
-    _SLOT_SPECIAL = {"SSP": "%rsp", "SFP": "%rbp", "SIP": "%rip"}
+    SLOT_RE = re.compile(r"^<(S\d+|SX|SSP|SFP|SIP|SSEC|D\d+|DZ|DX|I:-?\d+|I_other)>$")
+    _SLOT_SPECIAL = {"SSP": "%rsp", "SFP": "%rbp", "SIP": "%rip", "SSEC": "%r15"}
 
     @classmethod
     def is_slot_token(cls, tok: str) -> bool:

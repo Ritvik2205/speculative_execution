@@ -47,6 +47,7 @@ from splice_safety import strip_ret  # noqa: E402
 from gen.synth import spectector_gadgets as sg  # noqa: E402
 
 CLS = "SPECTRE_V1"
+VICTIM = "sni"
 REF = ["movzbl (%r15), %eax", "shlq $6, %rax", "movb $1, (%r14,%rax)"]  # leaks on both victims
 _POOL = ["rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13"]
 _BRANCH = re.compile(r"^\s*(j[a-z]+|loop[a-z]*|ret[a-z]*|call[a-z]*|syscall|hlt|int3?|ud2)\b")
@@ -121,6 +122,8 @@ def build_jobs(args):
         tag = "gen:" + Path(ck).stem
         for _ in range(args.n):
             kw = {"target_len": args.target_len} if args.target_len else {}
+            if args.mit:
+                kw["mit"] = args.mit
             toks = m.sample(CLS, "x86_64", temperature=args.temperature, top_k=20, **kw)
             body = realizer.realize_sequence(toks)
             jobs.append((tag, body))
@@ -139,7 +142,25 @@ def build_jobs(args):
     from asm_tokenizer import AsmTokenizer as _AT
     _stk = _AT(_le("x86_64.json"))
     _sr = _gd.Realizer(_gd.load_spec("x86_64.json"), seed=args.seed + 1)
-    jobs += [("benign_slot", _sr.realize_sequence(_stk.tokenize_sequence_slots(w))) for w in raw]
+    if VICTIM == "indexed":
+        # the generator must NAME the attacker register (<SSEC>); benign code
+        # cannot, so give it every candidate input (registers, then frame /
+        # global cells). run() scores a window as a leak if ANY candidate
+        # leaks -- a deliberately generous bar.
+        from attacker_reg import attacker_candidates, to_attacker_canonical
+        jobs = [j for j in jobs if j[0] != "benign_raw"]
+        for wi, w in enumerate(raw):
+            cands = attacker_candidates(w, cells=True)[:6]
+            for c in cands:
+                cw = to_attacker_canonical(w, c)
+                jobs.append((f"benign_raw#{wi}", cw))
+                jobs.append((f"benign_slot#{wi}", _sr.realize_sequence(
+                    _stk.tokenize_sequence_slots(cw, secret_reg="r15"))))
+            if not cands:
+                jobs.append((f"benign_raw#{wi}", w))
+                jobs.append((f"benign_slot#{wi}", w))
+    else:
+        jobs += [("benign_slot", _sr.realize_sequence(_stk.tokenize_sequence_slots(w))) for w in raw]
     if args.gen:
         m, gd, realizer = tok_cache[args.gen[0]]
         from isa_spec import load_engine
@@ -176,7 +197,7 @@ def run(args):
         h = hashlib.sha1("\n".join(body).encode()).hexdigest()[:12]
         rec = {"cond": cond, "idx": i, "body": body, "n_body": len(body), "hash": h}
         try:
-            src = gate_source(body, CLS)
+            src = gate_source(body, CLS, victim=VICTIM)
         except ValueError as e:
             rec.update(verdict="dropped", err=str(e))
             return rec
@@ -193,7 +214,21 @@ def run(args):
     with out.open("w") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
-    return rows
+    return fold_candidates(rows)
+
+
+def fold_candidates(rows):
+    """Rows named `cond#window` are alternative attacker inputs for one
+    window: keep one row per window -- leak if any leaks, else safe if any
+    was adjudicated, else the first."""
+    keep, groups = [], defaultdict(list)
+    for r in rows:
+        (groups[r["cond"]] if "#" in r["cond"] else keep).append(r)
+    for key, rs in groups.items():
+        best = next((r for r in rs if r["verdict"] == "leak"), None) \
+            or next((r for r in rs if r["verdict"] == "safe"), None) or rs[0]
+        keep.append(dict(best, cond=key.split("#")[0], n_candidates=len(rs)))
+    return keep
 
 
 def table(rows):
@@ -230,9 +265,12 @@ def main(argv=None):
     ap.add_argument("--md", default=str(ROOT / "gen" / "gate_controls.md"))
     ap.add_argument("--class", dest="cls", default="SPECTRE_V1",
                     choices=["SPECTRE_V1", "SPECTRE_V4"])
+    ap.add_argument("--victim", default="sni", choices=["sni", "indexed"],
+                    help="V1 victim: all-memory-secret (sni) or attacker-indexed")
+    ap.add_argument("--mit", default=None, help="leak-conditioning token for generators")
     args = ap.parse_args(argv)
-    global CLS
-    CLS = args.cls
+    global CLS, VICTIM
+    CLS, VICTIM = args.cls, args.victim
     rows = run(args)
     md = table(rows)
     hdr = (f"# Gate-only harness control table\n\nclass {CLS}, x86_64, seed {args.seed}, "
