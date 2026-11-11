@@ -57,6 +57,34 @@ def load_corpus(cls: str, extra: List[str] = ()) -> Tuple[List[str], str]:
     return texts, cfg
 
 
+def load_pool_corpus(records_jsonl, root) -> Tuple[List[str], str, int]:
+    """Native programs named by a train-pool record file (`src_path` such as
+    ~/rvzr_runs/.../program.asm), read from an unpacked copy of the i5's
+    ~/rvzr_runs under `root`. Only records in the file are used, so held-out
+    programs that happen to be on disk stay out. Returns texts, one campaign
+    config, and how many records had no file."""
+    texts, seen, cfg, missing = [], set(), None, 0
+    for line in open(records_jsonl):
+        if not line.strip():
+            continue
+        src = json.loads(line).get("src_path", "")
+        f = Path(root) / re.sub(r"^~/|^/home/[^/]+/", "", src)
+        if not f.is_file():
+            missing += 1
+            continue
+        t = f.read_text()
+        key = tuple(rn.tokenize(rn.parse_program(t)))
+        if key and key not in seen:
+            seen.add(key)
+            texts.append(t)
+        if cfg is None:
+            for name in ("org-config.yaml", "config.yaml"):
+                if (f.parent / name).is_file():
+                    cfg = (f.parent / name).read_text()
+                    break
+    return texts, cfg, missing
+
+
 def campaign_config(cfg: str) -> str:
     """A violation's saved config as a fuzzing config: no pinned seeds, none of
     the reproduce-time overrides, filters on as in the original campaigns."""
@@ -159,14 +187,26 @@ def main(argv=None):
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--extra", nargs="*", default=[],
                     help="more native programs: <dir>/<CLASS>/**/program.asm")
+    ap.add_argument("--pool-root", default=None,
+                    help="unpacked native_pool.tgz from the i5 (contains rvzr_runs/): "
+                         "train on the train-pool records' programs instead of the "
+                         "173 local hardware-label originals")
     ap.add_argument("--out", default=str(ROOT / "hw" / "gen_vs_random"))
     ap.add_argument("--save", default=str(ROOT / "gen" / "generator_revizor_native.pt"))
     args = ap.parse_args(argv)
     out = Path(args.out)
     corpora, cfgs = {}, {}
     for cls in args.classes:
-        corpora[cls], cfgs[cls] = load_corpus(cls, args.extra)
-        print(f"[corpus] {cls}: {len(corpora[cls])} distinct programs")
+        if args.pool_root:
+            recs = ROOT / "eval" / "data" / f"revizor_{CLASS_DIRS[cls]}_trainpool.jsonl"
+            corpora[cls], cfg, missing = load_pool_corpus(recs, args.pool_root)
+            _, cfgs[cls] = load_corpus(cls)        # campaign config as used so far
+            cfgs[cls] = cfg or cfgs[cls]
+            print(f"[corpus] {cls}: {len(corpora[cls])} distinct train-pool programs "
+                  f"({missing} records without a file)")
+        else:
+            corpora[cls], cfgs[cls] = load_corpus(cls, args.extra)
+            print(f"[corpus] {cls}: {len(corpora[cls])} distinct programs")
     model = train_lm(corpora, args.epochs, seed=0)
     model.save(args.save)
     manifest, summary = [], []

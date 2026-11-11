@@ -69,3 +69,22 @@ def test_campaign_config_drops_seeds_and_reproduce_overrides():
     assert "inputs_per_class: 2" in out
     assert "enable_speculation_filter: true" in out and "enable_observation_filter: true" in out
     assert "program_size: 16" in out and "  - seq" in out
+
+
+def test_pool_corpus_follows_the_trainpool_records_and_skips_missing_files(tmp_path):
+    import json
+    root = tmp_path / "pool"
+    d = root / "rvzr_runs" / "baseline" / "SPECTRE_V1" / "violation-1"
+    d.mkdir(parents=True)
+    (d / "program.asm").write_text(PROG)
+    (d / "org-config.yaml").write_text("program_size: 16\nprogram_generator_seed: 3\n")
+    held = root / "rvzr_runs" / "baseline" / "SPECTRE_V1" / "violation-heldout"
+    held.mkdir(parents=True)
+    (held / "program.asm").write_text(PROG2)             # on disk but not in the train pool
+    recs = tmp_path / "pool.jsonl"
+    recs.write_text("".join(json.dumps({"src_path": p}) + "\n" for p in (
+        "~/rvzr_runs/baseline/SPECTRE_V1/violation-1/program.asm",
+        "~/rvzr_runs/baseline/SPECTRE_V1/violation-gone/program.asm")))
+    texts, cfg, missing = ra.load_pool_corpus(recs, root)
+    assert texts == [PROG] and missing == 1
+    assert "program_size: 16" in cfg
