@@ -189,28 +189,51 @@ class AsmTokenizer:
             return f"<D{disp_id[head]}>" if disp_id[head] < k_disp else "<DX>"
 
         for instr in sequence:
-            n = self.normalize(instr)
-            if n is None:
+            sig = self.slot_signature(instr)
+            if sig is None:
                 continue
+            n, items = sig
             out.append(n)
-            parts = instr.strip().split(None, 1)
-            kinds = n.split()[1:]
-            ops = _operands(parts[1]) if len(parts) > 1 else []
-            for kind, opnd in zip(kinds, ops):
-                if kind == "<imm>" and values:
-                    out.append(self.imm_token(opnd))
-                    continue
-                npos = self._SLOT_POSITIONS.get(kind, 0)
-                if not npos:
-                    continue
-                fams = [m.group(0).lstrip("%").lower() if m.group(0).lower() == "%rip"
-                        else _canon_x86(m.group(1))
-                        for m in re.finditer(r"%rip\b|" + _X86_REG_RE.pattern, opnd, re.I)]
-                fams = (fams + [None] * npos)[:npos]
-                out.extend(tok_for(f) for f in fams)
-                if values and kind in ("<mem>", "<mem-idx>"):
-                    out.append(disp_tok(opnd))
+            for kind, val in items:
+                if kind == "I":
+                    if values:
+                        out.append(val)
+                elif kind == "R":
+                    out.append(tok_for(val))
+                elif values:
+                    out.append(disp_tok(val))
         return out
+
+    def slot_signature(self, instr: str):
+        """(template, items) for one x86 instruction, or None for a non-
+        instruction line. items, in slot-stream order: ("R", register family
+        or None), ("D", the memory operand text), ("I", immediate token). The
+        slot stream is this with families / displacements numbered by first
+        appearance; gen/minimality_gate.py matches cores on it directly."""
+        import re
+        from ir_defuse import _X86_REG_RE, _canon_x86
+        n = self.normalize(instr)
+        if n is None:
+            return None
+        parts = instr.strip().split(None, 1)
+        kinds = n.split()[1:]
+        ops = _operands(parts[1]) if len(parts) > 1 else []
+        items = []
+        for kind, opnd in zip(kinds, ops):
+            if kind == "<imm>":
+                items.append(("I", self.imm_token(opnd)))
+                continue
+            npos = self._SLOT_POSITIONS.get(kind, 0)
+            if not npos:
+                continue
+            fams = [m.group(0).lstrip("%").lower() if m.group(0).lower() == "%rip"
+                    else _canon_x86(m.group(1))
+                    for m in re.finditer(r"%rip\b|" + _X86_REG_RE.pattern, opnd, re.I)]
+            fams = (fams + [None] * npos)[:npos]
+            items.extend(("R", f) for f in fams)
+            if kind in ("<mem>", "<mem-idx>"):
+                items.append(("D", opnd))
+        return n, items
 
     # immediates whose exact value carries attack semantics (shift amounts,
     # masks, cache-line / page strides, small offsets) keep their value;

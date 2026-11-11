@@ -47,7 +47,7 @@ from splice_safety import strip_ret  # noqa: E402
 from gen.synth import spectector_gadgets as sg  # noqa: E402
 
 CLS = "SPECTRE_V1"
-REF = ["movzbl (%r15), %eax", "shlq $6, %rax", "movb $1, (%r14,%rax)"]
+REF = ["movzbl (%r15), %eax", "shlq $6, %rax", "movb $1, (%r14,%rax)"]  # leaks on both victims
 _POOL = ["rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13"]
 _BRANCH = re.compile(r"^\s*(j[a-z]+|loop[a-z]*|ret[a-z]*|call[a-z]*|syscall|hlt|int3?|ud2)\b")
 
@@ -164,7 +164,8 @@ def run(args):
     from oracle.validators.spectector_validator import SpectectorValidator
     work = ROOT / "oracle" / "build" / "gate_controls"   # under $HOME: Colima mounts it
     (work / "oracle" / "build").mkdir(parents=True, exist_ok=True)
-    val = SpectectorValidator(repo_root=str(work))
+    from gen.decode import gate_source, GATE_ORACLE_VERSIONS
+    val = SpectectorValidator(repo_root=str(work), versions_by_class=GATE_ORACLE_VERSIONS)
     jobs = build_jobs(args)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -175,12 +176,11 @@ def run(args):
         h = hashlib.sha1("\n".join(body).encode()).hexdigest()[:12]
         rec = {"cond": cond, "idx": i, "body": body, "n_body": len(body), "hash": h}
         try:
-            src = sg.render_spec_gate(CLS, fenced=False,
-                                      gen_body=gate_asm_block(*splice_gate_only(body, "x86_64")))
+            src = gate_source(body, CLS)
         except ValueError as e:
             rec.update(verdict="dropped", err=str(e))
             return rec
-        gid = f"gc_{i}_{h}"
+        gid = f"gc{CLS[-2:]}_{i}_{h}"
         p = work / "oracle" / "build" / f"gen_spec_{gid}.c"
         p.write_text(src)
         r = val.validate({"gadget_id": gid, "vuln_class": CLS,
@@ -228,7 +228,11 @@ def main(argv=None):
     ap.add_argument("--workers", type=int, default=7)
     ap.add_argument("--out", default=str(ROOT / "gen" / "gate_controls.jsonl"))
     ap.add_argument("--md", default=str(ROOT / "gen" / "gate_controls.md"))
+    ap.add_argument("--class", dest="cls", default="SPECTRE_V1",
+                    choices=["SPECTRE_V1", "SPECTRE_V4"])
     args = ap.parse_args(argv)
+    global CLS
+    CLS = args.cls
     rows = run(args)
     md = table(rows)
     hdr = (f"# Gate-only harness control table\n\nclass {CLS}, x86_64, seed {args.seed}, "

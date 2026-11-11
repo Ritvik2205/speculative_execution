@@ -370,3 +370,19 @@ def test_no_gate_is_byte_identical_ungated():
         )
     assert len(validator.calls) == 4  # every candidate adjudicated
     assert h["SPECTRE_V1"][0] == 0.5
+
+
+def test_run_oracle_rl_saves_the_finetuned_model_when_asked(tmp_path):
+    class SavingModel(StubModel):
+        def save(self, path):
+            Path(path).write_text(f"calls={self.n_calls}")
+
+    model = SavingModel()
+    ck = tmp_path / "sub" / "ft.pt"
+    run_oracle_rl(
+        model, classes=["SPECTRE_V1"], arch="x86_64", rounds=2, k_per_round=4,
+        realize_fn_factory=make_realize_fn_factory(), validator=AlternatingValidator(),
+        out_path=tmp_path / "y.md", finetune_fn=lambda *a, **k: None, save_to=ck,
+    )
+    # saved after the last round: all 2*4 samples were drawn before the save
+    assert ck.read_text() == "calls=8"

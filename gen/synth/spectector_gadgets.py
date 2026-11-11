@@ -212,17 +212,39 @@ _GATE_HEADER = (
 _V1_GATE = _GATE_HEADER + (
     'void gadget(size_t i){ if(i<sz){ {fence}{gen_body} } }\n'
 )
-# V4 gate: store-bypass. A store to the same address precedes the gate so the
-# speculative load of arr[i] forwards a stale value; the body must carry that
-# value to the transmit. Adjudicated under Spectector-Combined `-v 4`.
-_V4_GATE = _GATE_HEADER + (
-    'void gadget(size_t i){ if(i<sz){ arr[i]=0; {fence}{gen_body} } }\n'
+# V4 gate: store-bypass, written as a whole-function asm block (see
+# render_spec_gate_ssb). It cannot be a C function: at -O0 GCC spills `i` to
+# the stack, and under the store-bypass model (-v 4) the reload of that spill
+# is itself a bypassable load, so an EMPTY body already leaks (measured:
+# empty / NOP -> leak under -v 4 with the C victim). The earlier C template
+# `if(i<sz){ arr[i]=0; body }` was also a conditional-branch victim, i.e. a
+# second V1 measurement under upstream Spectector.
+_V4_SSB_LINES_HEAD = (
+    ".text", ".globl gadget", ".type gadget, @function", "gadget:", "endbr64",
+    "leaq arr(%rip), %r15",     # secret pointer = arr + i   (i public, in %rdi)
+    "addq %rdi, %r15",
+    "leaq probe(%rip), %r14",   # probe base
 )
+_V4_SSB_STORE = "movb $0, (%r15)"   # the bypassable store: the speculation gate
 
 SPEC_GADGETS_GATE: dict[str, str] = {
     "SPECTRE_V1": _V1_GATE,
-    "SPECTRE_V4": _V4_GATE,
 }
+
+
+def render_spec_gate_ssb(body_lines, fenced: bool = False, store: bool = True) -> str:
+    """Gate-only store-bypass victim. `body_lines` are plain AT&T instructions
+    (single `%`). `store=False` removes the victim's store (control: nothing to
+    bypass); `fenced` puts an lfence between the store and the body."""
+    lines = list(_V4_SSB_LINES_HEAD)
+    if store:
+        lines.append(_V4_SSB_STORE)
+    if fenced:
+        lines.append("lfence")
+    lines += [l.strip() for l in body_lines if l.strip()] + ["ret"]
+    quoted = "\n".join('"%s\\n"' % l.replace("\\", "\\\\").replace('"', '\\"') for l in lines)
+    return ('#include <stdint.h>\nextern uint8_t probe[]; extern uint8_t arr[];\n'
+            '__asm__(\n' + quoted + ');\n')
 
 
 def render_spec_gate(vuln_class: str, fenced: bool,

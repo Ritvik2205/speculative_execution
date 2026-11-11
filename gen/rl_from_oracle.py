@@ -406,6 +406,7 @@ def run_oracle_rl(
     finetune_with_benign: bool = False,
     gate_factory: Optional[Callable[[str], object]] = None,
     gate_threshold: float = 0.5,
+    save_to: Optional[object] = None,
 ) -> dict:
     """Core oracle-RL loop, factored out of `main()` so it's directly unit-
     testable with a stub model/validator/realize_fn_factory (no Docker, no
@@ -470,6 +471,11 @@ def run_oracle_rl(
     run_meta.setdefault("rounds", rounds)
     run_meta.setdefault("k", k_per_round)
     _write_yield_md(out_path, all_history, run_meta)
+    if save_to is not None:
+        # the fine-tuned weights are the loop's product: without them the
+        # final-round rate cannot be re-measured on fresh samples
+        Path(save_to).parent.mkdir(parents=True, exist_ok=True)
+        model.save(str(save_to))
     return all_history
 
 
@@ -524,9 +530,8 @@ def _build_realize_fn(cls_short: str, arch: str, realizer, spec_gadgets,
                 # gate-only victim (step 1): the body must carry the leak; no
                 # injected load/transmit. See gen/synth/spectector_gadgets
                 # render_spec_gate and gen/oracle_splice.splice_gate_only.
-                from gen.decode import build_gen_body_gate
-                gen_body = build_gen_body_gate(concrete, cls_short, arch)
-                spec_c = spec_gadgets.render_spec_gate(cls_short, fenced=False, gen_body=gen_body)
+                from gen.decode import gate_source
+                spec_c = gate_source(concrete, cls_short, arch)
             else:
                 gen_body = build_gen_body(concrete, cls_short, arch, is_invisispec=False)
                 spec_c = spec_gadgets.render_spec(cls_short, fenced=False, gen_body=gen_body)
@@ -641,6 +646,8 @@ def main(argv=None) -> int:
                           "V4/V1; see paper sec:hwlabel). Default OFF -- the "
                           "conservative discard. Also enabled by "
                           "SPECEXEC_NETYIELD_GUARD=1.")
+    ap.add_argument("--save-finetuned", default=None,
+                    help="write the fine-tuned generator checkpoint here after the last round")
     ap.add_argument("--harness", choices=["scaffold", "gate"], default="scaffold",
                      help="victim template family. scaffold (default, every "
                           "pre-2026-11-11 number): the splice injects the secret "
@@ -699,6 +706,12 @@ def main(argv=None) -> int:
                                         versions_by_class=SPECTECTOR_VERSION_FOR_CLASS,
                                         image=_DOCKER_IMAGE_COMBINED,
                                         window=50, steps=20000)
+    elif args.harness == "gate":
+        # each gate-only victim is adjudicated under its own mechanism:
+        # V1 by upstream Spectector, V4 by Spectector-Combined -v 4.
+        from gen.decode import GATE_ORACLE_VERSIONS
+        validator = SpectectorValidator(repo_root=str(repo_root),
+                                        versions_by_class=GATE_ORACLE_VERSIONS)
     else:
         validator = SpectectorValidator(repo_root=str(repo_root))
     out_dir = repo_root / "oracle" / "build"
@@ -743,6 +756,7 @@ def main(argv=None) -> int:
         finetune_with_benign=args.finetune_with_benign,
         gate_factory=gate_factory,
         gate_threshold=args.filter_threshold,
+        save_to=args.save_finetuned,
     )
     for cls, h in history.items():
         print(f"[{cls}] yield per round: {h}")

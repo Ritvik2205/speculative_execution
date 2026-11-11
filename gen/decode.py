@@ -107,6 +107,28 @@ def build_gen_body_gate(realized, cls, arch):
     return gate_asm_block(asm_text, clobbers)
 
 
+# Spectector(-Combined) `-v` digits each gate-only victim is adjudicated under.
+# None = upstream Spectector (conditional branches only).
+GATE_ORACLE_VERSIONS = {"SPECTRE_V1": None, "SPECTRE_V4": "4"}
+
+
+def gate_source(realized, cls, arch="x86_64", fenced=False, store=True):
+    """Complete C source of the gate-only victim for `cls` with `realized` as
+    its body. One entry point for the loop, the control table and the
+    minimiser, so they cannot splice differently. Raises ValueError if the
+    body cannot be hosted (e.g. it writes a reserved register)."""
+    from oracle_splice import splice_gate_only, gate_asm_block
+    from splice_safety import strip_ret
+    if cls not in GATE_ORACLE_VERSIONS:
+        raise ValueError(f"no gate-only victim for class {cls!r}")
+    asm_text, clobbers = splice_gate_only(strip_ret(list(realized), cls), arch)
+    if cls == "SPECTRE_V4":
+        body = asm_text.replace("%%", "%").replace("\\n\\t", "\n").split("\n")
+        return spec_gadgets.render_spec_gate_ssb(body, fenced=fenced, store=store)
+    return spec_gadgets.render_spec_gate(cls, fenced=fenced,
+                                         gen_body=gate_asm_block(asm_text, clobbers))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--class", dest="cls", default="SPECTRE_V1")
