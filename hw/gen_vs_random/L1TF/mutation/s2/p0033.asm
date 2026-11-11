@@ -3,41 +3,44 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-neg ecx
-sbb dl, dl
-and rdx, 0b1111111111000 # instrumentation
-lock adc dword ptr [r14 + rdx], -29
-adc rax, -1877286258
-lea ecx, qword ptr [rcx]
-lea ax, qword ptr [rsi + rcx + 40317]
-and rax, 0b1111111111111 # instrumentation
-cmovo rdi, qword ptr [r14 + rax]
-bt di, di
-add al, 65 # instrumentation
-and rsi, 0b1111111111111 # instrumentation
-setnz byte ptr [r14 + rsi]
-cmovs ecx, ebx
-or rcx, -10
+and rax, 0b1111111111000 # instrumentation
+lock or byte ptr [r14 + rax], bl
+setns al
 and rdi, 0b1111111111111 # instrumentation
-cmovnb di, word ptr [r14 + rdi]
-and bl, cl
+cmovp dx, word ptr [r14 + rdi]
+and rsi, 0b1111111111111 # instrumentation
+cmovnbe rax, qword ptr [r14 + rsi]
+lea si, qword ptr [rsi]
+and rcx, 0b1111111111111 # instrumentation
+cmovs ax, word ptr [r14 + rcx]
+and rax, -109
+and rbx, 0b1111111111000 # instrumentation
+lock dec qword ptr [r14 + rbx]
+add dl, dl
 and rdx, 0b1111111111111 # instrumentation
-sbb byte ptr [r14 + rdx], cl
-or esi, 1 # instrumentation
-and edx, esi # instrumentation
-shr edx, 1 # instrumentation
-div esi
-xchg dil, cl
+inc dword ptr [r14 + rdx]
+setp bl
+imul bl
+adc rsi, rcx
+xchg esi, edi
+setp dl
+test edi, esi
 jmp .bb_0.1
 .bb_0.1:
-add cl, 102 # instrumentation
-sbb si, ax
-cmovnl ebx, eax
-and rax, 0b1111111111111 # instrumentation
-cmovno ax, word ptr [r14 + rax]
-xor ax, -27503
-mov al, 79
-setno al
+and rcx, 0b1111111111111 # instrumentation
+cmp dl, byte ptr [r14 + rcx]
+movsx edi, sil
+and rcx, 0b1111111111111 # instrumentation
+movsx eax, word ptr [r14 + rcx]
+and rcx, 0b1111111111111 # instrumentation
+imul ebx, dword ptr [r14 + rcx], -16
+sub si, 83
+and rcx, 0b1111111111111 # instrumentation
+xor qword ptr [r14 + rcx], -24
+and rdi, 0b1111111111000 # instrumentation
+lock add byte ptr [r14 + rdi], al
+and rbx, 0b1111111111000 # instrumentation
+lock sub byte ptr [r14 + rbx], al
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

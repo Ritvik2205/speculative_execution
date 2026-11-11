@@ -3,38 +3,37 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and rax, 0b1111111111111 # instrumentation
-mov cx, word ptr [r14 + rax]
-cmovp ebx, eax
+adc al, dil
+test cl, 17
+adc sil, 76
 and rdx, 0b1111111111111 # instrumentation
-cmovz eax, dword ptr [r14 + rdx]
-and sil, bl
-imul di, cx
+imul word ptr [r14 + rdx]
+add sil, 55 # instrumentation
+lea esi, qword ptr [rax + rcx + 68]
+dec ax
+and rsi, 0b1111111111111 # instrumentation
+or qword ptr [r14 + rsi], 0b1000000000000000000000000000000 # instrumentation
+bsf rsi, qword ptr [r14 + rsi]
+and rax, 0b1111111111111 # instrumentation
+add rdx, qword ptr [r14 + rax]
+or ecx, 0b1000000000000000000000000000000 # instrumentation
+bsf esi, ecx
 jmp .bb_0.1
 .bb_0.1:
-lea edx, qword ptr [rdx]
-and rdi, 0b1111111111111 # instrumentation
-and qword ptr [r14 + rdi], 52
-and rcx, 0b1111111111111 # instrumentation
-or byte ptr [r14 + rcx], 1 # instrumentation
-mov ax, 1 # instrumentation
-div byte ptr [r14 + rcx]
-and rbx, 0b1111111111111 # instrumentation
-and ax, 0b111 # instrumentation
-btr word ptr [r14 + rbx], ax
-and rdi, 0b1111111111111 # instrumentation
-cmp dword ptr [r14 + rdi], 69
-xor bx, ax
 and rsi, 0b1111111111111 # instrumentation
-or qword ptr [r14 + rsi], 1 # instrumentation
-and rdx, qword ptr [r14 + rsi] # instrumentation
-shr rdx, 1 # instrumentation
-div qword ptr [r14 + rsi]
-lea ecx, qword ptr [rsi]
+bts dword ptr [r14 + rsi], 5
+and rdx, 0b1111111111111 # instrumentation
+cmovz ax, word ptr [r14 + rdx]
+xor bx, 98
 and rax, 0b1111111111111 # instrumentation
-cmovnz rdx, qword ptr [r14 + rax]
-lea rdx, qword ptr [rbx + rcx + 41]
-cmovnbe cx, cx
+test dword ptr [r14 + rax], -1923530546
+add bl, 37 # instrumentation
+and rdx, 0b1111111111000 # instrumentation
+lock sbb byte ptr [r14 + rdx], 43
+and rdx, 0b1111111111111 # instrumentation
+cmp dl, byte ptr [r14 + rdx]
+and rcx, 0b1111111111111 # instrumentation
+sbb qword ptr [r14 + rcx], rsi
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

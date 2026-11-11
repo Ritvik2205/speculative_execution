@@ -3,31 +3,23 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-lea rcx, qword ptr [rax + rdi + 64855]
+xor dl, 71
 and rcx, 0b1111111111111 # instrumentation
-sub bx, word ptr [r14 + rcx]
-imul bl
-add dl, -42 # instrumentation
-lea edi, qword ptr [rdx]
-lea rcx, qword ptr [rdx]
-cmovnbe rbx, rsi
-xor rsi, 73
-bts rsi, 234
-and rdx, 0b1111111111000 # instrumentation
-and ebx, 0b111 # instrumentation
-lock bts dword ptr [r14 + rdx], ebx
-jb .bb_0.1
+mov rax, qword ptr [r14 + rcx]
+and rbx, 0b1111111111111 # instrumentation
+sub byte ptr [r14 + rbx], cl
+or eax, -126
+and cl, dil
+mov cl, bl
+and rcx, 0b1111111111111 # instrumentation
+sub bl, byte ptr [r14 + rcx]
+add al, 18
+jp .bb_0.1
 jmp .exit_0
 .bb_0.1:
-add bl, 7 # instrumentation
-cmovnl esi, ecx
-and rcx, 0b1111111111111 # instrumentation
-sbb rdi, qword ptr [r14 + rcx]
-lea cx, qword ptr [rdi + rdi]
-and rdx, 0b1111111111000 # instrumentation
-lock btc qword ptr [r14 + rdx], 4
-xor rsi, 73
-lea ecx, qword ptr [rdi]
+cmp cl, 17
+mov bl, dl
+xor dil, al
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

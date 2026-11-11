@@ -183,7 +183,9 @@ def main(argv=None):
     ap.add_argument("--classes", nargs="+", default=["SPECTRE_V1"])
     ap.add_argument("--n", type=int, default=200, help="programs per arm per seed")
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
-    ap.add_argument("--epochs", type=int, default=80)
+    ap.add_argument("--epochs", type=int, default=10,
+                    help="10 minimises loss on the 173 held-out programs (4.12 nats/token; "
+                         "20: 4.37, 40: 6.05, 80: 8.22 and 68%% of samples copy training)")
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--extra", nargs="*", default=[],
                     help="more native programs: <dir>/<CLASS>/**/program.asm")

@@ -3,77 +3,78 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and rbx, 0b1111111111111 # instrumentation
-cmovnb ax, word ptr [r14 + rbx]
-xor rsi, rax
-xchg rbx, rdx
-movsx rdx, bx
-dec rsi
+btr cx, 252
 and rax, 0b1111111111111 # instrumentation
-and rdx, qword ptr [r14 + rax]
-and rdx, 0b1111111111111 # instrumentation
-cmovnp rbx, qword ptr [r14 + rdx]
-and rcx, 0b1111111111111 # instrumentation
-movsx rdx, word ptr [r14 + rcx]
-and rax, 0b1111111111111 # instrumentation
-or dword ptr [r14 + rax], ebx
-cmovnle edx, ebx
-and rdx, 0b1111111111111 # instrumentation
-or qword ptr [r14 + rdx], 0b1000000000000000000000000000000 # instrumentation
-bsr rbx, qword ptr [r14 + rdx]
-sbb dl, -99
-and cx, 17
-mov rsi, 32
-cmp cl, dil
-imul ax, dx
-and rax, 0b1111111111111 # instrumentation
-imul ax, word ptr [r14 + rax]
-and al, bl
-cmovb esi, ebx
-sbb al, 123
-cmp rcx, 69
-and rbx, 0b1111111111111 # instrumentation
-add dword ptr [r14 + rbx], edi
-xor ax, 28088
-and rcx, 0b1111111111111 # instrumentation
-and dword ptr [r14 + rcx], 94
-and rcx, 0b1111111111111 # instrumentation
-adc ax, word ptr [r14 + rcx]
-imul esi, ebx
-add edx, eax
-and rcx, 0b1111111111111 # instrumentation
-mul word ptr [r14 + rcx]
-add al, -32 # instrumentation
-and rax, 0b1111111111111 # instrumentation
-cmovno eax, dword ptr [r14 + rax]
-and rcx, 0b1111111111111 # instrumentation
-cmovnz ecx, dword ptr [r14 + rcx]
-imul cl
-or al, -71
-or dil, 35
-or bl, bl
-cmovp dx, cx
-and rsi, 0b1111111111111 # instrumentation
-cmovnb ecx, dword ptr [r14 + rsi]
-and rbx, 0b1111111111111 # instrumentation
-and qword ptr [r14 + rbx], rsi
-sbb rax, 183833426
-add dl, -10 # instrumentation
-and rax, 0b1111111111000 # instrumentation
-lock dec word ptr [r14 + rax]
-cmovnp dx, di
-sbb dx, 32
-cmovnp si, di
-and rcx, 0b1111111111111 # instrumentation
-btc qword ptr [r14 + rcx], 88
-movsx edx, cl
+imul edx, dword ptr [r14 + rax]
+bt bx, cx
+inc esi
 and rdi, 0b1111111111111 # instrumentation
-cmovnb ebx, dword ptr [r14 + rdi]
+cmovb rdx, qword ptr [r14 + rdi]
+and rdi, 0b1111111111111 # instrumentation
+sbb byte ptr [r14 + rdi], bl
+xchg ax, di
+or dl, al
+sub ebx, 27
+movzx eax, al
 and rdx, 0b1111111111111 # instrumentation
-adc word ptr [r14 + rdx], 51
-sub ax, 24441
+movsx edx, byte ptr [r14 + rdx]
+and rdx, 0b1111111111111 # instrumentation
+add cl, byte ptr [r14 + rdx]
+mul al
+and ebx, -4
+and dl, dl
+and rdi, 0b1111111111111 # instrumentation
+test dword ptr [r14 + rdi], 83
+and rcx, 0b1111111111000 # instrumentation
+lock sbb byte ptr [r14 + rcx], al
+cmp eax, 89
+movsx si, cl
+cmp dl, bl
+and rcx, 0b1111111111111 # instrumentation
+imul rax, qword ptr [r14 + rcx], 64
+movsx si, al
+sbb cl, al
+and rcx, 0b1111111111111 # instrumentation
+inc qword ptr [r14 + rcx]
+and rsi, 0b1111111111000 # instrumentation
+lock xor word ptr [r14 + rsi], si
+and rsi, 0b1111111111111 # instrumentation
+cmovb rbx, qword ptr [r14 + rsi]
+and rax, 0b1111111111111 # instrumentation
+or sil, 78
+cmovns cx, di
+and rcx, 0b1111111111111 # instrumentation
+imul esi, dword ptr [r14 + rcx]
+and rcx, 0b1111111111111 # instrumentation
+mov byte ptr [r14 + rcx], sil
+and rdi, 0b1111111111111 # instrumentation
+cmp ebx, dword ptr [r14 + rdi]
+and rdi, 0b1111111111000 # instrumentation
+lock bts qword ptr [r14 + rdi], 6
+neg sil
+xchg dl, sil
+bts edx, esi
+sub ebx, edx
+and rax, 0b1111111111111 # instrumentation
+adc sil, byte ptr [r14 + rax]
 and rbx, 0b1111111111000 # instrumentation
-lock not dword ptr [r14 + rbx]
+and ax, 0b111 # instrumentation
+lock bts word ptr [r14 + rbx], ax
+add dl, 122 # instrumentation
+cmovz dx, di
+and rax, 0b1111111111000 # instrumentation
+lock inc word ptr [r14 + rax]
+and rsi, 0b1111111111111 # instrumentation
+cmovle cx, word ptr [r14 + rsi]
+and rdx, 0b1111111111111 # instrumentation
+btc qword ptr [r14 + rdx], 7
+sub al, 55
+and rax, 0b1111111111111 # instrumentation
+mov byte ptr [r14 + rax], dl
+xchg esi, ecx
+sub dx, -12
+not dil
+and cl, al
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

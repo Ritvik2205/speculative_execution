@@ -3,73 +3,81 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-imul bx
-and rcx, 0b1111111111111 # instrumentation
-add dword ptr [r14 + rcx], edx
-and rax, 0b1111111111111 # instrumentation
-cmovs ebx, dword ptr [r14 + rax]
-and rax, 0b1111111111111 # instrumentation
-test qword ptr [r14 + rax], rdi
-and rsi, 0b1111111111111 # instrumentation
-bts dword ptr [r14 + rsi], 41
-cmovnbe ax, dx
-and rdi, 0b1111111111111 # instrumentation
-cmovns ecx, dword ptr [r14 + rdi]
-and rdx, 0b1111111111000 # instrumentation
-lock btc qword ptr [r14 + rdx], 52
-and rcx, 0b1111111111111 # instrumentation
-cmovnb edi, dword ptr [r14 + rcx]
-and rcx, 0b1111111111111 # instrumentation
-bt dword ptr [r14 + rcx], 12
-sbb cl, cl
-xor dl, 13
-cmovs eax, edi
-not cx
-and rsi, 0b1111111111111 # instrumentation
-btr dword ptr [r14 + rsi], 6
-xor bx, ax
-cmovno ebx, eax
-adc bl, 89
-add dl, 41
-and rax, 0b1111111111111 # instrumentation
-cmovl rbx, qword ptr [r14 + rax]
-and rax, 0b1111111111111 # instrumentation
-cmp di, word ptr [r14 + rax]
-adc ax, 45
-cmovnb bx, bx
-test bl, 24
-cmovb eax, edi
+bt di, 24
+add bl, -84 # instrumentation
+cmovb cx, ax
+adc edx, -125
+inc dx
 and rbx, 0b1111111111111 # instrumentation
-cmovs eax, dword ptr [r14 + rbx]
-add dl, 41
-add edx, edi
-btc ax, bx
-test rsi, 57
+imul dword ptr [r14 + rbx]
+btr rcx, 134
+and rbx, 0b1111111111111 # instrumentation
+movsx ecx, byte ptr [r14 + rbx]
+and rdx, 0b1111111111111 # instrumentation
+mul qword ptr [r14 + rdx]
+and rdx, 0b1111111111111 # instrumentation
+xor byte ptr [r14 + rdx], dil
+and rax, 0b1111111111111 # instrumentation
+or word ptr [r14 + rax], -18
+sub cl, -73
+or ax, 0b1000000000000000 # instrumentation
+bsf si, ax
+mov bl, al
 and rax, 0b1111111111000 # instrumentation
-lock inc qword ptr [r14 + rax]
-and rbx, 0b1111111111111 # instrumentation
-and byte ptr [r14 + rbx], -25
-cmovnp rsi, rsi
-and rbx, 0b1111111111111 # instrumentation
-cmovnb rdx, qword ptr [r14 + rbx]
-and rbx, 0b1111111111111 # instrumentation
-movsx ebx, word ptr [r14 + rbx]
+lock dec byte ptr [r14 + rax]
+test sil, 1
+sbb al, 31
+and dx, -107
+and rcx, 0b1111111111111 # instrumentation
+cmp rsi, qword ptr [r14 + rcx]
+and rcx, 0b1111111111000 # instrumentation
+lock add byte ptr [r14 + rcx], sil
+not si
+mov rax, -4627568876460436527
+add bl, 122 # instrumentation
+cmovz bx, cx
+and rcx, 0b1111111111000 # instrumentation
+lock adc word ptr [r14 + rcx], si
+btc rax, rsi
+and rsi, 0b1111111111111 # instrumentation
+add bx, word ptr [r14 + rsi]
+and rdx, 0b1111111111111 # instrumentation
+mul qword ptr [r14 + rdx]
+mul dl
+and rcx, 0b1111111111111 # instrumentation
+add dl, byte ptr [r14 + rcx]
+and rdx, 0b1111111111111 # instrumentation
+or ax, word ptr [r14 + rdx]
+and rdi, 0b1111111111111 # instrumentation
+and dx, 0b111 # instrumentation
+btr word ptr [r14 + rdi], dx
 and rax, 0b1111111111111 # instrumentation
-cmovs edi, dword ptr [r14 + rax]
-and rdx, 0b1111111111111 # instrumentation
-cmovnl ax, word ptr [r14 + rdx]
-add sil, dl
-btc rax, 8
-xchg rax, rbx
-cmp si, 68
-and rdx, 0b1111111111111 # instrumentation
-and rcx, qword ptr [r14 + rdx]
-cmp sil, 88
-and rbx, 0b1111111111111 # instrumentation
-movzx rdx, word ptr [r14 + rbx]
-not bx
-cmp cl, 39
-cmovnb esi, eax
+cmovb rsi, qword ptr [r14 + rax]
+neg rbx
+xchg al, al
+or ebx, 0b1000 # instrumentation
+and bl, 0b11111000 # instrumentation
+and edx, 0b11 # instrumentation
+idiv ebx
+btc rdx, 178
+and rax, 0b1111111111111 # instrumentation
+imul rdx, qword ptr [r14 + rax]
+movsx eax, ax
+btr ax, dx
+or rcx, 0b1000000000000000000000000000000 # instrumentation
+bsr rcx, rcx
+and rcx, 0b1111111111111 # instrumentation
+sub dx, word ptr [r14 + rcx]
+and rcx, 0b1111111111111 # instrumentation
+mov word ptr [r14 + rcx], 25738
+cmovs ecx, edi
+and rsi, 0b1111111111111 # instrumentation
+mov dword ptr [r14 + rsi], eax
+dec bx
+cmovbe ecx, eax
+btc eax, esi
+and rsi, 0b1111111111111 # instrumentation
+add cx, word ptr [r14 + rsi]
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

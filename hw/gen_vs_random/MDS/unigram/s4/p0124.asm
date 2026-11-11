@@ -3,39 +3,41 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and rsi, 0b1111111111111 # instrumentation
-bts qword ptr [r14 + rsi], 70
-btr rsi, 73
-and rdi, 0b1111111111000 # instrumentation
-lock and word ptr [r14 + rdi], -16
-cmovo bx, bx
-cmovz rax, rdx
 and rax, 0b1111111111111 # instrumentation
-and cl, byte ptr [r14 + rax]
-cmovbe rdx, rax
-xor dil, cl
-and rdi, 0b1111111111111 # instrumentation
-btc qword ptr [r14 + rdi], 30
-and rcx, 0b1111111111000 # instrumentation
-lock xor dword ptr [r14 + rcx], edi
+xor qword ptr [r14 + rax], 92
+and rsi, 0b1111111111111 # instrumentation
+cmovp rdx, qword ptr [r14 + rsi]
+bt ebx, 57
+xor eax, 571592471
+bts bx, 3
+and bl, 68
+and rax, 0b1111111111000 # instrumentation
+lock and byte ptr [r14 + rax], bl
+or si, -12
+not rsi
 jmp .bb_0.1
 .bb_0.1:
+test si, 26
+and rsi, 0b1111111111000 # instrumentation
+lock and qword ptr [r14 + rsi], -60
+and rsi, 0b1111111111111 # instrumentation
+btr qword ptr [r14 + rsi], 2
+and rax, 0b1111111111111 # instrumentation
+or dword ptr [r14 + rax], esi
+and rsi, 0b1111111111111 # instrumentation
+xor al, byte ptr [r14 + rsi]
+and rax, 0b1111111111111 # instrumentation
+xor rax, qword ptr [r14 + rax]
 and rdx, 0b1111111111000 # instrumentation
-lock and byte ptr [r14 + rdx], -23
-btc ax, 42
-cmovp cx, si
-and rcx, 0b1111111111111 # instrumentation
-cmovnz esi, dword ptr [r14 + rcx]
-btr bx, 18
-and rbx, 0b1111111111000 # instrumentation
-lock or byte ptr [r14 + rbx], al
-and dl, -115 # instrumentation
-cmovl ax, dx
-and rcx, 0b1111111111000 # instrumentation
-and eax, 0b111 # instrumentation
-lock btr dword ptr [r14 + rcx], eax
-test esi, 77
-and al, 73
+and rax, 0b111 # instrumentation
+lock bts qword ptr [r14 + rdx], rax
+and rsi, 0b1111111111111 # instrumentation
+xor byte ptr [r14 + rsi], dil
+xor cl, cl
+and cx, cx
+and al, -97 # instrumentation
+and rbx, 0b1111111111111 # instrumentation
+cmovns di, word ptr [r14 + rbx]
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

@@ -3,41 +3,40 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
+and bl, -89 # instrumentation
+and rax, 0b1111111111111 # instrumentation
+cmovnle ecx, dword ptr [r14 + rax]
+and rcx, 0b1111111111000 # instrumentation
+lock not qword ptr [r14 + rcx]
+btc di, 164
 and rcx, 0b1111111111111 # instrumentation
-or ax, word ptr [r14 + rcx]
-or cl, 100
-and rsi, 0b1111111111111 # instrumentation
-cmovnp esi, dword ptr [r14 + rsi]
-and al, -61 # instrumentation
-and rsi, 0b1111111111111 # instrumentation
-cmovno si, word ptr [r14 + rsi]
+cmovnz ecx, dword ptr [r14 + rcx]
 and rax, 0b1111111111111 # instrumentation
-cmovns rcx, qword ptr [r14 + rax]
+cmovs dx, word ptr [r14 + rax]
+and rdi, 0b1111111111111 # instrumentation
+btc qword ptr [r14 + rdi], 54
+and rbx, 0b1111111111111 # instrumentation
+and byte ptr [r14 + rbx], bl
+or cx, 49
+jmp .bb_0.1
+.bb_0.1:
+cmovo si, dx
 and rsi, 0b1111111111111 # instrumentation
-or rsi, qword ptr [r14 + rsi]
-cmovns ebx, ebx
-or cl, cl
-and rax, 0b1111111111111 # instrumentation
-test byte ptr [r14 + rax], dl
+cmovp edi, dword ptr [r14 + rsi]
+xor si, 80
 and rax, 0b1111111111000 # instrumentation
-and rdi, 0b111 # instrumentation
-lock btr qword ptr [r14 + rax], rdi
-and dl, -49 # instrumentation
-cmovno dx, di
-or cl, sil
-cmovnz bx, dx
-cmovno di, si
-and rdx, 0b1111111111111 # instrumentation
-not word ptr [r14 + rdx]
-and cl, -81 # instrumentation
-and rax, 0b1111111111111 # instrumentation
-cmovns bx, word ptr [r14 + rax]
-not bx
-cmovnz ebx, eax
-and bl, -115 # instrumentation
-cmovl ax, bx
-and rdx, 0b1111111111111 # instrumentation
-cmovnl dx, word ptr [r14 + rdx]
+lock and dword ptr [r14 + rax], ecx
+cmovnl ecx, edi
+and al, 75
+cmovnp bx, bx
+and rbx, 0b1111111111111 # instrumentation
+cmovnz edx, dword ptr [r14 + rbx]
+cmovnle rdi, rbx
+and cl, 126 # instrumentation
+and rdi, 0b1111111111111 # instrumentation
+not word ptr [r14 + rdi]
+and bl, cl
+bt rdx, rdx
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

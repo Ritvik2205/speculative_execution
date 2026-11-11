@@ -3,29 +3,17 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-imul rbx, rdi, -60
-sub esi, eax
-lea rsi, qword ptr [rcx]
-setnbe cl
-cmovs cx, dx
-jnbe .bb_0.1
-jmp .exit_0
-.bb_0.1:
-and rdi, 0b1111111111000 # instrumentation
-lock sub word ptr [r14 + rdi], cx
-adc rdi, -75
+test al, dl
+test al, 59
+sbb ebx, 2
+and rdi, 0b1111111111111 # instrumentation
+bts dword ptr [r14 + rdi], 2
 and rdx, 0b1111111111111 # instrumentation
-adc dl, byte ptr [r14 + rdx]
-adc cl, -18
-lea di, qword ptr [rsi + rbx]
-dec bl
-cmp rdi, rdx
-imul bl
-and rdx, 0b1111111111000 # instrumentation
-lock dec dword ptr [r14 + rdx]
-and rdx, 0b1111111111111 # instrumentation
-xor sil, byte ptr [r14 + rdx]
-sbb al, -61
+cmovnb ebx, dword ptr [r14 + rdx]
+xor cl, dil
+cmp cl, al
+sub dl, dl
+test dl, -105
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

@@ -3,39 +3,38 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-or cl, bl
-test bl, dl
-or al, al
-bts dx, di
-or ebx, edi
-and rax, 0b1111111111111 # instrumentation
-or rax, qword ptr [r14 + rax]
-xor edi, 38
-and rbx, 0b1111111111111 # instrumentation
-cmovno esi, dword ptr [r14 + rbx]
-and rcx, 0b1111111111111 # instrumentation
-and esi, dword ptr [r14 + rcx]
-and rcx, 0b1111111111111 # instrumentation
-not qword ptr [r14 + rcx]
+and al, 39 # instrumentation
 and rdi, 0b1111111111111 # instrumentation
-or word ptr [r14 + rdi], 0b1000000000000000 # instrumentation
-bsf ax, word ptr [r14 + rdi]
-and rdx, 0b1111111111111 # instrumentation
-or eax, dword ptr [r14 + rdx]
-cmovnb rdi, rdi
-and dl, 91 # instrumentation
-and rax, 0b1111111111111 # instrumentation
-cmovns di, word ptr [r14 + rax]
-test eax, 758789512
-or di, -18
+cmovno rdi, qword ptr [r14 + rdi]
+and rsi, 0b1111111111000 # instrumentation
+lock and word ptr [r14 + rsi], si
 and bl, dl
+and rsi, 0b1111111111111 # instrumentation
+and word ptr [r14 + rsi], bx
 and rdi, 0b1111111111111 # instrumentation
-cmovb eax, dword ptr [r14 + rdi]
-and dl, 110 # instrumentation
-and rcx, 0b1111111111111 # instrumentation
-cmovnp eax, dword ptr [r14 + rcx]
+and eax, dword ptr [r14 + rdi]
+and rdx, 0b1111111111111 # instrumentation
+cmovnl edx, dword ptr [r14 + rdx]
+bts rbx, 25
+bt si, cx
+and rdx, 0b1111111111111 # instrumentation
+cmovnz rbx, qword ptr [r14 + rdx]
+and rsi, 0b1111111111111 # instrumentation
+and bl, byte ptr [r14 + rsi]
+and rdx, 0b1111111111111 # instrumentation
+cmovnle ecx, dword ptr [r14 + rdx]
+cmovnz rbx, rsi
+cmovnz ebx, ecx
+and al, 75
+and rdx, 0b1111111111111 # instrumentation
+or dword ptr [r14 + rdx], edi
+test cl, dl
+test rax, rbx
+and rbx, 0b1111111111111 # instrumentation
+cmovnz ax, word ptr [r14 + rbx]
+or rdx, -109
 and rax, 0b1111111111111 # instrumentation
-cmovno rdx, qword ptr [r14 + rax]
+not byte ptr [r14 + rax]
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

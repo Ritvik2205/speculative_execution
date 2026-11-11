@@ -3,42 +3,36 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and rbx, 0b1111111111111 # instrumentation
-movsx rax, word ptr [r14 + rbx]
-and dl, 17
+lea bx, qword ptr [rax + rcx]
+cmovz ebx, edi
+imul cx, bx, -29
 and rax, 0b1111111111111 # instrumentation
-cmovs rcx, qword ptr [r14 + rax]
-bt esi, 51
-and rsi, 0b1111111111111 # instrumentation
-and rdi, 0b1111111111111 # instrumentation
-cmp cl, byte ptr [r14 + rdi]
-jnbe .bb_0.1
+and rbx, 0b111 # instrumentation
+btc qword ptr [r14 + rax], rbx
+and rdi, 0b1111111111000 # instrumentation
+lock and dword ptr [r14 + rdi], eax
+and rax, 2134929425
+jp .bb_0.1
 jmp .exit_0
 .bb_0.1:
-and rax, 0b1111111111000 # instrumentation
-lock xor word ptr [r14 + rax], 27
-add dil, 125 # instrumentation
-adc dil, cl
-and rcx, 0b1111111111000 # instrumentation
-lock sub word ptr [r14 + rcx], si
-btc ebx, 29
+add ebx, -47
 and rbx, 0b1111111111111 # instrumentation
-sbb bl, byte ptr [r14 + rbx]
+movzx ebx, word ptr [r14 + rbx]
+add rax, 913062684
+and sil, 111
+adc dl, dl
+or bl, bl
+and rsi, 0b1111111111111 # instrumentation
+or byte ptr [r14 + rsi], 0b1000 # instrumentation
+and byte ptr [r14 + rsi], 0b11111000 # instrumentation
+mov ax, 1 # instrumentation
+idiv byte ptr [r14 + rsi]
+and rbx, 0b1111111111111 # instrumentation
+adc bl, byte ptr [r14 + rbx]
 and rax, 0b1111111111111 # instrumentation
-and dil, byte ptr [r14 + rax]
-and rbx, 0b1111111111111 # instrumentation
-or dword ptr [r14 + rbx], 1 # instrumentation
-and edx, dword ptr [r14 + rbx] # instrumentation
-shr edx, 1 # instrumentation
-div dword ptr [r14 + rbx]
-and rbx, 0b1111111111111 # instrumentation
-xor dl, byte ptr [r14 + rbx]
-and rbx, 0b1111111111111 # instrumentation
-adc dx, word ptr [r14 + rbx]
-and rsi, 0b1111111111000 # instrumentation
-lock bts qword ptr [r14 + rsi], 47
-add bl, 112 # instrumentation
-setnbe cl
+cmovbe ecx, dword ptr [r14 + rax]
+and rsi, 0b1111111111111 # instrumentation
+imul si, word ptr [r14 + rsi], 43
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

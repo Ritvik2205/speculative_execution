@@ -3,39 +3,41 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and cl, 8
-and rcx, 0b1111111111000 # instrumentation
-lock and word ptr [r14 + rcx], ax
-cmovnp bx, cx
-and ax, -30938
-and rax, 0b1111111111111 # instrumentation
-test dword ptr [r14 + rax], esi
-and cl, -63
-and rdi, 0b1111111111111 # instrumentation
-cmovno dx, word ptr [r14 + rdi]
-not di
-xor bx, ax
-and rdx, 0b1111111111111 # instrumentation
-cmovnbe rax, qword ptr [r14 + rdx]
 and rcx, 0b1111111111111 # instrumentation
-cmovs eax, dword ptr [r14 + rcx]
+xor byte ptr [r14 + rcx], -52
+and rdi, 0b1111111111111 # instrumentation
+cmovo edi, dword ptr [r14 + rdi]
+and rdx, 0b1111111111111 # instrumentation
+or rdi, qword ptr [r14 + rdx]
+and rbx, 0b1111111111000 # instrumentation
+lock or byte ptr [r14 + rbx], cl
+cmovle esi, edx
+and rax, 0b1111111111111 # instrumentation
+or dx, word ptr [r14 + rax]
+and rbx, 0b1111111111000 # instrumentation
+lock or word ptr [r14 + rbx], 62
+and rcx, 0b1111111111111 # instrumentation
+cmovbe rsi, qword ptr [r14 + rcx]
+and rdx, 0b1111111111111 # instrumentation
+cmovs edx, dword ptr [r14 + rdx]
+cmovno rcx, rcx
+cmovz cx, cx
 jmp .bb_0.1
 .bb_0.1:
-and dl, -107 # instrumentation
-cmovz rax, rbx
-test dil, -67
-and ax, 30884
-and rax, 0b1111111111000 # instrumentation
-lock xor dword ptr [r14 + rax], -84
-and rax, 0b1111111111000 # instrumentation
-and rdx, 0b111 # instrumentation
-lock btr qword ptr [r14 + rax], rdx
-cmovnle ecx, ebx
-and rsi, 0b1111111111111 # instrumentation
-btr dword ptr [r14 + rsi], 5
 and rdx, 0b1111111111111 # instrumentation
-cmovno ax, word ptr [r14 + rdx]
-and al, 73
+and byte ptr [r14 + rdx], bl
+and bl, 15 # instrumentation
+cmovb di, si
+cmovno rsi, rdx
+and rbx, 0b1111111111111 # instrumentation
+bt dword ptr [r14 + rbx], 4
+and rcx, 0b1111111111000 # instrumentation
+lock or word ptr [r14 + rcx], 121
+cmovnb rax, rsi
+cmovbe ax, si
+or al, 37
+and rdi, 0b1111111111000 # instrumentation
+lock or byte ptr [r14 + rdi], bl
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

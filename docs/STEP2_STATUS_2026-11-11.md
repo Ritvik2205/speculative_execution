@@ -176,3 +176,9 @@ its FIRST attacker candidate only (mean 2.6 candidates per window otherwise) giv
 branch-keeping benign 0.37 leak / 0.34 attacker-dependent, branch-stripped 0.21 / 0.20. The
 generator's 0.15 attacker-dependent is still below both, so the candidate search does not
 explain the gap.
+
+Update: the learned arm is now trained on the full 552-program train pool (native programs from
+the i5, `--pool-root`; 0 records missing, 0 overlap with the 173 held-out programs) for 10
+epochs, the count that minimises loss on the held-out programs (5: 4.23, 10: 4.12, 20: 4.37,
+40: 6.05, 80: 8.22 nats/token; at 80 epochs 68% of V1 samples were copies of training
+programs, at 10 none). 12,552 programs, all accepted by Revizor's parser.

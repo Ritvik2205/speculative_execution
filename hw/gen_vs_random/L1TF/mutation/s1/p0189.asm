@@ -3,33 +3,40 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-add cl, 121 # instrumentation
-cmovs edx, edx
 and rcx, 0b1111111111111 # instrumentation
-cmovp bx, word ptr [r14 + rcx]
+adc word ptr [r14 + rcx], cx
+and rsi, 0b1111111111111 # instrumentation
+movsx bx, byte ptr [r14 + rsi]
+adc rdi, 127
 and rdx, 0b1111111111111 # instrumentation
-add qword ptr [r14 + rdx], rax
+neg byte ptr [r14 + rdx]
+add cl, 98 # instrumentation
+inc cl
+and rbx, 0b1111111111111 # instrumentation
+cmovz rax, qword ptr [r14 + rbx]
+and rdx, 0b1111111111000 # instrumentation
+lock and byte ptr [r14 + rdx], al
+jmp .bb_0.1
+.bb_0.1:
+and rdx, 0b1111111111111 # instrumentation
+neg qword ptr [r14 + rdx]
+and rax, 0b1111111111000 # instrumentation
+lock neg qword ptr [r14 + rax]
 and rax, 0b1111111111111 # instrumentation
-setbe byte ptr [r14 + rax]
+sub dl, byte ptr [r14 + rax]
 and rdx, 0b1111111111111 # instrumentation
-cmovz esi, dword ptr [r14 + rdx]
-sbb ax, 67
-and rsi, 0b1111111111111 # instrumentation
-cmovno edi, dword ptr [r14 + rsi]
-and rcx, 0b1111111111000 # instrumentation
-lock xor byte ptr [r14 + rcx], 22
-and rsi, 0b1111111111111 # instrumentation
-inc word ptr [r14 + rsi]
-and rdi, 0b1111111111000 # instrumentation
-lock xor qword ptr [r14 + rdi], rdx
-lea rax, qword ptr [rbx]
-and rdx, 0b1111111111111 # instrumentation
-not dword ptr [r14 + rdx]
-lea rdx, qword ptr [rdi + rsi]
-mov rdi, -5671708760962025403
-and rsi, 0b1111111111111 # instrumentation
-or dword ptr [r14 + rsi], ebx
-sub rax, 788906357
+add dword ptr [r14 + rdx], 118
+and rax, 0b1111111111111 # instrumentation
+or dword ptr [r14 + rax], 1 # instrumentation
+and edx, dword ptr [r14 + rax] # instrumentation
+shr edx, 1 # instrumentation
+div dword ptr [r14 + rax]
+movsx edx, al
+or edx, 0b1000000000000000000000000000000 # instrumentation
+bsf esi, edx
+cmovnz cx, bx
+or rcx, 0b1000000000000000000000000000000 # instrumentation
+bsr rcx, rcx
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

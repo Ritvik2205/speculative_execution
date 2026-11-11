@@ -3,33 +3,24 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and rdi, 0b1111111111111 # instrumentation
-inc word ptr [r14 + rdi]
-imul ebx, edi
-and rbx, 0b1111111111000 # instrumentation
-lock add dword ptr [r14 + rbx], edi
-and rcx, 0b1111111111111 # instrumentation
-cmovnz bx, word ptr [r14 + rcx]
-loopne .bb_0.1
-jmp .exit_0
+lea rcx, qword ptr [rcx]
+jp .bb_0.1
+jmp .bb_0.2
 .bb_0.1:
-and rcx, 0b1111111111111 # instrumentation
-add qword ptr [r14 + rcx], 100
-and rcx, 0b1111111111111 # instrumentation
-cmovnl rdx, qword ptr [r14 + rcx]
-and rsi, 0b1111111111111 # instrumentation
-test qword ptr [r14 + rsi], rdx
-and rbx, 0b1111111111111 # instrumentation
-cmovno ecx, dword ptr [r14 + rbx]
-and rax, 0b1111111111000 # instrumentation
-lock sub word ptr [r14 + rax], 16
-movzx ecx, cl
-test bl, 37
-xor edi, 50
-and rsi, 0b1111111111000 # instrumentation
-lock add word ptr [r14 + rsi], bx
-and rax, 0b1111111111111 # instrumentation
-cmovl rax, qword ptr [r14 + rax]
+lea rdi, qword ptr [rax]
+xchg edx, ebx
+jmp .bb_0.2
+.bb_0.2:
+add cl, -5 # instrumentation
+adc dl, cl
+add cl, -127
+jp .bb_0.3
+jmp .exit_0
+.bb_0.3:
+sub edi, 98
+lea bx, qword ptr [rax + rsi]
+sub al, cl
+lea rbx, qword ptr [rdx]
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

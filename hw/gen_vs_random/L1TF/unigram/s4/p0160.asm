@@ -3,37 +3,35 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
+cmovnp rax, rax
 and rsi, 0b1111111111111 # instrumentation
-cmovb edx, dword ptr [r14 + rsi]
-xchg dx, si
-sub al, 88
-cmp sil, al
-xor eax, -117
-and rcx, 0b1111111111000 # instrumentation
-lock xor byte ptr [r14 + rcx], 22
-jmp .bb_0.1
-.bb_0.1:
-and rsi, 0b1111111111111 # instrumentation
-or word ptr [r14 + rsi], 0b1000 # instrumentation
-and byte ptr [r14 + rsi], 0b11111000 # instrumentation
-and dx, 0b11 # instrumentation
-idiv word ptr [r14 + rsi]
-xor al, dil
-and bl, al
+cmp byte ptr [r14 + rsi], 4
+btr dx, si
 and rax, 0b1111111111111 # instrumentation
-cmovnz ebx, dword ptr [r14 + rax]
-and rdi, 0b1111111111111 # instrumentation
-dec byte ptr [r14 + rdi]
-and rdx, 0b1111111111111 # instrumentation
-mov qword ptr [r14 + rdx], rcx
-add bl, 13 # instrumentation
-and rbx, 0b1111111111111 # instrumentation
-cmovnbe bx, word ptr [r14 + rbx]
-lea edx, qword ptr [rax]
-add al, 65 # instrumentation
-and rdx, 0b1111111111111 # instrumentation
-setnz byte ptr [r14 + rdx]
-cmp dil, sil
+cmp dword ptr [r14 + rax], ecx
+and rax, -109
+and rcx, 0b1111111111111 # instrumentation
+cmovl rax, qword ptr [r14 + rcx]
+and rcx, 0b1111111111111 # instrumentation
+cmp edx, dword ptr [r14 + rcx]
+and rdx, 0b1111111111000 # instrumentation
+lock add qword ptr [r14 + rdx], -30
+sub al, al
+and rcx, 0b1111111111111 # instrumentation
+or word ptr [r14 + rcx], 0b1000 # instrumentation
+and byte ptr [r14 + rcx], 0b11111000 # instrumentation
+and dx, 0b11 # instrumentation
+idiv word ptr [r14 + rcx]
+lea ax, qword ptr [rsi + rsi + 23]
+lea edx, qword ptr [rdi]
+and rcx, 0b1111111111111 # instrumentation
+cmovle rax, qword ptr [r14 + rcx]
+and rcx, 0b1111111111111 # instrumentation
+xor dword ptr [r14 + rcx], edi
+and rsi, 0b1111111111111 # instrumentation
+xor byte ptr [r14 + rsi], dl
+and rdi, 0b1111111111000 # instrumentation
+lock add word ptr [r14 + rdi], dx
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

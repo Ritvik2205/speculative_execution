@@ -3,37 +3,39 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and rdi, 0b1111111111000 # instrumentation
-lock btr dword ptr [r14 + rdi], 85
-and rdi, 0b1111111111000 # instrumentation
-lock xor dword ptr [r14 + rdi], edx
-xor cl, 122
-bt edi, 254
-btc di, 44
-cmovnbe bx, cx
-and al, -64 # instrumentation
-and rax, 0b1111111111111 # instrumentation
-cmovno ecx, dword ptr [r14 + rax]
-and rsi, 0b1111111111111 # instrumentation
-and rax, qword ptr [r14 + rsi]
-btr rsi, 73
-cmovnz rdx, rdi
-and al, bl
-and rcx, 0b1111111111111 # instrumentation
-cmovnle rax, qword ptr [r14 + rcx]
-and rax, 0b1111111111111 # instrumentation
-and dword ptr [r14 + rax], 66
-cmovns ebx, esi
-and sil, 65
+btr ebx, edx
 and rbx, 0b1111111111111 # instrumentation
-or word ptr [r14 + rbx], si
-and rsi, 0b1111111111000 # instrumentation
-lock and byte ptr [r14 + rsi], -40
-and cl, bl
-and rdx, 0b1111111111111 # instrumentation
-cmovnb eax, dword ptr [r14 + rdx]
+and qword ptr [r14 + rbx], rax
 and rax, 0b1111111111000 # instrumentation
-lock btc word ptr [r14 + rax], 20
+lock not byte ptr [r14 + rax]
+or eax, 0b1000000000000000000000000000000 # instrumentation
+bsf edx, eax
+bts rax, 77
+cmovnb ebx, edx
+cmovnz rax, rbx
+and dl, 4 # instrumentation
+and rsi, 0b1111111111111 # instrumentation
+cmovp si, word ptr [r14 + rsi]
+and rbx, 65
+test rax, rbx
+and rbx, 0b1111111111111 # instrumentation
+and dword ptr [r14 + rbx], esi
+and rsi, 0b1111111111111 # instrumentation
+cmovnb di, word ptr [r14 + rsi]
+and rax, 0b1111111111111 # instrumentation
+or bx, word ptr [r14 + rax]
+test sil, al
+and bl, -89 # instrumentation
+and rbx, 0b1111111111111 # instrumentation
+cmovnle esi, dword ptr [r14 + rbx]
+or rcx, -17
+and rbx, 0b1111111111111 # instrumentation
+cmovnbe edi, dword ptr [r14 + rbx]
+and rsi, 0b1111111111111 # instrumentation
+btr dword ptr [r14 + rsi], 86
+and rcx, 0b1111111111000 # instrumentation
+lock xor byte ptr [r14 + rcx], cl
+test edx, -372470678
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

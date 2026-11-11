@@ -3,40 +3,35 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and cl, dl
-and rdx, 0b1111111111111 # instrumentation
-and rdi, 0b111 # instrumentation
-btr qword ptr [r14 + rdx], rdi
-and rsi, 0b1111111111111 # instrumentation
-bt qword ptr [r14 + rsi], 2
-and bl, -104 # instrumentation
-and rsi, 0b1111111111111 # instrumentation
-cmovs eax, dword ptr [r14 + rsi]
-bts dx, 167
-and bl, 76 # instrumentation
-and rdx, 0b1111111111111 # instrumentation
-cmovnle di, word ptr [r14 + rdx]
-cmovnbe si, dx
-bts ecx, ebx
+and rdi, rdx
+and rcx, 0b1111111111111 # instrumentation
+bt qword ptr [r14 + rcx], 3
+and rbx, 0b1111111111111 # instrumentation
+and rdi, qword ptr [r14 + rbx]
+and rdi, 0b1111111111111 # instrumentation
+and cl, byte ptr [r14 + rdi]
+and rax, 0b1111111111111 # instrumentation
+xor word ptr [r14 + rax], 37
+and rdi, 0b1111111111111 # instrumentation
+or byte ptr [r14 + rdi], 59
+and rcx, 0b1111111111111 # instrumentation
+or word ptr [r14 + rcx], 0b1000000000000000 # instrumentation
+bsr bx, word ptr [r14 + rcx]
+and rsi, 0b1111111111000 # instrumentation
+lock and byte ptr [r14 + rsi], cl
+and rcx, 0b1111111111111 # instrumentation
+cmovle ebx, dword ptr [r14 + rcx]
 jmp .bb_0.1
 .bb_0.1:
-bt ax, dx
-and dl, -73 # instrumentation
-cmovns rbx, rcx
-or ecx, esi
-or ax, 19243
-and rax, 0b1111111111111 # instrumentation
-cmovz si, word ptr [r14 + rax]
-or dil, -52
-and rsi, 0b1111111111111 # instrumentation
-or byte ptr [r14 + rsi], dil
-and rax, 0b1111111111111 # instrumentation
-cmovnz cx, word ptr [r14 + rax]
-and rcx, 0b1111111111000 # instrumentation
-lock and word ptr [r14 + rcx], 119
 and rbx, 0b1111111111111 # instrumentation
-cmovz eax, dword ptr [r14 + rbx]
-cmovno dx, ax
+bts dword ptr [r14 + rbx], 0
+test rax, -2052112368
+and rbx, 0b1111111111111 # instrumentation
+bt qword ptr [r14 + rbx], 5
+or cx, 39
+and ecx, edx
+and rax, 0b1111111111111 # instrumentation
+and bl, byte ptr [r14 + rax]
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

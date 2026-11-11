@@ -3,81 +3,76 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-cmovnbe cx, ax
-cmovnp eax, eax
-movsx edi, bl
+bts bx, si
+and rdx, 0b1111111111111 # instrumentation
+cmovnb rdx, qword ptr [r14 + rdx]
+and rax, 0b1111111111111 # instrumentation
+or qword ptr [r14 + rax], rdi
+inc sil
+mov ecx, eax
+dec cx
+xor ebx, eax
+cmovnle bx, di
 and rbx, 0b1111111111111 # instrumentation
-cmovz ax, word ptr [r14 + rbx]
+movzx rax, word ptr [r14 + rbx]
+cmp rax, -1547540200
 and rax, 0b1111111111000 # instrumentation
-lock xor byte ptr [r14 + rax], 90
-not dx
-and rsi, 0b1111111111111 # instrumentation
-cmovnle edi, dword ptr [r14 + rsi]
-and rcx, 0b1111111111111 # instrumentation
-mov rcx, qword ptr [r14 + rcx]
-btc rdx, rdi
-cmovo rsi, rdx
-add bl, bl
-and rsi, 0b1111111111111 # instrumentation
-cmovo si, word ptr [r14 + rsi]
-and rax, 0b1111111111111 # instrumentation
-and dl, byte ptr [r14 + rax]
+and bx, 0b111 # instrumentation
+lock btc word ptr [r14 + rax], bx
+sub al, al
+and rdx, 0b1111111111000 # instrumentation
+lock add dword ptr [r14 + rdx], ebx
 and rbx, 0b1111111111111 # instrumentation
-sub byte ptr [r14 + rbx], sil
-and rcx, 0b1111111111111 # instrumentation
-cmovo rcx, qword ptr [r14 + rcx]
+add al, byte ptr [r14 + rbx]
 and rbx, 0b1111111111111 # instrumentation
-cmovns esi, dword ptr [r14 + rbx]
-and rax, 0b1111111111111 # instrumentation
-and word ptr [r14 + rax], 75
-and rdx, 0b1111111111111 # instrumentation
-btr dword ptr [r14 + rdx], 3
-movzx ecx, cl
-and rdx, 0b1111111111111 # instrumentation
-sub byte ptr [r14 + rdx], al
-or ecx, 0b1000000000000000000000000000000 # instrumentation
-bsf edx, ecx
-test esi, 3
-movzx edx, dx
-and rdi, 0b1111111111111 # instrumentation
-neg word ptr [r14 + rdi]
-and rax, 0b1111111111111 # instrumentation
-cmovnbe esi, dword ptr [r14 + rax]
-and rax, 0b1111111111111 # instrumentation
-adc qword ptr [r14 + rax], rbx
-test rbx, 26
-adc dil, cl
-and rdi, 0b1111111111111 # instrumentation
-imul dword ptr [r14 + rdi]
-xor cl, -101
-and rdx, 0b1111111111111 # instrumentation
-add dword ptr [r14 + rdx], 48
-and rsi, 0b1111111111111 # instrumentation
-mov dword ptr [r14 + rsi], edx
+and ax, word ptr [r14 + rbx]
 and rcx, 0b1111111111111 # instrumentation
-imul qword ptr [r14 + rcx]
+cmovbe rsi, qword ptr [r14 + rcx]
+and rdi, 0b1111111111111 # instrumentation
+cmovp eax, dword ptr [r14 + rdi]
+or sil, al
+or sil, sil
+test rdi, rdi
+cmovnp ebx, ecx
+and rcx, 0b1111111111111 # instrumentation
+xor byte ptr [r14 + rcx], cl
+sub rbx, 101
+and rsi, 0b1111111111000 # instrumentation
+lock bts word ptr [r14 + rsi], 1
+add edi, ebx
+test dl, -102
+and rdx, 0b1111111111111 # instrumentation
+and byte ptr [r14 + rdx], dl
+inc cl
+cmovnz edx, edx
+and cl, -128
+and edx, eax
+bt rbx, rbx
+cmp edx, -95
+or al, 1 # instrumentation
+mov ax, 1 # instrumentation
+div al
+and rax, 0b1111111111111 # instrumentation
+and si, 0b111 # instrumentation
+btc word ptr [r14 + rax], si
+and rdi, 0b1111111111111 # instrumentation
+mov ebx, dword ptr [r14 + rdi]
+btc rdi, rcx
+cmp bl, bl
+test di, -19523
+sbb si, 72
+and rsi, 0b1111111111000 # instrumentation
+lock sub dword ptr [r14 + rsi], -15
+cmovb ax, dx
 and rbx, 0b1111111111111 # instrumentation
-and word ptr [r14 + rbx], cx
-and rdi, 0b1111111111111 # instrumentation
-and word ptr [r14 + rdi], 35
-movzx rdi, si
-xor sil, 56
-and rcx, 0b1111111111111 # instrumentation
-xor byte ptr [r14 + rcx], 41
-and rsi, 0b1111111111111 # instrumentation
-and eax, 0b111 # instrumentation
-btr dword ptr [r14 + rsi], eax
-bts edi, 167
-and rdx, 0b1111111111111 # instrumentation
-mul byte ptr [r14 + rdx]
+mov dx, word ptr [r14 + rbx]
+movsx edi, di
+and rdi, 0b1111111111000 # instrumentation
+lock sub dword ptr [r14 + rdi], edi
+cmovnl si, di
+xor sil, sil
 and rax, 0b1111111111111 # instrumentation
-cmovnp ax, word ptr [r14 + rax]
-or dl, al
-add cl, -21 # instrumentation
-adc rsi, 55
-cmovnp dx, di
-add si, 4
-test rdi, -1876639003
+sbb byte ptr [r14 + rax], sil
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

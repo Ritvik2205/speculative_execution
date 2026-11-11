@@ -3,38 +3,37 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-or dl, bl
-and rsi, 0b1111111111111 # instrumentation
-btc qword ptr [r14 + rsi], 1
-movzx cx, sil
-and rax, 0b1111111111111 # instrumentation
-and edx, dword ptr [r14 + rax]
-add cl, -122 # instrumentation
-and rcx, 0b1111111111111 # instrumentation
-cmovp cx, word ptr [r14 + rcx]
-add dl, -123 # instrumentation
-and rsi, 0b1111111111111 # instrumentation
-cmovp dx, word ptr [r14 + rsi]
-and rsi, 0b1111111111111 # instrumentation
-or rax, qword ptr [r14 + rsi]
-loopne .bb_0.1
+and rdi, 0b1111111111111 # instrumentation
+cmovz edx, dword ptr [r14 + rdi]
+lea bx, qword ptr [rbx]
+sub bl, al
+add cl, 65 # instrumentation
+and rbx, 0b1111111111111 # instrumentation
+cmovl ebx, dword ptr [r14 + rbx]
+and rdx, 0b1111111111000 # instrumentation
+lock add byte ptr [r14 + rdx], 51
+and rbx, 0b1111111111111 # instrumentation
+add edx, dword ptr [r14 + rbx]
+and rdx, 0b1111111111111 # instrumentation
+mov eax, dword ptr [r14 + rdx]
+and rbx, 0b1111111111111 # instrumentation
+add bl, byte ptr [r14 + rbx]
+and rcx, 0b1111111111000 # instrumentation
+lock dec dword ptr [r14 + rcx]
+jnp .bb_0.1
 jmp .exit_0
 .bb_0.1:
-and rdi, 0b1111111111111 # instrumentation
-sub qword ptr [r14 + rdi], rdx
-cmp rax, rsi
-btr rax, rdx
-add bl, -107 # instrumentation
+cmovnbe si, ax
+and cl, 86
+and rbx, 0b1111111111000 # instrumentation
+lock add qword ptr [r14 + rbx], -28
+and rsi, 0b1111111111111 # instrumentation
+bts word ptr [r14 + rsi], 5
+add ebx, -47
 and rax, 0b1111111111111 # instrumentation
-mov dx, word ptr [r14 + rax]
-and rdi, 0b1111111111111 # instrumentation
-neg dword ptr [r14 + rdi]
+setno byte ptr [r14 + rax]
 and rcx, 0b1111111111111 # instrumentation
-btr word ptr [r14 + rcx], 6
-and rax, 0b1111111111111 # instrumentation
-cmovl rdx, qword ptr [r14 + rax]
-and rdi, 0b1111111111000 # instrumentation
-lock adc byte ptr [r14 + rdi], al
+or rdx, qword ptr [r14 + rcx]
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

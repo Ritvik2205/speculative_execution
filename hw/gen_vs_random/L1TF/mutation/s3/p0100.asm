@@ -3,38 +3,35 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-add bl, 81 # instrumentation
-and rcx, 0b1111111111111 # instrumentation
-movsx di, byte ptr [r14 + rcx]
+or dl, -92
 and rbx, 0b1111111111111 # instrumentation
-mov byte ptr [r14 + rbx], al
+xor cl, byte ptr [r14 + rbx]
 and rdi, 0b1111111111111 # instrumentation
-add byte ptr [r14 + rdi], sil
-and rdi, 0b1111111111111 # instrumentation
-adc word ptr [r14 + rdi], 78
-or esi, 0b1000000000000000000000000000000 # instrumentation
-bsr edx, esi
-and rdi, 0b1111111111111 # instrumentation
-cmovbe rsi, qword ptr [r14 + rdi]
-cmovp si, dx
-add al, bl
-add al, -9 # instrumentation
-and rdi, 0b1111111111111 # instrumentation
-cmovs rcx, qword ptr [r14 + rdi]
-jmp .bb_0.1
-.bb_0.1:
-and rdx, 0b1111111111111 # instrumentation
-or dword ptr [r14 + rdx], 0b1000000000000000000000000000000 # instrumentation
-bsf edx, dword ptr [r14 + rdx]
+cmp byte ptr [r14 + rdi], -58
+sub edi, ebx
+and rax, 0b1111111111111 # instrumentation
+imul bx, word ptr [r14 + rax], 86
+and rcx, 0b1111111111111 # instrumentation
+cmovnle rbx, qword ptr [r14 + rcx]
+setz al
+and rbx, 0b1111111111111 # instrumentation
+and ebx, dword ptr [r14 + rbx]
+and rcx, 0b1111111111111 # instrumentation
+or byte ptr [r14 + rcx], 0b1000 # instrumentation
+and byte ptr [r14 + rcx], 0b11111000 # instrumentation
+mov ax, 1 # instrumentation
+idiv byte ptr [r14 + rcx]
+add dl, 27 # instrumentation
+setnle dl
 and rcx, 0b1111111111000 # instrumentation
-lock and dword ptr [r14 + rcx], ecx
-and rdx, 0b1111111111111 # instrumentation
-cmovo ebx, dword ptr [r14 + rdx]
-lea rdx, qword ptr [rdi + rsi]
-inc sil
-inc edi
-and rbx, 0b1111111111000 # instrumentation
-lock or byte ptr [r14 + rbx], al
+lock or word ptr [r14 + rcx], -25
+and rsi, 0b1111111111111 # instrumentation
+cmovs esi, dword ptr [r14 + rsi]
+and dl, 73
+and ebx, -52
+setb bl
+and rbx, 0b1111111111111 # instrumentation
+sub qword ptr [r14 + rbx], -86
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

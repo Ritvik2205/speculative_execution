@@ -3,30 +3,23 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-add dl, 109 # instrumentation
-and rbx, 0b1111111111111 # instrumentation
-adc byte ptr [r14 + rbx], -52
-mov edi, edx
-lea di, qword ptr [rdi + rdi + 8878]
-movsx ecx, cl
-xor ax, -27503
-adc al, cl
-dec bl
-btc rdi, 243
-and rax, 0b1111111111000 # instrumentation
-lock adc dword ptr [r14 + rax], esi
-and rdx, 0b1111111111111 # instrumentation
-cmovo ecx, dword ptr [r14 + rdx]
-cmp dil, bl
-and rsi, 0b1111111111111 # instrumentation
-dec word ptr [r14 + rsi]
-and di, dx
-and rbx, 0b1111111111111 # instrumentation
-add eax, dword ptr [r14 + rbx]
+or edx, 1 # instrumentation
+and rcx, 0b1111111111111 # instrumentation
+neg qword ptr [r14 + rcx]
+sub sil, -99
+mov dil, sil
 and rax, 0b1111111111111 # instrumentation
-movsx ebx, byte ptr [r14 + rax]
-and rdi, 0b1111111111111 # instrumentation
-dec qword ptr [r14 + rdi]
+cmovnl rsi, qword ptr [r14 + rax]
+sub dl, dil
+jmp .bb_0.1
+.bb_0.1:
+adc eax, 457059541
+jmp .bb_0.2
+.bb_0.2:
+jmp .bb_0.3
+.bb_0.3:
+and rsi, 0b1111111111111 # instrumentation
+xor al, byte ptr [r14 + rsi]
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

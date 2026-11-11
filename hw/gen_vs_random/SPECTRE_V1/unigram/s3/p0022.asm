@@ -3,38 +3,36 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and rsi, 0b1111111111111 # instrumentation
-bt qword ptr [r14 + rsi], 50
-add bl, -108 # instrumentation
-sbb al, 91
-add al, -27 # instrumentation
-and rsi, 0b1111111111111 # instrumentation
-sbb word ptr [r14 + rsi], 37
-and rdi, 0b1111111111111 # instrumentation
-add rsi, qword ptr [r14 + rdi]
-and rcx, 0b1111111111000 # instrumentation
-lock sub byte ptr [r14 + rcx], al
-and rcx, 0b1111111111000 # instrumentation
-lock or byte ptr [r14 + rcx], cl
-and rsi, 0b1111111111111 # instrumentation
-cmovnle ebx, dword ptr [r14 + rsi]
-test dil, 18
-cmovns rdi, rdi
-js .bb_0.1
+cmovno cx, dx
+cmp cl, bl
+lea di, qword ptr [rsi + rdx + 53]
+sbb sil, -78
+and rcx, 0b1111111111111 # instrumentation
+sbb dx, word ptr [r14 + rcx]
+and rbx, 0b1111111111111 # instrumentation
+cmovnp ecx, dword ptr [r14 + rbx]
+and rdx, 0b1111111111111 # instrumentation
+adc ax, word ptr [r14 + rdx]
+and rcx, 0b1111111111111 # instrumentation
+sbb ax, word ptr [r14 + rcx]
+and rcx, 0b1111111111111 # instrumentation
+cmp qword ptr [r14 + rcx], 65
+and rcx, 0b1111111111111 # instrumentation
+adc dword ptr [r14 + rcx], -57
+jb .bb_0.1
 jmp .exit_0
 .bb_0.1:
-and rax, 0b1111111111111 # instrumentation
-imul bx, word ptr [r14 + rax]
-bt dx, 27
-and rax, 0b1111111111111 # instrumentation
-add word ptr [r14 + rax], 61
-and rsi, 0b1111111111111 # instrumentation
-or qword ptr [r14 + rsi], 90
 and rbx, 0b1111111111000 # instrumentation
-lock sub word ptr [r14 + rbx], dx
-and rdi, 0b1111111111111 # instrumentation
-setnl byte ptr [r14 + rdi]
-not rsi
+lock or byte ptr [r14 + rbx], dil
+and rsi, 0b1111111111000 # instrumentation
+lock sbb byte ptr [r14 + rsi], dl
+lea edx, qword ptr [rdi + rbx]
+add bl, 124 # instrumentation
+and rbx, 0b1111111111111 # instrumentation
+cmovnp edi, dword ptr [r14 + rbx]
+and rbx, 0b1111111111111 # instrumentation
+bts word ptr [r14 + rbx], 3
+and di, 6
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

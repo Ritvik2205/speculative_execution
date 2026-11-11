@@ -3,38 +3,40 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and cl, -109 # instrumentation
-cmovns rax, rax
+cmovl bx, ax
+or ebx, -104
 and rcx, 0b1111111111111 # instrumentation
-test word ptr [r14 + rcx], 93
-or ax, -4635
-xor cl, 122
-and rax, 0b1111111111000 # instrumentation
-and rcx, 0b111 # instrumentation
-lock bts qword ptr [r14 + rax], rcx
-or al, al
-and rax, 0b1111111111111 # instrumentation
-cmovp cx, word ptr [r14 + rax]
-and rax, 0b1111111111111 # instrumentation
-cmovnb ecx, dword ptr [r14 + rax]
-cmovz rbx, rdi
-and ax, 30884
-or dx, 5
-and dil, -115 # instrumentation
-cmovl dx, di
+cmovnl rbx, qword ptr [r14 + rcx]
+and cl, 122 # instrumentation
+cmovl esi, esi
+and rcx, 0b1111111111111 # instrumentation
+or byte ptr [r14 + rcx], 88
+btr eax, ebx
+bt cx, 22
+and al, -72 # instrumentation
 and rbx, 0b1111111111111 # instrumentation
-cmovnz edi, dword ptr [r14 + rbx]
-or dl, dil
-and ax, 28417
-and rdx, 0b1111111111111 # instrumentation
-and cl, byte ptr [r14 + rdx]
-and rcx, 0b1111111111000 # instrumentation
-lock and word ptr [r14 + rcx], cx
-and rdx, 0b1111111111111 # instrumentation
-and word ptr [r14 + rdx], ax
-or bx, 9
+cmovnl bx, word ptr [r14 + rbx]
+and rsi, 0b1111111111111 # instrumentation
+or dword ptr [r14 + rsi], 0b1000000000000000000000000000000 # instrumentation
+bsr esi, dword ptr [r14 + rsi]
+and rsi, 0b1111111111111 # instrumentation
+cmovnz rbx, qword ptr [r14 + rsi]
 and rax, 0b1111111111111 # instrumentation
-cmovo ax, word ptr [r14 + rax]
+cmovbe edi, dword ptr [r14 + rax]
+btc esi, 199
+and rbx, 0b1111111111111 # instrumentation
+or dil, byte ptr [r14 + rbx]
+and rax, 0b1111111111111 # instrumentation
+cmovp edx, dword ptr [r14 + rax]
+and rsi, 0b1111111111111 # instrumentation
+and qword ptr [r14 + rsi], 31
+test dl, dil
+or cl, -77
+and bl, 46 # instrumentation
+and rdi, 0b1111111111111 # instrumentation
+cmovnp rbx, qword ptr [r14 + rdi]
+cmovp dx, ax
+and rdx, 14
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

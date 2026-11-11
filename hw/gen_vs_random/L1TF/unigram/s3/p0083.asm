@@ -3,37 +3,34 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-setnl dl
-lea edx, qword ptr [rdx]
-and rbx, 0b1111111111111 # instrumentation
-cmovle edi, dword ptr [r14 + rbx]
-and rsi, 0b1111111111111 # instrumentation
-cmovb edi, dword ptr [r14 + rsi]
-and rdx, 0b1111111111111 # instrumentation
-bts dword ptr [r14 + rdx], 79
-bswap rsi
-and rdx, 0b1111111111111 # instrumentation
-and rax, 0b111 # instrumentation
-bts qword ptr [r14 + rdx], rax
-and rdx, 0b1111111111111 # instrumentation
-cmovz si, word ptr [r14 + rdx]
-and rsi, 0b1111111111111 # instrumentation
-cmovnp eax, dword ptr [r14 + rsi]
-and rax, 0b1111111111111 # instrumentation
-cmovp rbx, qword ptr [r14 + rax]
+and rsi, 0b1111111111000 # instrumentation
+lock sub word ptr [r14 + rsi], ax
 and rdi, 0b1111111111111 # instrumentation
-imul rdx, qword ptr [r14 + rdi]
-add al, -21 # instrumentation
-mov eax, edi
-and rdx, 0b1111111111111 # instrumentation
-not byte ptr [r14 + rdx]
-and rdi, 0b1111111111111 # instrumentation
-cmovno di, word ptr [r14 + rdi]
-add bl, 76 # instrumentation
-and rax, 0b1111111111111 # instrumentation
-cmovnb cx, word ptr [r14 + rax]
+btc word ptr [r14 + rdi], 5
+add dx, 39
+imul al
+and rsi, 0b1111111111000 # instrumentation
+lock add byte ptr [r14 + rsi], sil
+sbb ecx, 100
 and rbx, 0b1111111111111 # instrumentation
-not dword ptr [r14 + rbx]
+mov word ptr [r14 + rbx], di
+and rdx, 0b1111111111111 # instrumentation
+mov ecx, dword ptr [r14 + rdx]
+and rdx, 0b1111111111000 # instrumentation
+lock or byte ptr [r14 + rdx], al
+jmp .bb_0.1
+.bb_0.1:
+sbb ax, si
+and rsi, 0b1111111111111 # instrumentation
+cmovz rdi, qword ptr [r14 + rsi]
+add bl, -9 # instrumentation
+adc rax, 1544006018
+and rdx, 0b1111111111000 # instrumentation
+lock inc byte ptr [r14 + rdx]
+and rbx, 0b1111111111111 # instrumentation
+xor dword ptr [r14 + rbx], 7
+lea cx, qword ptr [rcx + rax + 10]
+xor ebx, -81
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

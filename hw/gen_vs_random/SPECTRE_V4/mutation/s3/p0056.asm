@@ -3,75 +3,79 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-imul rdi
-add al, 122 # instrumentation
-cmovns edx, ebx
-and rax, 0b1111111111111 # instrumentation
-imul dword ptr [r14 + rax]
-mov rbx, 9101099553822202722
-cmovno edi, edx
-neg bl
-and rbx, 0b1111111111111 # instrumentation
-and dl, byte ptr [r14 + rbx]
+movsx rsi, bl
+cmovnle rax, rdi
+test rax, rbx
 and rdx, 0b1111111111111 # instrumentation
-neg qword ptr [r14 + rdx]
-mov rax, -8696242625349627833
-add dl, al
-or cl, bl
-and rax, 0b1111111111000 # instrumentation
-lock sub word ptr [r14 + rax], 61
-adc eax, -79
-and rbx, 0b1111111111111 # instrumentation
-and bx, word ptr [r14 + rbx]
-add cl, -42 # instrumentation
-adc dl, sil
-and rdi, 0b1111111111111 # instrumentation
-imul dword ptr [r14 + rdi]
-and rsi, 0b1111111111111 # instrumentation
-and byte ptr [r14 + rsi], -102
-and rsi, 0b1111111111111 # instrumentation
-adc qword ptr [r14 + rsi], rdx
-xchg rcx, rax
-xor ax, 28088
-xor al, -2
-and rdi, 0b1111111111111 # instrumentation
-and cx, 0b111 # instrumentation
-btr word ptr [r14 + rdi], cx
-or edi, eax
-and dl, bl
+mov word ptr [r14 + rdx], ax
+or rax, -897763206
+and rdx, 0b1111111111111 # instrumentation
+test qword ptr [r14 + rdx], -1412107342
+and rax, 0b1111111111111 # instrumentation
+or cl, -33
+test edx, ebx
+cmovl rsi, rdi
+and rax, 0b1111111111111 # instrumentation
+dec qword ptr [r14 + rax]
+and rdi, 0b1111111111000 # instrumentation
+lock and dword ptr [r14 + rdi], eax
+movzx di, dil
+test eax, 1600638830
+bts rbx, rcx
+and rdx, 0b1111111111111 # instrumentation
+mul byte ptr [r14 + rdx]
+and rbx, 0b1111111111000 # instrumentation
+lock dec word ptr [r14 + rbx]
+and rdx, 0b1111111111000 # instrumentation
+lock sub byte ptr [r14 + rdx], 98
+and rsi, 0b1111111111000 # instrumentation
+lock adc byte ptr [r14 + rsi], -19
+cmovnz si, si
 and rcx, 0b1111111111111 # instrumentation
-xor al, byte ptr [r14 + rcx]
-and rdx, 0b1111111111111 # instrumentation
-mov byte ptr [r14 + rdx], al
-test rdi, -1876639003
-cmp dx, si
-or al, -71
-cmp ax, -15031
-or rsi, 0b1000000000000000000000000000000 # instrumentation
-bsf rbx, rsi
-add si, 4
-and dl, bl
-and rbx, 0b1111111111111 # instrumentation
-cmovnl edx, dword ptr [r14 + rbx]
-and rdx, 0b1111111111111 # instrumentation
-cmovnb bx, word ptr [r14 + rdx]
-add ecx, eax
-test al, bl
-or dl, 88
-not dl
-and rax, 0b1111111111111 # instrumentation
-or qword ptr [r14 + rax], 0b1000000000000000000000000000000 # instrumentation
-bsf rdx, qword ptr [r14 + rax]
-and rax, 0b1111111111111 # instrumentation
-btr qword ptr [r14 + rax], 2
-test bl, 24
-mov dil, -118
-and rbx, 0b1111111111111 # instrumentation
-mov eax, dword ptr [r14 + rbx]
-cmp rax, -1102558854
+neg byte ptr [r14 + rcx]
+and rcx, 0b1111111111000 # instrumentation
+lock sbb byte ptr [r14 + rcx], al
 and rcx, 0b1111111111111 # instrumentation
-cmovbe edx, dword ptr [r14 + rcx]
-sub dl, cl
+xor byte ptr [r14 + rcx], 38
+mov dl, al
+and rax, 0b1111111111111 # instrumentation
+mul word ptr [r14 + rax]
+and rsi, 0b1111111111111 # instrumentation
+mov byte ptr [r14 + rsi], 56
+cmovz bx, cx
+xor al, 48
+xor rax, rbx
+and rdi, 0b1111111111111 # instrumentation
+test byte ptr [r14 + rdi], dl
+and rcx, 0b1111111111111 # instrumentation
+adc eax, dword ptr [r14 + rcx]
+movzx di, sil
+or dil, 1 # instrumentation
+mov ax, 1 # instrumentation
+div dil
+add ebx, -57
+adc dl, al
+and rsi, 0b1111111111111 # instrumentation
+and byte ptr [r14 + rsi], -10
+and rdi, 0b1111111111111 # instrumentation
+movzx rdx, word ptr [r14 + rdi]
+or ecx, 0b1000 # instrumentation
+and cl, 0b11111000 # instrumentation
+and edx, 0b11 # instrumentation
+idiv ecx
+and rdx, 0b1111111111111 # instrumentation
+adc ebx, dword ptr [r14 + rdx]
+inc edx
+and rdx, 0b1111111111111 # instrumentation
+cmp dl, byte ptr [r14 + rdx]
+and rdx, 0b1111111111111 # instrumentation
+mov qword ptr [r14 + rdx], 1958762209
+add ax, 10655
+btc ebx, edi
+mov al, bl
+bt cx, si
+test ax, -23852
+adc rax, 310915511
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

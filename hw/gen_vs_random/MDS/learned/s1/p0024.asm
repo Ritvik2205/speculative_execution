@@ -3,55 +3,24 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and cl, -49 # instrumentation
-cmovno cx, bx
-cmovnb dx, cx
-and rcx, 0b1111111111111 # instrumentation
-or qword ptr [r14 + rcx], 72
-cmovl rax, rdx
-and rsi, 0b1111111111111 # instrumentation
-cmovp ebx, dword ptr [r14 + rsi]
-cmovb rbx, rdi
+and rdi, 0b1111111111111 # instrumentation
+sub word ptr [r14 + rdi], 35
+test al, -81
+not dl
+xor dl, sil
+and rax, 0b1111111111000 # instrumentation
+lock or byte ptr [r14 + rax], bl
+xor cl, dil
+and rdi, 0b1111111111000 # instrumentation
+lock or dword ptr [r14 + rdi], ebx
+and rdi, 0b1111111111111 # instrumentation
+xor rbx, qword ptr [r14 + rdi]
 and dil, al
-or rdx, 0b1000000000000000000000000000000 # instrumentation
-bsr rsi, rdx
-and rcx, 0b1111111111111 # instrumentation
-and di, 0b111 # instrumentation
-btr word ptr [r14 + rcx], di
-and dl, -18 # instrumentation
-and rbx, 0b1111111111111 # instrumentation
-cmovl cx, word ptr [r14 + rbx]
-and rbx, 0b1111111111111 # instrumentation
-test qword ptr [r14 + rbx], 287872877
-cmovz si, di
-test al, 74
-test dl, cl
-cmovnbe ax, bx
-and rdx, 0b1111111111111 # instrumentation
-test word ptr [r14 + rdx], 8830
-and rdx, 0b1111111111111 # instrumentation
-and byte ptr [r14 + rdx], al
-and rbx, 0b1111111111111 # instrumentation
-btc qword ptr [r14 + rbx], 6
-and dil, bl
-and rsi, 0b1111111111111 # instrumentation
-cmovnle rdx, qword ptr [r14 + rsi]
-test bl, al
-cmovnb si, cx
-and rsi, 0b1111111111111 # instrumentation
-neg qword ptr [r14 + rsi]
-and rdx, 0b1111111111111 # instrumentation
-sub esi, dword ptr [r14 + rdx]
-jmp .bb_0.1
-.bb_0.1:
-and rsi, 0b1111111111000 # instrumentation
-lock btc qword ptr [r14 + rsi], 6
-cmovnb esi, eax
-and rdx, 0b1111111111111 # instrumentation
-cmovp edi, dword ptr [r14 + rdx]
-sbb cl, dl
-and rbx, 0b1111111111111 # instrumentation
-cmovnl edx, dword ptr [r14 + rbx]
+xor dl, cl
+and rax, 0b1111111111000 # instrumentation
+lock xor byte ptr [r14 + rax], sil
+test eax, 1287331633
+xor al, -26
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

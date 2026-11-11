@@ -3,39 +3,36 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
-and rdx, 0b1111111111111 # instrumentation
-and edx, dword ptr [r14 + rdx]
-adc cl, -18
-and rax, 0b1111111111000 # instrumentation
-lock btc qword ptr [r14 + rax], 36
-setnp al
-and rax, 0b1111111111000 # instrumentation
-lock and qword ptr [r14 + rax], 23
-add dil, -6 # instrumentation
-and rbx, 0b1111111111000 # instrumentation
-xchg byte ptr [r14 + rbx], dil
-and rdx, 0b1111111111111 # instrumentation
-cmovo eax, dword ptr [r14 + rdx]
-jnle .bb_0.1
+and rax, 0b1111111111111 # instrumentation
+xor al, byte ptr [r14 + rax]
+xor rsi, 67
+and rax, 0b1111111111111 # instrumentation
+cmp byte ptr [r14 + rax], bl
+and rsi, 0b1111111111111 # instrumentation
+and dx, 0b111 # instrumentation
+btc word ptr [r14 + rsi], dx
+and rdi, 0b1111111111111 # instrumentation
+cmovle rax, qword ptr [r14 + rdi]
+and rcx, 0b1111111111111 # instrumentation
+and rcx, 0b111 # instrumentation
+bts qword ptr [r14 + rcx], rcx
+lea ebx, qword ptr [rbx]
+imul dl
+jns .bb_0.1
 jmp .exit_0
 .bb_0.1:
-and rbx, 0b1111111111111 # instrumentation
-bt dword ptr [r14 + rbx], 96
-cmovnp si, cx
-setnbe dl
-add dl, 56 # instrumentation
-cmovns esi, edx
-and rdx, 0b1111111111111 # instrumentation
-neg dword ptr [r14 + rdx]
-and rax, 0b1111111111111 # instrumentation
-movzx ax, byte ptr [r14 + rax]
-and rax, 0b1111111111111 # instrumentation
-mov qword ptr [r14 + rax], rbx
-add dl, -47 # instrumentation
+bt bx, bx
+cmp bx, di
+lea rsi, qword ptr [rsi + rcx]
+and rdi, 0b1111111111111 # instrumentation
+sub byte ptr [r14 + rdi], dil
+and rdx, 0b1111111111000 # instrumentation
+lock and dword ptr [r14 + rdx], esi
+mov al, bl
 and rcx, 0b1111111111111 # instrumentation
-cmovo rdx, qword ptr [r14 + rcx]
-and rax, 0b1111111111000 # instrumentation
-lock bts qword ptr [r14 + rax], 97
+xor sil, byte ptr [r14 + rcx]
+and rax, 0b1111111111111 # instrumentation
+and word ptr [r14 + rax], dx
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit

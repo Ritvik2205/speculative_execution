@@ -3,40 +3,34 @@
 .function_0:
 .bb_0.0:
 .macro.measurement_start: nop qword ptr [rax + 0xff]
+and rsi, 0b1111111111111 # instrumentation
+xor edx, dword ptr [r14 + rsi]
+or ebx, ecx
+and rax, 0b1111111111111 # instrumentation
+cmovbe rcx, qword ptr [r14 + rax]
+and rax, 0b1111111111111 # instrumentation
+cmovnp rsi, qword ptr [r14 + rax]
+or esi, edi
+sub dx, 34
+and rbx, 0b1111111111000 # instrumentation
+lock not dword ptr [r14 + rbx]
+jmp .bb_0.1
+.bb_0.1:
 and rdx, 0b1111111111111 # instrumentation
-sbb si, word ptr [r14 + rdx]
-and rdi, 0b1111111111111 # instrumentation
-xor edx, dword ptr [r14 + rdi]
+sub dil, byte ptr [r14 + rdx]
 and rax, 0b1111111111111 # instrumentation
-and rdx, 0b111 # instrumentation
-bt qword ptr [r14 + rax], rdx
-and rsi, 0b1111111111111 # instrumentation
-xor dword ptr [r14 + rsi], 38
-and rcx, 0b1111111111111 # instrumentation
-cmovnb cx, word ptr [r14 + rcx]
-xor dl, -91
-and rbx, 0b1111111111111 # instrumentation
-or qword ptr [r14 + rbx], 0b1000000000000000000000000000000 # instrumentation
-bsr rax, qword ptr [r14 + rbx]
-or dl, dil
-and rsi, 0b1111111111111 # instrumentation
-cmp dword ptr [r14 + rsi], 10
-and rbx, 0b1111111111111 # instrumentation
-sbb byte ptr [r14 + rbx], dl
-setnle sil
+add dil, byte ptr [r14 + rax]
+adc al, bl
 and rdi, 0b1111111111111 # instrumentation
-cmovz eax, dword ptr [r14 + rdi]
-and rsi, 0b1111111111111 # instrumentation
-or dword ptr [r14 + rsi], 1 # instrumentation
-and edx, dword ptr [r14 + rsi] # instrumentation
-shr edx, 1 # instrumentation
-div dword ptr [r14 + rsi]
-add dil, 34 # instrumentation
+mov di, word ptr [r14 + rdi]
+and dl, -86
+or edi, edx
+sbb di, 80
+and rbx, 0b1111111111111 # instrumentation
+and edi, 0b111 # instrumentation
+bt dword ptr [r14 + rbx], edi
 and rdi, 0b1111111111111 # instrumentation
-adc qword ptr [r14 + rdi], 11
-and rax, 0b1111111111111 # instrumentation
-btc word ptr [r14 + rax], 70
-setz cl
+sub ecx, dword ptr [r14 + rdi]
 .exit_0:
 .macro.measurement_end: nop qword ptr [rax + 0xff]
 jmp .test_case_exit
