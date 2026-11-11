@@ -56,6 +56,22 @@ def n_instr(r) -> int:
     return checks.n_instr(r)
 
 
+# The same instruction is spelled differently by compilers and disassemblers
+# (objdump prints retq / callq / jmpq / leaveq). Attack sources and benign
+# sources came through different tools, so the spelling alone told them apart.
+_SPELLING = {"retq": "ret", "callq": "call", "jmpq": "jmp", "leaveq": "leave"}
+_FIRST = __import__("re").compile(r"^(\s*(?:(?:lock|rep|repe|repz|repne|repnz|notrack|bnd)\s+)*)([A-Za-z.]\w*)")
+
+
+def canonical_spelling(seq: List[str]) -> List[str]:
+    def fix(line):
+        m = _FIRST.match(line)
+        if m and m.group(2).lower() in _SPELLING:
+            return line[:m.start(2)] + _SPELLING[m.group(2).lower()] + line[m.end(2):]
+        return line
+    return [fix(l) for l in seq]
+
+
 def cap_groups(records: List[dict], k: int, rng: random.Random) -> List[dict]:
     """At most k records per (arch, group), chosen at random; never duplicates."""
     by = defaultdict(list)
@@ -103,7 +119,10 @@ def length_match(attacks: List[dict], benign: List[dict], rng: random.Random,
                 break
             used.add(id(src))
             seq = [s for s in src["sequence"] if neardup.opcodes([s])]
-            st = rng.randrange(0, len(seq) - L + 1)
+            # a prefix or a suffix of the function, never a middle slice: attacks
+            # are whole short functions, so a benign window with no function
+            # boundary at all is recognisable by what it lacks (prologue, ret)
+            st = 0 if rng.random() < 0.5 else len(seq) - L
             out.append(dict(src, sequence=seq[st:st + L], windowed_from=len(seq)))
             need -= 1
     length_match.last_unfilled = unfilled
@@ -151,6 +170,7 @@ def write(path: Path, rows: List[dict]):
 
 
 def main(argv=None):
+    global ISAS
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--out", default=str(ROOT / "v57" / "data"))
     ap.add_argument("--group-cap", type=int, default=6)
@@ -158,7 +178,13 @@ def main(argv=None):
     ap.add_argument("--benign-ratio", type=float, default=1.0)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--dup-threshold", type=float, default=0.8)
+    ap.add_argument("--isas", nargs="+", default=["x86_64"], choices=["x86_64", "arm64"],
+                    help="default x86_64 only: arm64 fails check (f) (`blr` alone predicts leak/safe "
+                         "at 0.925, because the arm64 attacks are mostly indirect-branch and return "
+                         "classes and the benign pool rarely has an indirect call) and no arm64 "
+                         "record has an oracle or hardware label")
     a = ap.parse_args(argv)
+    ISAS = tuple(a.isas)
     rng = random.Random(a.seed)
     notes = []
 
@@ -191,6 +217,8 @@ def main(argv=None):
         benign += got
 
     recs = attacks + benign
+    for r in recs:
+        r["sequence"] = canonical_spelling(r["sequence"])
     cl = neardup.clusters(recs, a.dup_threshold)
     side = split_by_cluster(recs, cl, a.test_share, rng)
     for r, c, s in zip(recs, cl, side):
@@ -214,11 +242,15 @@ def main(argv=None):
     iso = checks.shortcut_accuracy(split["train"], split["test"], lambda r: r.get("arch"))
     lno = checks.shortcut_accuracy(split["train"], split["test"], checks.length_bin)
     md = ["# v57 dataset build", "", f"seed {a.seed}, group cap {a.group_cap}, test share "
-          f"{a.test_share}, near-duplicate threshold {a.dup_threshold}.", ""]
+          f"{a.test_share}, near-duplicate threshold {a.dup_threshold}, ISAs {list(ISAS)}.", ""]
     md += [f"- {n}" for n in notes]
     md += ["", f"- clusters: {len(set(cl))} over {len(recs)} records",
            f"- near-duplicate overlap train->test: {neardup.leak_rate(split['train'], split['test'], a.dup_threshold):.4f}",
            f"- shortcut balanced accuracy on leak/safe: ISA alone {iso:.3f}, length alone {lno:.3f}",
+           "- best single-opcode rule per ISA: " + "; ".join(
+               f"{arch}: `{b[0]}` => {b[1]} {b[2]:.3f}" for arch in ISAS
+               for b in [checks.best_single_opcode([r for r in split["train"] if r["arch"] == arch],
+                                                   [r for r in split["test"] if r["arch"] == arch])] if b),
            "", "## Leak label by ISA", "", table(lambda r: (r["arch"], r["leak"])),
            "", "## Mechanism by ISA", "", table(lambda r: stratum(dict(r, label=r["class9"]))),
            "", "## Source", "", table(lambda r: (r["leak"], Path(r["src"]).name)),

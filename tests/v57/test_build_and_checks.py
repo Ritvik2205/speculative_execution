@@ -147,3 +147,32 @@ def test_check_against_heldout_sets_catches_a_twin_of_a_heldout_program():
     twin = dict(_r("BENIGN", "x86_64", 12, "revizor_spectre_v1_violation-260925-134103_fenced", "imul"))
     errs = checks.run(_split(tr + [twin], te), heldout=held)
     assert any("(e)" in e and "violation-260925-134103" in e for e in errs)
+
+
+# --- lessons from the FastSpec / SPECDET replication --------------------------
+# Their classes differ in how the same instruction is SPELLED (compiler output
+# vs objdump). Ours did too: `retq`/`callq` in attacks, `ret`/`call` in benign.
+
+def test_spelling_is_canonical_so_the_disassembler_cannot_be_the_label():
+    seq = ["\tretq", "callq\t<fn>", "  jmpq *%rax", "leaveq", "movq %rax, %rbx", "ret", "rep retq"]
+    assert build.canonical_spelling(seq) == ["\tret", "call\t<fn>", "  jmp *%rax", "leave",
+                                             "movq %rax, %rbx", "ret", "rep ret"]
+
+
+def test_windowing_keeps_one_real_function_boundary():
+    rng = random.Random(0)
+    attacks = [_r("MDS", "x86_64", 12, f"a{i}") for i in range(40)]
+    benign = [{"label": "BENIGN", "arch": "x86_64", "group": f"b{i}",
+               "sequence": ["push x"] + [f"mov r{k}" for k in range(60)] + ["ret"]} for i in range(40)]
+    out = build.length_match(attacks, benign, rng)
+    starts = sum(r["sequence"][0] == "push x" for r in out)
+    ends = sum(r["sequence"][-1] == "ret" for r in out)
+    assert starts + ends == len(out) == 40 and 8 <= starts <= 32      # each window is a prefix or a suffix
+
+
+def test_check_single_opcode_must_not_predict_leak():
+    tr = ([dict(_r("SPECTRE_V1", "x86_64", n, f"a{n}"), sequence=["mov r"] * n + ["retq"]) for n in range(8, 48)]
+          + [dict(_r("BENIGN", "x86_64", n, f"b{n}"), sequence=["mov r"] * n + ["ret"]) for n in range(8, 48)])
+    te = ([dict(_r("SPECTRE_V1", "x86_64", n, f"c{n}"), sequence=["add r"] * n + ["retq"]) for n in range(8, 48)]
+          + [dict(_r("BENIGN", "x86_64", n, f"d{n}"), sequence=["sub r"] * n + ["ret"]) for n in range(8, 48)])
+    assert any("(f)" in e and "`ret" in e for e in checks.run(_split(tr, te)))   # `ret` or `retq`
