@@ -211,3 +211,13 @@ def test_score_files_with_the_same_name_are_seeds_of_one_row(tmp_path):
     assert [m["auc"] for m in rows["GINE"][("set", "all")]] == [1.0, 0.5]
     assert [m["auc"] for m in rows["other"][("set", "all")]] == [0.0]
     assert score._fmt(rows["GINE"][("set", "all")]).startswith("0.750 ± 0.354 (2 seeds)")
+
+
+def test_graph_model_sides_carry_the_architecture_of_their_pair_set():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("score_gine", "eval/pairs/score_gine.py")
+    sg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sg)
+    recs = sg.sides([{"pair_id": "a", "set": "linux_arm64", "leak": ["ldr x0, [x1]"], "safe": ["csdb"]},
+                     {"pair_id": "b", "set": "variants", "leak": ["l"], "safe": ["s"]}], "SAFE")
+    assert [r["arch"] for r in recs] == ["arm64", "arm64", "x86_64", "x86_64"]

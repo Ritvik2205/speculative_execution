@@ -30,7 +30,8 @@ SAFE_NAMES = ("SAFE", "BENIGN")
 
 def sides(pairs: list[dict], placeholder_label: str) -> list[dict]:
     """One record per pair side in the shape the dataset class expects."""
-    return [{"sequence": p[s], "arch": "x86_64", "label": placeholder_label,
+    arch = lambda p: "arm64" if p.get("set", "").endswith("arm64") else "x86_64"
+    return [{"sequence": p[s], "arch": arch(p), "label": placeholder_label,
              "pair_id": p["pair_id"], "side": s} for p in pairs for s in ("leak", "safe")]
 
 
