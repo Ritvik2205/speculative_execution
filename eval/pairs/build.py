@@ -7,7 +7,8 @@ Three sources
             the i5 in every run, safe = none); every (leaking, mitigated) variant
             combination of a program is a pair
   linux     kernel functions before and after a Spectre-v1 patch; the label is the
-            patch, not an oracle
+            patch, not an oracle. Built for x86_64 (set `linux`) and arm64
+            (set `linux_arm64`)
   injected  a minimal leaking core placed in a benign body, against
               inject   the same body without it
               reorder  the same body with the core's instructions reversed
@@ -34,7 +35,8 @@ OUT = ROOT / "eval" / "pairs" / "data"
 HW_SETS = {"variants": "eval/data/revizor_hwlabel_variants.jsonl",
            "counterfactual": "eval/data/revizor_hwlabel_cf_heldout.jsonl",
            "nofence": "eval/data/revizor_hwlabel_nofence_heldout.jsonl"}
-LINUX = "eval/data/realworld_patch_linux.jsonl"
+LINUX = ("eval/data/realworld_patch_linux.jsonl",          # x86_64 build
+         "eval/data/realworld_patch_linux_arm64.jsonl")    # the same fix commits built for arm64
 _BASE = re.compile(r"violation-\d{6}-\d{6}")
 
 
@@ -68,13 +70,16 @@ def hw_pairs(rows: list[dict], set_name: str) -> list[dict]:
 def linux_pairs(rows: list[dict]) -> list[dict]:
     by = defaultdict(dict)
     for r in rows:
-        by[(r["group"], r["file"], r["function"], r["compiler"], r["opt"])][r["side"]] = r
+        by[(r["group"], r["file"], r["function"], r["compiler"], r["opt"],
+            r.get("arch", "x86_64"))][r["side"]] = r
     out = []
     for key in sorted(by):
         s = by[key]
         if "pre" not in s or "post" not in s or s["pre"]["sequence"] == s["post"]["sequence"]:
             continue
-        out.append({"pair_id": f"lx_{_h(key)}", "set": "linux", "kind": f"{key[3]}{key[4]}",
+        x86 = key[5] == "x86_64"          # x86 ids predate the arch field: keep them stable
+        out.append({"pair_id": f"lx_{_h(key[:5] if x86 else key)}",
+                    "set": "linux" if x86 else f"linux_{key[5]}", "kind": f"{key[3]}{key[4]}",
                     "base": f"{key[0]}::{key[2]}", "cls": "SPECTRE_V1", "label_source": "patch",
                     "leak": s["pre"]["sequence"], "safe": s["post"]["sequence"]})
     return out
@@ -177,7 +182,7 @@ def main(argv=None):
         (OUT / "pairs_hw.jsonl").write_text("".join(json.dumps(p) + "\n" for p in ps))
         print(summary(ps))
     if "linux" in a.what:
-        ps = linux_pairs(_load(LINUX))
+        ps = linux_pairs([r for f in LINUX if (ROOT / f).exists() for r in _load(f)])
         (OUT / "pairs_linux.jsonl").write_text("".join(json.dumps(p) + "\n" for p in ps))
         print(summary(ps))
     if "injected" in a.what:

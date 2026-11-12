@@ -18,6 +18,8 @@
 #SBATCH --mem=16000                    # 16 GB RAM
 #SBATCH --time=02:00:00                # 2h wall limit (a run is ~10-20 min on GPU)
 #SBATCH --cpus-per-task=4
+#SBATCH --propagate=NONE              # head-node shells have ulimit -v 512000; inherited, it stops
+                                       # torch loading (libtorch_cpu.so: failed to map segment)
 #SBATCH --output=%x_%j.out             # <jobname>_<jobid>.out in submit dir
 
 set -euo pipefail

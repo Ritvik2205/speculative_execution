@@ -13,6 +13,7 @@ Trained scorers: v57 leak/safe training split, 1 seed(s) (deterministic at this 
 | injected inject | 364 | 1.000 | 0.000 | 0.500 | 0.500 | 0.500 | 0.515 | 0.563 |
 | injected reorder | 261 | 0.500 | 0.500 | 0.500 | 0.500 | 0.500 | 0.500 | 0.538 |
 | linux all | 105 | 0.090 | 0.910 | 0.510 | 0.510 | 0.510 | 0.519 | 0.371 |
+| linux_arm64 all | 85 | 0.047 | 0.953 | 0.965 | 0.500 | 0.500 | 0.500 | 0.512 |
 | nofence all | 92 | 0.511 | 0.489 | 0.500 | 0.500 | 0.549 | 0.538 | 0.511 |
 | variants all | 970 | 0.335 | 0.665 | 0.665 | 0.996 | 0.996 | 0.500 | 0.492 |
 
@@ -185,6 +186,23 @@ Trained scorers: v57 leak/safe training split, 1 seed(s) (deterministic at this 
 |---|---|---|---|
 | opcode counts, boosted (v57) | 0.038 | 0.943 | 0.010 |
 | opcode counts + bigrams, boosted (v57) | 0.029 | 0.962 | 0.000 |
+
+## linux_arm64 — all (85 pairs, 85 programs)
+
+| scorer | auc | wins / ties | auc per program |
+|---|---|---|---|
+| length | 0.047 | 0.04 / 0.02 | 0.047 |
+| shorter | 0.953 | 0.94 / 0.02 | 0.953 |
+| fewer fences | 0.965 | 0.94 / 0.05 | 0.965 |
+| no interior fence | 0.500 | 0.00 / 1.00 | 0.500 |
+| mechanism rule | 0.500 | 0.00 / 1.00 | 0.500 |
+| opcode counts, boosted (v57) | 0.500 | 0.01 / 0.98 | 0.500 |
+| opcode counts + bigrams, boosted (v57) | 0.512 | 0.02 / 0.98 | 0.512 |
+
+| at cutoff 0.5 | leak recall | safe specificity | both sides right |
+|---|---|---|---|
+| opcode counts, boosted (v57) | 0.694 | 0.318 | 0.012 |
+| opcode counts + bigrams, boosted (v57) | 0.071 | 0.929 | 0.000 |
 
 ## nofence — L1TF (43 pairs, 43 programs)
 

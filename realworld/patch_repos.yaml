@@ -31,6 +31,35 @@ linux:
   asm_cmd: "make {build_flags} {target}"
   # CVE -> class when it is not plain Spectre-v1 bounds-check bypass
   cve_labels: {}
+# The same fix commits built for arm64. The toolchain image is native arm64.
+# Own worktree: generated config state of one arch must not leak into the other's build.
+linux_arm64:
+  url_template: "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id={sha}"
+  licence: GPL-2.0-only
+  arch: arm64
+  compiler: gcc
+  opt: "-O2"
+  terms: [array_index_nospec, barrier_nospec, array_index_mask_nospec]
+  default_label: SPECTRE_V1
+  make_dir: ""
+  worktree: linux_arm64
+  # CROSS_COMPILE names the native compiler by triplet so the host-gcc shim below never touches
+  # target code (as in the x86 build). HOSTCFLAGS=-fcommon: old kernels' dtc defines yylloc twice,
+  # which gcc >= 10 rejects at link time; arm64 builds dtc, x86 does not.
+  env_prefix: >-
+    mkdir -p /tmp/shim &&
+    printf '#!/bin/sh\nexec /usr/bin/gcc "$@" -Wno-error -Wno-redundant-decls\n' > /tmp/shim/gcc &&
+    chmod +x /tmp/shim/gcc && export PATH=/tmp/shim:$PATH
+  ready_marker: include/config/auto.conf
+  regen_cmd: >-
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- HOSTCFLAGS=-fcommon defconfig &&
+    scripts/config --disable SECURITY_SELINUX &&
+    make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- HOSTCFLAGS=-fcommon olddefconfig
+  wipe_cmd: "rm -rf include/config include/generated"
+  prepare_cmd: "make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- HOSTCFLAGS=-fcommon prepare"
+  build_flags: "ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- HOSTCFLAGS=-fcommon KCFLAGS=-fasynchronous-unwind-tables"
+  asm_cmd: "make {build_flags} {target}"
+  cve_labels: {}
 xen:
   url_template: "https://xenbits.xen.org/gitweb/?p=xen.git;a=commit;h={sha}"
   licence: GPL-2.0-only

@@ -55,8 +55,19 @@ def threshold_accuracy(pairs: list[dict], scorer, cutoff: float) -> dict:
             "both_right": sum(a and b for a, b in zip(l, s)) / n}
 
 
+_ARM_BARRIER = {"csdb", "sb", "dsb", "isb"}
+
+
+def _barrier(line: str) -> bool:
+    """x86 *fence, or an arm64 barrier (csdb is spelled `hint #20` by older kernels)."""
+    t = line.lower().split()
+    if not t:
+        return False
+    return "fence" in t[0] or t[0] in _ARM_BARRIER or (t[0] == "hint" and t[1:2] == ["#20"])
+
+
 def _fences(seq):
-    return sum("fence" in x.lower() for x in seq)
+    return sum(map(_barrier, seq))
 
 
 def _interior(seq):
@@ -148,7 +159,7 @@ def main(argv=None):
         groups[(p["set"], "all")].append(p)
         if p["set"] == "injected":
             groups[(p["set"], p["kind"])].append(p)
-        elif p["set"] != "linux":
+        elif not p["set"].startswith("linux"):
             groups[(p["set"], p["cls"])].append(p)
     train = _load(a.train)
     rows = defaultdict(dict)            # scorer -> group -> [metrics per seed]

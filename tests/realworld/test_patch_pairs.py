@@ -283,3 +283,67 @@ def test_commit_cache_keyed(repo, tmp_path, capsys):
     pp.run("linux", d, out, repo_cfg=_cfg(), build_asm=fake, commits_file=cache)
     assert "ignoring commit cache" in capsys.readouterr().out
     assert json.loads(cache.read_text().splitlines()[0])["terms"] == TERMS
+
+
+# --- arm64 build of the same fix commits -----------------------------------
+
+def _cfg_arm64():
+    return dict(_cfg(), arch="arm64")
+
+
+def test_arm64_keeps_immediates_and_drops_slash_comments(repo, tmp_path):
+    d, shas = repo
+    pre = "\tldr\tw0, [x0, #4]\t// tmp91, x\n// comment only\n\tret\n"
+    post = "\tcmp\tx1, x2\t// i, n\n\tngc\tx3, xzr\n\thint\t#20\n\tldr\tw0, [x0, #4]\n\tret\n"
+    out = tmp_path / "o.jsonl"
+    pp.run("linux_arm64", d, out, repo_cfg=_cfg_arm64(), build_asm=_pair_fake(shas, pre, post))
+    recs = {r["side"]: r for r in map(json.loads, out.read_text().splitlines())}
+    assert recs["pre"]["arch"] == "arm64"
+    assert any("#4" in l for l in recs["pre"]["sequence"])
+    assert any("#20" in l for l in recs["post"]["sequence"])
+    assert all("//" not in l for r in recs.values() for l in r["sequence"])
+
+
+def test_arm64_comment_only_difference_is_no_asm_change(repo, tmp_path):
+    d, shas = repo
+    pre = "\tldr\tw0, [x0, #4]\t// tmp91\n\tret\n"
+    post = "\tldr\tw0, [x0, #4]\t// tmp77\n\tret\n"
+    out = tmp_path / "o.jsonl"
+    pp.run("linux_arm64", d, out, repo_cfg=_cfg_arm64(), build_asm=_pair_fake(shas, pre, post))
+    assert not out.read_text().strip()
+
+
+def _arch_repo(tmp_path, sub):
+    d = tmp_path / "r"
+    (d / sub).mkdir(parents=True)
+    _git(d, "init", "-q")
+    _git(d, "config", "user.email", "t@t")
+    _git(d, "config", "user.name", "t")
+    f = d / sub / "x.c"
+    f.write_text("int other(void)\n{\n\treturn 1;\n}\n\nint f(int i)\n{\n\treturn i;\n}\n")
+    _git(d, "add", "-A")
+    _git(d, "commit", "-q", "-m", "a")
+    f.write_text(f.read_text().replace("return i;", "return barrier_nospec(i);"))
+    _git(d, "commit", "-q", "-am", "b")
+    return d
+
+
+def test_arm64_build_skips_x86_files_and_builds_its_own(tmp_path):
+    called = []
+    d = _arch_repo(tmp_path, "arch/x86")
+    pp.run("linux_arm64", d, tmp_path / "o.jsonl", repo_cfg=_cfg_arm64(),
+           build_asm=lambda *a: called.append(a))
+    assert not called
+    sk = [json.loads(l) for l in (tmp_path / "skipped_linux_arm64.jsonl").read_text().splitlines()]
+    assert [s["reason"] for s in sk] == ["foreign_arch"]
+
+
+def test_arm64_build_takes_arm64_files(tmp_path):
+    called = []
+
+    def fake(clone, rev, cfile, cfg):
+        called.append(cfile)
+        return "f:\n\t.cfi_startproc\n\tret\n\t.cfi_endproc\n"
+    d = _arch_repo(tmp_path, "arch/arm64")
+    pp.run("linux_arm64", d, tmp_path / "o.jsonl", repo_cfg=_cfg_arm64(), build_asm=fake)
+    assert called and set(called) == {"arch/arm64/x.c"}

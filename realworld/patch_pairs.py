@@ -1,6 +1,6 @@
 """Real Spectre-v1 fixes as vulnerable(pre-patch)/mitigated(post-patch) function pairs.
 
-CLI: python3 -m realworld.patch_pairs --repo {linux,xen} --clone DIR --out FILE [--limit N]
+CLI: python3 -m realworld.patch_pairs --repo {linux,linux_arm64,xen} --clone DIR --out FILE [--limit N]
 """
 import argparse
 import hashlib
@@ -118,7 +118,7 @@ def _err(r) -> str:
 
 def _worktree(clone: Path, repo_cfg: dict) -> Path:
     clone = Path(clone).resolve()
-    wt = WORK_ROOT / clone.name
+    wt = WORK_ROOT / repo_cfg.get("worktree", clone.name)   # one build tree per target arch
     if not wt.exists():
         WORK_ROOT.mkdir(parents=True, exist_ok=True)
         git(clone, "worktree", "add", "--detach", str(wt), "HEAD")
@@ -140,11 +140,16 @@ def is_merge(clone, commit) -> bool:
     return len(git(clone, "rev-list", "--parents", "-n", "1", commit).split()) > 2
 
 
-def strip_comments(lines):
-    """Drop gcc -fverbose-asm `#` comments (trailing and comment-only lines)."""
+COMMENT = {"arm64": "//"}      # arm64 `#` starts an immediate, not a comment
+ARCH_DIR = {"x86_64": "x86", "arm64": "arm64"}
+
+
+def strip_comments(lines, arch="x86_64"):
+    """Drop gcc -fverbose-asm comments (trailing and comment-only lines)."""
+    mark = COMMENT.get(arch, "#")
     out = []
     for l in lines:
-        code = l.split("#", 1)[0].rstrip()
+        code = l.split(mark, 1)[0].rstrip()
         if code.strip():
             out.append(code)
     return out
@@ -253,8 +258,9 @@ def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=pr
             for cfile, fn in funcs:
                 if limit is not None and pairs >= limit:
                     break
-                if cfile.startswith("arch/") and not cfile.startswith("arch/x86/"):
-                    skip(commit, cfile, fn, "foreign_arch")  # x86_64 build only
+                own = f"arch/{ARCH_DIR.get(cfg['arch'], cfg['arch'])}/"
+                if cfile.startswith("arch/") and not cfile.startswith(own):
+                    skip(commit, cfile, fn, "foreign_arch")  # only the target's own arch/ builds
                     continue
                 t0 = time.time()
                 try:
@@ -267,7 +273,7 @@ def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=pr
                         if body is None:
                             missing = missing or side
                             continue
-                        bodies[side] = normalise(strip_comments(body))
+                        bodies[side] = normalise(strip_comments(body, cfg["arch"]))
                 except Exception as e:  # build failure of either side
                     skip(commit, cfile, fn, "build_failed", str(e)[-300:])
                     continue
@@ -284,7 +290,7 @@ def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=pr
                 for side, sha in (("pre", parent), ("post", commit)):
                     extra = dict(file=cfile, function=fn, commit=commit, side=side, subset=subset,
                                  compiler=cfg["compiler"], opt=cfg["opt"],
-                                 mitigation_detected=bool(has_mitigation(bodies[side])))
+                                 mitigation_detected=bool(has_mitigation(bodies[side], cfg["arch"])))
                     if side == "post":
                         extra["mitigated"] = True
                     rec = make_record(
@@ -307,7 +313,7 @@ def run(repo, clone, out, limit=None, repo_cfg=None, build_asm=build_asm, log=pr
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--repo", required=True, choices=["linux", "xen"])
+    ap.add_argument("--repo", required=True, choices=["linux", "linux_arm64", "xen"])
     ap.add_argument("--clone", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--limit", type=int)

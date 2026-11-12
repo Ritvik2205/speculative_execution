@@ -93,3 +93,22 @@ def test_threshold_accuracy_uses_a_fixed_cutoff_on_both_sides():
     pairs = [P("1", ["x"] * 5, ["x"]), P("2", ["x"] * 5, ["x"] * 4)]
     m = score.threshold_accuracy(pairs, len, cutoff=3)
     assert m == {"leak_recall": 1.0, "safe_specificity": 0.5, "balanced": 0.75, "both_right": 0.5}
+
+
+def test_linux_pairs_from_an_arm64_build_form_their_own_set():
+    rows = [dict(lx("pre", ["ldr w0, [x0]"]), arch="arm64"),
+            dict(lx("post", ["csdb", "ldr w0, [x0]"]), arch="arm64"),
+            lx("pre", ["a"], fn="g"), lx("post", ["a", "b"], fn="g")]
+    ps = {p["set"]: p for p in build.linux_pairs(rows)}
+    assert set(ps) == {"linux", "linux_arm64"}
+    assert ps["linux_arm64"]["leak"] == ["ldr w0, [x0]"]
+    assert ps["linux"]["pair_id"] != ps["linux_arm64"]["pair_id"]
+
+
+def test_fence_count_sees_arm64_barriers():
+    f = score.SCORERS["fewer fences"]
+    plain = ["ldr w0, [x0, #4]", "ret"]
+    for barrier in ("csdb", "hint #20", "\thint\t#20", "sb", "dsb nsh", "isb"):
+        assert f(plain) > f([barrier] + plain), barrier
+    assert f(plain) == f(["sbfx x0, x1, #2, #3"] + plain)      # not a barrier
+    assert f(["movq (%rdi), %rax"]) > f(["lfence", "movq (%rdi), %rax"])
