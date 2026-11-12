@@ -34,6 +34,35 @@ def sides(pairs: list[dict], placeholder_label: str) -> list[dict]:
              "pair_id": p["pair_id"], "side": s} for p in pairs for s in ("leak", "safe")]
 
 
+def load_model(checkpoint, metrics, train_data, test_data, acc_tol):
+    """Checkpoint + the preprocessing it was trained with, after the reproduce check.
+    Returns (hv module, model, label_to_id, feature names, dataset kwargs, safe label)."""
+    import torch
+    import score_hwlabel_variants as hv
+    labels = sorted({r["label"] for r in hv.load_jsonl(Path(train_data)) if r.get("label", "UNKNOWN") != "UNKNOWN"})
+    label_to_id = {l: i for i, l in enumerate(labels)}
+    safe = [l for l in labels if l in SAFE_NAMES]
+    if len(safe) != 1:
+        raise SystemExit(f"ERROR: need exactly one safe class among {labels}")
+    mpath = Path(metrics) if metrics else Path(checkpoint).with_name("gine_metrics.json")
+    expected, model_cfg, ds_kw, hc_subset, mech = hv.load_run_config(mpath)
+    if hc_subset == "neutral":
+        from inline_features import NEUTRAL_FEATURES
+        feats = list(NEUTRAL_FEATURES)
+    else:
+        feats = list(hv.get_feature_names())
+    if mech:
+        from inline_features import MECH_FEATURE_NAMES
+        feats += MECH_FEATURE_NAMES
+    ckpt = torch.load(checkpoint, map_location=hv.DEVICE, weights_only=False)
+    state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+    probe = hv.GINEDatasetV47(hv.load_jsonl(Path(test_data))[:1], label_to_id, feats, **ds_kw)
+    model = hv.build_model(len(labels), len(feats), probe.node_feature_dim, model_cfg)
+    model.load_state_dict(state)
+    hv.reproduce_gate(model, label_to_id, feats, Path(test_data), ds_kw, expected, acc_tol)
+    return hv, model, label_to_id, feats, ds_kw, safe[0]
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--checkpoint", required=True)
@@ -44,31 +73,9 @@ def main(argv=None) -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--acc-tol", type=float, default=1e-3)
     a = ap.parse_args(argv)
-
-    import torch
-    import score_hwlabel_variants as hv
-    labels = sorted({r["label"] for r in hv.load_jsonl(Path(a.train_data)) if r.get("label", "UNKNOWN") != "UNKNOWN"})
-    label_to_id = {l: i for i, l in enumerate(labels)}
-    safe = [l for l in labels if l in SAFE_NAMES]
-    if len(safe) != 1:
-        print(f"ERROR: need exactly one safe class among {labels}", file=sys.stderr)
-        return 3
-    mpath = Path(a.metrics) if a.metrics else Path(a.checkpoint).with_name("gine_metrics.json")
-    expected, model_cfg, ds_kw, hc_subset, mech = hv.load_run_config(mpath)
-    if hc_subset == "neutral":
-        from inline_features import NEUTRAL_FEATURES
-        feats = list(NEUTRAL_FEATURES)
-    else:
-        feats = list(hv.get_feature_names())
-    if mech:
-        from inline_features import MECH_FEATURE_NAMES
-        feats += MECH_FEATURE_NAMES
-    ckpt = torch.load(a.checkpoint, map_location=hv.DEVICE, weights_only=False)
-    state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
-    probe = hv.GINEDatasetV47(hv.load_jsonl(Path(a.test_data))[:1], label_to_id, feats, **ds_kw)
-    model = hv.build_model(len(labels), len(feats), probe.node_feature_dim, model_cfg)
-    model.load_state_dict(state)
-    hv.reproduce_gate(model, label_to_id, feats, Path(a.test_data), ds_kw, expected, a.acc_tol)
+    hv, model, label_to_id, feats, ds_kw, safe_label = load_model(
+        a.checkpoint, a.metrics, a.train_data, a.test_data, a.acc_tol)
+    safe = [safe_label]
 
     files = a.pairs or sorted(str(p) for p in (ROOT / "eval" / "pairs" / "data").glob("pairs_*.jsonl"))
     pairs = [p for f in files for p in hv.load_jsonl(Path(f))]

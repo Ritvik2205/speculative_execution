@@ -1,4 +1,5 @@
 """Pair benchmark: two sides that share everything except the property."""
+import json
 import random
 
 from eval.pairs import build, score
@@ -112,3 +113,101 @@ def test_fence_count_sees_arm64_barriers():
         assert f(plain) > f([barrier] + plain), barrier
     assert f(plain) == f(["sbfx x0, x1, #2, #3"] + plain)      # not a barrier
     assert f(["movq (%rdi), %rax"]) > f(["lfence", "movq (%rdi), %rax"])
+
+
+# --- signal-awareness: what does a model need to keep calling a program leaking? ---
+
+from eval.pairs import signal_probe as signal
+
+
+def test_reduce_keeps_only_what_the_model_needs():
+    needs_fence = lambda s: 1.0 if "lfence" in s else 0.0
+    assert signal.reduce(["a", "lfence", "b", "c"], needs_fence) == ["lfence"]
+    assert signal.reduce(["a", "b"], needs_fence) is None        # never called leaking
+
+
+def test_reduce_keeps_order_when_the_model_needs_several():
+    both = lambda s: float("load" in s and "use" in s)
+    assert signal.reduce(["x", "load", "y", "use", "z"], both) == ["load", "use"]
+
+
+def test_leak_capable_needs_two_memory_touching_instructions():
+    assert not signal.leak_capable(["lfence"])
+    assert not signal.leak_capable(["movq (%rdi), %rax", "addq %rax, %rbx"])
+    assert signal.leak_capable(["movq (%rdi), %rax", "movb (%rsi,%rax), %cl"])
+    assert signal.leak_capable(["pushq %rax", "ret"])             # implicit stack accesses count
+    assert not signal.leak_capable(["leaq 8(%rdi), %rax", "leaq (%rsi,%rax), %rcx"])   # lea reads nothing
+
+
+def test_summary_counts_reduced_programs_that_cannot_leak():
+    fence = lambda s: float("lfence" in s)
+    rows = signal.run([["a", "lfence"], ["movq (%rdi), %rax", "lfence", "movb (%rsi,%rax), %cl"], ["a"]], fence)
+    s = signal.summary(rows)
+    assert s["programs"] == 3 and s["called_leaking"] == 2
+    assert s["cannot_leak"] == 2 and s["median_reduced_len"] == 1
+
+
+# --- LLM baseline harness (no network: a fake completion function) ---
+
+from eval.pairs import score_llm
+
+
+def test_llm_answers_are_parsed_from_the_final_line_only():
+    assert score_llm.parse_probability("maybe 0.9?\nPROBABILITY: 0.25") == 0.25
+    assert score_llm.parse_probability("PROBABILITY: 1.5") is None
+    assert score_llm.parse_probability("no verdict") is None and score_llm.parse_probability(None) is None
+    assert score_llm.parse_choice("ANSWER: A is tempting\nANSWER: B") == "B"
+    assert score_llm.parse_choice("B") is None
+
+
+def _two_pairs():
+    return [{"pair_id": "p1", "set": "variants", "kind": "k", "leak": ["load", "use"], "safe": ["load", "lfence", "use"]},
+            {"pair_id": "p2", "set": "linux", "kind": "k", "leak": ["x"], "safe": ["x", "and"]}]
+
+
+def test_single_protocol_scores_each_distinct_sequence_once_and_drops_unanswered_pairs():
+    calls = []
+
+    def fake(system, prompt):
+        calls.append(prompt)
+        if "lfence" in prompt:
+            return "PROBABILITY: 0.1"
+        return None if "```\nx\n```" in prompt else "PROBABILITY: 0.8"
+    rows, stats = score_llm.run_single(_two_pairs(), fake)
+    assert stats == {"calls": 4, "unparsed": 1}
+    assert {(r["pair_id"], r["side"]): r["score"] for r in rows} == {("p1", "leak"): 0.8, ("p1", "safe"): 0.1}
+
+
+def test_choice_protocol_asks_both_orders_so_a_position_habit_scores_half():
+    always_a = lambda system, prompt: "ANSWER: A"
+    rows, stats = score_llm.run_choice(_two_pairs()[:1], always_a)
+    assert stats["calls"] == 2
+    assert {r["side"]: r["score"] for r in rows} == {"leak": 0.5, "safe": 0.5}
+    sees_fence = lambda system, prompt: "ANSWER: " + ("B" if prompt.index("lfence") < prompt.index("Sequence B") else "A")
+    rows, _ = score_llm.run_choice(_two_pairs()[:1], sees_fence)
+    assert {r["side"]: r["score"] for r in rows} == {"leak": 1.0, "safe": 0.0}
+
+
+def test_plan_counts_calls_before_anything_is_sent():
+    assert score_llm.plan(_two_pairs(), "single", 3) == 12
+    assert score_llm.plan(_two_pairs(), "choice", 3) == 12
+
+
+# --- several score files under one name = several seeds of one model ---
+
+def test_score_files_with_the_same_name_are_seeds_of_one_row(tmp_path):
+    pairs = [{"pair_id": "a", "base": "b1", "leak": ["l"], "safe": ["s"]},
+             {"pair_id": "b", "base": "b2", "leak": ["l2"], "safe": ["s2"]}]
+
+    def write(name, leak_a, leak_b):
+        p = tmp_path / name
+        p.write_text("".join(json.dumps(r) + "\n" for r in [
+            {"pair_id": "a", "side": "leak", "score": leak_a}, {"pair_id": "a", "side": "safe", "score": 0.5},
+            {"pair_id": "b", "side": "leak", "score": leak_b}, {"pair_id": "b", "side": "safe", "score": 0.5}]))
+        return str(p)
+    specs = [f"GINE={write('s0.jsonl', 0.9, 0.9)}", f"GINE={write('s1.jsonl', 0.9, 0.1)}",
+             f"other={write('o.jsonl', 0.1, 0.1)}"]
+    rows = score.score_files({("set", "all"): pairs}, specs)
+    assert [m["auc"] for m in rows["GINE"][("set", "all")]] == [1.0, 0.5]
+    assert [m["auc"] for m in rows["other"][("set", "all")]] == [0.0]
+    assert score._fmt(rows["GINE"][("set", "all")]).startswith("0.750 ± 0.354 (2 seeds)")

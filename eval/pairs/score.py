@@ -134,6 +134,21 @@ def file_scorer(path):
     return m
 
 
+def score_files(groups: dict, specs: list[str]) -> dict:
+    """`NAME=file` specs -> {NAME: {group: [metrics per file]}}. Files that share a NAME are
+    seeds of one model. A pair counts only if the file scores both of its sides."""
+    out = defaultdict(lambda: defaultdict(list))
+    for spec in specs:
+        name, _, path = spec.partition("=")
+        m = file_scorer(path)
+        for g, ps in groups.items():
+            have = [p for p in ps if (p["pair_id"], "leak") in m and (p["pair_id"], "safe") in m]
+            if have:
+                look = {tuple(p[s]): m[(p["pair_id"], s)] for p in have for s in ("leak", "safe")}
+                out[name][g].append(pair_metrics(have, lambda s: look[tuple(s)]))
+    return out
+
+
 def _load(p):
     return [json.loads(l) for l in open(p) if l.strip()]
 
@@ -142,7 +157,8 @@ def _fmt(ms: list[dict]) -> str:
     """One cell: mean over seeds of auc (wins/ties share), auc_by_base."""
     g = lambda k: st.mean(m[k] for m in ms)
     n = ms[0]["n"]
-    return f"{g('auc'):.3f} | {g('wins') / n:.2f} / {g('ties') / n:.2f} | {g('auc_by_base'):.3f}"
+    spread = f" ± {st.stdev(m['auc'] for m in ms):.3f} ({len(ms)} seeds)" if len(ms) > 1 else ""
+    return f"{g('auc'):.3f}{spread} | {g('wins') / n:.2f} / {g('ties') / n:.2f} | {g('auc_by_base'):.3f}"
 
 
 def main(argv=None):
@@ -184,14 +200,8 @@ def main(argv=None):
             for g, ps in groups.items():
                 rows[name].setdefault(g, []).append(pair_metrics(ps, f))
                 thr[name].setdefault(g, []).append(threshold_accuracy(ps, f, 0.5))
-    for spec in a.scores:
-        name, _, path = spec.partition("=")
-        m = file_scorer(path)
-        for g, ps in groups.items():
-            have = [p for p in ps if (p["pair_id"], "leak") in m and (p["pair_id"], "safe") in m]
-            if have:
-                look = {tuple(p[s]): m[(p["pair_id"], s)] for p in have for s in ("leak", "safe")}
-                rows[name][g] = [pair_metrics(have, lambda s: look[tuple(s)])]
+    for name, per_group in score_files(groups, a.scores).items():
+        rows[name].update(per_group)
     md = ["# Pair benchmark", "",
           "Each pair: a leaking sequence and a non-leaking one that share everything except the "
           "property. Cell = `auc | wins / ties | auc averaged per program`; auc is the share of "

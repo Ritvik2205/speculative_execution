@@ -219,3 +219,22 @@ def test_cleaned_revizor_program_assembles_and_runs():
     r = se_i.check(body, n_pairs=1)
     # the point is that it is executable and adjudicated, not which verdict
     assert r["verdict"] in (LEAK, SAFE, ARCH_LEAK), r
+
+
+# --- lenient mode: an access that cannot be mapped is observed and skipped ---
+
+# A wild architectural access before the gadget: strict mode cannot run this at all.
+WILD_THEN_V1 = ["movq $-64, %rbx", "movq (%rbx), %rsi"] + V1
+
+
+def test_lenient_mode_runs_past_an_unmappable_architectural_access():
+    assert SpeculativeEmulator("x86_64").check(WILD_THEN_V1)["verdict"] == "unrunnable"
+    assert SpeculativeEmulator("x86_64", lenient=True).check(WILD_THEN_V1)["verdict"] == LEAK
+
+
+def test_lenient_mode_keeps_the_basic_verdicts():
+    se = SpeculativeEmulator("x86_64", lenient=True)
+    assert se.check(V1)["verdict"] == LEAK
+    assert se.check(BENIGN)["verdict"] == "safe"
+    fenced = V1[:3] + ["lfence"] + V1[3:]
+    assert se.check(fenced)["verdict"] == "safe"

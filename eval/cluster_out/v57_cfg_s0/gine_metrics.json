@@ -1,0 +1,103 @@
+{
+  "test_accuracy": 0.9632139399806389,
+  "best_epoch": 14,
+  "total_params": 614971,
+  "num_classes": 2,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 3733,
+  "val_count": 335,
+  "test_count": 1033,
+  "best_val_acc": 0.9880597014925373,
+  "final_edge_type_scales": {
+    "DATA_DEP": 1.054018497467041,
+    "CONTROL_FLOW": 1.012007713317871,
+    "SPEC_CONDITIONAL": 1.0125501155853271,
+    "SPEC_INDIRECT": 0.9359710216522217,
+    "SPEC_RETURN": 1.013482928276062,
+    "MEMORY_ORDER": 1.0787906646728516,
+    "CACHE_TEMPORAL": 1.0515717267990112,
+    "FENCE_BOUNDARY": 1.0361911058425903,
+    "RSB_CHAIN": 1.048050880432129
+  },
+  "classification_report": {
+    "LEAK": {
+      "precision": 0.9691714836223507,
+      "recall": 0.9580952380952381,
+      "f1-score": 0.9636015325670498,
+      "support": 525.0
+    },
+    "SAFE": {
+      "precision": 0.9571984435797666,
+      "recall": 0.968503937007874,
+      "f1-score": 0.9628180039138943,
+      "support": 508.0
+    },
+    "accuracy": 0.9632139399806389,
+    "macro avg": {
+      "precision": 0.9631849636010587,
+      "recall": 0.963299587551556,
+      "f1-score": 0.9632097682404721,
+      "support": 1033.0
+    },
+    "weighted avg": {
+      "precision": 0.9632834832916317,
+      "recall": 0.9632139399806389,
+      "f1-score": 0.9632162154752754,
+      "support": 1033.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.9228502544870077,
+    "epoch1_val_acc": 0.9671641791044776
+  },
+  "args": {
+    "data": null,
+    "train_data": "v57/data/v57_leak_train.jsonl",
+    "test_data": "v57/data/v57_leak_test.jsonl",
+    "output_dir": "eval/cluster_out/v57_cfg_s0",
+    "viz_dir": "eval/cluster_out/v57_cfg_s0",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "class_boost": null,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "embed",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "all",
+    "mech_features": false,
+    "drop_nops": false,
+    "node_drop": 0.0,
+    "no_handcrafted": false,
+    "node_feature_mode": "hand",
+    "mlm_path": null,
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "x86_mem_reads": false,
+    "cfg_control_edges": true,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 0
+  }
+}

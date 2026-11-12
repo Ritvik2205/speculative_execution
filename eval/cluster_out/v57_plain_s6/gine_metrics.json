@@ -1,0 +1,103 @@
+{
+  "test_accuracy": 0.9583736689254598,
+  "best_epoch": 3,
+  "total_params": 614971,
+  "num_classes": 2,
+  "node_feat_dim": 41,
+  "num_edge_types": 9,
+  "global_feat_dim": 5,
+  "arch_emb_dim": 8,
+  "split_mode": "presplit_group_excluded_test__val_stratified_group_kfold_n10",
+  "val_split_protocol": "stratified_group_kfold_n10",
+  "train_count": 3733,
+  "val_count": 335,
+  "test_count": 1033,
+  "best_val_acc": 0.9880597014925373,
+  "final_edge_type_scales": {
+    "DATA_DEP": 1.0152982473373413,
+    "CONTROL_FLOW": 0.9859561920166016,
+    "SPEC_CONDITIONAL": 1.0191985368728638,
+    "SPEC_INDIRECT": 0.9924240112304688,
+    "SPEC_RETURN": 0.9969431757926941,
+    "MEMORY_ORDER": 1.0586955547332764,
+    "CACHE_TEMPORAL": 0.9898848533630371,
+    "FENCE_BOUNDARY": 1.001838207244873,
+    "RSB_CHAIN": 1.0152368545532227
+  },
+  "classification_report": {
+    "LEAK": {
+      "precision": 0.9652509652509652,
+      "recall": 0.9523809523809523,
+      "f1-score": 0.9587727708533078,
+      "support": 525.0
+    },
+    "SAFE": {
+      "precision": 0.9514563106796117,
+      "recall": 0.9645669291338582,
+      "f1-score": 0.9579667644183774,
+      "support": 508.0
+    },
+    "accuracy": 0.9583736689254598,
+    "macro avg": {
+      "precision": 0.9583536379652884,
+      "recall": 0.9584739407574052,
+      "f1-score": 0.9583697676358426,
+      "support": 1033.0
+    },
+    "weighted avg": {
+      "precision": 0.9584671467395929,
+      "recall": 0.9583736689254598,
+      "f1-score": 0.958376399828192,
+      "support": 1033.0
+    }
+  },
+  "acc_curve_summary": {
+    "epoch1_train_acc_train_mode": 0.9298151620680418,
+    "epoch1_val_acc": 0.9731343283582089
+  },
+  "args": {
+    "data": null,
+    "train_data": "v57/data/v57_leak_train.jsonl",
+    "test_data": "v57/data/v57_leak_test.jsonl",
+    "output_dir": "eval/cluster_out/v57_plain_s6",
+    "viz_dir": "eval/cluster_out/v57_plain_s6",
+    "epochs": 60,
+    "patience": 10,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "jk_mode": "cat",
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "dropout": 0.5,
+    "lambda_con": 0.5,
+    "temperature": 0.07,
+    "hard_neg_weight": 2.0,
+    "class_boost": null,
+    "grad_accum": 2,
+    "no_virtual_node": false,
+    "no_strip": false,
+    "speculative_window": 20,
+    "arch_emb_dim": 8,
+    "arch_mode": "embed",
+    "arch_lambda": 1.0,
+    "handcrafted_subset": "all",
+    "mech_features": false,
+    "drop_nops": false,
+    "node_drop": 0.0,
+    "no_handcrafted": false,
+    "node_feature_mode": "hand",
+    "mlm_path": null,
+    "use_spec_builder": true,
+    "taint_mode": "shift",
+    "mem_order_edges": false,
+    "x86_mem_reads": false,
+    "cfg_control_edges": false,
+    "cfg_spec_edges": false,
+    "val_split": "group",
+    "val_fraction": 0.1,
+    "val_split_seed": 42,
+    "log_train_eval_acc": false,
+    "seed": 6
+  }
+}

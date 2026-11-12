@@ -154,6 +154,7 @@ _TIMEOUT_US = 50_000
 _LOW_BASE = 0x0
 _LOW_SIZE = 0x0010_0000
 _LINE_BITS = 6                        # 64-byte cache line
+_MAX_SKIPS = 32                       # lenient mode: unmappable accesses stepped over per run
 
 # Mnemonics that serialize speculation, per ISA. A forced speculative window
 # stops when it reaches one. x86: Spectector's x86_table.pl maps lfence, mfence
@@ -164,6 +165,18 @@ _BARRIERS = {
     "arm64": {"dsb", "isb", "csdb", "dmb"},
     "riscv64": {"fence", "fence.i", "fence.tso"},
 }
+
+
+def _mem_faults():
+    import unicorn as uc
+    return {uc.UC_ERR_READ_UNMAPPED, uc.UC_ERR_WRITE_UNMAPPED, uc.UC_ERR_MAP,
+            uc.UC_ERR_READ_PROT, uc.UC_ERR_WRITE_PROT}
+
+
+try:
+    _MEM_FAULTS = _mem_faults()
+except ImportError:                   # unicorn missing: the module still imports
+    _MEM_FAULTS = set()
 
 
 class _Arch:
@@ -218,9 +231,14 @@ class Branch:
 class SpeculativeEmulator:
     def __init__(self, arch: str, window: int = _DEFAULT_WINDOW,
                  observe: str = "lines+pc", precheck: Optional[PreCheck] = None,
-                 intel_syntax: bool = False):
+                 intel_syntax: bool = False, lenient: bool = False):
         self.arch = _Arch(arch)
         self.intel_syntax = intel_syntax
+        # lenient: an access to an address that cannot be mapped is recorded as an
+        # observation and the instruction is skipped, instead of ending the run. This is the
+        # memory model of the symbolic oracle (every address is readable). Without it a wild
+        # access anywhere before the gadget makes the whole program unrunnable.
+        self.lenient = lenient
         self.window = window
         if observe not in ("lines+pc", "lines", "exact+pc"):
             raise ValueError("observe must be lines+pc, lines or exact+pc")
@@ -389,6 +407,9 @@ class SpeculativeEmulator:
                 obs.append(("p", address))
 
         def _unmapped(_mu, _type, address, _size, _value, _user):
+            if self.lenient and recording[0]:
+                obs.append(("u", address >> _LINE_BITS
+                            if self.observe != "exact+pc" else address))
             if mapped[0] >= _MAX_DEMAND_PAGES:
                 return False
             base = address & ~(_PAGE - 1)
@@ -406,14 +427,35 @@ class SpeculativeEmulator:
                     _unmapped)
 
     # -- the two traces --------------------------------------------------
+    def _run(self, mu, start: int, end: int, count: int, code: bytes) -> None:
+        """emu_start that, in lenient mode, steps over an instruction whose memory access
+        cannot be mapped (at most _MAX_SKIPS times) and carries on. Strict mode: plain
+        emu_start. The instruction budget is approximate after a skip (each skip costs one)."""
+        import unicorn as uc
+        if not self.lenient:
+            mu.emu_start(start, end, timeout=_TIMEOUT_US, count=count)
+            return
+        import capstone as cs
+        md = cs.Cs(self.arch.cs_arch, self.arch.cs_mode)
+        sizes = {i.address: i.size for i in md.disasm(code, _CODE_BASE)}
+        pc, left, skips = start, count, 0
+        while left > 0 and _CODE_BASE <= pc < end:
+            try:
+                mu.emu_start(pc, end, timeout=_TIMEOUT_US, count=left)
+                return
+            except uc.UcError as e:
+                at = mu.reg_read(self.arch.pc)
+                if e.errno not in _MEM_FAULTS or at not in sizes or skips >= _MAX_SKIPS:
+                    raise
+                pc, left, skips = at + sizes[at], left - 1, skips + 1
+
     def _arch_trace(self, code: bytes, sandbox: bytes) -> tuple[Optional[list], str]:
         import unicorn as uc
         mu = self._new_uc(code, sandbox)
         obs, mapped, rec = [], [0], [True]
         self._attach_hooks(mu, obs, mapped, rec)
         try:
-            mu.emu_start(_CODE_BASE, _CODE_BASE + len(code),
-                         timeout=_TIMEOUT_US, count=_MAX_INSNS)
+            self._run(mu, _CODE_BASE, _CODE_BASE + len(code), _MAX_INSNS, code)
         except uc.UcError as e:
             return None, f"architectural run faulted: {e}"
         return obs, ""
@@ -441,7 +483,7 @@ class SpeculativeEmulator:
             try:
                 mu = self._new_uc(code, sandbox)
                 # 1. reach the point
-                mu.emu_start(_CODE_BASE, br.addr, timeout=_TIMEOUT_US, count=_MAX_INSNS)
+                self._run(mu, _CODE_BASE, br.addr, _MAX_INSNS, code)
                 if mu.reg_read(self.arch.pc) != br.addr:
                     continue          # point not reached on this input
                 # 2. resolve the architectural successor
@@ -466,12 +508,10 @@ class SpeculativeEmulator:
                     # context restore is needed.
                     mu2 = self._new_uc(code, sandbox)
                     self._attach_hooks(mu2, obs, mapped, rec, barriers)
-                    mu2.emu_start(_CODE_BASE, br.addr, timeout=_TIMEOUT_US,
-                                  count=_MAX_INSNS)
+                    self._run(mu2, _CODE_BASE, br.addr, _MAX_INSNS, code)
                     rec[0] = True
                     mu2.reg_write(self.arch.pc, mispredicted)
-                    mu2.emu_start(mispredicted, end, timeout=_TIMEOUT_US,
-                                  count=self.window)
+                    self._run(mu2, mispredicted, end, self.window, code)
                 except uc.UcError:
                     # a fault inside the speculative window is normal: on real
                     # hardware the misspeculated path is squashed. Keep what it
