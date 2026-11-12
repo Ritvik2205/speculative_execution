@@ -136,3 +136,42 @@ Then aggregate exactly as the local plan does: run `eval/robustness_suite.py` on
 - **You get no GPU unless you ask** (`--gres=gpu:1`) and no GPU on the default partition — always set `--partition` and `--gres`.
 - Set `--mem` and `--time` (train.sbatch sets 16 GB / 2h); keep jobs short and checkpointable.
 - On a real GPU each run is ~10–20 min (vs ~45 min CPU locally), so the full 12-cell grid + 9 ablations finish in well under an hour of wall-clock across the queue.
+
+## House rules (from https://computing.help.inf.ed.ac.uk/cluster-tips, checked 2026-11-12)
+
+What the School asks, and how this repository complies:
+
+| Rule on the tips page | What we do |
+|---|---|
+| "Please do not run jobs on the head node!" | Head node gets `sbatch`, one `sacct`/`squeue` call when a result is due, and file copies. No `git status`, no Python, no read tests. |
+| The shared filesystem is "a bad place for your computing jobs to use as working space"; copy code and data to scratch, write there, copy results back at the end | `array_bundle.sbatch`: one tar copied to `/disk/scratch/$USER/…`, results rsynced back once. |
+| Small files: "copy them in small batches (1000 files or less)"; bundle before transfer | The bundle is a single file (about 780 files inside, 34 MB). `train.sbatch` copied about 25,000 files per job after `hw/` was added; it now excludes `hw/`, `tests/`, `docs/`, but prefer the bundle. |
+| "Please delete your files from scratch space as soon as you can" | `trap … EXIT` removes the scratch directory on success and on failure. |
+| "Please set resource limits for your jobs"; "set the maximum time to a few hours" | 16 GB, 4 CPUs, 1 GPU, 2 h. |
+| "Use array jobs where you can", with a `%` throttle | `--array=0-N%4`; task list in a TSV. |
+| "Make your jobs short and fault tolerant" | One run is 10–20 min; reruns overwrite one result folder. |
+
+Not stated on the page but followed here:
+
+- No polling loops against the head node. Check once, when the jobs are due (queue wait plus
+  20 minutes for a run), with a single `sacct` call. Slurm-Web (icfwebview.inf.ed.ac.uk, inside
+  the firewall) shows the queue without touching the head node.
+- Submit with `--propagate=NONE`: the head-node shell's `ulimit -v 512000` is otherwise inherited
+  and torch cannot load.
+- Never commit from the cluster checkout; results come back with `rsync` of `*.json`/`*.jsonl`.
+- Known remaining load: the conda environment lives on the shared filesystem, so every job
+  reads its libraries from there. Packing it into the bundle (conda-pack) would remove that.
+
+Building and submitting:
+
+```bash
+# laptop: one file with the code and the two datasets the jobs read
+git archive --format=tar -o bundle.tar HEAD -- v54 v57 spec scripts eval/pairs eval/mechanism \
+    eval/score_hwlabel_variants.py eval/cluster gen ':(glob,exclude)**/*.pt' ':(exclude)v54/data' \
+    ':(exclude)gen/data' ':(exclude)gen/step2_runs' ':(glob,exclude)gen/**/*.jsonl' ':(glob,exclude)v54/viz*/**'
+scp bundle.tar tasks.tsv eval/cluster/array_bundle.sbatch icf:specexec_jobs/
+# head node: one command
+sbatch --propagate=NONE --array=0-21%4 \
+    --export=ALL,BUNDLE=$HOME/specexec_jobs/bundle.tar,TASKS=$HOME/specexec_jobs/tasks.tsv \
+    ~/specexec_jobs/array_bundle.sbatch
+```
