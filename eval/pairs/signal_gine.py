@@ -34,13 +34,20 @@ def main(argv=None) -> int:
     hv, model, label_to_id, feats, ds_kw, safe = score_gine.load_model(
         a.checkpoint, a.metrics, a.train_data, a.test_data, a.acc_tol)
     cache = {}
+    unscored = []
 
     def score_fn(seq):
         k = tuple(seq)
         if k not in cache:
             rec = [{"sequence": list(seq), "arch": "x86_64", "label": safe}]
             _, prob = hv.predict(model, hv.GINEDatasetV47(rec, label_to_id, feats, **ds_kw))
-            cache[k] = float(1.0 - prob[0][label_to_id[safe]])
+            # The dataset drops a program it cannot turn into a graph (everything stripped as
+            # boilerplate). Such a program gets no prediction, so it is not "called leaking".
+            if len(prob) == 0:
+                unscored.append(k)
+                cache[k] = 0.0
+            else:
+                cache[k] = float(1.0 - prob[0][label_to_id[safe]])
         return cache[k]
     res = {}
     for name, seqs in sig.groups().items():
@@ -48,8 +55,9 @@ def main(argv=None) -> int:
         random.Random(0).shuffle(seqs)
         res[name] = sig.summary(sig.run(seqs[:a.limit], score_fn))
         print(name, {k: v for k, v in res[name].items() if k != "top_reduced"}, flush=True)
+    res["_meta"] = {"model_calls": len(cache), "unscored_programs": len(unscored)}
     Path(a.out).write_text(json.dumps(res, indent=1))
-    print(f"model calls: {len(cache)} -> {a.out}")
+    print(f"model calls: {len(cache)} (no prediction: {len(unscored)}) -> {a.out}")
     return 0
 
 
