@@ -136,7 +136,11 @@ Question: can `oracle/spec_emulator.py` reproduce labels we already trust?
   disagreement listed by cause.
 - Cost: one to two days. Laptop only.
 
-### W4. Oracle labels for ARM pairs (only if W3 passes)
+**Result 2026-11-12: KILL.** Leaking sides called leaking 554/824 (0.672); safe sides called safe
+771/824 (0.936); 158 pairs not runnable on each side. The emulator is not used as an oracle.
+Report: `oracle/SPEC_EMULATOR_VALIDATION.md`.
+
+### W4. Oracle labels for ARM pairs — DROPPED (W3 ended in KILL)
 
 - Build ARM injected pairs: translate the minimal cores to arm64 by hand (they are 2–5
   instructions), inject into arm64 benign bodies, label every side with the validated emulator.
@@ -173,7 +177,7 @@ Question: can `oracle/spec_emulator.py` reproduce labels we already trust?
    direction may be what he has in mind, and it is worth telling him the Python simulators do not
    speculate.
 2. W2: permission, provider, cap.
-3. W4 costs two to three days for ARM. Worth it before the supervisor answers the scope question?
+3. (Closed: W4 dropped after W3 ended in KILL. ARM pairs stay labelled by the kernel patch only.)
 
 ## 8. Calls I made (not the owner's decisions)
 

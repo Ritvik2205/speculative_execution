@@ -1,6 +1,6 @@
 # 04 — Oracle labels for ARM pairs
 
-Status: needs-triage
+Status: wontfix (ticket 03 ended in KILL on 2026-11-12)
 Type: task
 Blocked by: 03 (must pass)
 
