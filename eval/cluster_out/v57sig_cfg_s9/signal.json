@@ -1,0 +1,164 @@
+{
+ "v57 test, labelled LEAK": {
+  "programs": 60,
+  "called_leaking": 56,
+  "cannot_leak": 29,
+  "cannot_leak_share": 0.5178571428571429,
+  "median_len": 24.0,
+  "median_reduced_len": 3.0,
+  "reduced_to_one": 0,
+  "top_reduced": [
+   [
+    "nop ; nop ; ret",
+    7
+   ],
+   [
+    "addq ; popq ; ret",
+    4
+   ],
+   [
+    "movq ; popq ; ret",
+    3
+   ],
+   [
+    "jmp ; popq ; ret",
+    3
+   ],
+   [
+    "clflush ; addq ; ret",
+    2
+   ],
+   [
+    "shlq ; movq ; ret",
+    2
+   ],
+   [
+    "nop ; ret ; nop",
+    2
+   ],
+   [
+    "jne ; addq ; call",
+    1
+   ]
+  ]
+ },
+ "v57 test, labelled SAFE": {
+  "programs": 60,
+  "called_leaking": 2,
+  "cannot_leak": 1,
+  "cannot_leak_share": 0.5,
+  "median_len": 15.5,
+  "median_reduced_len": 3.0,
+  "reduced_to_one": 0,
+  "top_reduced": [
+   [
+    "call ; addq ; ret",
+    1
+   ],
+   [
+    "nop ; leave ; ret",
+    1
+   ]
+  ]
+ },
+ "hardware programs, leaking on the i5": {
+  "programs": 60,
+  "called_leaking": 60,
+  "cannot_leak": 53,
+  "cannot_leak_share": 0.8833333333333333,
+  "median_len": 34.5,
+  "median_reduced_len": 3.0,
+  "reduced_to_one": 0,
+  "top_reduced": [
+   [
+    "lfence ; lfence ; lfence",
+    11
+   ],
+   [
+    "addb ; sets ; lfence",
+    2
+   ],
+   [
+    "addb ; lfence ; sets",
+    1
+   ],
+   [
+    "andq ; lock ; andb",
+    1
+   ],
+   [
+    "andq ; cmovgew ; subb",
+    1
+   ],
+   [
+    "andq ; lfence ; orb",
+    1
+   ],
+   [
+    "subl ; andq ; sbbb",
+    1
+   ],
+   [
+    "andq ; lock ; lfence",
+    1
+   ]
+  ]
+ },
+ "hardware programs, mitigated on the i5": {
+  "programs": 60,
+  "called_leaking": 60,
+  "cannot_leak": 51,
+  "cannot_leak_share": 0.85,
+  "median_len": 40.0,
+  "median_reduced_len": 3.0,
+  "reduced_to_one": 0,
+  "top_reduced": [
+   [
+    "lfence ; orb ; lfence",
+    2
+   ],
+   [
+    "xorb ; andq ; testb",
+    2
+   ],
+   [
+    "lfence ; orw ; lfence",
+    1
+   ],
+   [
+    "lfence ; mulb ; imulq",
+    1
+   ],
+   [
+    "andq ; lock ; lfence",
+    1
+   ],
+   [
+    "lfence ; orl ; lfence",
+    1
+   ],
+   [
+    "andq ; lock ; andb",
+    1
+   ],
+   [
+    "sbbb ; andq ; movb",
+    1
+   ]
+  ]
+ },
+ "injected, oracle-confirmed leaking": {
+  "programs": 60,
+  "called_leaking": 0,
+  "cannot_leak": 0,
+  "cannot_leak_share": NaN,
+  "median_len": NaN,
+  "median_reduced_len": NaN,
+  "reduced_to_one": 0,
+  "top_reduced": []
+ },
+ "_meta": {
+  "model_calls": 1490,
+  "unscored_programs": 448
+ }
+}

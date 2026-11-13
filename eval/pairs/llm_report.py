@@ -54,7 +54,7 @@ def main() -> int:
     groups = defaultdict(list)
     for p in pairs:
         groups[p["set"] + (" " + p["kind"] if p["set"] == "injected" else "")].append(p)
-    gine = {a: [score.file_scorer(f) for f in sorted((ROOT / "eval" / "cluster_out").glob(f"v57_{a}_s*/pair_scores.jsonl"))]
+    gine = {a: [score.file_scorer(f) for f in sorted((ROOT / "eval" / "cluster_out").glob(f"v57_{a}_s*/pair_scores_all.jsonl"))]
             for a in ("plain", "cfg")}
     ledger = score_llm.Ledger(DATA / "llm_ledger.jsonl", 0)
     reps = {pr: _per_repeat(pairs, pr, ledger, 5) for pr in ("single", "choice")}

@@ -13,7 +13,7 @@ Trained scorers: v57 leak/safe training split, 1 seed(s) (deterministic at this 
 | injected inject | 364 | 1.000 | 0.000 | 0.500 | 0.500 | 0.500 | 0.515 | 0.563 | 0.638 | 0.643 |
 | injected reorder | 261 | 0.500 | 0.500 | 0.500 | 0.500 | 0.500 | 0.500 | 0.538 | 0.594 | 0.621 |
 | linux all | 105 | 0.090 | 0.910 | 0.510 | 0.510 | 0.510 | 0.519 | 0.371 | 0.356 | 0.355 |
-| linux_arm64 all | 85 | 0.047 | 0.953 | 0.965 | 0.500 | 0.500 | 0.500 | 0.512 | 0.376 | 0.729 |
+| linux_arm64 all | 85 | 0.047 | 0.953 | 0.965 | 0.500 | 0.500 | 0.500 | 0.512 | 0.549 | 0.577 |
 | nofence all | 92 | 0.511 | 0.489 | 0.500 | 0.500 | 0.549 | 0.538 | 0.511 | 0.484 | 0.474 |
 | variants all | 970 | 0.335 | 0.665 | 0.665 | 0.996 | 0.996 | 0.500 | 0.492 | 0.763 | 0.789 |
 
@@ -218,8 +218,8 @@ Trained scorers: v57 leak/safe training split, 1 seed(s) (deterministic at this 
 | mechanism rule | 0.500 | 0.00 / 1.00 | 0.500 |
 | opcode counts, boosted (v57) | 0.500 | 0.01 / 0.98 | 0.500 |
 | opcode counts + bigrams, boosted (v57) | 0.512 | 0.02 / 0.98 | 0.512 |
-| GINE-plain | 0.376 | 0.36 / 0.02 | 0.376 |
-| GINE-branch-edges | 0.729 | 0.72 / 0.02 | 0.729 |
+| GINE-plain | 0.549 ± 0.121 (10 seeds) | 0.53 / 0.04 | 0.549 |
+| GINE-branch-edges | 0.577 ± 0.085 (10 seeds) | 0.57 / 0.02 | 0.577 |
 
 | at cutoff 0.5 | leak recall | safe specificity | both sides right |
 |---|---|---|---|
