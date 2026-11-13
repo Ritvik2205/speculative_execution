@@ -25,3 +25,10 @@ Results and caveats: `eval/pairs/LLM.md`. Raw answers: `eval/pairs/data/llm_ledg
 
 Not done (needs more budget): repeats for run-to-run spread; the full 2,310 pairs (about $75
 per protocol pair at this cost per call); a second model.
+
+### 2026-11-13 — repeats done (Claude)
+
+Owner asked for the repeats. Three repeats of both protocols on the same 240 pairs: 2,841 calls,
+$56.23 in total (cap $57). The cap stopped the last 3 forced-choice calls of the third repeat;
+those pairs are scored from one order instead of two in that repeat. 295 calls served by
+`claude-opus-4-8` (fallback). Table with run-to-run spread: `eval/pairs/LLM.md`.
