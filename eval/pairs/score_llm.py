@@ -15,11 +15,14 @@ the run would make. Sequences leave the machine when it runs: the owner decides 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import random
 import re
 import sys
+import threading
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -130,31 +133,153 @@ def run_choice(pairs, complete, repeats=1) -> tuple[list[dict], dict]:
     return rows, stats
 
 
-def anthropic_complete(model: str = MODEL, effort: str = "low"):
-    """Claude via the official SDK. Thinking is always on for this model and sampling
-    parameters are not accepted, so repeats (not temperature 0) measure run-to-run change.
-    A policy refusal falls back server-side; a refusal of the whole chain returns None."""
-    import anthropic
-    client = anthropic.Anthropic()
+class BudgetExceeded(RuntimeError):
+    pass
+
+
+# USD per million tokens (input, output). Source: platform.claude.com/docs/en/about-claude/pricing,
+# read 2026-11-12. Thinking tokens are billed as output. A reply served by a fallback model is
+# priced at OTHER, which is at least as high as any model the default chain can fall back to.
+RATES = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0),
+         "claude-haiku-5-5": (0.10, 0.50), "claude-opus-4-8": (5.0, 25.0)}
+OTHER = (10.0, 50.0)
+
+
+def cost_usd(model, tokens_in, tokens_out) -> float:
+    i, o = next((v for k, v in RATES.items() if str(model).startswith(k)), OTHER)
+    return (tokens_in * i + tokens_out * o) / 1e6
+
+
+def job_key(model, effort, system, prompt, rep) -> str:
+    return hashlib.sha1(json.dumps([model, effort, system, prompt, rep]).encode()).hexdigest()
+
+
+class Ledger:
+    """Every paid call, one JSON line. The cap counts everything in the file, across runs, so a
+    rerun never pays twice for a call and the total never passes the cap by more than the calls
+    already in flight (`reserve` dollars each)."""
+
+    def __init__(self, path, cap_usd, reserve=0.15):
+        self.path, self.cap, self.reserve = Path(path), cap_usd, reserve
+        self.rows, self.inflight, self.lock = {}, 0, threading.Lock()
+        if self.path.exists():
+            for l in self.path.read_text().splitlines():
+                if l.strip():
+                    r = json.loads(l)
+                    self.rows[r["key"]] = r
+
+    @property
+    def spent(self) -> float:
+        return sum(r["cost"] for r in self.rows.values())
+
+    def get(self, key):
+        return self.rows.get(key)
+
+    def start(self):
+        with self.lock:
+            if self.spent + (self.inflight + 1) * self.reserve > self.cap:
+                raise BudgetExceeded(f"spent ${self.spent:.2f} of ${self.cap:.2f}")
+            self.inflight += 1
+
+    def finish(self, key, text, model, tokens_in, tokens_out):
+        with self.lock:
+            self.inflight -= 1
+            if model is None:                       # transport failure: nothing billed, not cached
+                return
+            r = {"key": key, "text": text, "model": model, "in": tokens_in, "out": tokens_out,
+                 "cost": cost_usd(model, tokens_in, tokens_out)}
+            self.rows[key] = r
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with self.path.open("a") as f:
+                f.write(json.dumps(r) + "\n")
+
+
+def jobs(pairs, protocol, repeats):
+    """Every (prompt, repeat) the protocol will ask, without duplicates."""
+    out, seen = [], set()
+    for p in pairs:
+        prompts = ([prompt_single(p[s]) for s in ("leak", "safe")] if protocol == "single" else
+                   [prompt_choice(p["leak"], p["safe"]), prompt_choice(p["safe"], p["leak"])])
+        for q in prompts:
+            for r in range(repeats):
+                if (q, r) not in seen:
+                    seen.add((q, r))
+                    out.append((q, r))
+    return out
+
+
+def prefetch(job_list, raw, ledger, model, effort, workers=6, seed=0) -> dict:
+    """Pay for the calls not yet in the ledger, in parallel, in random order (so that a run cut
+    short by the cap is a random sample). raw(system, prompt) -> (text|None, model|None, in, out)."""
+    todo = [(q, r) for q, r in job_list if not ledger.get(job_key(model, effort, SYSTEM, q, r))]
+    random.Random(seed).shuffle(todo)
+    stats = {"paid": 0, "cached": len(job_list) - len(todo), "stopped_by_cap": False}
+
+    def one(job):
+        q, r = job
+        ledger.start()
+        try:
+            text, served, ti, to = raw(SYSTEM, q)
+        except Exception:
+            ledger.finish(None, None, None, 0, 0)
+            raise
+        ledger.finish(job_key(model, effort, SYSTEM, q, r), text, served, ti, to)
+
+    with ThreadPoolExecutor(workers) as ex:
+        futs = []
+        for j in todo:
+            futs.append(ex.submit(one, j))
+        for f in futs:
+            try:
+                f.result()
+                stats["paid"] += 1
+            except BudgetExceeded:
+                stats["stopped_by_cap"] = True
+    return stats
+
+
+def from_ledger(ledger, model, effort):
+    """A `complete` for run_single / run_choice that only reads what was paid for."""
+    n = defaultdict(int)
 
     def complete(system, prompt):
+        r = ledger.get(job_key(model, effort, system, prompt, n[prompt]))
+        n[prompt] += 1
+        return r["text"] if r else None
+    return complete
+
+
+def load_key(env_path=ROOT / ".env", name="CLAUDE-API-KEY") -> str:
+    for l in Path(env_path).read_text().splitlines():
+        k, _, v = l.partition("=")
+        if k.strip() == name:
+            return v.strip().strip('"').strip("'")
+    raise SystemExit(f"{name} not found in {env_path}")
+
+
+def anthropic_raw(model: str = MODEL, effort: str = "low"):
+    """Claude via the official SDK. Thinking is always on for this model and sampling
+    parameters are not accepted, so repeats (not temperature 0) measure run-to-run change.
+    A policy refusal falls back server-side; a refusal of the whole chain gives text None."""
+    import anthropic
+    client = anthropic.Anthropic(api_key=load_key(), max_retries=4)
+
+    def raw(system, prompt):
         try:
             r = client.beta.messages.create(
                 model=model, max_tokens=4000, system=system,
                 output_config={"effort": effort},
                 betas=["server-side-fallback-2026-07-01"], fallbacks="default",
                 messages=[{"role": "user", "content": prompt}])
-        except anthropic.RateLimitError:
-            raise
         except anthropic.APIStatusError as e:
-            if e.status_code >= 500:
+            if e.status_code >= 500 or e.status_code == 429:
                 raise
-            print(f"request rejected: {e.message}", file=sys.stderr)
-            return None
-        if r.stop_reason in ("refusal", "max_tokens"):
-            return None
-        return "".join(b.text for b in r.content if b.type == "text")
-    return complete
+            print(f"request rejected ({e.status_code}): {e.message}", file=sys.stderr)
+            return None, model, 0, 0
+        text = None if r.stop_reason in ("refusal", "max_tokens") else \
+            "".join(b.text for b in r.content if b.type == "text")
+        return text, r.model, r.usage.input_tokens, r.usage.output_tokens
+    return raw
 
 
 def main(argv=None) -> int:
@@ -165,23 +290,29 @@ def main(argv=None) -> int:
     ap.add_argument("--model", default=MODEL)
     ap.add_argument("--effort", default="low")
     ap.add_argument("--run", action="store_true", help="actually call the API (sends sequences out)")
+    ap.add_argument("--cap-usd", type=float, default=20.0, help="total across every run in the ledger")
+    ap.add_argument("--ledger", default=str(DATA / "llm_ledger.jsonl"))
+    ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--out")
     a = ap.parse_args(argv)
     pairs = [json.loads(l) for f in sorted(DATA.glob("pairs_*.jsonl")) for l in open(f) if l.strip()]
     pairs = sample_pairs(pairs, a.sample)
-    n = plan(pairs, a.protocol, a.repeats)
+    job_list = jobs(pairs, a.protocol, a.repeats)
+    ledger = Ledger(a.ledger, a.cap_usd)
     pub = sum(p["set"] in PUBLIC_SETS for p in pairs)
     print(f"{len(pairs)} pairs ({pub} from public sources), protocol {a.protocol}, "
-          f"{a.repeats} repeat(s): {n} calls to {a.model}")
+          f"{a.repeats} repeat(s): {len(job_list)} calls to {a.model}; "
+          f"ledger ${ledger.spent:.2f} of ${a.cap_usd:.2f}")
     if not a.run:
         print("dry run; add --run to send")
         return 0
     if not a.out:
         ap.error("--run needs --out")
+    st = prefetch(job_list, anthropic_raw(a.model, a.effort), ledger, a.model, a.effort, a.workers)
     fn = run_single if a.protocol == "single" else run_choice
-    rows, stats = fn(pairs, anthropic_complete(a.model, a.effort), a.repeats)
+    rows, stats = fn(pairs, from_ledger(ledger, a.model, a.effort), a.repeats)
     Path(a.out).write_text("".join(json.dumps(r) + "\n" for r in rows))
-    print(f"{stats} -> {len(rows) // 2} pairs scored -> {a.out}")
+    print(f"{st} {stats} -> {len(rows) // 2} pairs scored -> {a.out}; ledger ${ledger.spent:.2f}")
     return 0
 
 

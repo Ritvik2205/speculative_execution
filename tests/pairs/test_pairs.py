@@ -221,3 +221,44 @@ def test_graph_model_sides_carry_the_architecture_of_their_pair_set():
     recs = sg.sides([{"pair_id": "a", "set": "linux_arm64", "leak": ["ldr x0, [x1]"], "safe": ["csdb"]},
                      {"pair_id": "b", "set": "variants", "leak": ["l"], "safe": ["s"]}], "SAFE")
     assert [r["arch"] for r in recs] == ["arm64", "arm64", "x86_64", "x86_64"]
+
+
+# --- LLM baseline: spending cap and paid-call ledger --------------------------------------
+
+def _llm_pairs():
+    return [{"pair_id": f"p{i}", "set": "variants", "kind": "", "leak": [f"mov {i}(%rax), %rbx"],
+             "safe": [f"lfence", f"mov {i}(%rax), %rbx"]} for i in range(6)]
+
+
+def test_llm_ledger_stops_at_the_cap_and_never_pays_twice(tmp_path):
+    from eval.pairs import score_llm as L
+    calls = []
+
+    def raw(system, prompt):                     # 1M output tokens on opus = $20 a call
+        calls.append(prompt)
+        return "PROBABILITY: 0.9", "claude-opus-5-5", 0, 50_000     # $1.00 a call
+    led = L.Ledger(tmp_path / "ledger.jsonl", cap_usd=3.0, reserve=1.0)
+    job_list = L.jobs(_llm_pairs(), "single", 1)
+    assert len(job_list) == 12
+    st = L.prefetch(job_list, raw, led, "claude-opus-5-5", "low", workers=1)
+    assert st["stopped_by_cap"] and len(calls) == 3 and abs(led.spent - 3.0) < 1e-9
+    # a second run with a higher cap pays only for what is missing
+    led2 = L.Ledger(tmp_path / "ledger.jsonl", cap_usd=100.0, reserve=1.0)
+    L.prefetch(job_list, raw, led2, "claude-opus-5-5", "low", workers=3)
+    assert len(calls) == 12 and len(set(calls)) == 12
+    rows, stats = L.run_single(_llm_pairs(), L.from_ledger(led2, "claude-opus-5-5", "low"))
+    assert len(rows) == 12 and stats["unparsed"] == 0
+
+
+def test_llm_repeats_are_separate_paid_calls_and_choice_reads_both_orders(tmp_path):
+    from eval.pairs import score_llm as L
+
+    def raw(system, prompt):                     # always picks the sequence without lfence
+        a = prompt.split("Sequence B:")[0]
+        return ("ANSWER: B" if "lfence" in a else "ANSWER: A"), "claude-opus-5-5", 10, 10
+    led = L.Ledger(tmp_path / "l.jsonl", cap_usd=1.0, reserve=0.01)
+    job_list = L.jobs(_llm_pairs(), "choice", 2)
+    st = L.prefetch(job_list, raw, led, "claude-opus-5-5", "low")
+    assert st["paid"] == 24
+    rows, _ = L.run_choice(_llm_pairs(), L.from_ledger(led, "claude-opus-5-5", "low"), repeats=2)
+    assert all(r["score"] == (1.0 if r["side"] == "leak" else 0.0) for r in rows)
