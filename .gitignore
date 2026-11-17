@@ -200,3 +200,10 @@ oracle/apptainer/*.sif
 gen/arch_purity_cache.json
 rvzr_runs/**/program_fenced.asm
 rvzr_runs/**/program_fenced.asm.patched.asm
+
+# Pair benchmark: raw model answers (large; score files beside them are committed) and
+# training files rebuilt by `python3 -m eval.pairs.train_gine_pairs`
+eval/pairs/data/*.ledger.jsonl
+eval/cluster_out/glmz1_vllm*/
+eval/pairs/data/v2/gine_train_*.jsonl
+eval/pairs/data/v2/pairs_injected2_*_renamed.jsonl

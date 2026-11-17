@@ -2,6 +2,8 @@
 import json
 import random
 
+import pytest
+
 from eval.pairs import build, score
 
 
@@ -262,3 +264,331 @@ def test_llm_repeats_are_separate_paid_calls_and_choice_reads_both_orders(tmp_pa
     assert st["paid"] == 24
     rows, _ = L.run_choice(_llm_pairs(), L.from_ledger(led, "claude-opus-5-5", "low"), repeats=2)
     assert all(r["score"] == (1.0 if r["side"] == "leak" else 0.0) for r in rows)
+
+
+def test_mechanism_rule_is_scored_per_class_and_weighted_by_pairs():
+    # the rule depends on the pair's class, so a mixed set is scored class by class
+    pairs = [json.loads(l) for l in open("eval/pairs/data/pairs_hw.jsonl")][:60]
+    assert len({p["cls"] for p in pairs}) >= 1
+    m = score.mechanism_metrics(pairs)
+    by = {}
+    for p in pairs:
+        by.setdefault(p["cls"], []).append(p)
+    want = sum(score.pair_metrics(q, score._mechanism(c))["auc"] * len(q) for c, q in by.items()) / len(pairs)
+    assert m["n"] == len(pairs) and abs(m["auc"] - want) < 1e-12
+
+
+# ---- open-weight model run on the cluster (no network, no paid calls) ----
+from eval.pairs import score_llm_local as local
+
+
+def test_only_text_after_the_thinking_block_is_read_as_the_answer():
+    assert local.visible("PROBABILITY: 0.9\n</think>\nreasoned.\nPROBABILITY: 0.2") == "reasoned.\nPROBABILITY: 0.2"
+    # thinking that never closed (ran out of tokens) is not an answer, whatever it contains
+    assert local.visible("so far\nPROBABILITY: 0.9") is None
+    assert local.visible("a</think>b</think>\nANSWER: B") == "ANSWER: B"
+
+
+def test_shards_cover_every_job_once_and_do_not_depend_on_job_order():
+    jl = [(f"prompt {i}", r) for i in range(40) for r in range(3)]
+    parts = [local.shard_of(jl, i, 4, "m", "e") for i in range(4)]
+    assert sorted(j for p in parts for j in p) == sorted(jl)
+    assert all(parts[i] and not set(parts[i]) & set(parts[j]) for i in range(4) for j in range(i))
+    assert set(local.shard_of(jl[::-1], 2, 4, "m", "e")) == set(parts[2])
+
+
+def test_batches_group_similar_lengths_and_respect_the_token_budget():
+    items = [("k%d" % i, "p", n) for i, n in enumerate([10, 3000, 20, 2900, 15, 12])]
+    bs = local.batches(items, max_batch=4, token_budget=6000)
+    assert sorted(x for b in bs for x in b) == sorted(items)
+    assert all(len(b) <= 4 and len(b) * max(n for _, _, n in b) <= 6000 for b in bs)
+    assert [n for _, _, n in bs[0]] == [3000, 2900]            # longest first, so memory fails early
+
+
+def test_local_run_resumes_from_its_ledger_and_scores_through_the_same_parser(tmp_path):
+    pairs = [{"pair_id": "a", "set": "variants", "kind": "", "leak": ["mov (%rax), %rbx"], "safe": ["lfence", "ret"]}]
+    jl = score_llm.jobs(pairs, "single", 2)
+    asked = []
+
+    def gen(batch, seed):
+        asked.extend(q for _, q in batch)
+        return [("thinking</think>\nPROBABILITY: %s" % ("0.8" if "mov" in q else "0.1"), 50, 9, True) for _, q in batch]
+
+    led = tmp_path / "ledger.jsonl"
+    count = lambda system, prompt: len(prompt)
+    s1 = local.run(jl, gen, count, led, "m@rev", "sampled", max_prompt_tokens=10_000)
+    s2 = local.run(jl, gen, count, led, "m@rev", "sampled", max_prompt_tokens=10_000)
+    assert s1["generated"] == 4 and s2["generated"] == 0 and len(asked) == 4
+    ledger = score_llm.Ledger(led, 0)
+    rows, stats = score_llm.run_single(pairs, score_llm.from_ledger(ledger, "m@rev", "sampled"), 2)
+    assert {(r["side"], r["score"]) for r in rows} == {("leak", 0.8), ("safe", 0.1)} and stats["unparsed"] == 0
+
+
+def test_local_run_records_but_does_not_score_truncated_or_overlong_prompts(tmp_path):
+    jl = [("short prompt", 0), ("x" * 500, 0)]
+    gen = lambda batch, seed: [("PROBABILITY: 0.9 and still thinking", 5, 4096, False) for _ in batch]
+    led = tmp_path / "ledger.jsonl"
+    s = local.run(jl, gen, lambda system, prompt: len(prompt), led, "m", "e", max_prompt_tokens=100)
+    rows = [json.loads(l) for l in open(led)]
+    assert s["generated"] == 1 and s["too_long"] == 1 and s["no_answer"] == 1
+    assert all(r["text"] is None for r in rows) and {r.get("skipped") for r in rows} == {None, "too_long"}
+
+
+# ---- injected pairs, version 2: length-neutral kinds, hosts and cores split ----
+HOST = [f"movl\t${i}, %r10d" for i in range(12)]
+CORE = ["movq\t16(%r15), %rsi", "movb\t%dl, (%rsi,%rcx)"]
+
+
+def test_place_puts_fence_and_core_at_the_asked_positions_and_keeps_host_order():
+    s = build.place(HOST, CORE, fence_idx=7, core_start=2)
+    assert len(s) == len(HOST) + len(CORE) + 1 and s[7] == "lfence" and s[2:4] == CORE
+    assert [x for x in s if x in HOST] == HOST
+
+
+def test_barrier_sides_differ_only_in_which_side_of_the_fence_the_core_sits():
+    core_earlier = fence_later = 0
+    for seed in range(400):
+        leak, safe = build.barrier_sides(HOST, CORE, random.Random(seed))
+        assert len(leak) == len(safe) and sorted(leak) == sorted(safe)
+        assert leak.index(CORE[0]) + len(CORE) <= leak.index("lfence") and safe.index("lfence") < safe.index(CORE[0])
+        assert leak[leak.index(CORE[0]) + 1] == CORE[1] and safe[safe.index(CORE[0]) + 1] == CORE[1]
+        assert [x for x in leak if x in HOST] == HOST == [x for x in safe if x in HOST]
+        core_earlier += leak.index(CORE[0]) < safe.index(CORE[0])
+        fence_later += leak.index("lfence") > safe.index("lfence")
+    # neither position on its own separates the sides
+    assert 160 <= core_earlier <= 240 and core_earlier + fence_later == 400
+
+
+def test_decoy_keeps_every_mnemonic_and_breaks_the_link_into_the_address():
+    d = build.decoy(CORE, random.Random(0))
+    assert d is not None and d != CORE and d[0] == CORE[0] and len(d) == len(CORE)
+    assert [x.split()[0] for x in d] == [x.split()[0] for x in CORE]
+    assert "%rsi" not in d[1] and d[1].startswith("movb\t%dl, (")       # only the address register changed
+    assert "%r15" not in d[1] and "%rsp" not in d[1]                     # never the tainted pointer or the stack
+    assert all("(%rbx,%rcx)" in build.decoy(CORE, random.Random(i), prefer={"rbx", "r15"})[1] for i in range(20))
+    # with `prefer`, only those registers: none qualifies -> no decoy (no new register on the safe side)
+    assert build.decoy(CORE, random.Random(0), prefer={"r15", "rcx", "rsi"}) is None
+    # a core whose second instruction does not use what the first defines has no decoy
+    assert build.decoy(["movq\t16(%r15), %rsi", "testq\t%rax, %rax"], random.Random(0)) is None
+
+
+def test_v2_decoy_names_the_same_registers_on_both_sides():
+    host = HOST[:-1] + ["movq\t%rsi, %rbx"]          # host names %rbx and still uses %rsi
+    job = {"id": "j0", "part": "train", "host": host, "core": CORE, "at": 3, "seed": 1,
+           "host_cluster": "H1", "template": "T1"}
+    oracle = lambda body, victim: "safe" if victim == "tainted_ctl" or CORE[1] not in body else "leak"
+    ps = [p for p in build.injected_pairs_v2(job, oracle) if p["kind"] == "decoy"]
+    assert len(ps) == 1 and build.register_names(ps[0]["leak"]) == build.register_names(ps[0]["safe"])
+    assert "(%rbx,%rcx)" in "\n".join(ps[0]["safe"])
+    # host that names no free 64-bit register: no decoy rather than a new name on the safe side
+    job2 = {**job, "host": HOST}
+    assert [p for p in build.injected_pairs_v2(job2, oracle) if p["kind"] == "decoy"] == []
+
+
+def test_parts_are_fixed_by_name_and_roughly_60_20_20():
+    parts = [build.part_of(f"cluster{i}") for i in range(2000)]
+    assert parts == [build.part_of(f"cluster{i}") for i in range(2000)]
+    c = {p: parts.count(p) / 2000 for p in ("train", "val", "test")}
+    assert abs(c["train"] - 0.6) < 0.04 and abs(c["val"] - 0.2) < 0.04 and abs(c["test"] - 0.2) < 0.04
+
+
+def test_v2_pairs_need_the_oracle_on_every_side_and_the_fence_to_be_the_cause():
+    job = {"id": "j0", "part": "train", "host": HOST[:-1] + ["movq\t%rsi, %rbx"], "core": CORE, "at": 3,
+           "seed": 1, "host_cluster": "H1", "template": "T1"}
+
+    def oracle(body, victim):                 # leaks iff the core's two lines are intact and not behind a fence
+        if victim == "tainted_ctl":
+            return "safe"
+        if CORE[0] not in body or CORE[1] not in body or body.index(CORE[1]) < body.index(CORE[0]):
+            return "safe"
+        return "safe" if "lfence" in body[:body.index(CORE[0])] else "leak"
+
+    ps = build.injected_pairs_v2(job, oracle)
+    assert sorted(p["kind"] for p in ps) == ["barrier", "decoy"]         # reorder is test-only
+    assert all(p["set"] == "injected2" and p["part"] == "train" and len(p["leak"]) == len(p["safe"]) for p in ps)
+    assert sorted(p["kind"] for p in build.injected_pairs_v2({**job, "part": "test"}, oracle)) == ["barrier", "decoy", "reorder"]
+    # an oracle that calls the fenced side safe even without its fence: the fence is not the cause, no barrier pair
+    _, sb = build.barrier_sides(job["host"], CORE, random.Random("1:barrier"))
+    bare = [x for x in sb if x != "lfence"]
+    not_the_fence = lambda body, victim: "safe" if body == bare else oracle(body, victim)
+    assert "barrier" not in [p["kind"] for p in build.injected_pairs_v2(job, not_the_fence)]
+    # a core that does not leak in this host gives nothing
+    assert build.injected_pairs_v2(job, lambda body, victim: "safe") == []
+
+
+def test_v2_jobs_draw_hosts_and_cores_from_one_part_only():
+    hosts = {"train": [HOST], "val": [HOST[::-1]], "test": [HOST[2:] + HOST[:2]]}
+    cores = {"train": [CORE], "val": [CORE], "test": [CORE]}
+    meta = lambda x: "m"
+    js = build.jobs_v2(hosts, cores, {"train": 5, "val": 3, "test": 2}, 0, meta, meta)
+    assert [j["part"] for j in js].count("train") == 5 and len(js) == 10
+    assert all(j["host"] == hosts[j["part"]][0] for j in js)
+    # asking for more later leaves the earlier attempts as they were
+    more = build.jobs_v2(hosts, cores, {"train": 9, "val": 3, "test": 6}, 0, meta, meta)
+    assert all(j in more for j in js)
+
+
+def test_exclude_public_drops_only_the_linux_sets():
+    allp, nonpub = local.load_pairs(0), local.load_pairs(0, exclude_public=True)
+    assert {p["set"] for p in allp} - {p["set"] for p in nonpub} == set(score_llm.PUBLIC_SETS)
+    assert len(nonpub) == sum(p["set"] not in score_llm.PUBLIC_SETS for p in allp)
+
+
+def test_a_backend_with_its_own_seeds_gets_one_seed_per_prompt_and_extra_fields_are_kept(tmp_path):
+    jl = [(f"prompt {i}", 0) for i in range(5)]
+    got = []
+
+    def gen(batch, seeds):
+        got.append(list(seeds))
+        return [("x</think>\nPROBABILITY: 0.5", 3, 4, True, {"finish_reason": "stop"}) for _ in batch]
+    gen.per_row_seeds = True
+    led = tmp_path / "l.jsonl"
+    local.run(jl, gen, lambda system, prompt: 1, led, "m", "card-sampling-vllm", 100)
+    rows = [json.loads(l) for l in open(led)]
+    assert len(got) == 1 and len(set(got[0])) == 5                       # all in one call, distinct seeds
+    assert sorted(r["seed"] for r in rows) == sorted(got[0]) and all(r["finish_reason"] == "stop" for r in rows)
+    assert local.EFFORTS["vllm"] != local.EFFORTS["hf"]                   # never mixed with transformers answers
+
+
+def test_answer_cap_gets_its_own_job_keys_and_fits_the_context():
+    from eval.pairs import score_llm_local as local
+    assert local.effort_for("vllm", 4096) == "card-sampling-vllm"            # the first runs keep their keys
+    assert local.effort_for("vllm", 30000) == "card-sampling-vllm-max30000"
+    assert local.effort_for("hf", 4096) == local.EFFORT
+    assert local.answer_cap(30000, 32768, 1500) == 30000
+    assert local.answer_cap(30000, 32768, 7000) == 25768                    # prompt + answer fits the context
+
+
+def test_program_interval_resamples_programs_not_pairs():
+    from eval.pairs.llm_local_report import program_interval
+    # Program "a": 40 pairs, all ranked right. Program "b": 1 pair, ranked wrong.
+    pairs = [{"pair_id": f"a{i}", "base": "a"} for i in range(40)] + [{"pair_id": "b0", "base": "b"}]
+    table = {}
+    for p in pairs:
+        right = p["base"] == "a"
+        table[(p["pair_id"], "leak")] = 1.0 if right else 0.0
+        table[(p["pair_id"], "safe")] = 0.0 if right else 1.0
+    lo, hi = program_interval(pairs, table, draws=400)
+    # Over pairs the statistic is 40/41 with a tight interval; over two programs a draw can be all "b".
+    assert lo == 0.0 and hi == 1.0
+    assert program_interval(pairs[:40], table) is None      # one program: no interval
+
+
+def test_lora_smoke_trains_on_the_answer_only_and_finds_attention_layers_by_name():
+    from eval.pairs.lora_smoke import training_example, lora_targets
+    ids, labels = training_example([5, 6, 7], [8, 9])
+    assert ids == [5, 6, 7, 8, 9] and labels == [-100, -100, -100, 8, 9]
+    names = ["model.layers.0.self_attn.q_proj", "model.layers.0.self_attn.v_proj",
+             "model.layers.0.mlp.experts.3.up_proj", "lm_head"]
+    assert lora_targets(names) == ["q_proj", "v_proj"]
+    assert lora_targets(["transformer.h.0.attn.c_attn"]) == []       # other naming: caller must stop
+    # GLM-4.7-Flash splits the query and key/value projections in two (seen in smoke job 3721808)
+    glm = [f"model.layers.0.self_attn.{n}" for n in ("q_a_proj", "q_b_proj", "kv_a_proj_with_mqa", "kv_b_proj", "o_proj")]
+    assert lora_targets(glm + ["model.layers.0.mlp.gate_proj"]) == [
+        "kv_a_proj_with_mqa", "kv_b_proj", "o_proj", "q_a_proj", "q_b_proj"]
+
+
+def test_rename_tainted_moves_r15_to_a_register_neither_side_uses_same_on_both_sides():
+    from eval.pairs.train_data import rename_tainted
+    pair = {"pair_id": "inj2_x",
+            "leak": ["movq\t-8(%r15), %r11", "movl\t%r15d, %r8d", "movq\t(%r11,%r9), %rax"],
+            "safe": ["movq\t-8(%r15), %r11", "lfence", "movb\t%r15b, %r10b", "movq\t(%r11,%r9), %rax"]}
+    out = rename_tainted(pair)
+    text = "\n".join(out["leak"] + out["safe"])
+    assert "r15" not in text
+    new = out["tainted_register"]
+    assert new in ("r12", "r13", "r14")                      # r8..r11 are used by one side or the other
+    assert out["leak"] == [f"movq\t-8(%{new}), %r11", f"movl\t%{new}d, %r8d", "movq\t(%r11,%r9), %rax"]
+    assert out["safe"][2] == f"movb\t%{new}b, %r10b"         # the same register on the safe side
+    assert pair["leak"][0] == "movq\t-8(%r15), %r11"         # input untouched
+    assert rename_tainted(pair) == out                       # fixed per pair, not per call
+    picks = {rename_tainted({**pair, "pair_id": f"p{i}"})["tainted_register"] for i in range(40)}
+    assert picks == {"r12", "r13", "r14"}                    # the choice varies across pairs
+    # nothing free: the pair is returned as None so the caller can count and drop it
+    full = {"pair_id": "f", "leak": [f"movq\t%r15, %r{i}" for i in range(8, 15)], "safe": ["nop"]}
+    assert rename_tainted(full) is None
+
+
+def test_train_llm_prompt_shots_and_losses():
+    from eval.pairs import train_llm as t
+    seq = ["movq\t(%rdi), %rax", "lfence"]
+    p = t.direct_prompt(seq)
+    assert "movq\t(%rdi), %rax\nlfence" in p and p.rstrip().endswith("YES or NO.")
+    assert "Example" not in p
+    train = [{"pair_id": f"p{i}", "leak": [f"leak{i}"], "safe": [f"safe{i}"]} for i in range(20)]
+    shots = t.pick_shots(train, 4, seed=1)
+    assert len(shots) == 8 and sorted(w for _, w in shots) == ["NO"] * 4 + ["YES"] * 4
+    assert len({s[0][4:] for s, _ in shots}) == 4               # both sides of each of 4 pairs
+    assert t.pick_shots(train, 4, seed=1) == shots and t.pick_shots(train, 4, seed=2) != shots
+    q = t.direct_prompt(seq, shots)
+    assert q.count("Example") == 8 and q.index("Example 8") < q.index("movq\t(%rdi), %rax")
+    assert q.rstrip().endswith("YES or NO.")
+    # readout: probability of leaking from the two answer logits
+    assert t.probability(2.0, 2.0) == 0.5 and t.probability(5.0, 1.0) > 0.98 > 0.02 > t.probability(1.0, 5.0)
+    # pairwise: zero once the leaking side is ahead by the margin, linear below it
+    assert t.pair_margin(3.0, 1.0, margin=1.0) == 0.0
+    assert t.pair_margin(1.0, 1.0, margin=1.0) == 1.0 and t.pair_margin(0.0, 2.0, margin=1.0) == 3.0
+    # each seed starts the examples in a different order; both sides of every pair are present
+    ex = t.side_examples(train[:3], seed=0)
+    assert sorted(ex) == sorted((p[s], y) for p in train[:3] for s, y in (("leak", 1), ("safe", 0)))
+    assert t.side_examples(train, seed=0) != t.side_examples(train, seed=1)
+
+
+def test_graph_model_training_records_from_pairs():
+    from eval.pairs import train_gine_pairs as g
+    pairs = [{"pair_id": "a", "host_cluster": "H1", "leak": ["l1"], "safe": ["s1"]},
+             {"pair_id": "b", "host_cluster": "H1", "leak": ["l2"], "safe": ["s2"]},
+             {"pair_id": "c", "host_cluster": "H2", "leak": ["l3"], "safe": ["s3"]}]
+    lab = g.labelled_records(pairs)
+    assert [(r["sequence"], r["label"]) for r in lab] == [
+        (["l1"], "LEAK"), (["s1"], "SAFE"), (["l2"], "LEAK"), (["s2"], "SAFE"), (["l3"], "LEAK"), (["s3"], "SAFE")]
+    # both sides of a pair, and every pair on one host, share a group: the trainer's validation
+    # carve-out keeps a group on one side of the split
+    assert [r["group"] for r in lab] == ["inj2::H1"] * 4 + ["inj2::H2"] * 2
+    assert all(r["arch"] == "x86_64" for r in lab)
+    # pair batches: whole pairs, leaking side first, every pair once per epoch, order set by the seed
+    b = g.pair_batches(5, pairs_per_batch=2, seed=0)
+    assert [len(x) for x in b] == [4, 4, 2]
+    assert all(x[i] % 2 == 0 and x[i + 1] == x[i] + 1 for x in b for i in range(0, len(x), 2))
+    assert sorted(i for x in b for i in x) == list(range(10))
+    assert g.pair_batches(5, 2, seed=0) == b and g.pair_batches(5, 2, seed=1) != b
+
+
+def test_graph_model_pair_hinge():
+    torch = pytest.importorskip("torch")
+    from eval.pairs.train_gine_pairs import pair_hinge
+    # logits columns: [LEAK, SAFE]; rows: leak side, safe side, leak side, safe side
+    logits = torch.tensor([[3.0, 0.0], [0.0, 1.0],      # gaps 3 and -1: ahead by 4, no loss
+                           [0.5, 0.0], [0.5, 0.0]])     # gaps equal: loss = margin
+    assert float(pair_hinge(logits, leak_id=0, safe_id=1, margin=1.0)) == pytest.approx(0.5)
+    assert float(pair_hinge(logits[:2], 0, 1, margin=1.0)) == 0.0
+
+
+def test_train_report_rows_seeds_and_bar():
+    from eval.pairs import train_report as r
+    pairs = [{"pair_id": f"p{i}", "base": f"b{i // 2}", "set": "counterfactual",
+              "cls": "SPECTRE_V1" if i < 4 else "MDS", "leak": [], "safe": []} for i in range(8)]
+    rows = r.rows_of(pairs)
+    assert [(k, len(v)) for k, v in rows.items()] == [("counterfactual, all", 8), ("counterfactual, Spectre V1", 4)]
+
+    def table(right, both):
+        # `right` pairs ranked correctly; of those, `both` also on the correct sides of 0.5
+        t = {}
+        for i, p in enumerate(pairs):
+            l, s = (0.9, 0.1) if i < both else (0.9, 0.8) if i < right else (0.2, 0.7)
+            t[(p["pair_id"], "leak")], t[(p["pair_id"], "safe")] = l, s
+        return t
+    m = r.cell(pairs, [table(8, 4), table(6, 2)])              # two seeds
+    assert m["rank"] == pytest.approx((1.0 + 0.75) / 2) and m["seeds"] == 2
+    assert m["both"] == pytest.approx((0.5 + 0.25) / 2)
+    assert m["spread"] == pytest.approx(0.125 * 2 ** 0.5)
+    lo, hi = m["interval"]
+    assert 0.5 <= lo <= m["rank"] <= hi <= 1.0                 # resampled over the 4 programs
+    # a seed that does not score every pair of the row is an error, not a smaller row
+    part = {k: v for k, v in table(8, 8).items() if k[0] != "p7"}
+    with pytest.raises(ValueError):
+        r.cell(pairs, [part])
+    # the bar, as the spec fixes it: ranking above the rule, both-sides-right above the untrained model
+    assert r.passes({"rank": 0.70, "both": 0.30}, rule=0.671, untrained={"both": 0.10})
+    assert not r.passes({"rank": 0.66, "both": 0.30}, rule=0.671, untrained={"both": 0.10})
+    assert not r.passes({"rank": 0.70, "both": 0.10}, rule=0.671, untrained={"both": 0.10})

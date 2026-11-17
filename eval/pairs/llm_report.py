@@ -73,11 +73,12 @@ def main() -> int:
            "With 30 pairs, one pair is 0.033 and a 95% interval around 0.8 is roughly ±0.15. "
            "LLM cells: mean ± standard deviation over repeats [lowest–highest repeat]; the spread is "
            "run-to-run change on the same pairs, not sampling error.", "",
-           "| set | pairs | shorter | fewer barriers | graph model (10 seeds) | graph model, branch edges (10 seeds) | LLM single side | LLM forced choice |",
-           "|---|---|---|---|---|---|---|---|"]
+           "| set | pairs | shorter | fewer barriers | no interior fence | mechanism rule | graph model (10 seeds) | graph model, branch edges (10 seeds) | LLM single side | LLM forced choice |",
+           "|---|---|---|---|---|---|---|---|---|---|"]
     for k in sorted(groups):
         g = groups[k]
-        cells = [f"{score.pair_metrics(g, score.SCORERS[n])['auc']:.3f}" for n in ("shorter", "fewer fences")]
+        cells = [f"{score.pair_metrics(g, score.SCORERS[n])['auc']:.3f}" for n in ("shorter", "fewer fences", "no interior fence")]
+        cells.append(f"{score.mechanism_metrics(g)['auc']:.3f}")
         for a in ("plain", "cfg"):
             xs = [x for x, n in (_auc(g, t) for t in gine[a]) if n == len(g)]
             cells.append(f"{st.mean(xs):.3f} ({len(xs)})" if xs else "—")
@@ -93,6 +94,10 @@ def main() -> int:
         s = [single[(p["pair_id"], "safe")] <= 0.5 for p in g]
         out.append(f"| {k} | {sum(l)}/{len(g)} | {sum(s)}/{len(g)} | {sum(a and b for a, b in zip(l, s))}/{len(g)} |")
     out += ["", "## Reading it", "",
+            "- The two rule columns, as in `PAIRS.md`: `no interior fence` calls a sequence safe when an "
+            "`lfence` sits inside it (not in the leading or trailing run of fences) and leaking otherwise; "
+            "it reads x86 `lfence` only. `mechanism rule` is the per-class hand rule. Each scores 0.5 where "
+            "it gives both sides the same answer.",
             "- `linux` and `linux_arm64` are public kernel commits: the model may have seen them. The other "
             "sets are not public.",
             "- Forced choice tells the model that exactly one side leaks; single side does not. Single side is "

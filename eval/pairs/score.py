@@ -84,6 +84,18 @@ def _mechanism(cls):
     return f
 
 
+def mechanism_metrics(pairs: list[dict]) -> dict:
+    """The mechanism rule needs the pair's class, so score class by class and weight by pairs."""
+    by_cls = defaultdict(list)
+    for p in pairs:
+        by_cls[p["cls"]].append(p)
+    ms = [(pair_metrics(q, _mechanism(c)), len(q)) for c, q in by_cls.items()]
+    tot = sum(n for _, n in ms)
+    return {"n": tot, "wins": sum(m["wins"] for m, _ in ms), "ties": sum(m["ties"] for m, _ in ms),
+            "auc": sum(m["auc"] * n for m, n in ms) / tot,
+            "auc_by_base": sum(m["auc_by_base"] * m["bases"] for m, _ in ms) / sum(m["bases"] for m, _ in ms)}
+
+
 SCORERS = {"length": len,
            "shorter": lambda s: -len(s),
            "fewer fences": lambda s: -_fences(s),
@@ -184,15 +196,7 @@ def main(argv=None):
         for g, ps in groups.items():
             rows[name][g] = [pair_metrics(ps, f)]
     for g, ps in groups.items():
-        by_cls = defaultdict(list)
-        for p in ps:
-            by_cls[p["cls"]].append(p)
-        ms = [(pair_metrics(q, _mechanism(c)), len(q)) for c, q in by_cls.items()]
-        tot = sum(n for _, n in ms)
-        rows["mechanism rule"][g] = [{
-            "n": tot, "wins": sum(m["wins"] for m, _ in ms), "ties": sum(m["ties"] for m, _ in ms),
-            "auc": sum(m["auc"] * n for m, n in ms) / tot,
-            "auc_by_base": sum(m["auc_by_base"] * m["bases"] for m, _ in ms) / sum(m["bases"] for m, _ in ms)}]
+        rows["mechanism rule"][g] = [mechanism_metrics(ps)]
     for bigrams, name in ((False, "opcode counts, boosted (v57)"), (True, "opcode counts + bigrams, boosted (v57)")):
         for seed in a.seeds:
             f = train_gbm(train, seed, bigrams)

@@ -457,7 +457,7 @@ def collate_fn(batch):
 def train_epoch(model, loader, optimizer, ce_criterion, con_criterion, device,
                 lambda_con, grad_accum, desc="Train",
                 arch_mode="embed", arch_lambda=0.0, arch_ce_criterion=None,
-                node_drop=0.0):
+                node_drop=0.0, pair_step=None, pair_lambda=0.0):
     model.train()
     total_ce_loss = 0
     total_con_loss = 0
@@ -512,6 +512,10 @@ def train_epoch(model, loader, optimizer, ce_criterion, con_criterion, device,
             # reversal is what makes the encoder adversarial.
             arch_loss = arch_ce_criterion(arch_logits, arch_id)
             loss = loss + (arch_lambda * arch_loss) / grad_accum
+
+        if pair_step is not None:
+            # Margin between the two sides of minimal pairs (--pair-data).
+            loss = loss + (pair_lambda * pair_step()) / grad_accum
 
         loss.backward()
 
@@ -848,6 +852,16 @@ def main():
         '--seed', type=int, default=None,
         help='Global training seed (torch+numpy). Enables reproducible multi-seed runs.',
     )
+    parser.add_argument(
+        '--pair-data', type=str, default=None,
+        help='Minimal pairs as records alternating leaking side, safe side '
+             '(eval/pairs/train_gine_pairs.py). Adds a margin on logit(LEAK) - logit(SAFE) '
+             'between the two sides of a pair to every training step. The pairs are not '
+             'added to the labelled training records.',
+    )
+    parser.add_argument('--pair-margin', type=float, default=1.0)
+    parser.add_argument('--pair-lambda', type=float, default=1.0)
+    parser.add_argument('--pair-batch', type=int, default=16, help='pairs per pair batch')
 
     args = parser.parse_args()
     tag = "v52_b GINE — group-aware val + stable-hash dataset"
@@ -1081,6 +1095,47 @@ def main():
     arch_ce_criterion = nn.CrossEntropyLoss() if args.arch_mode == "adversarial" else None
 
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+
+    pair_step = None
+    if args.pair_data:
+        _root = str(Path(__file__).resolve().parent.parent)
+        if _root not in sys.path:
+            sys.path.insert(0, _root)
+        from eval.pairs.train_gine_pairs import pair_batches, pair_hinge
+        _l2i = {id_to_label[i]: i for i in range(num_classes)}
+        if 'LEAK' not in _l2i or 'SAFE' not in _l2i:
+            raise ValueError(f"--pair-data needs LEAK and SAFE classes, have {sorted(_l2i)}")
+        with open(args.pair_data) as _f:
+            pair_records = [json.loads(l) for l in _f if l.strip()]
+        if len(pair_records) % 2 or any(
+                r['label'] != ('LEAK', 'SAFE')[i % 2] for i, r in enumerate(pair_records)):
+            raise ValueError("--pair-data must alternate LEAK, SAFE records")
+        pair_dataset = GINEDatasetV47(pair_records, label_to_id, feature_names, **_ds_kw)
+        if len(pair_dataset) != len(pair_records):
+            raise ValueError(f"pair dataset kept {len(pair_dataset)} of {len(pair_records)} records")
+        _pair_state = {'epoch': 0, 'it': iter(())}
+        _pair_losses = []
+
+        def pair_step():
+            try:
+                idx = next(_pair_state['it'])
+            except StopIteration:
+                _pair_state['epoch'] += 1
+                _pair_state['it'] = iter(pair_batches(
+                    len(pair_records) // 2, args.pair_batch,
+                    seed=(args.seed or 0) * 100003 + _pair_state['epoch']))
+                idx = next(_pair_state['it'])
+            b = collate_fn([pair_dataset[i] for i in idx])
+            out = model(
+                b['node_features'].to(DEVICE), b['edge_index'].to(DEVICE), b['edge_type'].to(DEVICE),
+                b['node_mask'].to(DEVICE), b['handcrafted'].to(DEVICE), b['global_features'].to(DEVICE),
+                b['arch_id'].to(DEVICE), return_projection=True,
+                edge_mask=b['edge_mask'].to(DEVICE), edge_weight=b['edge_weight'].to(DEVICE))
+            loss = pair_hinge(out[0], _l2i['LEAK'], _l2i['SAFE'], args.pair_margin)
+            _pair_losses.append(float(loss))
+            return loss
+        print(f"Pairwise term: {len(pair_records) // 2} pairs, margin {args.pair_margin}, "
+              f"lambda {args.pair_lambda}, {args.pair_batch} pairs per step")
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
     print(f"\n{'='*70}")
@@ -1108,7 +1163,11 @@ def main():
             desc=f"Epoch {epoch}/{args.epochs} train",
             arch_mode=args.arch_mode, arch_lambda=arch_lambda,
             arch_ce_criterion=arch_ce_criterion, node_drop=args.node_drop,
+            pair_step=pair_step, pair_lambda=args.pair_lambda,
         )
+        if pair_step is not None:
+            print(f"  pair hinge, mean over epoch: {sum(_pair_losses) / len(_pair_losses):.4f}")
+            _pair_losses.clear()
         # Early stopping uses VAL set (held-out from train). Test never seen during training.
         val_acc, _, _ = evaluate(
             model, val_loader, DEVICE,

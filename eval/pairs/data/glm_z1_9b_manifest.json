@@ -1,0 +1,71 @@
+{
+ "repo": "zai-org/GLM-Z1-9B-0414",
+ "revision": "b221b06fefb23ca320922cf6e68ab5f2fb82de81",
+ "license": "mit",
+ "parameters": 9400279040,
+ "dtype": [
+  "BF16"
+ ],
+ "files": {
+  ".gitattributes": {
+   "size": 1570,
+   "sha256": null
+  },
+  "LICENSE": {
+   "size": 1064,
+   "sha256": null
+  },
+  "README.md": {
+   "size": 7331,
+   "sha256": null
+  },
+  "chat_template.jinja": {
+   "size": 1292,
+   "sha256": null
+  },
+  "config.json": {
+   "size": 689,
+   "sha256": null
+  },
+  "configuration.json": {
+   "size": 48,
+   "sha256": null
+  },
+  "generation_config.json": {
+   "size": 160,
+   "sha256": null
+  },
+  "model-00001-of-00004.safetensors": {
+   "size": 4984283160,
+   "sha256": "0e60b8e1d26b365252590099e996d66dcf75118bd1dd7e0ad209f90099f52321"
+  },
+  "model-00002-of-00004.safetensors": {
+   "size": 4895274600,
+   "sha256": "175f5395ee3a460cc88be729dda2628b3669fce5c7a081ffe347ef5437607e43"
+  },
+  "model-00003-of-00004.safetensors": {
+   "size": 4895274616,
+   "sha256": "a628600a84d3654fc78b0fbe53dcac2a1e03c673f256b4518f635dfd25297a2b"
+  },
+  "model-00004-of-00004.safetensors": {
+   "size": 4025786080,
+   "sha256": "8529f785e9b993f0e43dc24309b81fe3907c01f4ee0454ce8dce23fb354e96d7"
+  },
+  "model.safetensors.index.json": {
+   "size": 43614,
+   "sha256": null
+  },
+  "special_tokens_map.json": {
+   "size": 601,
+   "sha256": null
+  },
+  "tokenizer.json": {
+   "size": 19966496,
+   "sha256": "76ebeac0d8bd7879ead7b43c16b44981f277e47225de2bd7de9ae1a6cc664a8c"
+  },
+  "tokenizer_config.json": {
+   "size": 4440,
+   "sha256": null
+  }
+ }
+}
