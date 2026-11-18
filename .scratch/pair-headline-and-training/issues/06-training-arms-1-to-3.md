@@ -169,3 +169,30 @@ Fixed before running: all 1,789 training pairs, 1 epoch, learning rate 1e-4, ran
 accumulation 8, 10 seeds. Jobs, 16 h limit each: 3727628 (`lora`, untrained row first),
 3727629 (`pairwise`), 3727630 (`fewshot`, 4 pairs in the prompt). Score files are written per
 seed to `~/specexec_jobs/train_llm_<job>/`.
+
+### 2026-11-17, counterfactual Spectre-V1 row split by pair kind (graph model, 10 seeds)
+
+The pairwise arm's failure on the 19 Spectre-V1 pairs is confined to one kind of pair. Ranking
+score, mean over seeds:
+
+| kind (leaking side \| safe side) | pairs | plain | labels | pairwise |
+|---|---|---|---|---|
+| `cf_fencepass \| cf_nonleak` | 8 | 0.338 | 0.400 | 0.775 |
+| `cf_wrong_path \| cf_nonleak` | 10 | 0.200 | 0.590 | 0.160 |
+| `cf_wrong_path \| cf_fencepass` | 1 | 0.200 | 0.700 | 0.100 |
+
+In a `cf_wrong_path` pair the leaking side has exactly one fence and the safe side has one to
+eight. The other counterfactual kinds (L1TF, MDS, Spectre-V4, and the V1 fence-pass pairs) all
+move to 0.67–0.84 under pairwise training. The two directions are opposed seed by seed: seed 8,
+the one seed that is inverted on every other kind (0.00–0.17), is the only seed that gets the
+wrong-path pairs right (0.80).
+
+What is measured: the per-kind scores above. What is not established: the cause. The version-2
+training pairs contain no case where a fence is present but sits on the path that is not
+speculated, which is a candidate explanation and has not been tested.
+
+### 2026-11-17, queue state
+
+`saxa` is back in service. Jobs 3727628–30 are still pending: all four 71 GB slices are held by
+other users' jobs. The scheduler's estimated starts are 2026-11-18 05:59 (3727628) and
+2026-11-18 21:59 (3727629); none is given for 3727630.

@@ -121,5 +121,6 @@ Tickets in `issues/`, in this order: 01 rule columns; 02 open model without trai
 | FastSpec ships a checkpoint; it has 8 layers against 3 in its config | detector report | not verified |
 | GLM-Z1-9B is 9.4 B parameters, MIT; GLM-4.7-Flash 31 B, MIT | model report | not verified |
 | Injected and hardware pairs share no content; held-out kinds overlap; hardware sets are one pool of 158 programs | split audit | not re-run |
+| A second hardware pool exists (1,668 pairs, 215 programs, none shared with the first); rules and never-trained language models only | ticket 11, `eval/pairs/POOL2.md` | measured 2026-11-18 |
 | Teaching partition offers a6000 (48 GB), H200 slices of 18 and 71 GB, one whole H200; limit 20 jobs, 2 days | owner's `sinfo` output, 2026-11-13 | verified by owner |
 | School guidance: download models in advance to the shared filesystem, run offline | computing.help.inf.ed.ac.uk/cluster-networking | read through a summariser; owner to open the page |

@@ -67,6 +67,30 @@ def hw_pairs(rows: list[dict], set_name: str) -> list[dict]:
     return out
 
 
+POOL2 = "eval/data/revizor_hwlabel_trainpool.jsonl"
+
+
+def pool2_set(variant: str) -> str:
+    if variant.startswith("cf_nofence"):
+        return "nofence_pool2"
+    return "counterfactual_pool2" if variant.startswith("cf_") else "variants_pool2"
+
+
+def pool2_pairs(rows: list[dict], first_pool: list[dict] = ()) -> list[dict]:
+    """Pairs from the second set of hardware-labelled programs (the labels of i5 step 4a), built
+    like the first pool and kept in sets of their own. These programs are training data of the
+    trained scorers, so only rules and models that never saw them are scored here. A program
+    that the first pool already has is an error: the two pools must stay disjoint."""
+    by = defaultdict(list)
+    for r in rows:
+        by[pool2_set(r["variant"])].append(r)
+    out = [p for name in sorted(by) for p in hw_pairs(by[name], name)]
+    both = {p["base"] for p in out} & {p["base"] for p in first_pool}
+    if both:
+        raise ValueError(f"{len(both)} programs are in both pools, e.g. {sorted(both)[0]}")
+    return out
+
+
 def linux_pairs(rows: list[dict]) -> list[dict]:
     by = defaultdict(dict)
     for r in rows:
@@ -322,7 +346,7 @@ def summary(pairs: list[dict]) -> str:
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("what", nargs="+", choices=["hw", "linux", "injected", "injected2"])
+    ap.add_argument("what", nargs="+", choices=["hw", "hw2", "linux", "injected", "injected2"])
     ap.add_argument("--n-train", type=int, default=0, help="injected2: attempts from train hosts and cores")
     ap.add_argument("--n-val", type=int, default=0)
     ap.add_argument("--n-test", type=int, default=0)
@@ -338,6 +362,12 @@ def main(argv=None):
     if "hw" in a.what:
         ps = [p for name, path in HW_SETS.items() for p in hw_pairs(_load(path), name)]
         (OUT / "pairs_hw.jsonl").write_text("".join(json.dumps(p) + "\n" for p in ps))
+        print(summary(ps))
+    if "hw2" in a.what:      # own folder: the reports read every pairs_*.jsonl directly under OUT
+        first = _load(OUT / "pairs_hw.jsonl")
+        ps = pool2_pairs(_load(POOL2), first)
+        (OUT / "pool2").mkdir(exist_ok=True)
+        (OUT / "pool2" / "pairs_hw_pool2.jsonl").write_text("".join(json.dumps(p) + "\n" for p in ps))
         print(summary(ps))
     if "linux" in a.what:
         ps = linux_pairs([r for f in LINUX if (ROOT / f).exists() for r in _load(f)])

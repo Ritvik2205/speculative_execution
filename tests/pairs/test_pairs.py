@@ -592,3 +592,45 @@ def test_train_report_rows_seeds_and_bar():
     assert r.passes({"rank": 0.70, "both": 0.30}, rule=0.671, untrained={"both": 0.10})
     assert not r.passes({"rank": 0.66, "both": 0.30}, rule=0.671, untrained={"both": 0.10})
     assert not r.passes({"rank": 0.70, "both": 0.10}, rule=0.671, untrained={"both": 0.10})
+
+
+# --- second hardware pool ----------------------------------------------------
+
+from eval.pairs import pool2_report
+
+
+def test_pool2_pairs_are_split_into_three_sets_and_never_cross_them():
+    rows = [hw("entry", "SPECTRE_V1", ["lfence", "a", "b"]),
+            hw("twin", "BENIGN", ["a", "lfence", "b"]),
+            hw("cf_wrong_path", "SPECTRE_V1", ["a", "b", "lfence", "c"]),
+            hw("cf_nonleak", "BENIGN", ["a", "c", "lfence", "b"]),
+            hw("cf_nofence_non", "SPECTRE_V1", ["a", "b"]),
+            hw("cf_nofence_ess", "BENIGN", ["a"])]
+    ps = build.pool2_pairs(rows)
+    assert sorted((p["set"], p["kind"]) for p in ps) == [
+        ("counterfactual_pool2", "cf_wrong_path|cf_nonleak"),
+        ("nofence_pool2", "cf_nofence_non|cf_nofence_ess"),
+        ("variants_pool2", "entry|twin")]
+
+
+def test_pool2_refuses_a_program_that_the_first_pool_already_has():
+    first = build.hw_pairs([hw("entry", "SPECTRE_V1", ["lfence", "a"]), hw("twin", "BENIGN", ["a", "lfence"])],
+                           "variants")
+    rows = [hw("entry", "SPECTRE_V1", ["lfence", "a", "b"]), hw("twin", "BENIGN", ["a", "lfence", "b"])]
+    with pytest.raises(ValueError, match="both pools"):
+        build.pool2_pairs(rows, first)
+    other = [hw(r["variant"], r["label"], r["sequence"], stamp="260811-075301") for r in rows]
+    assert len(build.pool2_pairs(other, first)) == 1
+
+
+def test_pool2_report_counts_programs_seen_in_training_and_scores_rules_only():
+    rows = [hw("entry", "SPECTRE_V1", ["lfence", "a", "b"]), hw("twin", "BENIGN", ["a", "lfence", "b"]),
+            hw("entry", "SPECTRE_V1", ["lfence", "c"], stamp="260811-000001"),
+            hw("twin", "BENIGN", ["c", "lfence"], stamp="260811-000001")]
+    ps = build.pool2_pairs(rows)
+    train = [{"group": "revizor_x_violation-260925-134248_fenced", "sequence": ["z"]}, {"group": "other"}]
+    assert pool2_report.seen_in_training(ps, train) == (1, 2)
+    cells = pool2_report.rule_cells(ps)
+    assert set(cells) == {"fewer fences", "no interior fence", "mechanism rule"}
+    assert cells["fewer fences"]["auc"] == 0.5 and cells["fewer fences"]["n"] == 2
+    assert cells["fewer fences"]["programs"] == 2 and len(cells["fewer fences"]["interval"]) == 2
